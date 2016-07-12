@@ -1,0 +1,8 @@
+*.o
+*.gcno
+*.lo
+*.log
+*.la
+*~
+.deps/
+.dirstamp
