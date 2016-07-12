@@ -1,0 +1,797 @@
+/*
+ * This file is part of clr-oci-runtime.
+ *
+ * Copyright (C) 2016 Intel Corporation
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
+
+/**
+ * \file
+ *
+ * State-handling routines.
+ */
+
+#include <string.h>
+#include <stdbool.h>
+
+#include <glib.h>
+#include <glib/gstdio.h>
+
+#include "common.h"
+#include "oci.h"
+#include "util.h"
+#include "state.h"
+#include "runtime.h"
+#include "mount.h"
+#include "annotation.h"
+#include "json.h"
+#include "config.h"
+
+#define update_subelements_and_strdup(node, data, member) \
+	if (node && node->data) { \
+		data->state->member = g_strdup(node->data); \
+		(*(data->subelements_count))++; \
+	}
+
+struct handler_data;
+
+static void handle_state_ociVersion_section(GNode*, struct handler_data*);
+static void handle_state_id_section(GNode*, struct handler_data*);
+static void handle_state_pid_section(GNode*, struct handler_data*);
+static void handle_state_bundlePath_section(GNode*, struct handler_data*);
+static void handle_state_commsPath_section(GNode*, struct handler_data*);
+static void handle_state_processPath_section(GNode*, struct handler_data*);
+static void handle_state_status_section(GNode*, struct handler_data*);
+static void handle_state_created_section(GNode*, struct handler_data*);
+static void handle_state_mounts_section(GNode*, struct handler_data*);
+static void handle_state_console_section(GNode*, struct handler_data*);
+static void handle_state_vm_section(GNode*, struct handler_data*);
+static void handle_state_annotations_section(GNode*, struct handler_data*);
+
+/*! Used to handle each section in \ref CLR_OCI_STATE_FILE. */
+static struct state_handler {
+	/** Name of JSON element in \ref CLR_OCI_STATE_FILE. */
+	const char* name;
+
+	/** Function to handle JSON element. */
+	void (*handle_section)(GNode* node, struct handler_data* state);
+
+	/** Set to zero if element is optional. */
+	const size_t subelements_needed;
+
+	/** A state handler is considered to have run successfully if
+	 * this value matches \ref subelements_needed.
+	 */
+	size_t subelements_count;
+} state_handlers[] = {
+	{ "ociVersion"  , handle_state_ociVersion_section  , 1 , 0 },
+	{ "id"          , handle_state_id_section          , 1 , 0 },
+	{ "pid"         , handle_state_pid_section         , 1 , 0 },
+	{ "bundlePath"  , handle_state_bundlePath_section  , 1 , 0 },
+	{ "commsPath"   , handle_state_commsPath_section   , 1 , 0 },
+	{ "processPath" , handle_state_processPath_section , 1 , 0 },
+	{ "status"      , handle_state_status_section      , 1 , 0 },
+	{ "created"     , handle_state_created_section     , 1 , 0 },
+	{ "mounts"      , handle_state_mounts_section      , 0 , 0 },
+	{ "console"     , handle_state_console_section     , 2 , 0 },
+	{ "vm"          , handle_state_vm_section          , 5 , 0 },
+	{ "annotations" , handle_state_annotations_section , 0 , 0 },
+
+	/* terminator */
+	{ NULL, NULL, 0, 0 }
+};
+
+/*!
+ * handler data is provided to each handler section
+ * to fill up an oci_state struct and validate how many
+ * subelements must have a section
+ */
+struct handler_data {
+	struct oci_state* state;
+	 /*! if subelements_count is equal to subelements_needed then all
+	  * subelements were found, otherwise some subelements are
+	  * missed and an error must be reported
+	  */
+	size_t* subelements_count;
+};
+
+/** Map of \ref oci_status values to human-readable strings. */
+static struct clr_oci_map oci_status_map[] =
+{
+	{ OCI_STATUS_CREATED , "created" },
+	{ OCI_STATUS_RUNNING , "running" },
+	{ OCI_STATUS_PAUSED  , "paused"  },
+	{ OCI_STATUS_STOPPED , "stopped" },
+	{ OCI_STATUS_STOPPING, "stopping"},
+
+	{ OCI_STATUS_INVALID , NULL      }
+};
+
+/**
+ * Determine the human-readable string to be used to show the state
+ * of the specified VM.
+ *
+ * \param config \ref clr_oci_config.
+ *
+ * \return static string representing state on success, else \c NULL.
+ */
+private
+const gchar *
+clr_oci_status_get (const struct clr_oci_config *config)
+{
+	if (! config) {
+		return NULL;
+	}
+
+	return clr_oci_status_to_str (config->state.status);
+}
+
+/*!
+ * handler for ociVersion section.
+ *
+ * \param node \c GNode.
+ * \param data \ref handler_data.
+ */
+static void
+handle_state_ociVersion_section(GNode* node, struct handler_data* data) {
+	update_subelements_and_strdup(node, data, oci_version);
+}
+
+/*!
+ *  handler for id section.
+ *
+ * \param node \c GNode.
+ * \param data \ref handler_data.
+ */
+static void
+handle_state_id_section(GNode* node, struct handler_data* data) {
+	update_subelements_and_strdup(node, data, id);
+}
+
+/*!
+ *  handler for pid section
+ *
+ * \param node \c GNode.
+ * \param data \ref handler_data.
+ */
+static void
+handle_state_pid_section(GNode* node, struct handler_data* data) {
+	gchar* endptr = NULL;
+
+	if (node) {
+		if (! node->data) {
+			return;
+		}
+		data->state->pid =
+			(GPid)g_ascii_strtoll((char*)node->data, &endptr, 10);
+		if (endptr != node->data) {
+			(*(data->subelements_count))++;
+		} else {
+			g_critical("failed to convert '%s' to int",
+			    (char*)node->data);
+		}
+	}
+}
+
+/*!
+ *  handler for bundlePath section
+ *
+ * \param node \c GNode.
+ * \param data \ref handler_data.
+ */
+static void
+handle_state_bundlePath_section(GNode* node, struct handler_data* data) {
+	update_subelements_and_strdup(node, data, bundle_path);
+}
+
+/*!
+ *  handler for commsPath section
+ *
+ * \param node \c GNode.
+ * \param data \ref handler_data.
+ */
+static void
+handle_state_commsPath_section(GNode* node, struct handler_data* data) {
+	update_subelements_and_strdup(node, data, comms_path);
+}
+
+
+/*!
+ *  handler for processPath section
+ *
+ * \param node \c GNode.
+ * \param data \ref handler_data.
+ */
+static void
+handle_state_processPath_section (GNode* node, struct handler_data* data) {
+	update_subelements_and_strdup(node, data, procsock_path);
+}
+
+/*!
+ *  handler for status section
+ *
+ * \param node \c GNode.
+ * \param data \ref handler_data.
+ */
+static void
+handle_state_status_section(GNode* node, struct handler_data* data) {
+	if (node && node->data) {
+		data->state->status = clr_oci_str_to_status ((const gchar *)node->data);
+		(*(data->subelements_count))++;
+	}
+}
+
+/*!
+ * handler for created section
+ *
+ * \param node \c GNode.
+ * \param data \ref handler_data.
+ */
+static void
+handle_state_created_section(GNode* node, struct handler_data* data) {
+	update_subelements_and_strdup(node, data, create_time);
+}
+
+/*!
+ * handler for mounts section
+ *
+ * \param node \c GNode.
+ * \param data \ref handler_data.
+ */
+static void
+handle_state_mounts_section(GNode* node, struct handler_data* data) {
+	struct clr_oci_mount* m = NULL;
+
+	if (node && node->data) {
+		m = g_new0 (struct clr_oci_mount, 1);
+		g_strlcpy (m->dest, (char*)node->data, sizeof (m->dest));
+		m->ignore_mount = false;
+
+		data->state->mounts =
+		    g_slist_append(data->state->mounts, m);
+	}
+}
+
+/*!
+ * handler for console section
+ *
+ * \param node \c GNode.
+ * \param data \ref handler_data.
+ */
+static void
+handle_state_console_section(GNode* node, struct handler_data* data) {
+	if (! (node && node->data)) {
+		return;
+	}
+	if (! (node->children && node->children->data)) {
+		g_critical("%s missing value", (char*)node->data);
+		return;
+	}
+	if (g_strcmp0(node->data, "socket") == 0) {
+		(*(data->subelements_count))++;
+		data->state->use_socket_console =
+		    g_strcmp0(node->children->data, "true") ? false : true;
+	} else if (g_strcmp0(node->data, "path") == 0) {
+		(*(data->subelements_count))++;
+		data->state->console = g_strdup(node->children->data);
+	} else {
+		g_critical("unknown console option: %s", (char*)node->data);
+	}
+}
+
+/*!
+ * handler for vm section
+ *
+ * \param node \c GNode.
+ * \param data \ref handler_data.
+ */
+static void
+handle_state_vm_section(GNode* node, struct handler_data* data) {
+	struct clr_oci_vm_cfg *vm;
+
+	if (! (node && node->data)) {
+		return;
+	}
+	if (! (node->children && node->children->data)) {
+		g_critical("%s missing value", (char*)node->data);
+		return;
+	}
+
+	g_assert (data->state);
+
+	vm = data->state->vm;
+
+	g_assert (vm);
+
+	if (g_strcmp0(node->data, "workload_path") == 0) {
+		g_strlcpy (vm->workload_path,
+				node->children->data,
+				sizeof (vm->workload_path));
+		(*(data->subelements_count))++;
+	} else if (g_strcmp0(node->data, "hypervisor_path") == 0) {
+		g_strlcpy (vm->hypervisor_path,
+				node->children->data,
+				sizeof (vm->hypervisor_path));
+		(*(data->subelements_count))++;
+	} else if (g_strcmp0(node->data, "kernel_path") == 0) {
+		g_strlcpy (vm->kernel_path,
+				node->children->data,
+				sizeof (vm->kernel_path));
+		(*(data->subelements_count))++;
+	} else if (g_strcmp0(node->data, "image_path") == 0) {
+		g_strlcpy (vm->image_path,
+				node->children->data,
+				sizeof (vm->image_path));
+		(*(data->subelements_count))++;
+	} else if (g_strcmp0(node->data, "kernel_params") == 0) {
+		vm->kernel_params = g_strdup(node->children->data);
+		(*(data->subelements_count))++;
+	} else {
+		g_critical("unknown console option: %s", (char*)node->data);
+	}
+}
+
+/*!
+ * handler for annotations section
+ *
+ * \param node \c GNode.
+ * \param data \ref handler_data.
+ */
+static void
+handle_state_annotations_section(GNode* node, struct handler_data* data)
+{
+        struct oci_cfg_annotation *ann = NULL;
+
+        if (! (node && node->data)) {
+                return;
+        }
+
+        if (! (node->children && node->children->data)) {
+                g_critical("%s missing value", (char*)node->data);
+                return;
+        }
+
+        g_assert(data->state);
+
+        ann = g_new0 (struct oci_cfg_annotation, 1);
+        ann->key = g_strdup ((gchar *)node->data);
+        if (node->children->data) {
+                ann->value = g_strdup ((gchar *)node->children->data);
+        }
+
+        data->state->annotations = g_slist_prepend(data->state->annotations,
+                                                        ann);
+}
+
+/*!
+ * process all sections in state.json using the right section handler
+ *
+ * \param node \c GNode.
+ * \param state \ref oci_state.
+ */
+static void
+handle_state_sections(GNode* node, struct oci_state* state) {
+	struct state_handler* handler;
+	struct handler_data data = { .state=state };
+
+	if (! (node && node->data)) {
+		return;
+	}
+
+	for (handler=state_handlers; handler->name; handler++) {
+		if (g_strcmp0(handler->name, node->data) == 0) {
+			data.subelements_count = &handler->subelements_count;
+			g_node_children_foreach(node, G_TRAVERSE_ALL,
+				(GNodeForeachFunc)handler->handle_section, &data);
+			return;
+		}
+	}
+
+	g_critical("handler not found %s", (char*)node->data);
+}
+
+/*!
+ * Update the specified config with the state file path.
+ *
+ * \param config \ref clr_oci_config.
+ *
+ * \return \c true on success, else \c false.
+ */
+gboolean
+clr_oci_state_file_get (struct clr_oci_config *config)
+{
+	g_assert (config);
+
+	if (! config->state.runtime_path[0]) {
+		return false;
+	}
+
+	g_snprintf (config->state.state_file_path,
+			sizeof (config->state.state_file_path),
+			"%s/%s",
+			config->state.runtime_path,
+			CLR_OCI_STATE_FILE);
+
+	return true;
+}
+
+/*!
+ * Determine if the state file exists.
+ *
+ * \param config \ref clr_oci_config.
+ *
+ * \return \c true on success, else \c false.
+ */
+gboolean
+clr_oci_state_file_exists (struct clr_oci_config *config)
+{
+	if (! config) {
+		return false;
+	}
+
+	if (! clr_oci_runtime_path_get (config)) {
+		return false;
+	}
+
+	if (! clr_oci_state_file_get (config)) {
+		return false;
+	}
+
+	return g_file_test (config->state.state_file_path,
+			G_FILE_TEST_EXISTS);
+}
+
+/*!
+ * Read the state file.
+ *
+ * \param file Full path to \ref CLR_OCI_STATE_FILE state file.
+ *
+ * \return Newly-allocated \ref oci_state on success, else \c NULL.
+ */
+struct oci_state *
+clr_oci_state_file_read (const char *file)
+{
+	GNode* node = NULL;
+	struct oci_state *state = NULL;
+	struct state_handler* handler;
+
+	if (! file) {
+		return NULL;
+	}
+
+	if (! clr_oci_json_parse(&node, file)) {
+		g_critical("failed to parse json file: %s", file);
+		return NULL;
+	}
+
+	state = g_new0 (struct oci_state, 1);
+	if (state) {
+#ifdef DEBUG
+		clr_oci_node_dump (node);
+#endif // DEBUG
+
+		state->vm = g_malloc0 (sizeof(struct clr_oci_vm_cfg));
+		if (! state->vm) {
+			g_free (state);
+			state = NULL;
+			goto out;
+		}
+
+		/* reset subelements_count */
+		for (handler=state_handlers; handler->name; ++handler) {
+			handler->subelements_count = 0;
+		}
+
+		g_node_children_foreach(node, G_TRAVERSE_ALL,
+			(GNodeForeachFunc)handle_state_sections, state);
+
+		for (handler=state_handlers; handler->name; ++handler) {
+			if (handler->subelements_count < handler->subelements_needed) {
+				g_critical("failed to run handler: %s", handler->name);
+				clr_oci_state_free(state);
+				state = NULL;
+				break;
+			}
+		}
+	}
+
+out:
+	g_free_node(node);
+	return state;
+}
+
+/*!
+ * Free all resources associated with the specified \ref oci_state.
+ *
+ * \param state \ref oci_state.
+ */
+void
+clr_oci_state_free (struct oci_state *state)
+{
+	if (! state) {
+		return;
+	}
+
+	g_free_if_set (state->oci_version);
+	g_free_if_set (state->id);
+	g_free_if_set (state->bundle_path);
+	g_free_if_set (state->comms_path);
+	g_free_if_set (state->procsock_path);
+	g_free_if_set (state->create_time);
+	g_free_if_set (state->console);
+
+	if (state->mounts) {
+		clr_oci_mounts_free_all (state->mounts);
+	}
+
+	if (state->vm) {
+		g_free_if_set (state->vm->kernel_params);
+		g_free (state->vm);
+	}
+
+        if (state->annotations) {
+                clr_oci_annotations_free_all(state->annotations);
+        }
+	g_free (state);
+}
+
+/*!
+ * Create the state file for the specified \p config.
+ *
+ * \param config \ref clr_oci_config.
+ * \param created_timestamp ISO 8601 timestamp for when VM Was created.
+ *
+ * \see https://github.com/opencontainers/specs/blob/master/runtime.md
+ *
+ * \return \c true on success, else \c false.
+ */
+gboolean
+clr_oci_state_file_create (struct clr_oci_config *config,
+		const char *created_timestamp)
+{
+	JsonObject  *obj = NULL;
+	JsonObject  *console = NULL;
+	JsonObject  *vm = NULL;
+	JsonObject  *annotation_obj = NULL;
+	JsonArray   *mounts = NULL;
+	gchar       *str = NULL;
+	gsize        str_len = 0;
+	GError      *err = NULL;
+	const gchar *status;
+	gboolean     ret;
+	gboolean     result = false;
+
+	if (! (config && created_timestamp)) {
+		return false;
+	}
+	if ( ! config->optarg_container_id) {
+		return false;
+	}
+	if ( ! (*config->optarg_container_id)) {
+		return false;
+	}
+	if ( ! config->bundle_path) {
+		return false;
+	}
+	if ( ! config->state.runtime_path[0]) {
+		return false;
+	}
+	if ( ! config->state.comms_path[0]) {
+		return false;
+	}
+	if ( ! config->state.procsock_path[0]) {
+		return false;
+	}
+	if (! config->vm) {
+		return false;
+	}
+
+	if (! clr_oci_state_file_get (config)) {
+		return false;
+	}
+
+	obj = json_object_new ();
+
+	/* Add minimim required elements */
+	json_object_set_string_member (obj, "ociVersion",
+			CLR_OCI_SUPPORTED_SPEC_VERSION);
+
+	json_object_set_string_member (obj, "id",
+			config->optarg_container_id);
+
+	json_object_set_int_member (obj, "pid",
+			(unsigned)config->state.workload_pid);
+
+	json_object_set_string_member (obj, "bundlePath",
+			config->bundle_path);
+
+	/* Add runtime-specific elements */
+	json_object_set_string_member (obj, "commsPath",
+			config->state.comms_path);
+
+	json_object_set_string_member (obj, "processPath",
+			config->state.procsock_path);
+
+	status = clr_oci_status_get (config);
+	if (! status) {
+		goto out;
+	}
+
+	json_object_set_string_member (obj, "status", status);
+
+	json_object_set_string_member (obj, "created", created_timestamp);
+
+	/* Add an array of mounts to allow "delete" to unmount these
+	 * resources later.
+	 */
+	mounts = clr_oci_mounts_to_json (config);
+	if (! mounts) {
+		goto out;
+	}
+
+	json_object_set_array_member (obj, "mounts", mounts);
+
+	/* Add an object containing details of the console device being
+	 * used.
+	 */
+	console = json_object_new ();
+	json_object_set_boolean_member (console, "socket",
+			config->use_socket_console);
+	json_object_set_string_member (console, "path",
+			config->console);
+
+	json_object_set_object_member (obj, "console", console);
+
+	/* Add an object containing hypervisor details */
+	vm = json_object_new ();
+
+	json_object_set_string_member (vm, "hypervisor_path",
+			config->vm->hypervisor_path);
+
+	json_object_set_string_member (vm, "image_path",
+			config->vm->image_path);
+
+	json_object_set_string_member (vm, "kernel_path",
+			config->vm->kernel_path);
+
+	json_object_set_string_member (vm, "workload_path",
+			config->vm->workload_path);
+
+	/* this element must be set, so specify a blank string if there
+	 * really are no parameters.
+	 */
+	json_object_set_string_member (vm, "kernel_params",
+			config->vm->kernel_params
+			? config->vm->kernel_params : "");
+
+	json_object_set_object_member (obj, "vm", vm);
+
+	if (config->oci.annotations) {
+		/* Add an object containing annotations */
+		annotation_obj = clr_oci_annotations_to_json(config);
+
+		json_object_set_object_member(obj, "annotations", annotation_obj);
+	}
+
+	/* convert JSON to string */
+	str = clr_oci_json_obj_to_string (obj, true, &str_len);
+	if (! str) {
+		goto out;
+	}
+
+	/* Create state file */
+	ret = g_file_set_contents (config->state.state_file_path,
+			str, (gssize)str_len, &err);
+	if (ret) {
+		result = true;
+	} else {
+		g_critical ("failed to create state file %s: %s",
+				config->state.state_file_path, err->message);
+		g_error_free (err);
+	}
+
+	g_debug ("created state file %s", config->state.state_file_path);
+
+out:
+	if (obj) {
+		json_object_unref (obj);
+	}
+	g_free_if_set (str);
+
+	return result;
+}
+
+/*!
+ * Delete the state file for the specified \p config.
+ *
+ * \param config \ref clr_oci_config.
+ *
+ * \return \c true on success, else \c false.
+ */
+gboolean
+clr_oci_state_file_delete (const struct clr_oci_config *config)
+{
+	g_assert (config);
+	g_assert (config->state.state_file_path[0]);
+
+	g_debug ("deleting state file %s", config->state.state_file_path);
+
+	return g_unlink (config->state.state_file_path) == 0;
+}
+
+/**
+ * Convert a \ref oci_status into a human-readable string.
+ *
+ * \param status \ref oci_status.
+ *
+ * \return String representation of \ref oci_status on success,
+ * else \c NULL.
+ */
+const char *
+clr_oci_status_to_str (enum oci_status status)
+{
+	struct clr_oci_map *p;
+
+	for (p = oci_status_map; p && p->name; p++) {
+		if (p->num == status) {
+			return p->name;
+		}
+	}
+
+	return NULL;
+}
+
+/**
+ * Calculate length of longest status value.
+ *
+ * \return Length in bytes.
+ */
+int
+clr_oci_status_length (void)
+{
+	struct clr_oci_map  *p;
+	int                  max = 0;
+
+	for (p = oci_status_map; p && p->name; p++) {
+		int len = (int)g_utf8_strlen (p->name, LINE_MAX);
+
+		max = CLR_OCI_MAX (len, max);
+	}
+
+	return max;
+}
+
+/**
+ * Convert a human-readable string state into a \ref oci_status_map.
+ *
+ * \param str String to convert to a \ref oci_status_map.
+ *
+ * \return Valid \ref oci_status value, or \ref OCI_STATUS_INVALID on
+ * error.
+ */
+enum oci_status
+clr_oci_str_to_status (const char *str)
+{
+	struct clr_oci_map  *p;
+
+	for (p = oci_status_map; p && p->name; p++) {
+		if (! g_strcmp0 (str, p->name)) {
+			return p->num;
+		}
+	}
+
+	return OCI_STATUS_INVALID;
+}

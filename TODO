@@ -1,0 +1,23 @@
+TODO
+----
+
+- chroot qemu by calling "qemu -chroot $bundle_dir"
+  (need to define @BUNDLE_DIR@ for hypervisor.args).
+- Since docker container names can be long, we should permit a
+  partial, unique container name to be specified to all commands that
+  accept a container id.
+- Switch to g_build_path() rather than PATH_MAX arrays (smaller binary
+  and safer, at the cost of speed [how much?]).
+- Use g_autofree for strings (minimise code leaks, code clarity).
+- Rewrite clr_oci_expand_cmdline() and/or clr_oci_replace_string() to
+  avoid the hundreds of calls to clr_oci_replace_string().
+- Update clr_oci_get_iso8601_timestamp() to log in nano-second
+  resolution (as runc already does).
+- Rather than redirecting stdin/out/err for the qemu-lite process, we
+  could run it with "-chardev serial path=/dev/pts/XX" where that device
+  is the value passed from containerd.
+- Do something with the annotations!
+- Do something with hostname.
+- Do something with process.user.
+- Permit '#' comments in "hypervisor.args".
+- Convert json-generating code to use json_builder_new ()? (it's more understandable!)

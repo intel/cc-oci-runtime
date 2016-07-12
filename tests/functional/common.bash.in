@@ -1,0 +1,152 @@
+#!/bin/bash
+#Based on runc tests/integration/helpers.bash
+
+COR="${BATS_TEST_DIRNAME}/../../clr-oci-runtime"
+
+#confiration files
+CONFIG="${BATS_TEST_DIRNAME}/data/config-minimal-clr-oci.json"
+HYPERVISOR_ARGS="${BATS_TEST_DIRNAME}/../../data/hypervisor.args"
+
+# Test data path.
+TESTDATA=$(readlink -e "${BATS_TEST_DIRNAME}")
+BUNDLE_DIR="@BUNDLE_TEST_PATH@"
+ROOTFS_DIR="@BUNDLE_TEST_PATH@"
+CONTAINERS_IMG="@CONTAINERS_IMG@"
+CONTAINER_KERNEL="@CONTAINER_KERNEL@"
+
+
+#Setup a bundle based on docker-busybox
+function setup_bundle() {
+	if [ ! -d "$BUNDLE_DIR" ]
+	then
+		skip "bundle directory does not exits,\
+ provide a valid bundle in $BUNDLE_DIR"
+	elif [ ! -d "$ROOTFS_DIR" ]
+	then
+		skip "$ROOTFS_DIR directory does not exit,\
+ provide a rootfs"
+	elif [ ! -f "$CONTAINERS_IMG" ]
+	then
+		skip "Clear Container image $CONTAINERS_IMG  does\
+ not exits, provide an image"
+	elif [ ! -f "$CONTAINER_KERNEL" ]
+	then
+		skip "Clear Container kernel $CONTAINER_KERNEL does\
+ not exits, provide a kernel"
+	elif [ ! -x "@QEMU_PATH@" ]
+	then
+		 skip "execute permission is not granted: @QEMU_PATH@"
+	fi
+
+	for f in  $BUNDLE_DIR $ROOTFS_DIR $CONTAINERS_IMG $CONTAINER_KERNEL
+	do
+		[ -r "$f" ] || skip "cannot read file $f"
+		[ -w "$f" ] || skip "write permission is not granted: $f"
+	done
+
+
+	#Copy hypervisor.args
+	/bin/cp "$HYPERVISOR_ARGS" "${BUNDLE_DIR}/hypervisor.args"
+	cd "$BATS_TEST_DIRNAME"
+}
+
+#Verifiy a container state
+# @param <container-id>
+# @param <status>  container status to check (e.g. running)
+# @param <timeout> timeout to check container status
+# return true if containter have the <status>, false if
+#        the status is not the expected after timeout
+function testcontainer() {
+	container_id="$1"
+	status="$2"
+	timeout_cmd=${3:-5}
+	i=0
+	got=0
+	cmd="$COR list --format table"
+	[ "$timeout_cmd"  -eq "$timeout_cmd" ] || \
+	{ log_msg "timeout is not a number"; exit 1; }
+	while [ "$i" -lt "$timeout_cmd" ]
+	do
+		output=$(run_cmd "$cmd")
+		[[ ${output} =~ ID\ +PID\ +STATUS\ +BUNDLE\ +CREATED+ ]]
+		if [[ "${output}" == *"$container_id"*[0-9]*"$status"*"$BUNDLE_DIR"* ]]
+		then
+			got=1
+			#Wait at least one second, for vm bootime
+			#Cor spawns the hypervisor but it does not mean
+			#That the vm is ready to work
+			#Clear containres must boot in less than one second
+			sleep 1
+			break
+		fi
+		sleep 1
+		i=$((i+1))
+	done
+	[ "$got" -eq 1 ] || { log_msg "FAILED"; exit 1; }
+	log_msg "SUCCESS"
+}
+
+# Check if test is running as root, if not
+# the test will be skipped
+function check_root() {
+	if [[ $(id -u) -ne 0 ]]
+	then
+		skip "Test requires root"
+	fi
+}
+
+#Modify config.json's workload to execute a <cmd>
+# @param <cmd>
+function workload_cmd() {
+	#Copy new, no modified config.json
+	/bin/cp "$CONFIG" "${BUNDLE_DIR}/config.json"
+	cmd="$*"
+	sed -i "s,\"CMD\",\"$cmd\",g" "$BUNDLE_DIR/config.json"
+}
+
+#check for qemu's pclite support
+#skip the test if it  does not support
+function qemu_have_pclite() {
+	out=$(@QEMU_PATH@ -machine help | grep -o pc-lite | tail -1)
+	[ "$out" = "pc-lite" ] || skip "@QEMU_PATH@ does not have pc-lite support"
+
+}
+
+# Execute a command and vefiy its exit code
+# the if exit code is not the expected the 
+# current tests will fail
+# @param cmd command to run
+# @param expected_exit_code expected exit code
+# @param timeout time to wait before kill command
+function run_cmd(){
+	cmd="$1"
+	expected_exit_code="${2:-0}"
+	timeout_cmd="$3"
+
+	#Remove -e from bats enviroment
+	set +e
+
+	if [ "$timeout_cmd"  -eq "$timeout_cmd" ] 2> /dev/null
+	then
+		cmd="timeout $timeout_cmd $cmd"
+	fi
+	log_msg "Running: $cmd"
+	eval "$cmd" 2>&1
+	exit_code="$?"
+	log_msg "exit code: $exit_code"
+	log_msg "expected exit code: $expected_exit_code"
+	#Restore -e from bats enviroment
+	set -e
+	[ "$exit_code" -eq "$expected_exit_code" ]
+}
+
+function log_msg()
+{
+	msg="$*"
+	echo "$msg" >&2
+}
+
+#Make temporal directory
+function mktempd(){
+       mktemp -d --tmpdir="$BATS_TMPDIR" --suffix=-cor-test
+}
