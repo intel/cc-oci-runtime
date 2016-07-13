@@ -49,13 +49,6 @@ START_TEST(test_clr_oci_config_check) {
 	ck_assert (! clr_oci_config_check (&config));
 	config.oci.oci_version = "0.0.1";
 
-	/* erroneous (non-absolute) path */
-	g_strlcpy (config.oci.process.cwd, "foo", sizeof (config.oci.process.cwd));
-	ck_assert (! clr_oci_config_check (&config));
-	g_strlcpy (config.oci.process.cwd, "../foo", sizeof (config.oci.process.cwd));
-	ck_assert (! clr_oci_config_check (&config));
-	g_strlcpy (config.oci.process.cwd, "/foo", sizeof (config.oci.process.cwd));
-
 } END_TEST
 
 START_TEST(test_clr_oci_config_file_path) {
