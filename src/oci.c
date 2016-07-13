@@ -38,6 +38,7 @@
 #include <json-glib/json-glib.h>
 #include <json-glib/json-gobject.h>
 
+#include "common.h"
 #include "oci.h"
 #include "util.h"
 #include "process.h"
@@ -239,7 +240,7 @@ clr_oci_kill (struct clr_oci_config *config,
  *
  * \return \c true on success, else \c false.
  */
-static gboolean
+private gboolean
 clr_oci_vm_running (const struct oci_state *state)
 {
 	if (! (state && state->pid)) {

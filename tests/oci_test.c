@@ -33,6 +33,8 @@
 #include "../src/state.h"
 #include "../src/oci.h"
 
+gboolean clr_oci_vm_running (const struct oci_state *state);
+
 // TODO: add a 2nd VM state file
 START_TEST(test_clr_oci_list) {
 	struct clr_oci_config config = { { 0 } };
@@ -765,6 +767,25 @@ START_TEST(test_clr_oci_get_config_and_state) {
 
 } END_TEST
 
+START_TEST(test_clr_oci_vm_running) {
+	struct oci_state state = {0};
+
+	ck_assert (! clr_oci_vm_running (NULL));
+
+	/* no pid */
+	ck_assert (! clr_oci_vm_running (&state));
+
+	/* our pid */
+	state.pid = getpid ();
+	ck_assert (clr_oci_vm_running (&state));
+
+	/* invalid pid (we hope: this is potential an unreliable test).
+	 */
+	state.pid = (pid_t)INT_MAX;
+	ck_assert (! clr_oci_vm_running (&state));
+
+} END_TEST
+
 Suite* make_oci_suite(void) {
 	Suite* s = suite_create(__FILE__);
 
@@ -772,6 +793,7 @@ Suite* make_oci_suite(void) {
 	ADD_TEST (test_clr_oci_get_bundle_path, s);
 	ADD_TEST (test_clr_oci_config_update, s);
 	ADD_TEST (test_clr_oci_get_config_and_state, s);
+	ADD_TEST (test_clr_oci_vm_running, s);
 
 	return s;
 }
