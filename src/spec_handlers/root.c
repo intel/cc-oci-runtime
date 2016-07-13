@@ -51,7 +51,6 @@ handle_root_section(GNode* root, struct clr_oci_config* config) {
 
 static bool
 root_handle_section(GNode* root, struct clr_oci_config* config) {
-	gchar* rootfs_path = NULL;
 	gboolean ret = false;
 	struct stat st;
 
@@ -86,9 +85,6 @@ root_handle_section(GNode* root, struct clr_oci_config* config) {
 	ret = true;
 
 out:
-	if (rootfs_path) {
-		g_free (rootfs_path);
-	}
 	return ret;
 }
 
