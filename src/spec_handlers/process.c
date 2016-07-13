@@ -65,9 +65,36 @@ handle_process_section(GNode* root, struct clr_oci_config* config) {
 }
 
 static bool
-process_handle_section(GNode* root, struct clr_oci_config* config) {
+process_handle_section(GNode* root, struct clr_oci_config* config)
+{
+	if (! root) {
+		g_critical("root node is NULL");
+		return false;
+	}
+
+	if (! config ) {
+		g_critical("oci config is NULL");
+		return false;
+	}
+
 	g_node_children_foreach(root, G_TRAVERSE_ALL,
 		(GNodeForeachFunc)handle_process_section, config);
+
+	if (! config->oci.process.cwd[0]) {
+		g_critical ("no cwd");
+		return false;
+	}
+
+	if (config->oci.process.cwd[0] != '/') {
+		g_critical ("cwd is not absolute: %s",
+				config->oci.process.cwd);
+		return false;
+	}
+
+	if (! config->oci.process.args) {
+		g_critical ("no args");
+		return false;
+	}
 
 	return true;
 }

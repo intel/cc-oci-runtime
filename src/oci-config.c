@@ -83,12 +83,6 @@ clr_oci_config_check (const struct clr_oci_config *config)
 		return false;
 	}
 
-	if (config->oci.process.cwd[0] != '/') {
-		g_critical ("cwd is not absolute: %s",
-				config->oci.process.cwd);
-		return false;
-	}
-
 	return true;
 }
 

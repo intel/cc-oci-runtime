@@ -230,6 +230,7 @@ TESTS = \
 	sh_linux_test \
 	sh_vm_test \
 	sh_platform_test \
+	sh_process_test \
 	sh_root_test \
 	sh_mounts_test \
 	sh_hooks_test
@@ -425,6 +426,17 @@ sh_platform_test_CFLAGS = \
 	$(TEST_COMMON_CFLAGS)
 
 sh_platform_test_LDADD = \
+	$(TEST_COMMON_LDADD)
+
+## spec_handlers/process.c test ##
+sh_process_test_SOURCES = \
+	$(TEST_COMMON_SOURCES) \
+	tests/spec_handlers/process_test.c
+
+sh_process_test_CFLAGS = \
+	$(TEST_COMMON_CFLAGS)
+
+sh_process_test_LDADD = \
 	$(TEST_COMMON_LDADD)
 
 ## spec_handlers/root.c test ##
