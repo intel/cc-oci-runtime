@@ -143,11 +143,11 @@ Running stand-alone
 
 ::
 
-    $ id=foo
+    $ name=foo
     $ pidfile=/tmp/oci.pid
     $ logfile=/tmp/oci.log
     $ sudo ./clr-oci-runtime --debug --log /dev/stdout start --console $(tty) \
-    --pid-file "$pidfile" "$id" "$bundle_dir"
+    --pid-file "$pidfile" "$name" "$bundle_dir"
 
 Or, to simulate ``containerd``::
 
@@ -155,6 +155,33 @@ Or, to simulate ``containerd``::
     --bundle /home/james/tmp/oci --console $(tty) -d \
         --pid-file /tmp/oci.pid jodh-test
 
+Running as a non-privileged user
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Assuming the following provisos, ``clr-oci-runtime`` can be run as a
+non-``root`` user:
+
+- User has read+write permissions for the Clear Containers root
+  filesystem image specified in the ``vm`` JSON object (see
+  Configuration_).
+
+- User has read+execute permissions for the Clear Containers kernel
+  image specified in the ``vm`` JSON object (see Configuration_).
+
+- The bundle configuration file ("``config.json``") does not specify any
+  mounts that the runtime must honour.
+
+- The runtime is invoked with the "``--root=$dir``" option where
+  "``$dir``" is a pre-existing directory that the user has write
+  permission to.
+
+To run non-privileged::
+
+    $ name=foo
+    $ dir=/tmp/cor
+    $ mkdir -p "$dir"
+    $ ./clr-oci-runtime --root "$dir" create --console $(tty) --bundle "$oci_bundle_directory" "$name"
+    $ ./clr-oci-runtime --root "$dir" start "$name"
 
 Running under ``containerd``
 ----------------------------
@@ -165,7 +192,7 @@ Running under ``containerd``
 
 - Launch a hypervisor::
 
-    $ id=foo
+    $ name=foo
 
     # XXX: path to directory containing the following:
     #
@@ -174,12 +201,12 @@ Running under ``containerd``
     # rootfs/
     $ bundle_dir=...
 
-    $ sudo /usr/local/bin/ctr --debug containers start --attach "$id" "$bundle_dir"
+    $ sudo /usr/local/bin/ctr --debug containers start --attach "$name" "$bundle_dir"
 
 - Forcibly stop the hypervisor::
 
-    $ id=foo
-    $ sudo ./clr-oci-runtime stop "$id"
+    $ name=foo
+    $ sudo ./clr-oci-runtime stop "$name"
 
 Development
 -----------
