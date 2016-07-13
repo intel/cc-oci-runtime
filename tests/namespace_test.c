@@ -20,9 +20,12 @@
 
 #include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
+#include <errno.h>
 
 #include <check.h>
 #include <glib.h>
+#include <glib/gstdio.h>
 
 #include "../src/oci.h"
 #include "../src/namespace.h"
@@ -77,11 +80,97 @@ START_TEST(test_clr_oci_str_to_ns) {
 
 } END_TEST
 
+START_TEST(test_clr_oci_ns_setup) {
+
+	struct clr_oci_config config = { 0 };
+	struct oci_cfg_namespace *ns = NULL;
+
+	ck_assert (! clr_oci_ns_setup (NULL));
+
+	/* no namespaces, so successful (NOP) setup */
+	ck_assert (! config.oci.oci_linux.namespaces);
+	ck_assert (clr_oci_ns_setup (&config));
+
+	ns = g_malloc0 (sizeof (struct oci_cfg_namespace));
+	ck_assert (ns);
+
+	config.oci.oci_linux.namespaces = g_slist_append (config.oci.oci_linux.namespaces, ns);
+
+	/* implicitly invalid namespaces are ignored */
+	ck_assert (clr_oci_ns_setup (&config));
+
+	ns->type = OCI_NS_INVALID;
+
+	/* explicitly invalid namespaces are ignored */
+	ck_assert (clr_oci_ns_setup (&config));
+
+	/* most namespaces are silently ignored */
+	ns->type = OCI_NS_CGROUP;
+	ck_assert (clr_oci_ns_setup (&config));
+
+	ns->type = OCI_NS_IPC;
+	ck_assert (clr_oci_ns_setup (&config));
+
+	ns->type = OCI_NS_MOUNT;
+	ck_assert (clr_oci_ns_setup (&config));
+
+	ns->type = OCI_NS_PID;
+	ck_assert (clr_oci_ns_setup (&config));
+
+	ns->type = OCI_NS_USER;
+	ck_assert (clr_oci_ns_setup (&config));
+
+	ns->type = OCI_NS_UTS;
+	ck_assert (clr_oci_ns_setup (&config));
+
+	/* net namespaces are honoured, but only run the tests
+	 * as a non-priv user.
+	 */
+	if (getuid ()) {
+		gchar *tmpdir = g_dir_make_tmp (NULL, NULL);
+		ns->type = OCI_NS_NET;
+		ck_assert (! clr_oci_ns_setup (&config));
+
+		/* unshare(2) error */
+		ck_assert (errno == EPERM);
+
+		/* set path so setns(2) gets called */
+		ns->path = g_build_path ("/", tmpdir, "ns", NULL);
+		ck_assert (ns->path);
+		ck_assert (g_file_set_contents (ns->path, "", -1, NULL));
+
+		ck_assert (! clr_oci_ns_setup (&config));
+		/* setns(2) error */
+		ck_assert (errno == EINVAL);
+
+		ck_assert (! g_remove (ns->path));
+		g_free (ns->path);
+
+		ns->path = g_strdup ("/proc/self/ns/net");
+		ck_assert (ns->path);
+
+		/* now we're passing a valid ns path, but non-priv users
+		 * can't call setns due to insufficient privs.
+		 */
+		ck_assert (! clr_oci_ns_setup (&config));
+		ck_assert (errno = EPERM);
+
+		ck_assert (! g_remove (tmpdir));
+
+		g_free (tmpdir);
+	}
+
+	/* clean up */
+	clr_oci_config_free (&config);
+
+} END_TEST
+
 Suite* make_ns_suite (void) {
 	Suite* s = suite_create(__FILE__);
 
 	ADD_TEST(test_clr_oci_ns_to_str, s);
 	ADD_TEST(test_clr_oci_str_to_ns, s);
+	ADD_TEST(test_clr_oci_ns_setup, s);
 
 	return s;
 }

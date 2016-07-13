@@ -130,6 +130,9 @@ out:
  * namespace names chosen by OCI, hence oci_ns_map will need to be
  * extended to add a "gchar *proc_name" element (and tests updated
  * accordingly).
+ *
+ * \note in the case of error, check the value of errno immediately
+ * after this call to determine the reason.
  */
 gboolean
 clr_oci_ns_setup (struct clr_oci_config *config)
@@ -156,7 +159,9 @@ clr_oci_ns_setup (struct clr_oci_config *config)
 			l = g_slist_next (l)) {
 		ns = (struct oci_cfg_namespace *)l->data;
 
-		g_assert (ns->type != OCI_NS_INVALID);
+		if (ns->type == OCI_NS_INVALID) {
+			continue;
+		}
 
 		type = clr_oci_ns_to_str (ns->type);
 
@@ -219,5 +224,9 @@ err:
 					: "create",
 			type ? type : "",
 			strerror (saved));
+
+	/* pass errno back to caller (mainly for tests) */
+	errno = saved;
+
 	return false;
 }
