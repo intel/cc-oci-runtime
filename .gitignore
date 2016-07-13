@@ -40,6 +40,7 @@ m4/ltversion.m4
 Makefile
 Makefile.in
 missing
+__pycache__/
 stamp-h1
 *_test
 test-driver
