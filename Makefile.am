@@ -126,6 +126,15 @@ clr_oci_runtime_CFLAGS = \
 	$(JSON_GLIB_CFLAGS) \
 	$(UUID_CFLAGS)
 
+bats_test_sources = \
+	tests/functional/README \
+	tests/functional/README.rst \
+	tests/functional/common.bash.in \
+	tests/functional/help.bats \
+	tests/functional/start.bats \
+	tests/functional/version.bats \
+	tests/functional/data/config-minimal-clr-oci.json.in
+
 EXTRA_DIST = \
 	LICENSE \
 	TODO \
@@ -133,7 +142,8 @@ EXTRA_DIST = \
 	data/vm.json.in \
 	tests/data \
 	commit_id \
-	$(defaults_DATA)
+	$(defaults_DATA) \
+	$(bats_test_sources)
 
 if CPPCHECK
 CHECK_DEPS += cppcheck
