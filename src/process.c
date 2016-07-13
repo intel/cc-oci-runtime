@@ -702,11 +702,13 @@ clr_oci_vm_connect (struct clr_oci_config *config,
 
 	/* connection string to connect to the VM */
 	// FIXME: replace with proper connection string once networking details available.
-	args[1] = g_strdup_printf ("127.0.0.1");
-
-	// FIXME: remove once networking available.
-	g_critical ("Using temporary hostname of '%s'", args[1]);
-	g_print ("FIXME: Using temporary hostname of '%s'\n", args[1]);
+#if 0
+	args[1] = g_strdup_printf (ip_address);
+#else
+	g_critical ("not implemented yet");
+	ret = false;
+	goto out;
+#endif
 
 	/* append argv to the end of args */
 	if (argc) {
