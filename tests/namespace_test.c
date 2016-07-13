@@ -127,6 +127,7 @@ START_TEST(test_clr_oci_ns_setup) {
 	 * as a non-priv user.
 	 */
 	if (getuid ()) {
+		int saved;
 		gchar *tmpdir = g_dir_make_tmp (NULL, NULL);
 		ns->type = OCI_NS_NET;
 		ck_assert (! clr_oci_ns_setup (&config));
@@ -141,7 +142,13 @@ START_TEST(test_clr_oci_ns_setup) {
 
 		ck_assert (! clr_oci_ns_setup (&config));
 		/* setns(2) error */
-		ck_assert (errno == EINVAL);
+		saved = errno;
+
+		/* Normally EINVAL is returned, but if run under
+		 * valgrind, the error could be ENOSYS since valgrind
+		 * doesn't implement this syscall seemingly.
+		 */
+		ck_assert (saved == EINVAL || saved == ENOSYS);
 
 		ck_assert (! g_remove (ns->path));
 		g_free (ns->path);
