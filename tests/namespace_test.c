@@ -124,7 +124,7 @@ START_TEST(test_clr_oci_ns_setup) {
 	ck_assert (clr_oci_ns_setup (&config));
 
 	/* net namespaces are honoured, but only run the tests
-	 * as a non-priv user.
+	 * as a non-priv user just in case.
 	 */
 	if (getuid ()) {
 		int saved;
