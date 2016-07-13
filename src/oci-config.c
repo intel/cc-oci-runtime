@@ -89,24 +89,6 @@ clr_oci_config_check (const struct clr_oci_config *config)
 		return false;
 	}
 
-	ret = g_strcmp0 (config->oci.platform.os,
-			CLR_OCI_EXPECTED_PLATFORM);
-	if (ret) {
-		g_critical ("unexpected os: got '%s', expected '%s'",
-				config->oci.platform.os,
-				CLR_OCI_EXPECTED_PLATFORM);
-		return false;
-	}
-
-	ret = g_strcmp0 (config->oci.platform.arch,
-			CLR_OCI_EXPECTED_ARCHITECTURE);
-	if (ret) {
-		g_critical ("unexpected arch: got '%s', expected '%s'",
-				config->oci.platform.arch,
-				CLR_OCI_EXPECTED_ARCHITECTURE);
-		return false;
-	}
-
 	return true;
 }
 

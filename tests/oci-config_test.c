@@ -49,16 +49,6 @@ START_TEST(test_clr_oci_config_check) {
 	ck_assert (! clr_oci_config_check (&config));
 	config.oci.oci_version = "0.0.1";
 
-	/* invalid os */
-	config.oci.platform.os = "windows";
-	ck_assert (! clr_oci_config_check (&config));
-	config.oci.platform.os = "linux";
-
-	/* invalid architecture */
-	config.oci.platform.arch = "arm64";
-	ck_assert (! clr_oci_config_check (&config));
-	config.oci.platform.os = "amd64";
-
 	/* erroneous (non-absolute) path */
 	g_strlcpy (config.oci.process.cwd, "foo", sizeof (config.oci.process.cwd));
 	ck_assert (! clr_oci_config_check (&config));

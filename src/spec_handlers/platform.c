@@ -34,8 +34,49 @@ handle_platform_section(GNode* root, struct clr_oci_config* config) {
 
 static bool
 platform_handle_section(GNode* root, struct clr_oci_config* config) {
+	gboolean  ret = false;
+
+	if (! root) {
+		g_critical("root node is NULL");
+		return false;
+	}
+
+	if (! config ) {
+		g_critical("oci config is NULL");
+		return false;
+	}
+
 	g_node_children_foreach(root, G_TRAVERSE_ALL,
 		(GNodeForeachFunc)handle_platform_section, config);
+
+	if (! config->oci.platform.os) {
+		g_critical ("no os found");
+		return false;
+	}
+
+	ret = g_strcmp0 (config->oci.platform.os,
+			CLR_OCI_EXPECTED_PLATFORM);
+	if (ret) {
+		g_critical ("unexpected os: got '%s', expected '%s'",
+				config->oci.platform.os,
+				CLR_OCI_EXPECTED_PLATFORM);
+		return false;
+	}
+
+	if (! config->oci.platform.arch) {
+		g_critical ("no architecture found");
+		return false;
+	}
+
+	ret = g_strcmp0 (config->oci.platform.arch,
+			CLR_OCI_EXPECTED_ARCHITECTURE);
+	if (ret) {
+		g_critical ("unexpected architecture: "
+				"got '%s', expected '%s'",
+				config->oci.platform.arch,
+				CLR_OCI_EXPECTED_ARCHITECTURE);
+		return false;
+	}
 
 	return true;
 }
