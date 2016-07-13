@@ -90,7 +90,6 @@ get_container_stats(struct clr_oci_config *config,
 	struct oci_state *state)
 {
 	JsonObject  *root = NULL;
-	JsonObject  *obj = NULL;
 	JsonObject  *data = NULL;
 	JsonObject  *resources = NULL;
 	gchar       *stats_str = NULL;
@@ -129,10 +128,6 @@ get_container_stats(struct clr_oci_config *config,
 	stats_str = clr_oci_json_obj_to_string (root, false, &str_len);
 
 out:
-	if (obj) {
-		json_object_unref (obj);
-	}
-
 	return stats_str;
 }
 
