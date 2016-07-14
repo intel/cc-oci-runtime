@@ -498,7 +498,7 @@ clr_oci_vm_launch (struct clr_oci_config *config)
 		g_debug ("arg: '%s'", *p);
 	}
 
-	ret = g_spawn_async_with_pipes(config->oci.process.cwd,
+	ret = g_spawn_async_with_pipes(config->oci.root.path,
 			args,
 			NULL, /* inherit parents environment */
 			flags,
