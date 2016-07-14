@@ -188,8 +188,22 @@ To run non-privileged::
     $ ./clr-oci-runtime --root "$dir" create --console $(tty) --bundle "$oci_bundle_directory" "$name"
     $ ./clr-oci-runtime --root "$dir" start "$name"
 
+Running under ``docker``
+------------------------
+
+Assuming a docker 1.12 environment, start the docker daemon specifying
+the "``--add-runtime $alias=$path``" option. For example::
+
+    $ sudo dockerd --add-runtime cor=/usr/bin/clr-oci-runtime
+
+Then, to run a Clear Container using ``clr-oci-runtime``, specify "``--runtime cor``". For example::
+
+    $ sudo docker-run --runtime cor -ti busybox
+
 Running under ``containerd``
 ----------------------------
+
+If you are running ``containerd`` without docker:
 
 - Start the server daemon::
 
