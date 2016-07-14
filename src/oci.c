@@ -577,6 +577,7 @@ clr_oci_create_container_workload (struct clr_oci_config *config)
 		goto out;
 	}
 
+	/* TODO: we should probably force failure if the 'cd' fails */
 	g_string_printf(contents,
 			"#!%s\n"
 			"cd %s\n"
