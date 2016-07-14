@@ -52,7 +52,6 @@ handle_root_section(GNode* root, struct clr_oci_config* config) {
 static bool
 root_handle_section(GNode* root, struct clr_oci_config* config) {
 	gboolean ret = false;
-	struct stat st;
 
 	if (! root) {
 		g_critical("root node is NULL");
@@ -72,12 +71,13 @@ root_handle_section(GNode* root, struct clr_oci_config* config) {
 	* Optional:
 	* - readonly
 	*/
-	if (! config->oci.root.path[0]
-        || stat (config->oci.root.path, &st) < 0) {
+	if (! config->oci.root.path[0]) {
 		g_critical("missing root path");
 		goto out;
 	}
-	if (! g_file_test (config->oci.root.path, G_FILE_TEST_IS_DIR)) {
+	if (! g_file_test (config->oci.root.path,
+				(G_FILE_TEST_EXISTS|
+				 G_FILE_TEST_IS_DIR))) {
 		g_critical ("rootfs does not exist :%s",
 				config->oci.root.path);
 		goto out;
