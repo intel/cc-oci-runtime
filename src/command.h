@@ -103,6 +103,7 @@ extern struct subcommand command_help;
 extern struct subcommand command_kill;
 extern struct subcommand command_list;
 extern struct subcommand command_pause;
+extern struct subcommand command_ps;
 extern struct subcommand command_restore;
 extern struct subcommand command_resume;
 extern struct subcommand command_run;
