@@ -32,11 +32,9 @@ handle_root_section(GNode* root, struct clr_oci_config* config) {
 	if (g_strcmp0(root->data, "path") == 0) {
 		g_autofree gchar *full = clr_oci_resolve_path ((char*)root->children->data);
 		if (full) {
-			if (snprintf(config->oci.root.path,
-			    sizeof(config->oci.root.path),
-			    "%s", full) < 0) {
-				g_critical("failed to copy root path");
-			}
+			g_snprintf (config->oci.root.path,
+					sizeof(config->oci.root.path),
+					"%s", full);
 		}
 	} else if (g_strcmp0(root->data, "readonly") == 0) {
 		if (g_strcmp0(root->children->data, "true") == 0) {
