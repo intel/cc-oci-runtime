@@ -513,6 +513,7 @@ clr_oci_create_container_workload (struct clr_oci_config *config)
 	GError            *err = NULL;
 	gchar             *workload_cmdline = NULL;
 	g_autofree gchar  *path = NULL;
+	g_autofree gchar   *cwd = NULL;
 	gboolean           ret = false;
 	gchar             **args = NULL;
 
@@ -527,6 +528,11 @@ clr_oci_create_container_workload (struct clr_oci_config *config)
 	path = g_build_path ("/", config->oci.root.path,
 			CLR_OCI_WORKLOAD_FILE, NULL);
 	if (! path) {
+		return false;
+	}
+
+	cwd = g_shell_quote (config->oci.process.cwd);
+	if (! cwd) {
 		return false;
 	}
 
@@ -553,8 +559,10 @@ clr_oci_create_container_workload (struct clr_oci_config *config)
 
 	g_string_printf(contents,
 			"#!%s\n"
+			"cd %s\n"
 			"%s\n",
 			CLR_OCI_WORKLOAD_SHELL,
+			cwd,
 			workload_cmdline);
 
 	ret = g_file_set_contents (config->vm->workload_path,
