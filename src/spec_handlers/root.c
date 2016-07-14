@@ -74,9 +74,8 @@ root_handle_section(GNode* root, struct clr_oci_config* config) {
 		goto out;
 	}
 	if (! g_file_test (config->oci.root.path,
-				(G_FILE_TEST_EXISTS|
-				 G_FILE_TEST_IS_DIR))) {
-		g_critical ("rootfs does not exist :%s",
+				 G_FILE_TEST_IS_DIR)) {
+		g_critical ("rootfs not a directory: %s",
 				config->oci.root.path);
 		goto out;
 	}
