@@ -16,6 +16,7 @@ clr-oci-runtime
 clr-oci-runtime-*-coverage/
 clr-oci-runtime-*-coverage.info
 clr-oci-runtime-*.tar.xz
+commit_id
 compile
 config.*
 configure
