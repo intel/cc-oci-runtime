@@ -18,6 +18,18 @@ function teardown() {
   fi
 }
 
+@test "start without container id" {
+	run $COR start
+        [ "$status" -ne 0 ]
+	[[ "${output}" == "Usage: start <container-id>" ]]
+}
+
+@test "start with invalid container id" {
+	run $COR start
+        [ "$status" -ne 0 ]
+	[[ "${output}" == "Usage: start <container-id>" ]]
+}
+
 @test "start detach" {
 	COR_TIMEOUT=5
 	workload_cmd "sh"
