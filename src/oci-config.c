@@ -94,7 +94,7 @@ clr_oci_config_check (const struct clr_oci_config *config)
  * \return Newly-allocated path string on success, else \c NULL.
  */
 gchar *
-clr_oci_config_file_path (const char *bundle_path)
+clr_oci_config_file_path (const gchar *bundle_path)
 {
 	if (! bundle_path) {
 		return NULL;

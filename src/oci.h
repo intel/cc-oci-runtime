@@ -41,6 +41,8 @@
 #include <sched.h>
 #include <linux/sched.h>
 
+#include <glib.h>
+
 #ifndef CLONE_NEWCGROUP
 #define CLONE_NEWCGROUP 0x02000000
 #endif
@@ -251,8 +253,8 @@ struct clr_oci_vm_cfg {
  * to a human-readable string.
  */
 struct clr_oci_map {
-	int          num;
-	const char  *name;
+	int           num;
+	const gchar  *name;
 };
 
 /** OCI State, read from \ref CLR_OCI_STATE_FILE.
@@ -341,10 +343,10 @@ struct clr_oci_mount {
 	/** Full path to mnt_dir directory
 	 * (root_dir + '/' + mnt.mnt_dir).
 	 */
-	char           dest[PATH_MAX];
+	gchar          dest[PATH_MAX];
 
 	/** \c true if mount should not be honoured. */
-	bool           ignore_mount;
+	gboolean       ignore_mount;
 };
 
 /** The main object holding all configuration data.
@@ -367,13 +369,13 @@ struct clr_oci_config {
 	struct clr_oci_container_state  state;
 
 	/** Path to directory containing OCI bundle to run. */
-	char *bundle_path;
+	gchar *bundle_path;
 
 	/** Path to file to store Process ID in. */
-	char *pid_file;
+	gchar *pid_file;
 
 	/** Path to device to use for I/O. */
-	char *console;
+	gchar *console;
 
 	/** If \c true, \ref console will be a socket rather than a pty
 	 * device.
@@ -383,10 +385,10 @@ struct clr_oci_config {
 	/** If set, use an alternative root directory to the default
 	 * CLR_OCI_RUNTIME_DIR_PREFIX.
 	 */
-	char *root_dir;
+	gchar *root_dir;
 
 	/* optarg value (do not free!) */
-	const char *optarg_container_id;
+	const gchar *optarg_container_id;
 
 	/** If \c true, don't start the VM */
 	gboolean dry_run_mode;
@@ -397,14 +399,14 @@ struct clr_oci_config {
 
 gboolean clr_oci_attach(struct clr_oci_config *config,
 		struct oci_state *state);
-gchar *clr_oci_config_file_path (const char *bundle_path);
+gchar *clr_oci_config_file_path (const gchar *bundle_path);
 gboolean clr_oci_create (struct clr_oci_config *config);
 gboolean clr_oci_start (struct clr_oci_config *config,
 		struct oci_state *state);
 gboolean clr_oci_run (struct clr_oci_config *config);
 void clr_oci_config_free (struct clr_oci_config *config);
-gchar *clr_oci_get_bundlepath_file (const char *bundle_path,
-		const char *file);
+gchar *clr_oci_get_bundlepath_file (const gchar *bundle_path,
+		const gchar *file);
 gboolean clr_oci_get_config_and_state (gchar **config_file,
 		struct clr_oci_config *config,
 		struct oci_state **state);
@@ -417,7 +419,7 @@ gboolean clr_oci_exec (struct clr_oci_config *config,
 		struct oci_state *state,
 		int argc, char *const args[]);
 gboolean clr_oci_list (struct clr_oci_config *config,
-		const char *format, gboolean show_all);
+		const gchar *format, gboolean show_all);
 gboolean clr_oci_delete (struct clr_oci_config *config,
 		struct oci_state *state);
 gboolean clr_oci_kill (struct clr_oci_config *config,

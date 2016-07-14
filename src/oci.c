@@ -109,9 +109,11 @@ struct process_watcher_data
  * \return Newly-allocated path string on success, else \c NULL.
  */
 gchar *
-clr_oci_get_bundlepath_file (const char *bundle_path, const char *file)
+clr_oci_get_bundlepath_file (const gchar *bundle_path,
+		const gchar *file)
 {
-	if ((!bundle_path) || (!(*bundle_path)) || (!file) || (!(*file))) {
+	if ((!bundle_path) || (!(*bundle_path)) ||
+		(!file) || (!(*file))) {
 		return NULL;
 	}
 
@@ -1515,7 +1517,7 @@ clr_oci_update_options (const struct oci_state *state,
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_oci_list (struct clr_oci_config *config, const char *format,
+clr_oci_list (struct clr_oci_config *config, const gchar *format,
         gboolean show_all)
 {
 	GDir                   *dir;
