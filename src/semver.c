@@ -83,7 +83,7 @@ static gint
 clr_oci_semver_cmp_patch_pre_releases (gchar *pre_rel_a,
 		gchar *pre_rel_b)
 {
-	gint        ret;
+	gint        ret = 0;
 	guint       i;
 	gchar     **fields_a = NULL;
 	gchar     **fields_b = NULL;
@@ -107,6 +107,9 @@ clr_oci_semver_cmp_patch_pre_releases (gchar *pre_rel_a,
 			break;
 		} else if ((!fa) && fb) {
 			ret = -1;
+			break;
+		} else if (! (fa && fb)) {
+			ret = 0;
 			break;
 		}
 
