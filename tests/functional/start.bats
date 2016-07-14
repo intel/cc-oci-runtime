@@ -95,6 +95,10 @@ function teardown() {
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
 	testcontainer "$container_id" "running"
 
+	# specify invalid signal name
+	cmd="$COR kill $container_id FOOBAR"
+	run_cmd "$cmd" "1" "$COR_TIMEOUT"
+
 	cmd="$COR kill $container_id TERM"
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
 	testcontainer "$container_id" "stopped"
@@ -112,6 +116,10 @@ function teardown() {
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
 	testcontainer "$container_id" "running"
 
+	# specify invalid signal name
+	cmd="$COR kill $container_id SIGFOOBAR"
+	run_cmd "$cmd" "1" "$COR_TIMEOUT"
+
 	cmd="$COR kill $container_id SIGTERM"
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
 	testcontainer "$container_id" "stopped"
@@ -128,6 +136,10 @@ function teardown() {
 	cmd="$COR start $container_id"
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
 	testcontainer "$container_id" "running"
+
+	# specify invalid signal number
+	cmd="$COR kill $container_id 123456"
+	run_cmd "$cmd" "1" "$COR_TIMEOUT"
 
 	cmd="$COR kill $container_id 15"
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
