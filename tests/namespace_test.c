@@ -160,7 +160,9 @@ START_TEST(test_clr_oci_ns_setup) {
 		 * can't call setns due to insufficient privs.
 		 */
 		ck_assert (! clr_oci_ns_setup (&config));
-		ck_assert (errno == EPERM);
+		saved = errno;
+
+		ck_assert (saved == EPERM || saved == ENOSYS);
 
 		ck_assert (! g_remove (tmpdir));
 
