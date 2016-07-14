@@ -112,9 +112,9 @@ function qemu_have_pclite() {
 
 }
 
-# Execute a command and vefiy its exit code
-# the if exit code is not the expected the 
-# current tests will fail
+# Execute a command and verify its exit code.
+# If exit code is not the expected the 
+# current tests will fail.
 # @param cmd command to run
 # @param expected_exit_code expected exit code
 # @param timeout time to wait before kill command
