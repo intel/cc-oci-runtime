@@ -45,8 +45,15 @@ START_TEST(test_clr_oci_semver_cmp) {
 	ck_assert (clr_oci_semver_cmp ("1.0.0-beta.2", "1.0.0-beta.11") < 0);
 	ck_assert (clr_oci_semver_cmp ("1.0.0-beta.11", "1.0.0-rc.1") < 0);
 	ck_assert (clr_oci_semver_cmp ("1.0.0-rc.1", "1.0.0") < 0);
+	ck_assert (clr_oci_semver_cmp ("1.0.0-a.b.c.d", "1.0.0") < 0);
+	ck_assert (clr_oci_semver_cmp ("1.0.0-9.8.7.6foo", "1.0.0") < 0);
 	ck_assert (clr_oci_semver_cmp ("0.0-alpha", "1.0.0") < 0);
 
+	ck_assert (clr_oci_semver_cmp ("0.0.0", "0.0.0") == 0);
+	ck_assert (clr_oci_semver_cmp ("1.0.0", "1.0.0") == 0);
+	ck_assert (clr_oci_semver_cmp ("1.1.0", "1.1.0") == 0);
+	ck_assert (clr_oci_semver_cmp ("1.1.1", "1.1.1") == 0);
+	ck_assert (clr_oci_semver_cmp ("1.0.0-rc1", "1.0.0-rc1") == 0);
 
 } END_TEST
 
