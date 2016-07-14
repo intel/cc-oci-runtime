@@ -46,6 +46,16 @@ handle_annotation (GNode* root, struct clr_oci_config* config)
 static bool
 annotations_handle_section (GNode* root, struct clr_oci_config* config)
 {
+	if (! root) {
+		g_critical("root node is NULL");
+		return false;
+	}
+
+	if (! config ) {
+		g_critical("oci config is NULL");
+		return false;
+	}
+
 	g_node_children_foreach (root, G_TRAVERSE_ALL,
 			(GNodeForeachFunc)handle_annotation, config);
 

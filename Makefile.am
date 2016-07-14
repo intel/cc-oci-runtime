@@ -227,6 +227,7 @@ TESTS = \
 	util_test \
 	mount_test \
 	annotation_test \
+	sh_annotations_test \
 	sh_linux_test \
 	sh_vm_test \
 	sh_platform_test \
@@ -393,6 +394,17 @@ annotation_test_CFLAGS = \
 	$(TEST_COMMON_CFLAGS)
 
 annotation_test_LDADD = \
+	$(TEST_COMMON_LDADD)
+
+## spec_handlers/annotations.c test ##
+sh_annotations_test_SOURCES = \
+	$(TEST_COMMON_SOURCES) \
+	tests/spec_handlers/annotations_test.c
+
+sh_annotations_test_CFLAGS = \
+	$(TEST_COMMON_CFLAGS)
+
+sh_annotations_test_LDADD = \
 	$(TEST_COMMON_LDADD)
 
 ## spec_handlers/linux.c test ##
