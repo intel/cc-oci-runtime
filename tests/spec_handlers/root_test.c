@@ -38,11 +38,12 @@ extern struct spec_handler root_spec_handler;
 * - readonly
 */
 static struct spec_handler_test tests[] = {
-	{ TEST_DATA_DIR "/root-no-path.json",     false },
-	{ TEST_DATA_DIR "/root-no-readonly.json", true  },
-	{ TEST_DATA_DIR "/root.json",             true  },
-	{ TEST_DATA_DIR "/root-false.json",       true  },
-	{ TEST_DATA_DIR "/root-unknown.json",     true  },
+	{ TEST_DATA_DIR "/root-no-path.json"        , false },
+	{ TEST_DATA_DIR "/root-no-readonly.json"    , true  },
+	{ TEST_DATA_DIR "/root-readonly-false.json" , true  },
+	{ TEST_DATA_DIR "/root-path-enoent.json"    , false },
+	{ TEST_DATA_DIR "/root-path-invalid.json"   , false },
+	{ TEST_DATA_DIR "/root.json"                , true  },
 	{ NULL, false },
 };
 
