@@ -23,6 +23,8 @@
 static void
 handle_annotation (GNode* root, struct clr_oci_config* config)
 {
+	const gchar *key, *value;
+
 	struct oci_cfg_annotation *a = NULL;
 
 	if (! (root && root->children)) {
@@ -33,10 +35,18 @@ handle_annotation (GNode* root, struct clr_oci_config* config)
 		return;
 	}
 
+	key = (const gchar *)root->data;
+	value = (const gchar *)root->children->data;
+
+	if (! (key && *key)) {
+		g_critical ("ignoring null key");
+		return;
+	}
+
 	a = g_new0 (struct oci_cfg_annotation, 1);
-	a->key = g_strdup ((gchar *)root->data);
-	if (root->children->data) {
-		a->value = g_strdup ((gchar *)root->children->data);
+	a->key = g_strdup (key);
+	if (value && *value) {
+		a->value = g_strdup (value);
 	}
 
 	config->oci.annotations = g_slist_prepend
