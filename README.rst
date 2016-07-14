@@ -21,6 +21,11 @@ The tool aims to be compatible with the OCI_ runtime specification
 [#oci-spec]_, allowing Clear Containers to be launched transparently by
 Docker_ (using containerd_) and other OCI_-conforming container managers.
 
+Platform Support
+----------------
+
+``clr-oci-runtime`` supports running Clear Containers on Intel 64-bit (x86-64) Linux systems.
+
 Building
 --------
 
