@@ -31,10 +31,10 @@
 extern struct spec_handler annotations_spec_handler;
 
 static struct spec_handler_test tests[] = {
-		{ TEST_DATA_DIR "/annotations-empty.json"           , true  },
-		{ TEST_DATA_DIR "/annotations-null-key+value.json"  , false },
-		{ TEST_DATA_DIR "/annotations.json"                 , true  },
-		{ NULL                                              , false },
+		{ TEST_DATA_DIR "/annotations-empty.json"      , true  },
+		{ TEST_DATA_DIR "/annotations-null-value.json" , true  },
+		{ TEST_DATA_DIR "/annotations.json"            , true  },
+		{ NULL                                         , false },
 };
 
 START_TEST(test_annotation_handle_section) {
