@@ -3,19 +3,19 @@
 load common
 
 function setup() {
-  qemu_have_pclite
-  setup_bundle
-  container_id=$(tr -cd '[:xdigit:]' < /dev/urandom|head -c 10 |tr '[A-Z]' '[a-z]')
+	qemu_have_pclite
+	setup_bundle
+	container_id=$(tr -cd '[:xdigit:]' < /dev/urandom|head -c 10 |tr '[A-Z]' '[a-z]')
 	COR_ROOT_DIR=$(mktempd)
 	COR_GLOBAL_OPTIONS="--debug --root $COR_ROOT_DIR"
 	COR="$COR $COR_GLOBAL_OPTIONS"
 }
 
 function teardown() {
-  if [ -d "$COR_ROOT_DIR" ]
-  then
-    rm -r "$COR_ROOT_DIR"
-  fi
+	if [ -d "$COR_ROOT_DIR" ]
+	then
+		rm -r "$COR_ROOT_DIR"
+	fi
 }
 
 @test "start without container id" {
