@@ -525,6 +525,26 @@ clr_oci_create_container_workload (struct clr_oci_config *config)
 		goto out;
 	}
 
+	if (config->oci.process.env) {
+		g_autofree gchar  *envpath = NULL;
+		g_autofree gchar  *env = NULL;
+
+		envpath = g_build_path ("/", config->oci.root.path,
+				CLR_OCI_ENV_FILE, NULL);
+		if (! envpath) {
+			return false;
+		}
+
+		env = g_strjoinv ("\n", config->oci.process.env);
+		ret = g_file_set_contents (envpath, env, -1, &err);
+		if (! ret) {
+			g_critical ("failed to create clr env file (%s): %s",
+					envpath, err->message);
+			g_error_free (err);
+			goto out;
+		}
+	}
+
 	path = g_build_path ("/", config->oci.root.path,
 			CLR_OCI_WORKLOAD_FILE, NULL);
 	if (! path) {

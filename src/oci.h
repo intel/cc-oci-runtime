@@ -88,6 +88,13 @@
  */
 #define CLR_OCI_WORKLOAD_FILE		"/.containerexec"
 
+/** Name of file containing environment variables that will be set
+ * inside the VM.
+ *
+ * Note: name is historical.
+ */
+#define CLR_OCI_ENV_FILE		"/.dockerenv"
+
 /** Shell to use for \ref CLR_OCI_WORKLOAD_FILE. */
 #define CLR_OCI_WORKLOAD_SHELL		"/bin/sh"
 
