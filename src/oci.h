@@ -48,7 +48,7 @@
 #endif
 
 /** Version of the https://github.com/opencontainers/specs we support. */
-#define CLR_OCI_SUPPORTED_SPEC_VERSION	"1.0.0"
+#define CLR_OCI_SUPPORTED_SPEC_VERSION	"1.0.0-rc1"
 
 /** Name of OCI configuration file. */
 #define CLR_OCI_CONFIG_FILE		"config.json"

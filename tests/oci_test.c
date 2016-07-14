@@ -733,7 +733,7 @@ START_TEST(test_clr_oci_get_config_and_state) {
 
 	/* check state */
 	ck_assert (state);
-	ck_assert (! g_strcmp0 (state->oci_version, "1.0.0"));
+	ck_assert (! g_strcmp0 (state->oci_version, "1.0.0-rc1"));
 	ck_assert (! g_strcmp0 (state->id, config.optarg_container_id));
 
 	ck_assert (state->pid == config.state.workload_pid);
