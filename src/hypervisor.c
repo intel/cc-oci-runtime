@@ -54,7 +54,7 @@ private gchar *defaultsdir = DEFAULTSDIR;
  *
  * \return \c true on success, else \c false.
  */
-private gboolean
+gboolean
 clr_oci_expand_cmdline (struct clr_oci_config *config,
 		gchar **args)
 {
@@ -217,6 +217,50 @@ clr_oci_expand_cmdline (struct clr_oci_config *config,
 		if (! ret) {
 			goto out;
 		}
+
+		if (config->net.gateway) {
+			ret = clr_oci_replace_string (arg,
+					"@GATEWAY@", config->net.gateway);
+			if (! ret) {
+				goto out;
+			}
+		}
+
+		if (config->net.mac_address) {
+			ret = clr_oci_replace_string (arg,
+					"@MAC_ADDRESS@",
+					config->net.mac_address);
+			if (! ret) {
+				goto out;
+			}
+		}
+
+		if (config->net.ip_address) {
+			ret = clr_oci_replace_string (arg,
+					"@IP_ADDRESS@",
+					config->net.ip_address);
+			if (! ret) {
+				goto out;
+			}
+		}
+
+		if (config->net.ifname) {
+			ret = clr_oci_replace_string (arg,
+					"@IFNAME@",
+					config->net.ifname);
+			if (! ret) {
+				goto out;
+			}
+		}
+
+		if (config->net.bridge) {
+			ret = clr_oci_replace_string (arg,
+					"@BRIDGE@",
+					config->net.bridge);
+			if (! ret) {
+				goto out;
+			}
+		}
 	}
 
 	ret = true;
@@ -291,7 +335,7 @@ out:
 }
 
 /*!
- * Generate the list of hypervisor arguments to use.
+ * Generate the unexpanded list of hypervisor arguments to use.
  *
  * \param config \ref clr_oci_config.
  * \param[out] args Command-line to expand.

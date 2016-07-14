@@ -158,4 +158,10 @@ clr_oci_config_free (struct clr_oci_config *config)
 		g_slist_free_full(config->oci.oci_linux.namespaces,
                 (GDestroyNotify)clr_oci_ns_free);
 	}
+
+	g_free_if_set (config->net.gateway);
+	g_free_if_set (config->net.mac_address);
+	g_free_if_set (config->net.ip_address);
+	g_free_if_set (config->net.ifname);
+	g_free_if_set (config->net.bridge);
 }

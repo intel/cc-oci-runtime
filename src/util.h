@@ -87,5 +87,6 @@ char** node_to_strv(GNode* root);
 gboolean gnode_free(GNode* node, gpointer data);
 int clr_oci_get_signum (const gchar *signame);
 gchar *clr_oci_resolve_path (const gchar *path);
+gboolean clr_oci_fd_set_cloexec (int fd);
 
 #endif /* _CLR_OCI_UTIL_H */

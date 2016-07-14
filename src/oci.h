@@ -255,6 +255,25 @@ struct clr_oci_vm_cfg {
 	gchar *kernel_params;
 };
 
+/** clr-specific network configuration data. */
+struct clr_oci_net_cfg {
+
+	/** Network gateway (xxx.xxx.xxx.xxx). */
+	gchar  *gateway;
+
+	/** MAC address with colon separators (xx:xx:xx:xx:xx:xx). */
+	gchar  *mac_address;
+
+	/** IPv4 address (xxx.xxx.xxx.xxx). */
+	gchar  *ip_address;
+
+	/** Name of network interface to use. */
+	gchar  *ifname;
+
+	/** Name of network bridge. */
+	gchar  *bridge;
+};
+
 /**
  * Generic type that maps an integer value
  * to a human-readable string.
@@ -371,6 +390,9 @@ struct clr_oci_config {
 	 * (which should eventually be encoded in OCI configuration).
 	 */
 	struct clr_oci_vm_cfg           *vm;
+
+	/** Network configuration. */
+	struct clr_oci_net_cfg           net;
 
 	/** Container-specific state. */
 	struct clr_oci_container_state  state;

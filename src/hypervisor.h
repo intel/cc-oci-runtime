@@ -26,5 +26,7 @@
 
 gboolean clr_oci_vm_args_get (struct clr_oci_config *config,
 		gchar ***args);
+gboolean clr_oci_expand_cmdline (struct clr_oci_config *config,
+		gchar **args);
 
 #endif /* _CLR_OCI_HYPERVISOR_H */
