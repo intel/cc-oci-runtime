@@ -95,6 +95,7 @@ common_sources = \
 	src/commands/state.c \
 	src/commands/stop.c \
 	src/commands/pause.c \
+	src/commands/ps.c \
 	src/commands/resume.c \
 	src/commands/version.c \
 	src/commands/checkpoint.c \

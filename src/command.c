@@ -40,6 +40,7 @@ struct subcommand *subcommands[] =
 	&command_kill,
 	&command_list,
 	&command_pause,
+	&command_ps,
 	&command_restore,
 	&command_resume,
 	&command_run,
