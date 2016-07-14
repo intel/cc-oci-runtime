@@ -3,19 +3,16 @@
 load common
 
 function setup() {
-	qemu_have_pclite
-	setup_bundle
-	container_id=$(tr -cd '[:xdigit:]' < /dev/urandom|head -c 10 |tr '[A-Z]' '[a-z]')
-	COR_ROOT_DIR=$(mktempd)
-	COR_GLOBAL_OPTIONS="--debug --root $COR_ROOT_DIR"
-	COR="$COR $COR_GLOBAL_OPTIONS"
+	setup_common
+	#Start use Clear Containers
+	check_ccontainers
+	#Default timeout for cor commands
+	COR_TIMEOUT=5
+	container_id="tests_id"
 }
 
 function teardown() {
-	if [ -d "$COR_ROOT_DIR" ]
-	then
-		rm -r "$COR_ROOT_DIR"
-	fi
+	cleanup_common
 }
 
 @test "start without container id" {
@@ -31,10 +28,11 @@ function teardown() {
 }
 
 @test "start detach" {
-	COR_TIMEOUT=5
+	#Start a container with "sh"
 	workload_cmd "sh"
 
 	cmd="$COR create  --console --bundle $BUNDLE_DIR $container_id"
+	#Wait $COR_TIMEOUT before kill and fail the tests
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
 	testcontainer "$container_id" "created"
 
@@ -43,6 +41,7 @@ function teardown() {
 	testcontainer "$container_id" "running"
 
 	cmd="$COR attach $container_id"
+	#Wait $COR_TIMEOUT before kill and fail the tests
 	echo "exit" |  run_cmd "$cmd" "0" "$COR_TIMEOUT"
 }
 
