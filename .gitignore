@@ -11,6 +11,7 @@
 *.trs
 aclocal.m4
 autom4te.cache
+CLEAR-CONTAINERS.img
 cloud-init
 clr-oci-runtime
 clr-oci-runtime-*-coverage/
@@ -20,6 +21,7 @@ commit_id
 compile
 config.*
 configure
+CONTAINER-KERNEL
 cscope.files
 cscope.in.out
 cscope.po.out
@@ -42,6 +44,7 @@ Makefile
 Makefile.in
 missing
 __pycache__/
+QEMU-LITE
 stamp-h1
 *_test
 test-driver
