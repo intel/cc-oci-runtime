@@ -33,12 +33,103 @@ function teardown() {
 @test "start detach" {
 	COR_TIMEOUT=5
 	workload_cmd "sh"
+
 	cmd="$COR create  --console --bundle $BUNDLE_DIR $container_id"
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
 	testcontainer "$container_id" "created"
+
 	cmd="$COR start $container_id"
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
 	testcontainer "$container_id" "running"
+
 	cmd="$COR attach $container_id"
 	echo "exit" |  run_cmd "$cmd" "0" "$COR_TIMEOUT"
+}
+
+@test "start then stop" {
+	COR_TIMEOUT=5
+	workload_cmd "sh"
+
+	cmd="$COR create  --console --bundle $BUNDLE_DIR $container_id"
+	run_cmd "$cmd" "0" "$COR_TIMEOUT"
+	testcontainer "$container_id" "created"
+
+	cmd="$COR start $container_id"
+	run_cmd "$cmd" "0" "$COR_TIMEOUT"
+	testcontainer "$container_id" "running"
+
+	cmd="$COR stop $container_id"
+	run_cmd "$cmd" "0" "$COR_TIMEOUT"
+
+	run $COR list
+	[ "$status" -eq 0 ]
+	[[ ${output} =~ ID\ +PID\ +STATUS\ +BUNDLE\ +CREATED+ ]]
+}
+
+@test "start then kill (implicit signal)" {
+	COR_TIMEOUT=5
+	workload_cmd "sh"
+
+	cmd="$COR create  --console --bundle $BUNDLE_DIR $container_id"
+	run_cmd "$cmd" "0" "$COR_TIMEOUT"
+	testcontainer "$container_id" "created"
+
+	cmd="$COR start $container_id"
+	run_cmd "$cmd" "0" "$COR_TIMEOUT"
+	testcontainer "$container_id" "running"
+
+	cmd="$COR kill $container_id"
+	run_cmd "$cmd" "0" "$COR_TIMEOUT"
+	testcontainer "$container_id" "stopped"
+}
+
+@test "start then kill (short symbolic signal)" {
+	COR_TIMEOUT=5
+	workload_cmd "sh"
+
+	cmd="$COR create  --console --bundle $BUNDLE_DIR $container_id"
+	run_cmd "$cmd" "0" "$COR_TIMEOUT"
+	testcontainer "$container_id" "created"
+
+	cmd="$COR start $container_id"
+	run_cmd "$cmd" "0" "$COR_TIMEOUT"
+	testcontainer "$container_id" "running"
+
+	cmd="$COR kill $container_id TERM"
+	run_cmd "$cmd" "0" "$COR_TIMEOUT"
+	testcontainer "$container_id" "stopped"
+}
+
+@test "start then kill (full symbolic signal)" {
+	COR_TIMEOUT=5
+	workload_cmd "sh"
+
+	cmd="$COR create  --console --bundle $BUNDLE_DIR $container_id"
+	run_cmd "$cmd" "0" "$COR_TIMEOUT"
+	testcontainer "$container_id" "created"
+
+	cmd="$COR start $container_id"
+	run_cmd "$cmd" "0" "$COR_TIMEOUT"
+	testcontainer "$container_id" "running"
+
+	cmd="$COR kill $container_id SIGTERM"
+	run_cmd "$cmd" "0" "$COR_TIMEOUT"
+	testcontainer "$container_id" "stopped"
+}
+
+@test "start then kill (numeric signal)" {
+	COR_TIMEOUT=5
+	workload_cmd "sh"
+
+	cmd="$COR create  --console --bundle $BUNDLE_DIR $container_id"
+	run_cmd "$cmd" "0" "$COR_TIMEOUT"
+	testcontainer "$container_id" "created"
+
+	cmd="$COR start $container_id"
+	run_cmd "$cmd" "0" "$COR_TIMEOUT"
+	testcontainer "$container_id" "running"
+
+	cmd="$COR kill $container_id 15"
+	run_cmd "$cmd" "0" "$COR_TIMEOUT"
+	testcontainer "$container_id" "stopped"
 }
