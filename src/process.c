@@ -696,9 +696,16 @@ clr_oci_vm_connect (struct clr_oci_config *config,
 
 	/* +1 for NULL terminator */
 	args = g_new0 (gchar *, args_len + 1);
+	if (! args) {
+		return false;
+	}
 
 	/* The command to use to connect to the VM */
 	args[0] = g_strdup (CLR_OCI_EXEC_CMD);
+	if (! args[0]) {
+		ret = false;
+		goto out;
+	}
 
 	/* connection string to connect to the VM */
 	// FIXME: replace with proper connection string once networking details available.
