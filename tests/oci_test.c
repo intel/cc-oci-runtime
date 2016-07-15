@@ -857,6 +857,7 @@ START_TEST(test_clr_oci_create_container_workload) {
 	ck_assert (! g_strcmp0 (fields[0], "#!/bin/sh"));
 	ck_assert (! g_strcmp0 (fields[1], "cd '/guest/side/directory'"));
 	ck_assert (! g_strcmp0 (fields[2], "'echo' 'hello' 'world'"));
+	g_strfreev (fields);
 
 	ret = g_file_get_contents (envfile, &env_contents, NULL, NULL);
 	ck_assert (ret);
@@ -867,7 +868,6 @@ START_TEST(test_clr_oci_create_container_workload) {
 	ck_assert (g_strv_contains ((const gchar * const *)fields, "foo=bar"));
 	ck_assert (g_strv_contains ((const gchar * const *)fields, "hello=world"));
 	ck_assert (g_strv_contains ((const gchar * const *)fields, "a=b"));
-
 	g_strfreev (fields);
 
 	ck_assert (g_file_test (execfile, G_FILE_TEST_IS_EXECUTABLE));
