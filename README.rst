@@ -26,6 +26,15 @@ Platform Support
 
 ``clr-oci-runtime`` supports running Clear Containers on Intel 64-bit (x86-64) Linux systems.
 
+Supported Application Versions
+------------------------------
+
+``clr-oci-runtime`` has been tested with the following application
+versions:
+
+- Docker version 1.12-rc4.
+- Containerd version 0.2.2.
+
 Building
 --------
 
