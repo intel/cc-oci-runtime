@@ -753,17 +753,13 @@ clr_oci_vm_launch (struct clr_oci_config *config)
 			goto child_failed;
 		}
 
-		// FIXME: recreate state file with netcfg!
-#if 0
-		/* recreate state file since it now contains the network
-		 * config.
-		 */
+		// FIXME: add netcfg to state file
 		ret = clr_oci_state_file_create (config, timestamp);
 		if (! ret) {
-			g_critical ("failed to create state file");
+			g_critical ("failed to recreate state file");
 			goto out;
 		}
-#endif
+
 		g_debug ("running command:");
 		for (p = args; p && *p; p++) {
 			g_debug ("arg: '%s'", *p);
