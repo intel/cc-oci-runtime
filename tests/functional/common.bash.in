@@ -3,16 +3,17 @@
 
 COR="${BATS_TEST_DIRNAME}/../../clr-oci-runtime"
 
-#confiration files
-CONFIG="${BATS_TEST_DIRNAME}/data/config-minimal-clr-oci.json"
+# Test data dir.
+TEST_DATA_DIR="$(readlink -e "${BATS_TEST_DIRNAME}")/data"
+#Configuration files
+CONFIG="${TEST_DATA_DIR}/config-minimal-clr-oci.json"
 HYPERVISOR_ARGS="${BATS_TEST_DIRNAME}/../../data/hypervisor.args"
 
-# Test data path.
-TESTDATA=$(readlink -e "${BATS_TEST_DIRNAME}")
 BUNDLE_DIR="@BUNDLE_TEST_PATH@"
 ROOTFS_DIR="@BUNDLE_TEST_PATH@"
 CONTAINERS_IMG="@CONTAINERS_IMG@"
 CONTAINER_KERNEL="@CONTAINER_KERNEL@"
+HYPERVISOR_PATH="@QEMU_PATH@"
 COR_LOG_FILE="/run/opencontainer/containers/clr-oci-runtime.log"
 
 # Verify components needed by Clear Containers
@@ -38,9 +39,9 @@ function check_ccontainers() {
 	then
 		skip "Clear Container kernel $CONTAINER_KERNEL does\
  not exits, provide a kernel"
-	elif [ ! -x "@QEMU_PATH@" ]
+	elif [ ! -x "$HYPERVISOR_PATH" ]
 	then
-		 skip "execute permission is not granted: @QEMU_PATH@"
+		 skip "execute permission is not granted: $HYPERVISOR_PATH"
 	fi
 
 	for f in  $BUNDLE_DIR $ROOTFS_DIR $CONTAINERS_IMG $CONTAINER_KERNEL
