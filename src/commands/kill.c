@@ -37,16 +37,9 @@ handler_kill (const struct subcommand *sub,
 	g_assert (sub);
 	g_assert (config);
 
-	if (argc && ((!g_strcmp0 (argv[0], "--help"))
-			|| (!g_strcmp0 (argv[0], "-h")))) {
-		g_print ("Usage: %s <container-id> [<signal>]\n",
-				sub->name);
-		return true;
-	}
 
-	if (argc < 1) {
-		g_critical ("%s: need container id", sub->name);
-		return false;
+	if (handle_default_usage (argc, argv, sub->name, &ret)) {
+		return ret;
 	}
 
 	/* Used to allow us to find the state file */
