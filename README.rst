@@ -35,6 +35,88 @@ versions:
 - Docker version 1.12-rc4.
 - Containerd version 0.2.2.
 
+Running under ``docker``
+------------------------
+
+Assuming a docker 1.12 environment, start the docker daemon specifying
+the "``--add-runtime $alias=$path``" option. For example::
+
+    $ sudo dockerd --add-runtime cor=/usr/bin/clr-oci-runtime
+
+Then, to run a Clear Container using ``clr-oci-runtime``, specify "``--runtime cor``". For example::
+
+    $ sudo docker-run --runtime cor -ti busybox
+
+Running under ``containerd`` (without Docker)
+---------------------------------------------
+
+If you are running ``containerd`` without docker:
+
+- Start the server daemon::
+
+    $ sudo /usr/local/bin/containerd --debug --runtime $PWD/clr-oci-runtime
+
+- Launch a hypervisor::
+
+    $ name=foo
+
+    # XXX: path to directory containing the following:
+    #
+    # config.json
+    # hypervisor.args
+    # rootfs/
+    $ bundle_dir=...
+
+    $ sudo /usr/local/bin/ctr --debug containers start --attach "$name" "$bundle_dir"
+
+- Forcibly stop the hypervisor::
+
+    $ name=foo
+    $ sudo ./clr-oci-runtime stop "$name"
+
+Running stand-alone
+-------------------
+
+``clr-oci-runtime`` can be run directly, without the need for either
+``docker`` or ``containerd``::
+
+    $ name=foo
+    $ pidfile=/tmp/cor.pid
+    $ logfile=/tmp/cor.log
+    $ sudo ./clr-oci-runtime --debug --log /dev/stdout start --console $(tty) --pid-file "$pidfile" "$name" "$bundle_dir"
+
+Or, to simulate how ``containerd`` calls the runtime::
+
+    $ sudo ./clr-oci-runtime --log "$logfile" --log-format json start --bundle "$bundle_dir" --console $(tty) -d --pid-file "$pidfile" "$name"
+
+Running as a non-privileged user
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Assuming the following provisos, ``clr-oci-runtime`` can be run as a
+non-``root`` user:
+
+- User has read+write permissions for the Clear Containers root
+  filesystem image specified in the ``vm`` JSON object (see
+  Configuration_).
+
+- User has read+execute permissions for the Clear Containers kernel
+  image specified in the ``vm`` JSON object (see Configuration_).
+
+- The bundle configuration file ("``config.json``") does not specify any
+  mounts that the runtime must honour.
+
+- The runtime is invoked with the "``--root=$dir``" option where
+  "``$dir``" is a pre-existing directory that the user has write
+  permission to.
+
+To run non-privileged::
+
+    $ name=foo
+    $ dir=/tmp/cor
+    $ mkdir -p "$dir"
+    $ ./clr-oci-runtime --root "$dir" create --console $(tty) --bundle "$oci_bundle_directory" "$name"
+    $ ./clr-oci-runtime --root "$dir" start "$name"
+
 Building
 --------
 
@@ -151,90 +233,6 @@ list
 The ``list`` command supports a "``--all``" option that provides
 additional information including details of the resources used by the
 virtual machine.
-
-Running stand-alone
--------------------
-
-::
-
-    $ name=foo
-    $ pidfile=/tmp/oci.pid
-    $ logfile=/tmp/oci.log
-    $ sudo ./clr-oci-runtime --debug --log /dev/stdout start --console $(tty) \
-    --pid-file "$pidfile" "$name" "$bundle_dir"
-
-Or, to simulate ``containerd``::
-
-    $ sudo ./clr-oci-runtime --log "$logfile" --log-format json start \
-    --bundle /home/james/tmp/oci --console $(tty) -d \
-        --pid-file /tmp/oci.pid jodh-test
-
-Running as a non-privileged user
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Assuming the following provisos, ``clr-oci-runtime`` can be run as a
-non-``root`` user:
-
-- User has read+write permissions for the Clear Containers root
-  filesystem image specified in the ``vm`` JSON object (see
-  Configuration_).
-
-- User has read+execute permissions for the Clear Containers kernel
-  image specified in the ``vm`` JSON object (see Configuration_).
-
-- The bundle configuration file ("``config.json``") does not specify any
-  mounts that the runtime must honour.
-
-- The runtime is invoked with the "``--root=$dir``" option where
-  "``$dir``" is a pre-existing directory that the user has write
-  permission to.
-
-To run non-privileged::
-
-    $ name=foo
-    $ dir=/tmp/cor
-    $ mkdir -p "$dir"
-    $ ./clr-oci-runtime --root "$dir" create --console $(tty) --bundle "$oci_bundle_directory" "$name"
-    $ ./clr-oci-runtime --root "$dir" start "$name"
-
-Running under ``docker``
-------------------------
-
-Assuming a docker 1.12 environment, start the docker daemon specifying
-the "``--add-runtime $alias=$path``" option. For example::
-
-    $ sudo dockerd --add-runtime cor=/usr/bin/clr-oci-runtime
-
-Then, to run a Clear Container using ``clr-oci-runtime``, specify "``--runtime cor``". For example::
-
-    $ sudo docker-run --runtime cor -ti busybox
-
-Running under ``containerd``
-----------------------------
-
-If you are running ``containerd`` without docker:
-
-- Start the server daemon::
-
-    $ sudo /usr/local/bin/containerd --debug --runtime $PWD/clr-oci-runtime
-
-- Launch a hypervisor::
-
-    $ name=foo
-
-    # XXX: path to directory containing the following:
-    #
-    # config.json
-    # hypervisor.args
-    # rootfs/
-    $ bundle_dir=...
-
-    $ sudo /usr/local/bin/ctr --debug containers start --attach "$name" "$bundle_dir"
-
-- Forcibly stop the hypervisor::
-
-    $ name=foo
-    $ sudo ./clr-oci-runtime stop "$name"
 
 Development
 -----------
