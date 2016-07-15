@@ -85,7 +85,7 @@ AS_IF([test x"$enable_cppcheck" = "xyes"],
     [AC_SUBST([CPPCHECK], [0])])
 AM_CONDITIONAL([CPPCHECK], [test x$enable_cppcheck = x"yes"])
 
-AC_ARG_ENABLE(functional, AS_HELP_STRING([--disable-functional-tests], [disable functional tests @<:@default=no@:>@]),
+AC_ARG_ENABLE(functional-tests, AS_HELP_STRING([--disable-functional-tests], [disable functional tests @<:@default=no@:>@]),
           [], [disable_functional_test=no])
 AS_IF([test x"$disable_functional_test" = "xno"],
     [AC_SUBST([FUNCTIONAL_TEST], [1])],

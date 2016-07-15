@@ -27,16 +27,19 @@ CHECK_DEPS =
 
 GIT_COMMIT := $(shell git rev-parse HEAD 2>/dev/null)
 
-gitversion:
+commit_id:
 	if [ "x$(GIT_COMMIT)" != "x" ]; then \
 		echo "Writing commit id"; \
 		echo $(GIT_COMMIT) > commit_id; \
+	else \
+		echo "WARNING: cannot commit id"; \
+		echo "0" > commit_id; \
 	fi
 
 STORED_COMMIT = $(shell cat commit_id 2>/dev/null)
 
 src/commands/clr_oci_runtime-version.$(OBJEXT): \
-	 gitversion
+	 commit_id
 
 AM_CPPFLAGS = -I $(top_srcdir)/src -DG_LOG_DOMAIN=\"$(PACKAGE_NAME)\" \
 	-DSYSCONFDIR=\"$(sysconfdir)/$(PACKAGE_NAME)\" \
