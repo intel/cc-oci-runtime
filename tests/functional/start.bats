@@ -27,7 +27,7 @@ function teardown() {
 	[[ "${output}" == "Usage: start <container-id>" ]]
 }
 
-@test "start detach" {
+@test "start detach then attach" {
 	#Start a container with "sh"
 	workload_cmd "sh"
 
@@ -46,7 +46,6 @@ function teardown() {
 }
 
 @test "start then stop" {
-	COR_TIMEOUT=5
 	workload_cmd "sh"
 
 	cmd="$COR create  --console --bundle $BUNDLE_DIR $container_id"
@@ -66,7 +65,6 @@ function teardown() {
 }
 
 @test "start then kill (implicit signal)" {
-	COR_TIMEOUT=5
 	workload_cmd "sh"
 
 	cmd="$COR create  --console --bundle $BUNDLE_DIR $container_id"
@@ -83,7 +81,6 @@ function teardown() {
 }
 
 @test "start then kill (short symbolic signal)" {
-	COR_TIMEOUT=5
 	workload_cmd "sh"
 
 	cmd="$COR create  --console --bundle $BUNDLE_DIR $container_id"
@@ -104,7 +101,6 @@ function teardown() {
 }
 
 @test "start then kill (full symbolic signal)" {
-	COR_TIMEOUT=5
 	workload_cmd "sh"
 
 	cmd="$COR create  --console --bundle $BUNDLE_DIR $container_id"
@@ -125,7 +121,6 @@ function teardown() {
 }
 
 @test "start then kill (numeric signal)" {
-	COR_TIMEOUT=5
 	workload_cmd "sh"
 
 	cmd="$COR create  --console --bundle $BUNDLE_DIR $container_id"
