@@ -32,13 +32,13 @@ Supported Application Versions
 ``clr-oci-runtime`` has been tested with the following application
 versions:
 
-- Docker version 1.12-rc4.
-- Containerd version 0.2.2.
+- Docker_ version 1.12-rc4.
+- Containerd_ version 0.2.2.
 
 Running under ``docker``
 ------------------------
 
-Assuming a docker 1.12 environment, start the docker daemon specifying
+Assuming a Docker_ 1.12 environment, start the Docker_ daemon specifying
 the "``--add-runtime $alias=$path``" option. For example::
 
     $ sudo dockerd --add-runtime cor=/usr/bin/clr-oci-runtime
@@ -50,7 +50,7 @@ Then, to run a Clear Container using ``clr-oci-runtime``, specify "``--runtime c
 Running under ``containerd`` (without Docker)
 ---------------------------------------------
 
-If you are running ``containerd`` without docker:
+If you are running Containerd_ directly, without Docker_:
 
 - Start the server daemon::
 
@@ -149,9 +149,12 @@ If you have specific requirements, run::
 Tests
 -----
 
-To run the basic unit and functional tests, run::
+To run the basic unit tests, run::
 
   $ make check
+
+To configure the command above to also run the functional tests, see the
+`functional tests README`_.
 
 Configuration
 -------------
@@ -304,3 +307,5 @@ Links
 
 .. [#oci-runtime-cli-clarification]
    https://github.com/opencontainers/runtime-spec/issues/434
+
+.. _`functional tests README`: https://github.com/01org/clr-oci-runtime/tree/master/tests/functional/README.rst
