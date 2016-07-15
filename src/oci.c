@@ -506,7 +506,7 @@ fail1:
  *
  * \return \c true on success, else \c false.
  */
-static gboolean
+private gboolean
 clr_oci_create_container_workload (struct clr_oci_config *config)
 {
 	GString           *contents = NULL;
@@ -517,8 +517,9 @@ clr_oci_create_container_workload (struct clr_oci_config *config)
 	gboolean           ret = false;
 	gchar             **args = NULL;
 
-	g_assert (config);
-	g_assert (config->oci.process.args);
+	if (! (config && config->oci.process.args)) {
+		return false;
+	}
 
 	if (! config->vm) {
 		g_critical ("No vm configuration");
