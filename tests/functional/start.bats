@@ -22,9 +22,9 @@ function teardown() {
 }
 
 @test "start with invalid container id" {
-	run $COR start
+	run $COR start FOO
         [ "$status" -ne 0 ]
-	[[ "${output}" == "Usage: start <container-id>" ]]
+	[[ "${output}" =~ "failed to parse json file:" ]]
 }
 
 @test "start detach then attach" {
@@ -62,80 +62,4 @@ function teardown() {
 	run $COR list
 	[ "$status" -eq 0 ]
 	[[ ${output} =~ ID\ +PID\ +STATUS\ +BUNDLE\ +CREATED+ ]]
-}
-
-@test "start then kill (implicit signal)" {
-	workload_cmd "sh"
-
-	cmd="$COR create  --console --bundle $BUNDLE_DIR $container_id"
-	run_cmd "$cmd" "0" "$COR_TIMEOUT"
-	testcontainer "$container_id" "created"
-
-	cmd="$COR start $container_id"
-	run_cmd "$cmd" "0" "$COR_TIMEOUT"
-	testcontainer "$container_id" "running"
-
-	cmd="$COR kill $container_id"
-	run_cmd "$cmd" "0" "$COR_TIMEOUT"
-	testcontainer "$container_id" "stopped"
-}
-
-@test "start then kill (short symbolic signal)" {
-	workload_cmd "sh"
-
-	cmd="$COR create  --console --bundle $BUNDLE_DIR $container_id"
-	run_cmd "$cmd" "0" "$COR_TIMEOUT"
-	testcontainer "$container_id" "created"
-
-	cmd="$COR start $container_id"
-	run_cmd "$cmd" "0" "$COR_TIMEOUT"
-	testcontainer "$container_id" "running"
-
-	# specify invalid signal name
-	cmd="$COR kill $container_id FOOBAR"
-	run_cmd "$cmd" "1" "$COR_TIMEOUT"
-
-	cmd="$COR kill $container_id TERM"
-	run_cmd "$cmd" "0" "$COR_TIMEOUT"
-	testcontainer "$container_id" "stopped"
-}
-
-@test "start then kill (full symbolic signal)" {
-	workload_cmd "sh"
-
-	cmd="$COR create  --console --bundle $BUNDLE_DIR $container_id"
-	run_cmd "$cmd" "0" "$COR_TIMEOUT"
-	testcontainer "$container_id" "created"
-
-	cmd="$COR start $container_id"
-	run_cmd "$cmd" "0" "$COR_TIMEOUT"
-	testcontainer "$container_id" "running"
-
-	# specify invalid signal name
-	cmd="$COR kill $container_id SIGFOOBAR"
-	run_cmd "$cmd" "1" "$COR_TIMEOUT"
-
-	cmd="$COR kill $container_id SIGTERM"
-	run_cmd "$cmd" "0" "$COR_TIMEOUT"
-	testcontainer "$container_id" "stopped"
-}
-
-@test "start then kill (numeric signal)" {
-	workload_cmd "sh"
-
-	cmd="$COR create  --console --bundle $BUNDLE_DIR $container_id"
-	run_cmd "$cmd" "0" "$COR_TIMEOUT"
-	testcontainer "$container_id" "created"
-
-	cmd="$COR start $container_id"
-	run_cmd "$cmd" "0" "$COR_TIMEOUT"
-	testcontainer "$container_id" "running"
-
-	# specify invalid signal number
-	cmd="$COR kill $container_id 123456"
-	run_cmd "$cmd" "1" "$COR_TIMEOUT"
-
-	cmd="$COR kill $container_id 15"
-	run_cmd "$cmd" "0" "$COR_TIMEOUT"
-	testcontainer "$container_id" "stopped"
 }
