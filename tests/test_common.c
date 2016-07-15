@@ -148,7 +148,7 @@ void test_spec_handler(struct spec_handler* handler, struct spec_handler_test* t
 	}
 
 	for (test=tests; test->file; test++) {
-		memset(&config, 0, sizeof(struct clr_oci_config));
+		memset(&config, 0, sizeof(config));
 		clr_oci_json_parse(&node, test->file);
 		handler_node = node_find_child(node, handler->name);
 		ck_assert_msg(handler->handle_section(
