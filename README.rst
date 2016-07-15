@@ -83,11 +83,13 @@ Running stand-alone
     $ name=foo
     $ pidfile=/tmp/cor.pid
     $ logfile=/tmp/cor.log
-    $ sudo ./clr-oci-runtime --debug --log /dev/stdout start --console $(tty) --pid-file "$pidfile" "$name" "$bundle_dir"
+    $ sudo ./clr-oci-runtime --debug create --console $(tty) --bundle "$bundle_dir" "$name"
+    $ sudo ./clr-oci-runtime --debug start "$name"
 
 Or, to simulate how ``containerd`` calls the runtime::
 
-    $ sudo ./clr-oci-runtime --log "$logfile" --log-format json start --bundle "$bundle_dir" --console $(tty) -d --pid-file "$pidfile" "$name"
+    $ sudo ./clr-oci-runtime --log "$logfile" --log-format json create --bundle "$bundle_dir" --console $(tty) -d --pid-file "$pidfile" "$name"
+    $ sudo ./clr-oci-runtime --log "$logfile" --log-format json start "$name"
 
 Running as a non-privileged user
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
