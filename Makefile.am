@@ -142,6 +142,7 @@ bats_test_sources = \
 EXTRA_DIST = \
 	LICENSE \
 	TODO \
+	CONTRIBUTING.md \
 	Doxyfile \
 	data/vm.json.in \
 	tests/data \
