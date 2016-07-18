@@ -4,11 +4,6 @@
 ``clr-oci-runtime``
 ===================
 
-Requirements
-------------
-
-- A Qemu_ hypervisor that supports the ``pc-lite`` machine type.
-
 Overview
 --------
 
@@ -21,16 +16,26 @@ The tool aims to be compatible with the OCI_ runtime specification
 [#oci-spec]_, allowing Clear Containers to be launched transparently by
 Docker_ (using containerd_) and other OCI_-conforming container managers.
 
+Henceforth, the tool will simply be referred to as "the runtime".
+
+See the canonical `clr-oci-runtime home page`_ for the latest
+information.
+
+Requirements
+------------
+
+- A Qemu_ hypervisor that supports the ``pc-lite`` machine type.
+
 Platform Support
 ----------------
 
-``clr-oci-runtime`` supports running Clear Containers on Intel 64-bit (x86-64) Linux systems.
+the runtime supports running Clear Containers on Intel 64-bit (x86-64)
+Linux systems.
 
 Supported Application Versions
 ------------------------------
 
-``clr-oci-runtime`` has been tested with the following application
-versions:
+The runtime has been tested with the following application versions:
 
 - Docker_ version 1.12-rc4.
 - Containerd_ version 0.2.2.
@@ -43,7 +48,9 @@ the "``--add-runtime $alias=$path``" option. For example::
 
     $ sudo dockerd --add-runtime cor=/usr/bin/clr-oci-runtime
 
-Then, to run a Clear Container using ``clr-oci-runtime``, specify "``--runtime cor``". For example::
+Then, to run a Clear Container using the runtime, specify "``--runtime cor``".
+
+For example::
 
     $ sudo docker-run --runtime cor -ti busybox
 
@@ -60,11 +67,11 @@ If you are running Containerd_ directly, without Docker_:
 
     $ name=foo
 
-    # XXX: path to directory containing the following:
+    # XXX: path to directory containing atleast the following:
     #
-    # config.json
-    # hypervisor.args
-    # rootfs/
+    #   config.json
+    #   rootfs/
+    #
     $ bundle_dir=...
 
     $ sudo /usr/local/bin/ctr --debug containers start --attach "$name" "$bundle_dir"
@@ -77,8 +84,8 @@ If you are running Containerd_ directly, without Docker_:
 Running stand-alone
 -------------------
 
-``clr-oci-runtime`` can be run directly, without the need for either
-``docker`` or ``containerd``::
+The runtime can be run directly, without the need for either ``docker``
+or ``containerd``::
 
     $ name=foo
     $ pidfile=/tmp/cor.pid
@@ -94,8 +101,7 @@ Or, to simulate how ``containerd`` calls the runtime::
 Running as a non-privileged user
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Assuming the following provisos, ``clr-oci-runtime`` can be run as a
-non-``root`` user:
+Assuming the following provisos, the runtime can be run as a non-``root`` user:
 
 - User has read+write permissions for the Clear Containers root
   filesystem image specified in the ``vm`` JSON object (see
@@ -144,7 +150,7 @@ If you have specific requirements, run::
 
   $ ./configure --help
 
-.. then add the extra configure flags you want to use::
+... then add the extra "``configure``" flags you want to use::
 
   $ ./autogen.sh --enable-foo --disable-bar && make
 
@@ -155,32 +161,77 @@ To run the basic unit tests, run::
 
   $ make check
 
-To configure the command above to also run the functional tests, see the
-`functional tests README`_.
+To configure the command above to also run the functional tests
+(recommended), see the `functional tests README`_.
 
 Configuration
 -------------
 
-At the time of writing, the OCI_ had not agreed on how best to handled
+At the time of writing, the OCI_ had not agreed on how best to handle
 VM-based runtimes such as this (see [#oci-vm-config-issue]_).
 
-Until the OCI_ specification clarifies how VM runtimes will be defined, ``clr-oci-runtime`` will search a number of different data sources for its VM configuration information:
+Until the OCI_ specification clarifies how VM runtimes will be defined,
+the runtime will search a number of different data sources for its VM
+configuration information.
 
-- It consults ``config.json`` in the bundle directory for a "``vm``" object, according to the proposed OCI specification [#oci-vm-config-issue]_
+Unless otherwise specified, each configuration file in this section will
+be looked for in the following directories (in order):
 
-  You'll need to adjust the included ``data/config.json`` for your setup.
+- The bundle directory, specified by "``--bundle $bundle_dir``".
 
-- If no "``vm``" object is found in ``config.json``, the file ``/etc/clr-oci-runtime/vm.json`` will be also be scanned for a "``vm``" object.
+- The system configuration directory ("``./configure --sysconfdir=...``").
+  
+  With no ``--prefix`` or with ``--prefix=/``, the file will be looked
+  for in ``/etc/clr-oci-runtime/``".
 
-  An example of this file can be found as ``data/vm.json`` after the build has completed.
+- The defaults directory.
+ 
+  This is a directory called "``defaults/clr-oci-runtime/``" below the
+  configured data directory ("``./configure --datadir=...``").
+  
+  With no ``--prefix`` or with ``--prefix=/``, the file will be looked
+  for in ``/usr/share/defaults/clr-oci-runtime/``".
 
-- It consults ``hypervisor.args`` in the bundle directory, which specifies all the arguments to the hypervisor, one per line.
+The first file found will be used and the runtime will log the full path
+to each configuration file used (see `Logging`_).
 
-  An example of this file can be found as ``data/hypervisor.args`` after the build has completed.
+Example files will be available in the "``data/``" directory after the
+build has completed. To influence the way these files are generated,
+consider using the following "``configure``" options:
 
-- If ``hypervisor.args`` is not found in the bundle directory, the file ``/etc/clr-oci-runtime/hypervisor.args`` will be used.
+- ``--with-qemu-path=``
+- ``--with-cc-kernel=``
+- ``--with-cc-image=``
 
-Currently, the tool will expand the following ``special tags`` found in ``hypervisor.args`` appropriately:
+.. note:: You may still need to make adjustments to this file to work
+   for your environment.
+
+``config.json``
+~~~~~~~~~~~~~~~
+
+The runtime will consult the OCI configuration file ``config.json``
+for a "``vm``" object, according to the proposed OCI specification
+[#oci-vm-config-issue]_
+
+``vm.json``
+~~~~~~~~~~~
+
+If no "``vm``" object is found in ``config.json``, the file
+"``vm.json``" will be looked for which should contain a stand-alone
+JSON "``vm``" object specifying the virtual machine configuration.
+
+``hypervisor.args``
+~~~~~~~~~~~~~~~~~~~
+
+This file specifies both the full path to the hypervisor binary to use
+and all the arguments to be passed to it. The runtime supports
+specifying specific options using variables (see `Variable Expansion`_).
+
+Variable Expansion
+..................
+
+Currently, the runtime will expand the following `special tags` found in
+``hypervisor.args`` appropriately:
 
 - ``@COMMS_SOCKET@`` - path to the hypervisor control socket (QMP socket for qemu).
 - ``@CONSOLE_DEVICE@`` - hypervisor arguments used to control where console I/O is sent to.
@@ -203,14 +254,17 @@ specified, both log files will be appended to.
 
 The global log potentially provides more detail than the standard log
 since it is always written to in ASCII format and includes Process ID
-details. Also note that all instances of ``clr-oci-runtime`` will append to
+details. Also note that all instances of the runtime will append to
 the global log.
 
-The global log file is named ``clr-oci-runtime.log``, and will be written into the directory specified by "``--root``".
-The default runtime state directory is ``/run/opencontainer/containers/`` if no "``--root``" argument is supplied.
+The global log file is named ``clr-oci-runtime.log``, and will be
+written into the directory specified by "``--root``".  The default
+runtime state directory is ``/run/opencontainer/containers/`` if no
+"``--root``" argument is supplied.
 
-Note: Global logging is presently always enabled in ``clr-oci-runtime``,
-as ``containerd`` does not always invoke the runtime with the ``--log`` argument, and enabling the global log in this case helps with debugging.
+Note: Global logging is presently always enabled in the runtime,
+as ``containerd`` does not always invoke the runtime with the ``--log``
+argument, and enabling the global log in this case helps with debugging.
 
 Command-line Interface
 ----------------------
@@ -222,12 +276,12 @@ However, the OCI_ runtime reference implementation, runc_, has a CLI
 which deviates from the recommendations.
 
 This issue has been raised with OCI_ (see [#oci-runtime-cli-clarification]_), but
-until the situation is clarified, ``clr-oci-runtime`` strives to
-support both the OCI_ CLI and the runc_ CLI interfaces.
+until the situation is clarified, the runtime strives to support both
+the OCI_ CLI and the runc_ CLI interfaces.
 
 Details of the runc_ command line options can be found in the `runc manpage`_.
 
-Note: The ``--global-log`` argument is unique to ``clr-oci-runtime`` at present.
+Note: The ``--global-log`` argument is unique to the runtime at present.
 
 Extensions
 ~~~~~~~~~~
@@ -289,6 +343,8 @@ Links
 .. _`Qemu`: http://qemu.org
 
 .. _OCI: https://www.opencontainers.org/
+
+.. _`clr-oci-runtime home page`: https://github.com/01org/clr-oci-runtime
 
 .. _runc: https://github.com/opencontainers/runc
 
