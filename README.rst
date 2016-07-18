@@ -12,9 +12,10 @@ that launches an Intel_ VT-x secured Clear Containers 2.0 hypervisor,
 rather than a standard Linux container. It leverages the highly
 optimised `Clear Linux`_ technology to achieve this goal.
 
-The tool aims to be compatible with the OCI_ runtime specification
-[#oci-spec]_, allowing Clear Containers to be launched transparently by
-Docker_ (using containerd_) and other OCI_-conforming container managers.
+The tool is licensed under the terms of the GNU GPLv2 and aims to be
+compatible with the OCI_ runtime specification [#oci-spec]_, allowing
+Clear Containers to be launched transparently by Docker_ (using
+containerd_) and other OCI_-conforming container managers.
 
 Henceforth, the tool will simply be referred to as "the runtime".
 
