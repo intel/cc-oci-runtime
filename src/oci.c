@@ -160,10 +160,14 @@ clr_oci_get_config_and_state (gchar **config_file,
 	/* Fill in further details to make the config valid */
 	config->bundle_path = g_strdup ((*state)->bundle_path);
 	config->state.workload_pid = (*state)->pid;
-	config->state.status= (*state)->status;
+	config->state.status = (*state)->status;
 
 	g_strlcpy (config->state.comms_path, (*state)->comms_path,
 			sizeof (config->state.comms_path));
+
+	g_strlcpy (config->state.procsock_path,
+			(*state)->procsock_path,
+			sizeof (config->state.procsock_path));
 
 	*config_file = clr_oci_config_file_path ((*state)->bundle_path);
 	if (! (*config_file)) {
@@ -194,11 +198,12 @@ clr_oci_kill (struct clr_oci_config *config,
 {
 	enum oci_status last_status;
 
+	if (! (config && state)) {
+		return false;
+	}
+
 	/* save current status */
 	last_status = config->state.status;
-
-	g_assert (config);
-	g_assert (state);
 
 	/* stopping container */
 	config->state.status = OCI_STATUS_STOPPING;
