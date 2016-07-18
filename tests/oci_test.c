@@ -21,6 +21,9 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <assert.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #include <check.h>
 #include <glib.h>
@@ -880,6 +883,93 @@ START_TEST(test_clr_oci_create_container_workload) {
 
 } END_TEST
 
+START_TEST(test_clr_oci_kill) {
+	struct clr_oci_config config_tmp = { { 0 } };
+	struct clr_oci_config config = { { 0 } };
+	struct clr_oci_config config_new = { { 0 } };
+	struct oci_state *state = NULL;
+	struct oci_state *state_new = NULL;
+	gboolean ret;
+	g_autofree gchar *tmpdir = NULL;
+	g_autofree gchar *config_file = NULL;
+	g_autofree gchar *config_file_new = NULL;
+	int status = 0;
+	GSpawnFlags flags =
+		(G_SPAWN_SEARCH_PATH |
+		G_SPAWN_STDOUT_TO_DEV_NULL |
+		G_SPAWN_STDERR_TO_DEV_NULL |
+		G_SPAWN_DO_NOT_REAP_CHILD);
+	gchar *args[] = { "sleep", "999", NULL };
+
+	ck_assert (! clr_oci_kill (NULL, NULL, 0));
+
+	tmpdir = g_dir_make_tmp (NULL, NULL);
+	ck_assert (tmpdir);
+
+	config_tmp.optarg_container_id = "foo";
+
+	config.root_dir = g_strdup (tmpdir);
+	ck_assert (config.root_dir);
+
+	/* start a fake process */
+	ret = g_spawn_async (NULL, /* wd */
+			args,
+			NULL, /* env */
+			flags,
+			NULL, /* child setup */
+			NULL, /* data */
+			&config_tmp.state.workload_pid,
+			NULL); /* error */
+	ck_assert (ret);
+
+	config_tmp.state.status = OCI_STATUS_RUNNING;
+
+	ret = test_helper_create_state_file (config_tmp.optarg_container_id,
+				tmpdir,
+				&config_tmp);
+	ck_assert (ret);
+
+	config.optarg_container_id = config_tmp.optarg_container_id;
+
+	ck_assert (clr_oci_get_config_and_state (&config_file,
+				&config, &state));
+
+	ck_assert (clr_oci_config_update (&config, state));
+
+	ck_assert (state->pid == config_tmp.state.workload_pid);
+
+	ck_assert (clr_oci_kill (&config, state, SIGTERM));
+	(void)waitpid (state->pid, &status, 0);
+
+	ck_assert (kill (config.state.workload_pid, 0) < 0);
+	ck_assert (errno == ESRCH);
+
+	ck_assert (WIFSIGNALED (status));
+	ck_assert (WTERMSIG (status) == SIGTERM);
+
+	config_new.optarg_container_id = config.optarg_container_id;
+	config_new.root_dir = g_strdup (tmpdir);
+	ck_assert (config_new.root_dir);
+
+	ck_assert (clr_oci_get_config_and_state (&config_file_new,
+				&config_new, &state_new));
+
+	ck_assert (state_new->status == OCI_STATUS_STOPPED);
+
+	/* clean up */
+	ck_assert (! g_remove (config_tmp.state.state_file_path));
+	ck_assert (! g_remove (config_tmp.state.runtime_path));
+
+	clr_oci_state_free (state);
+	clr_oci_state_free (state_new);
+	clr_oci_config_free (&config_tmp);
+	clr_oci_config_free (&config);
+	clr_oci_config_free (&config_new);
+
+	ck_assert (! g_remove (tmpdir));
+
+} END_TEST
+
 Suite* make_oci_suite(void) {
 	Suite* s = suite_create(__FILE__);
 
@@ -889,6 +979,7 @@ Suite* make_oci_suite(void) {
 	ADD_TEST (test_clr_oci_get_config_and_state, s);
 	ADD_TEST (test_clr_oci_vm_running, s);
 	ADD_TEST (test_clr_oci_create_container_workload, s);
+	ADD_TEST (test_clr_oci_kill, s);
 
 	return s;
 }

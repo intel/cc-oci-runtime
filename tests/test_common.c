@@ -202,14 +202,18 @@ test_helper_create_state_file (const char *name,
 	config->console = g_strdup_printf ("console device for %s", name);
 	assert (config->console);
 
-	assert (config->console);
-
 	config->bundle_path = g_strdup_printf ("/tmp/bundle-for-%s",
 			name);
 	assert (config->bundle_path);
 
 	/* set pid to ourselves so we know it's running */
-	config->state.workload_pid = getpid ();
+	if (! config->state.workload_pid) {
+		config->state.workload_pid = getpid ();
+	}
+
+	g_strlcpy (config->state.procsock_path,
+			"procsock-path",
+		  sizeof (config->state.procsock_path));
 
 	if (! clr_oci_runtime_dir_setup (config)) {
 		fprintf (stderr, "ERROR: failed to setup runtime dir "
