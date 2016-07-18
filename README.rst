@@ -41,6 +41,80 @@ The runtime has been tested with the following application versions:
 - Docker_ version 1.12-rc4.
 - Containerd_ version 0.2.2.
 
+Limitations
+-----------
+
+Since this is early code and is tracking both Docker_ and an unratified
+specification, there are still a few feature gaps.
+
+The remainder of this section documents those gaps, all of which
+are being worked on.
+
+Non-interactive "``docker run``" and Docker_ logs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If the runtime is configured for docker and "``docker run``" is
+specified without "``-ti``", no output is currently generated to either
+the console or the docker log ("``docker logs``" command).
+
+See https://github.com/01org/clr-oci-runtime/issues/17
+
+Networking
+~~~~~~~~~~
+
+Networking within the Clear Container is not currently available.
+
+Networking support is complicated by the way Dockers networking code
+assumes the runtime will create a traditional container.
+
+This feature is currently WIP and is expected to land soon - a branch
+containing experimental code can be found here:
+
+- https://github.com/01org/clr-oci-runtime/tree/networking
+
+``exec``
+~~~~~~~~
+
+The ``exec`` command that allows a new process to run inside a container
+is not fully implemented, in part due to the fact that `Networking`_ is not
+yet available.
+
+See https://github.com/01org/clr-oci-runtime/issues/18
+
+Hostname
+~~~~~~~~
+
+The hostname specified in the OCI_ configuration file is not currently
+applied to the Clear Container, in part due to the fact that
+`Networking`_ is not yet available.
+
+See https://github.com/01org/clr-oci-runtime/issues/19
+
+Running a workload as a non-``root`` user/group
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The runtime currently ignores the request to run the workload as a
+non-root user and/or group, defaulting to running as the "``root``" user
+(inside the Clear Container).
+
+See https://github.com/01org/clr-oci-runtime/issues/20
+
+Annotatations
+~~~~~~~~~~~~~
+
+OCI_ Annotations are not currently exposed inside the Clear Container.
+
+See https://github.com/01org/clr-oci-runtime/issues/21
+
+No checkpoint and restore commands
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Although the runtime provides stub implementations of these commands,
+this is currently purely to satisfy Docker_ - the commands do *NOT*
+save/restore the state of the Clear Container.
+
+See https://github.com/01org/clr-oci-runtime/issues/22
+
 Running under ``docker``
 ------------------------
 
