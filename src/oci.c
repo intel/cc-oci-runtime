@@ -1016,10 +1016,13 @@ clr_oci_start (struct clr_oci_config *config,
 	/* XXX: If running stand-alone, wait for the hypervisor to
 	 * finish. But if running under containerd, don't wait.
 	 *
-	 * The only simple way to determine if we're being called
+	 * A simple way to determine if we're being called
 	 * under containerd is to check if stdin is closed.
 	 *
-	 * Do not wait when console is empty
+	 * FIXME: a better way is to check if config->process.terminal
+	 * is set.
+	 *
+	 * Do not wait when console is empty.
 	 */
 	if ((isatty (STDIN_FILENO) && ! config->detached_mode) &&
 	    !config->use_socket_console) {

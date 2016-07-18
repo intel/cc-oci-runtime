@@ -187,7 +187,9 @@ struct oci_cfg_process {
 
 	gchar              **env;
 
+	/** Set to \c true if the container has an associated terminal. */
 	gboolean             terminal;
+
 	struct oci_cfg_user  user;
 };
 
