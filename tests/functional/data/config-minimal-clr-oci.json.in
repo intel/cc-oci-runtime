@@ -25,7 +25,30 @@
 	},
 	"hostname": "shell",
 	"mounts": [],
-	"hooks": {},
+	"hooks": {
+		"prestart": [
+		{
+			"path": "/bin/echo",
+			"args": ["this", "is", "a", "test"],
+			"env":  [ "key1=value1"]
+		},
+		{
+			"path": "/bin/ls"
+		}
+		],
+		"poststart": [
+		{
+			"path": "/bin/ls",
+			"timeout": 5
+		}
+		],
+		"poststop": [
+		{
+			"path": "/bin/echo",
+			"args": ["other", "test"]
+		}
+		]
+	},
 	"vm": {
 		"path": "@QEMU_PATH@",
 		"image": "@CONTAINERS_IMG@",
