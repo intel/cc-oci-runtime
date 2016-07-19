@@ -28,18 +28,15 @@ handler_ps (const struct subcommand *sub,
 		int argc, char *argv[])
 {
 	// default ps options
-	gchar *ps_options = "-ef";
+	gchar     *ps_options = "-ef";
+	gboolean   ret;
 
 	g_assert (sub);
 	g_assert (config);
 
-	if ((argc && ((!g_strcmp0 (argv[0], "--help")) ||
-		     (!g_strcmp0 (argv[0], "-h")))) ||
-		     (!argc)) {
-		g_print ("Usage: %s [command options] <container-id> <ps options>\n",
-		    sub->name);
-
-		return argc ? true : false;
+	if (handle_default_usage (argc, argv, sub->name,
+				&ret, 1, "<ps options>")) {
+		return ret;
 	}
 
 	config->optarg_container_id = argv[0];
