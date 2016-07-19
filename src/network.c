@@ -593,7 +593,7 @@ clr_oci_vm_conn_free (struct clr_oci_vm_conn *conn)
 
 	g_object_unref (conn->socket_addr);
 	g_object_unref (conn->socket);
-	g_free_if_set (conn);
+	g_free (conn);
 }
 
 /*!
