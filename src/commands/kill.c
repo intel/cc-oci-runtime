@@ -38,7 +38,8 @@ handler_kill (const struct subcommand *sub,
 	g_assert (config);
 
 
-	if (handle_default_usage (argc, argv, sub->name, &ret)) {
+	if (handle_default_usage (argc, argv, sub->name,
+				&ret, 1, "[<signal>]")) {
 		return ret;
 	}
 

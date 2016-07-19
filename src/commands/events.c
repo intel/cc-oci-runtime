@@ -55,7 +55,8 @@ handler_events (const struct subcommand *sub,
 		goto out;
 	}
 
-	if (handle_default_usage (argc, argv, sub->name, &ret)) {
+	if (handle_default_usage (argc, argv, sub->name,
+				&ret, -1, NULL)) {
 		goto out;
 	}
 
