@@ -202,6 +202,11 @@ To run non-privileged::
     $ ./clr-oci-runtime --root "$dir" create --console $(tty) --bundle "$oci_bundle_directory" "$name"
     $ ./clr-oci-runtime --root "$dir" start "$name"
 
+Community
+---------
+
+See `the contributing page <https://github.com/01org/clr-oci-runtime/blob/master/CONTRIBUTING.md#contact>`_.
+
 Building
 --------
 
