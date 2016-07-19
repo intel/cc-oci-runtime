@@ -67,7 +67,20 @@ For example:
 
 We accept [github pull requests](https://github.com/01org/clr-oci-runtime/pulls).
 
+## Contact
+
+The Clear Containers community can be reached out through its IRC channel and a
+dedicated mailing list:
+
+* IRC: `#clearcontainers @ freenode.net`.
+* Mailing list: [Subscribe](https://lists.01.org/mailman/listinfo/cc-devel).
+
 ## Issue tracking
+
+If you have a problem, please let us know. [IRC](#contact) is a perfectly fine place to quickly
+informally bring something up, if you get a response.
+The [mailing list](https://lists.01.org/mailman/listinfo/cc-devel) is a more durable
+communication channel.
 
 If it's a bug not already documented, by all means please [open an
 issue in github](https://github.com/01org/clr-oci-runtime/issues/new) so we all get
