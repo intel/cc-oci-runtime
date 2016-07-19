@@ -99,8 +99,8 @@ non-root user and/or group, defaulting to running as the "``root``" user
 
 See https://github.com/01org/clr-oci-runtime/issues/20
 
-Annotatations
-~~~~~~~~~~~~~
+Annotations
+~~~~~~~~~~~
 
 OCI_ Annotations are not currently exposed inside the Clear Container.
 
