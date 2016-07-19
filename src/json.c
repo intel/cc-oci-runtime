@@ -121,10 +121,9 @@ clr_oci_json_parse_aux(JsonNode* root, GNode* node, bool parsing_array) {
 	} else if (JSON_NODE_TYPE(root) == JSON_NODE_ARRAY) {
 		JsonArray* array = json_node_get_array(root);
 		guint array_size = json_array_get_length (array);
-		JsonNode *array_element;
 
 		for (i = 0; i < array_size; i++) {
-			array_element = json_array_get_element(array, i);
+			JsonNode *array_element = json_array_get_element(array, i);
 			clr_oci_json_parse_aux(array_element, node, true);
 		}
 	} else if (JSON_NODE_TYPE(root) == JSON_NODE_VALUE) {
