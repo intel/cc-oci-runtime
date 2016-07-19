@@ -102,11 +102,17 @@ function check_root() {
 
 #Modify config.json's workload to execute a <cmd>
 # @param <cmd>
+# @param <options> ...
 function workload_cmd() {
 	#Copy new, no modified config.json
 	/bin/cp "$CONFIG" "${BUNDLE_DIR}/config.json"
-	cmd="$*"
-	sed -i "s,\"CMD\",\"$cmd\",g" "$BUNDLE_DIR/config.json"
+	cmd="\"$1\""
+	shift
+	for opt in "$@"
+	do
+	    cmd="$cmd\, \"$opt\""
+	done
+	sed -i "s,\"CMD\",$cmd,g" "$BUNDLE_DIR/config.json"
 }
 
 # Execute a command and vefiy its exit code
