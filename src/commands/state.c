@@ -35,13 +35,9 @@ handler_state (const struct subcommand *sub,
 	g_assert (sub);
 	g_assert (config);
 
-	if (handle_default_usage (argc, argv, sub->name, &ret)) {
+	if (handle_default_usage (argc, argv, sub->name,
+				&ret, 1, NULL)) {
 		return ret;
-	}
-
-	if (argc != 1) {
-		g_critical ("Usage: %s <container-id>", sub->name);
-		return false;
 	}
 
 	/* Used to allow us to find the state file */

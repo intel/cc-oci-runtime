@@ -81,7 +81,8 @@ handle_command_toggle (const struct subcommand *sub,
 
 	action = pause ? "pause" : "resume";
 
-	if (handle_default_usage (argc, argv, sub->name, &ret)) {
+	if (handle_default_usage (argc, argv, sub->name,
+				&ret, 1, NULL)) {
 		return ret;
 	}
 
@@ -145,7 +146,8 @@ handle_command_stop (const struct subcommand *sub,
 	g_assert (sub);
 	g_assert (config);
 
-	if (handle_default_usage (argc, argv, sub->name, &ret)) {
+	if (handle_default_usage (argc, argv, sub->name,
+				&ret, 1, NULL)) {
 		return ret;
 	}
 
@@ -228,7 +230,8 @@ handle_command_setup (const struct subcommand *sub,
 	g_assert (sub);
 	g_assert (config);
 
-	if (handle_default_usage (argc, argv, sub->name, &ret)) {
+	if (handle_default_usage (argc, argv, sub->name,
+				&ret, 1, NULL)) {
 		return ret;
 	}
 
@@ -278,22 +281,40 @@ handle_command_setup (const struct subcommand *sub,
  * \param cmd Name of sub-command.
  * \param ret Return code that should be applied if arguments have been
  *   handled.
+ * \param min_argc Minimum permitted value of \p argc. Since \ref
+ *   subcommand's are handed a modified \c argc, this value is
+ *   usually \c 1 to denote the container id.
+ * \param extra String showing extra arguments (additional to the
+ *   container id) that the user should provide, or \c NULL.
  *
  * \return \c true on success, else \c false.
  */
 gboolean
 handle_default_usage (int argc, char *argv[],
-		const char *cmd, gboolean *ret)
+		const char *cmd, gboolean *ret,
+		int min_argc, const char *extra)
 {
 	g_assert (cmd);
 	g_assert (ret);
 
-	if ((argc && ((!g_strcmp0 (argv[0], "--help")) ||
-		     (!g_strcmp0 (argv[0], "-h")))) ||
-		     (!argc)) {
-		g_print ("Usage: %s <container-id>\n", cmd);
+	gboolean  help = false;
 
-		*ret = argc ? true : false;
+	if (argc && ((!g_strcmp0 (argv[0], "--help")) ||
+		     (!g_strcmp0 (argv[0], "-h")))) {
+		help = true;
+	}
+				
+	if (help || (!argc) || (argc < min_argc)) {
+		g_print ("Usage: %s <container-id>%s%s\n",
+				cmd,
+				extra ? " " : "",
+				extra ? extra : "");
+
+		if (help) {
+			*ret = argc == 1;
+		} else {
+			*ret = argc >= min_argc;
+		}
 
 		/* arguments have been handled */
 		return true;

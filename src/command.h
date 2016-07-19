@@ -87,7 +87,7 @@ gboolean handle_command_stop (const struct subcommand *sub,
 gboolean handle_command_setup (const struct subcommand *sub,
 		struct clr_oci_config *config,
 		int argc, char *argv[]);
-gboolean handle_default_usage (int argc, char *argv[], const char *cmd, gboolean *ret);
+gboolean handle_default_usage (int argc, char *argv[], const char *cmd, gboolean *ret, int min_argc, const char *extra);
 gboolean handle_option_console (const gchar *option_name,
 		const gchar *value,
 		gpointer data,

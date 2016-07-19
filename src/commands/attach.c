@@ -32,7 +32,8 @@ handler_attach (const struct subcommand *sub,
 	g_assert (sub);
 	g_assert (config);
 
-	if (handle_default_usage (argc, argv, sub->name, &ret)) {
+	if (handle_default_usage (argc, argv, sub->name,
+				&ret, 1, NULL)) {
 		return ret;
 	}
 
