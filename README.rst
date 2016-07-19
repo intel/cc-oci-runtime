@@ -25,7 +25,7 @@ information.
 Requirements
 ------------
 
-- A Qemu_ hypervisor that supports the ``pc-lite`` machine type. (qemu-lite_)
+- A Qemu_ hypervisor that supports the ``pc-lite`` machine type (see qemu-lite_).
 
 Platform Support
 ----------------
