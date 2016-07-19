@@ -72,6 +72,8 @@ containing experimental code can be found here:
 
 - https://github.com/01org/clr-oci-runtime/tree/networking
 
+See https://github.com/01org/clr-oci-runtime/issues/38
+
 ``exec``
 ~~~~~~~~
 
