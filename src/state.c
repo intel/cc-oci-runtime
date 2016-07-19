@@ -255,7 +255,7 @@ static void
 handle_state_mounts_section(GNode* node, struct handler_data* data) {
 
 	if (node && node->data) {
-        struct clr_oci_mount* m = g_new0 (struct clr_oci_mount, 1);
+		struct clr_oci_mount* m = g_new0 (struct clr_oci_mount, 1);
 		g_strlcpy (m->dest, (char*)node->data, sizeof (m->dest));
 		m->ignore_mount = false;
 
