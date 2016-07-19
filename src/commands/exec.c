@@ -32,17 +32,9 @@ handler_exec (const struct subcommand *sub,
 	g_assert (sub);
 	g_assert (config);
 
-	if (argc && ((!g_strcmp0 (argv[0], "--help"))
-			|| (!g_strcmp0 (argv[0], "-h")))) {
-		g_print ("Usage: %s <container-id> <cmd> [args]\n",
-				sub->name);
-		return true;
-	}
-
-	if (argc < 2) {
-		g_print ("Usage: %s <container-id> <cmd> [args]\n",
-				sub->name);
-		return false;
+	if (handle_default_usage (argc, argv, sub->name,
+				&ret, 2, "<cmd> [args]")) {
+		return ret;
 	}
 
 	/* Used to allow us to find the state file */

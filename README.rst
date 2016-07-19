@@ -25,7 +25,7 @@ information.
 Requirements
 ------------
 
-- A Qemu_ hypervisor that supports the ``pc-lite`` machine type.
+- A Qemu_ hypervisor that supports the ``pc-lite`` machine type (see qemu-lite_).
 
 Platform Support
 ----------------
@@ -416,6 +416,8 @@ Links
 .. _`Clear Linux`: https://clearlinux.org/
 
 .. _`Qemu`: http://qemu.org
+
+.. _`qemu-lite`: https://github.com/01org/qemu-lite
 
 .. _OCI: https://www.opencontainers.org/
 
