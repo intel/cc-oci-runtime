@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -61,9 +61,9 @@ static void handle_state_console_section(GNode*, struct handler_data*);
 static void handle_state_vm_section(GNode*, struct handler_data*);
 static void handle_state_annotations_section(GNode*, struct handler_data*);
 
-/*! Used to handle each section in \ref CLR_OCI_STATE_FILE. */
+/*! Used to handle each section in \ref CC_OCI_STATE_FILE. */
 static struct state_handler {
-	/** Name of JSON element in \ref CLR_OCI_STATE_FILE. */
+	/** Name of JSON element in \ref CC_OCI_STATE_FILE. */
 	const char* name;
 
 	/** Function to handle JSON element. */
@@ -109,7 +109,7 @@ struct handler_data {
 };
 
 /** Map of \ref oci_status values to human-readable strings. */
-static struct clr_oci_map oci_status_map[] =
+static struct cc_oci_map oci_status_map[] =
 {
 	{ OCI_STATUS_CREATED , "created" },
 	{ OCI_STATUS_RUNNING , "running" },
@@ -124,19 +124,19 @@ static struct clr_oci_map oci_status_map[] =
  * Determine the human-readable string to be used to show the state
  * of the specified VM.
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  *
  * \return static string representing state on success, else \c NULL.
  */
 private
 const gchar *
-clr_oci_status_get (const struct clr_oci_config *config)
+cc_oci_status_get (const struct cc_oci_config *config)
 {
 	if (! config) {
 		return NULL;
 	}
 
-	return clr_oci_status_to_str (config->state.status);
+	return cc_oci_status_to_str (config->state.status);
 }
 
 /*!
@@ -229,7 +229,7 @@ handle_state_processPath_section (GNode* node, struct handler_data* data) {
 static void
 handle_state_status_section(GNode* node, struct handler_data* data) {
 	if (node && node->data) {
-		data->state->status = clr_oci_str_to_status ((const gchar *)node->data);
+		data->state->status = cc_oci_str_to_status ((const gchar *)node->data);
 		(*(data->subelements_count))++;
 	}
 }
@@ -253,10 +253,10 @@ handle_state_created_section(GNode* node, struct handler_data* data) {
  */
 static void
 handle_state_mounts_section(GNode* node, struct handler_data* data) {
-	struct clr_oci_mount* m = NULL;
+	struct cc_oci_mount* m = NULL;
 
 	if (node && node->data) {
-		m = g_new0 (struct clr_oci_mount, 1);
+		m = g_new0 (struct cc_oci_mount, 1);
 		g_strlcpy (m->dest, (char*)node->data, sizeof (m->dest));
 		m->ignore_mount = false;
 
@@ -300,7 +300,7 @@ handle_state_console_section(GNode* node, struct handler_data* data) {
  */
 static void
 handle_state_vm_section(GNode* node, struct handler_data* data) {
-	struct clr_oci_vm_cfg *vm;
+	struct cc_oci_vm_cfg *vm;
 
 	if (! (node && node->data)) {
 		return;
@@ -406,12 +406,12 @@ handle_state_sections(GNode* node, struct oci_state* state) {
 /*!
  * Update the specified config with the state file path.
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  *
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_oci_state_file_get (struct clr_oci_config *config)
+cc_oci_state_file_get (struct cc_oci_config *config)
 {
 	g_assert (config);
 
@@ -423,7 +423,7 @@ clr_oci_state_file_get (struct clr_oci_config *config)
 			sizeof (config->state.state_file_path),
 			"%s/%s",
 			config->state.runtime_path,
-			CLR_OCI_STATE_FILE);
+			CC_OCI_STATE_FILE);
 
 	return true;
 }
@@ -431,22 +431,22 @@ clr_oci_state_file_get (struct clr_oci_config *config)
 /*!
  * Determine if the state file exists.
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  *
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_oci_state_file_exists (struct clr_oci_config *config)
+cc_oci_state_file_exists (struct cc_oci_config *config)
 {
 	if (! config) {
 		return false;
 	}
 
-	if (! clr_oci_runtime_path_get (config)) {
+	if (! cc_oci_runtime_path_get (config)) {
 		return false;
 	}
 
-	if (! clr_oci_state_file_get (config)) {
+	if (! cc_oci_state_file_get (config)) {
 		return false;
 	}
 
@@ -457,12 +457,12 @@ clr_oci_state_file_exists (struct clr_oci_config *config)
 /*!
  * Read the state file.
  *
- * \param file Full path to \ref CLR_OCI_STATE_FILE state file.
+ * \param file Full path to \ref CC_OCI_STATE_FILE state file.
  *
  * \return Newly-allocated \ref oci_state on success, else \c NULL.
  */
 struct oci_state *
-clr_oci_state_file_read (const char *file)
+cc_oci_state_file_read (const char *file)
 {
 	GNode* node = NULL;
 	struct oci_state *state = NULL;
@@ -472,7 +472,7 @@ clr_oci_state_file_read (const char *file)
 		return NULL;
 	}
 
-	if (! clr_oci_json_parse(&node, file)) {
+	if (! cc_oci_json_parse(&node, file)) {
 		g_critical("failed to parse json file: %s", file);
 		return NULL;
 	}
@@ -480,10 +480,10 @@ clr_oci_state_file_read (const char *file)
 	state = g_new0 (struct oci_state, 1);
 	if (state) {
 #ifdef DEBUG
-		clr_oci_node_dump (node);
+		cc_oci_node_dump (node);
 #endif // DEBUG
 
-		state->vm = g_malloc0 (sizeof(struct clr_oci_vm_cfg));
+		state->vm = g_malloc0 (sizeof(struct cc_oci_vm_cfg));
 		if (! state->vm) {
 			g_free (state);
 			state = NULL;
@@ -501,7 +501,7 @@ clr_oci_state_file_read (const char *file)
 		for (handler=state_handlers; handler->name; ++handler) {
 			if (handler->subelements_count < handler->subelements_needed) {
 				g_critical("failed to run handler: %s", handler->name);
-				clr_oci_state_free(state);
+				cc_oci_state_free(state);
 				state = NULL;
 				break;
 			}
@@ -519,7 +519,7 @@ out:
  * \param state \ref oci_state.
  */
 void
-clr_oci_state_free (struct oci_state *state)
+cc_oci_state_free (struct oci_state *state)
 {
 	if (! state) {
 		return;
@@ -534,7 +534,7 @@ clr_oci_state_free (struct oci_state *state)
 	g_free_if_set (state->console);
 
 	if (state->mounts) {
-		clr_oci_mounts_free_all (state->mounts);
+		cc_oci_mounts_free_all (state->mounts);
 	}
 
 	if (state->vm) {
@@ -543,7 +543,7 @@ clr_oci_state_free (struct oci_state *state)
 	}
 
         if (state->annotations) {
-                clr_oci_annotations_free_all(state->annotations);
+                cc_oci_annotations_free_all(state->annotations);
         }
 	g_free (state);
 }
@@ -551,7 +551,7 @@ clr_oci_state_free (struct oci_state *state)
 /*!
  * Create the state file for the specified \p config.
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  * \param created_timestamp ISO 8601 timestamp for when VM Was created.
  *
  * \see https://github.com/opencontainers/specs/blob/master/runtime.md
@@ -559,7 +559,7 @@ clr_oci_state_free (struct oci_state *state)
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_oci_state_file_create (struct clr_oci_config *config,
+cc_oci_state_file_create (struct cc_oci_config *config,
 		const char *created_timestamp)
 {
 	JsonObject  *obj = NULL;
@@ -599,7 +599,7 @@ clr_oci_state_file_create (struct clr_oci_config *config,
 		return false;
 	}
 
-	if (! clr_oci_state_file_get (config)) {
+	if (! cc_oci_state_file_get (config)) {
 		return false;
 	}
 
@@ -607,7 +607,7 @@ clr_oci_state_file_create (struct clr_oci_config *config,
 
 	/* Add minimim required elements */
 	json_object_set_string_member (obj, "ociVersion",
-			CLR_OCI_SUPPORTED_SPEC_VERSION);
+			CC_OCI_SUPPORTED_SPEC_VERSION);
 
 	json_object_set_string_member (obj, "id",
 			config->optarg_container_id);
@@ -625,7 +625,7 @@ clr_oci_state_file_create (struct clr_oci_config *config,
 	json_object_set_string_member (obj, "processPath",
 			config->state.procsock_path);
 
-	status = clr_oci_status_get (config);
+	status = cc_oci_status_get (config);
 	if (! status) {
 		goto out;
 	}
@@ -637,7 +637,7 @@ clr_oci_state_file_create (struct clr_oci_config *config,
 	/* Add an array of mounts to allow "delete" to unmount these
 	 * resources later.
 	 */
-	mounts = clr_oci_mounts_to_json (config);
+	mounts = cc_oci_mounts_to_json (config);
 	if (! mounts) {
 		goto out;
 	}
@@ -681,13 +681,13 @@ clr_oci_state_file_create (struct clr_oci_config *config,
 
 	if (config->oci.annotations) {
 		/* Add an object containing annotations */
-		annotation_obj = clr_oci_annotations_to_json(config);
+		annotation_obj = cc_oci_annotations_to_json(config);
 
 		json_object_set_object_member(obj, "annotations", annotation_obj);
 	}
 
 	/* convert JSON to string */
-	str = clr_oci_json_obj_to_string (obj, true, &str_len);
+	str = cc_oci_json_obj_to_string (obj, true, &str_len);
 	if (! str) {
 		goto out;
 	}
@@ -717,12 +717,12 @@ out:
 /*!
  * Delete the state file for the specified \p config.
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  *
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_oci_state_file_delete (const struct clr_oci_config *config)
+cc_oci_state_file_delete (const struct cc_oci_config *config)
 {
 	g_assert (config);
 	g_assert (config->state.state_file_path[0]);
@@ -741,9 +741,9 @@ clr_oci_state_file_delete (const struct clr_oci_config *config)
  * else \c NULL.
  */
 const char *
-clr_oci_status_to_str (enum oci_status status)
+cc_oci_status_to_str (enum oci_status status)
 {
-	struct clr_oci_map *p;
+	struct cc_oci_map *p;
 
 	for (p = oci_status_map; p && p->name; p++) {
 		if (p->num == status) {
@@ -760,15 +760,15 @@ clr_oci_status_to_str (enum oci_status status)
  * \return Length in bytes.
  */
 int
-clr_oci_status_length (void)
+cc_oci_status_length (void)
 {
-	struct clr_oci_map  *p;
+	struct cc_oci_map  *p;
 	int                  max = 0;
 
 	for (p = oci_status_map; p && p->name; p++) {
 		int len = (int)g_utf8_strlen (p->name, LINE_MAX);
 
-		max = CLR_OCI_MAX (len, max);
+		max = CC_OCI_MAX (len, max);
 	}
 
 	return max;
@@ -783,9 +783,9 @@ clr_oci_status_length (void)
  * error.
  */
 enum oci_status
-clr_oci_str_to_status (const char *str)
+cc_oci_str_to_status (const char *str)
 {
-	struct clr_oci_map  *p;
+	struct cc_oci_map  *p;
 
 	for (p = oci_status_map; p && p->name; p++) {
 		if (! g_strcmp0 (str, p->name)) {

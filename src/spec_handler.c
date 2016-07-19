@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -54,7 +54,7 @@ static struct spec_handler* start_spec_handlers[] = {
 
 // FIXME: document
 void
-process_config_stop (GNode* root, struct clr_oci_config* config) {
+process_config_stop (GNode* root, struct cc_oci_config* config) {
 	/* looking for right spec handler */
 	for (struct spec_handler** i=stop_spec_handlers; (*i); ++i) {
 		if (g_strcmp0((*i)->name, root->data) == 0) {
@@ -69,7 +69,7 @@ process_config_stop (GNode* root, struct clr_oci_config* config) {
 
 // FIXME: document
 void
-process_config_start (GNode* root, struct clr_oci_config* config) {
+process_config_start (GNode* root, struct cc_oci_config* config) {
 	if (!(root && root->data)) {
 		return;
 	}
@@ -97,15 +97,15 @@ process_config_start (GNode* root, struct clr_oci_config* config) {
 /*!
  * If the virtual machine attribute ("vm") in config is NULL,
  * this function will create create it using the json from
- * SYSCONFDIR/CLR_OCI_VM_CONFIG
- * or fallback default DEFAULTSDIR/CLR_OCI_VM_CONFIG
+ * SYSCONFDIR/CC_OCI_VM_CONFIG
+ * or fallback default DEFAULTSDIR/CC_OCI_VM_CONFIG
  *
- * \param[in,out] config clr_oci_config struct
+ * \param[in,out] config cc_oci_config struct
  *
  * \return \c true if can get vm spec data, else \c false.
  */
 gboolean
-get_spec_vm_from_cfg_file (struct clr_oci_config* config)
+get_spec_vm_from_cfg_file (struct cc_oci_config* config)
 {
 	bool result= true;
 	GNode* vm_config = NULL;
@@ -117,15 +117,15 @@ get_spec_vm_from_cfg_file (struct clr_oci_config* config)
 		goto out;
 	}
 	sys_json_file = g_build_path ("/", SYSCONFDIR,
-		CLR_OCI_VM_CONFIG, NULL);
+		CC_OCI_VM_CONFIG, NULL);
 	if (! g_file_test (sys_json_file, G_FILE_TEST_EXISTS)) {
 		g_free_if_set (sys_json_file);
 		sys_json_file = g_build_path ("/", DEFAULTSDIR,
-		CLR_OCI_VM_CONFIG, NULL);
+		CC_OCI_VM_CONFIG, NULL);
 	}
 	g_debug ("Reading VM configuration from %s",
 		sys_json_file);
-	if (! clr_oci_json_parse(&vm_config, sys_json_file)) {
+	if (! cc_oci_json_parse(&vm_config, sys_json_file)) {
 		result = false;
 		goto out;
 	}

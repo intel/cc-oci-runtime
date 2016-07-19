@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -114,7 +114,7 @@ void test_spec_handler(struct spec_handler* handler, struct spec_handler_test* t
 	GNode* node;
 	GNode* handler_node;
 	GNode test_node;
-	struct clr_oci_config config;
+	struct cc_oci_config config;
 	struct spec_handler_test* test;
 	int fd;
 
@@ -149,12 +149,12 @@ void test_spec_handler(struct spec_handler* handler, struct spec_handler_test* t
 
 	for (test=tests; test->file; test++) {
 		memset(&config, 0, sizeof(config));
-		clr_oci_json_parse(&node, test->file);
+		cc_oci_json_parse(&node, test->file);
 		handler_node = node_find_child(node, handler->name);
 		ck_assert_msg(handler->handle_section(
 		    handler_node, &config) == test->test_result,
 		    test->file);
-		clr_oci_config_free(&config);
+		cc_oci_config_free(&config);
 		g_free_node(node);
 	}
 
@@ -176,14 +176,14 @@ void test_spec_handler(struct spec_handler* handler, struct spec_handler_test* t
  *
  * \param name Name to use for VM.
  * \param root_dir Root directory to use.
- * \param config Already allocated \ref clr_oci_config.
+ * \param config Already allocated \ref cc_oci_config.
  *
  * \return \c true on success, else \c false.
  */
 gboolean
 test_helper_create_state_file (const char *name,
 		const char *root_dir,
-		struct clr_oci_config *config)
+		struct cc_oci_config *config)
 {
 	g_autofree gchar *timestamp = NULL;
 
@@ -215,20 +215,20 @@ test_helper_create_state_file (const char *name,
 			"procsock-path",
 		  sizeof (config->state.procsock_path));
 
-	if (! clr_oci_runtime_dir_setup (config)) {
+	if (! cc_oci_runtime_dir_setup (config)) {
 		fprintf (stderr, "ERROR: failed to setup runtime dir "
 				"for vm %s", name);
 		return false;
 	}
 
 	/* config->vm not set */
-	if (clr_oci_state_file_create (config, timestamp)) {
-		fprintf (stderr, "ERROR: clr_oci_state_file_create "
+	if (cc_oci_state_file_create (config, timestamp)) {
+		fprintf (stderr, "ERROR: cc_oci_state_file_create "
 				"worked unexpectedly for vm %s", name);
 		return false;
 	}
 
-	config->vm = g_malloc0 (sizeof(struct clr_oci_vm_cfg));
+	config->vm = g_malloc0 (sizeof(struct cc_oci_vm_cfg));
 	assert (config->vm);
 
 	g_strlcpy (config->vm->hypervisor_path, "hypervisor-path",
@@ -246,8 +246,8 @@ test_helper_create_state_file (const char *name,
 	config->vm->kernel_params = g_strdup_printf ("kernel params for %s", name);
 
 	/* config->vm now set */
-	if (! clr_oci_state_file_create (config, timestamp)) {
-		fprintf (stderr, "ERROR: clr_oci_state_file_create "
+	if (! cc_oci_state_file_create (config, timestamp)) {
+		fprintf (stderr, "ERROR: cc_oci_state_file_create "
 				"failed unexpectedly");
 		return false;
 

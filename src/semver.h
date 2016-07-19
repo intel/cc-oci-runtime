@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  * 
  * Copyright (C) 2016 Intel Corporation
  * 
@@ -18,12 +18,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef _CLR_OCI_SEMVER_H
-#define _CLR_OCI_SEMVER_H
+#ifndef _CC_OCI_SEMVER_H
+#define _CC_OCI_SEMVER_H
 
 #include <glib.h>
 
-gint clr_oci_semver_cmp (const char *version_a, const char *version_b);
-gboolean clr_oci_string_is_numeric (const char *str);
+gint cc_oci_semver_cmp (const char *version_a, const char *version_b);
+gboolean cc_oci_string_is_numeric (const char *str);
 
-#endif /* _CLR_OCI_SEMVER_H */
+#endif /* _CC_OCI_SEMVER_H */

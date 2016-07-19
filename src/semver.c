@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -41,7 +41,7 @@
  * \return \c true on success, else \c false.
  */
 private gboolean
-clr_oci_string_is_numeric (const char *str)
+cc_oci_string_is_numeric (const char *str)
 {
 	const gchar *p = str;
 
@@ -80,7 +80,7 @@ clr_oci_string_is_numeric (const char *str)
  * pre_rel_b.
  */
 static gint
-clr_oci_semver_cmp_patch_pre_releases (gchar *pre_rel_a,
+cc_oci_semver_cmp_patch_pre_releases (gchar *pre_rel_a,
 		gchar *pre_rel_b)
 {
 	gint        ret = 0;
@@ -116,8 +116,8 @@ clr_oci_semver_cmp_patch_pre_releases (gchar *pre_rel_a,
 		g_assert (fa);
 		g_assert (fb);
 
-		if (clr_oci_string_is_numeric (fa)
-				&& clr_oci_string_is_numeric (fb)) {
+		if (cc_oci_string_is_numeric (fa)
+				&& cc_oci_string_is_numeric (fb)) {
 			long la = atol (fa);
 			long lb = atol (fb);
 
@@ -154,7 +154,7 @@ clr_oci_semver_cmp_patch_pre_releases (gchar *pre_rel_a,
  * \param[out] build_metadata Build metadata value.
  */
 static void
-clr_oci_semver_split_patch_version (const gchar *patch_version,
+cc_oci_semver_split_patch_version (const gchar *patch_version,
 		gint *patch_num,
 		gchar **pre_release,
 		gchar **build_metadata)
@@ -190,7 +190,7 @@ clr_oci_semver_split_patch_version (const gchar *patch_version,
  * patch_b.
  */
 static gint
-clr_oci_semver_cmp_patch_versions (const gchar *patch_a,
+cc_oci_semver_cmp_patch_versions (const gchar *patch_a,
 		const gchar *patch_b)
 {
 	gint    ret;
@@ -211,8 +211,8 @@ clr_oci_semver_cmp_patch_versions (const gchar *patch_a,
 	a = g_strdup (patch_a);
 	b = g_strdup (patch_b);
 
-	clr_oci_semver_split_patch_version (a, &pva, &pra, &bma);
-	clr_oci_semver_split_patch_version (b, &pvb, &prb, &bmb);
+	cc_oci_semver_split_patch_version (a, &pva, &pra, &bma);
+	cc_oci_semver_split_patch_version (b, &pvb, &prb, &bmb);
 
 	/* XXX: build metadata does *NOT* form part of the
 	 * XXX: precedence calculation!
@@ -243,7 +243,7 @@ clr_oci_semver_cmp_patch_versions (const gchar *patch_a,
 
 	g_assert (pra && prb);
 
-	ret = clr_oci_semver_cmp_patch_pre_releases (pra, prb);
+	ret = cc_oci_semver_cmp_patch_pre_releases (pra, prb);
 
 out:
 	g_free (a);
@@ -262,7 +262,7 @@ out:
  * fields_b.
  */
 static gint
-clr_oci_semver_cmp_fields (const gchar **fields_a, const gchar **fields_b)
+cc_oci_semver_cmp_fields (const gchar **fields_a, const gchar **fields_b)
 {
 	glong maj_a, min_a;
 	glong maj_b, min_b;
@@ -300,7 +300,7 @@ clr_oci_semver_cmp_fields (const gchar **fields_a, const gchar **fields_b)
 
 	g_assert (min_a == min_b);
 
-	return clr_oci_semver_cmp_patch_versions (patch_a, patch_b);
+	return cc_oci_semver_cmp_patch_versions (patch_a, patch_b);
 }
 
 /*!
@@ -313,7 +313,7 @@ clr_oci_semver_cmp_fields (const gchar **fields_a, const gchar **fields_b)
  * \p version_b or \c >0 if \p version_a > \p version_b.
  */
 static gint
-clr_oci_semver_2_0_0_cmp (const char *version_a, const char *version_b)
+cc_oci_semver_2_0_0_cmp (const char *version_a, const char *version_b)
 {
 	gint ret;
 	gchar **fields_a = NULL;
@@ -338,7 +338,7 @@ clr_oci_semver_2_0_0_cmp (const char *version_a, const char *version_b)
 	g_assert (fields_a);
 	g_assert (fields_b);
 
-	ret = clr_oci_semver_cmp_fields ((const gchar **)fields_a,
+	ret = cc_oci_semver_cmp_fields ((const gchar **)fields_a,
 			(const gchar **)fields_b);
 
 	g_strfreev (fields_a);
@@ -361,7 +361,7 @@ clr_oci_semver_2_0_0_cmp (const char *version_a, const char *version_b)
  * \p version_b or \c >0 if \p version_a > \p version_b.
  */
 gint
-clr_oci_semver_cmp (const char *version_a, const char *version_b)
+cc_oci_semver_cmp (const char *version_a, const char *version_b)
 {
-	return clr_oci_semver_2_0_0_cmp (version_a, version_b);
+	return cc_oci_semver_2_0_0_cmp (version_a, version_b);
 }

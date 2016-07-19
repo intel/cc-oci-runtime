@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  * 
  * Copyright (C) 2016 Intel Corporation
  * 
@@ -55,7 +55,7 @@ static GOptionEntry options_create[] =
 
 static gboolean
 handler_create (const struct subcommand *sub,
-		struct clr_oci_config *config,
+		struct cc_oci_config *config,
 		int argc, char *argv[])
 {
 	gboolean  ret;
@@ -67,7 +67,7 @@ handler_create (const struct subcommand *sub,
 		return false;
 	}
 
-	ret = clr_oci_create (config);
+	ret = cc_oci_create (config);
 
 	if (ret) {
 		g_print ("container %s created\n",

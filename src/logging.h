@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  * 
  * Copyright (C) 2016 Intel Corporation
  * 
@@ -18,13 +18,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef _CLR_OCI_LOGGING_H
-#define _CLR_OCI_LOGGING_H
+#ifndef _CC_OCI_LOGGING_H
+#define _CC_OCI_LOGGING_H
 
 /** Mode for logfiles. */
-#define CLR_OCI_LOGFILE_MODE		0640
+#define CC_OCI_LOGFILE_MODE		0640
 
-/** Options to pass to clr_oci_log_handler(). */
+/** Options to pass to cc_oci_log_handler(). */
 struct clr_log_options
 {
     /* Full path to logfile to use. */
@@ -37,7 +37,7 @@ struct clr_log_options
     gboolean  use_json;
 };
 
-gboolean clr_oci_log_init (const struct clr_log_options *options);
-void clr_oci_log_free (struct clr_log_options *options);
+gboolean cc_oci_log_init (const struct clr_log_options *options);
+void cc_oci_log_free (struct clr_log_options *options);
 
-#endif /* _CLR_OCI_LOGGING_H */
+#endif /* _CC_OCI_LOGGING_H */

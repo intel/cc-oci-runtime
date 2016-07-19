@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  * 
  * Copyright (C) 2016 Intel Corporation
  * 
@@ -108,4 +108,4 @@ void test_spec_handler(struct spec_handler* handler,
     struct spec_handler_test* tests);
 gboolean test_helper_create_state_file (const char *name,
 		const char *root_dir,
-		struct clr_oci_config *config);
+		struct cc_oci_config *config);

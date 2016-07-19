@@ -1,10 +1,10 @@
 .. contents::
 .. sectnum::
 
-clr-oci-runtime functional testing
+cc-oci-runtime functional testing
 ==================================
 
-Functional testing provides a way to verify that clr-oci-rutime
+Functional testing provides a way to verify that ``cc-oci-runtime``
 behaves as expected according to OCI Runtime Specification
 [#oci-runtime-cli]_ using Clear Containers [#clear-containers]_ .
 
@@ -33,7 +33,7 @@ The bundle directory must contain:
 The tests are executed using different config files ` from
 ``tests/functional/data/config*.json``
 
-clr-oci-runtime creates Clear Containers based  VMs, to do this
+cc-oci-runtime creates Clear Containers based  VMs, to do this
 three componentes are needed:
 
 - A Clear `containers image`_.

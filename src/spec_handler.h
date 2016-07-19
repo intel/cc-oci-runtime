@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  * 
  * Copyright (C) 2016 Intel Corporation
  * 
@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef _CLR_OCI_SPEC_HANDLER_H
-#define _CLR_OCI_SPEC_HANDLER_H
+#ifndef _CC_OCI_SPEC_HANDLER_H
+#define _CC_OCI_SPEC_HANDLER_H
 
 #include <stdbool.h>
 
@@ -29,18 +29,18 @@
 
 /** A spec-handler is a handler for each section
  * of config.json (spec file), spec-handler is used
- * to fill up struct clr_oci_config
+ * to fill up struct cc_oci_config
  */
 struct spec_handler {
 	/*! Name of spec-handler (required) */
 	char name[LINE_MAX];
 
 	/*! Function that will be called to handle spec sections (required) */
-	bool (*handle_section)(GNode*, struct clr_oci_config*);
+	bool (*handle_section)(GNode*, struct cc_oci_config*);
 };
 
-void process_config_start (GNode* root, struct clr_oci_config* config);
-void process_config_stop (GNode* root, struct clr_oci_config* config);
-gboolean get_spec_vm_from_cfg_file (struct clr_oci_config* config);
+void process_config_start (GNode* root, struct cc_oci_config* config);
+void process_config_stop (GNode* root, struct cc_oci_config* config);
+gboolean get_spec_vm_from_cfg_file (struct cc_oci_config* config);
 
-#endif /* _CLR_OCI_SPEC_HANDLER_H */
+#endif /* _CC_OCI_SPEC_HANDLER_H */

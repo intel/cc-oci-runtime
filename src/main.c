@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -141,14 +141,14 @@ get_subcmd (const char *cmd)
  * \param argc Argument count.
  * \param argv Argument vector.
  * \param sub Sub-command.
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  *
  * \return \c true on success, else \c false.
  */
 static gboolean
 handle_sub_commands (int argc, char *argv[],
 		struct subcommand *sub,
-		struct clr_oci_config *config)
+		struct cc_oci_config *config)
 {
 	gboolean  ret = false;
 
@@ -232,13 +232,13 @@ out:
  * Setup logging.
  *
  * \param options \ref clr_log_options.
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  *
  * \return \c true on success, else \c false.
  */
 static gboolean
 setup_logging (struct clr_log_options *options,
-		struct clr_oci_config *config)
+		struct cc_oci_config *config)
 {
 	g_assert (options);
 
@@ -252,11 +252,11 @@ setup_logging (struct clr_log_options *options,
 		options->global_logfile = g_build_path ("/",
 				config->root_dir
 				? config->root_dir
-				: CLR_OCI_RUNTIME_DIR_PREFIX,
+				: CC_OCI_RUNTIME_DIR_PREFIX,
 				PACKAGE_NAME ".log", NULL);
 	}
 
-	return clr_oci_log_init (options);
+	return cc_oci_log_init (options);
 }
 
 /*!
@@ -276,7 +276,7 @@ handle_arguments (int argc, char **argv)
 	GOptionContext        *context;
 	GError                *error = NULL;
 	const char            *cmd;
-	struct clr_oci_config  config = { {0} };
+	struct cc_oci_config  config = { {0} };
 
 	program_name = argv[0];
 	context = g_option_context_new ("- OCI runtime for Clear Containers");
@@ -357,7 +357,7 @@ handle_arguments (int argc, char **argv)
 		goto out;
 	}
 
-	priv_level = clr_oci_get_priv_level (argc, argv, sub, &config);
+	priv_level = cc_oci_get_priv_level (argc, argv, sub, &config);
 	if (priv_level == 1 && getuid ()) {
 		g_critical ("must run as root");
 		goto out;
@@ -390,7 +390,7 @@ handle_arguments (int argc, char **argv)
 		goto out;
 	}
 
-	clr_oci_config_free (&config);
+	cc_oci_config_free (&config);
 
 out:
 	g_option_context_free (context);
@@ -408,7 +408,7 @@ cleanup (struct clr_log_options *options)
 {
 	g_assert (options);
 
-	clr_oci_log_free (options);
+	cc_oci_log_free (options);
 	g_free_if_set (criu);
 	g_free_if_set (root_dir);
 }

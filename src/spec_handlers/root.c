@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -25,12 +25,12 @@
 #include "util.h"
 
 static void
-handle_root_section(GNode* root, struct clr_oci_config* config) {
+handle_root_section(GNode* root, struct cc_oci_config* config) {
 	if (! (root && root->children)) {
 		return;
 	}
 	if (g_strcmp0(root->data, "path") == 0) {
-		g_autofree gchar *full = clr_oci_resolve_path ((char*)root->children->data);
+		g_autofree gchar *full = cc_oci_resolve_path ((char*)root->children->data);
 		if (full) {
 			g_snprintf (config->oci.root.path,
 					sizeof(config->oci.root.path),
@@ -48,7 +48,7 @@ handle_root_section(GNode* root, struct clr_oci_config* config) {
 }
 
 static bool
-root_handle_section(GNode* root, struct clr_oci_config* config) {
+root_handle_section(GNode* root, struct cc_oci_config* config) {
 	gboolean ret = false;
 
 	if (! root) {

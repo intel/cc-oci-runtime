@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -24,7 +24,7 @@
 
 static gboolean
 handler_state (const struct subcommand *sub,
-		struct clr_oci_config *config,
+		struct cc_oci_config *config,
 		int argc, char *argv[])
 {
 	gchar* contents;
@@ -45,11 +45,11 @@ handler_state (const struct subcommand *sub,
 
 	g_debug ("state container_id='%s'", config->optarg_container_id);
 
-	if (! clr_oci_runtime_path_get (config)) {
+	if (! cc_oci_runtime_path_get (config)) {
 		return false;
 	}
 
-	if (! clr_oci_state_file_get (config)) {
+	if (! cc_oci_state_file_get (config)) {
 		return false;
 	}
 

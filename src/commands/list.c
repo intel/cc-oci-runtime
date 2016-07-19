@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  * 
  * Copyright (C) 2016 Intel Corporation
  * 
@@ -41,7 +41,7 @@ static GOptionEntry options_list[] =
 
 static gboolean
 handler_list (const struct subcommand *sub,
-		struct clr_oci_config *config,
+		struct cc_oci_config *config,
 		int argc, char *argv[])
 {
 	gboolean ret;
@@ -49,7 +49,7 @@ handler_list (const struct subcommand *sub,
 	g_assert (sub);
 	g_assert (config);
 
-	ret = clr_oci_list (config, format ? format : "table", show_all);
+	ret = cc_oci_list (config, format ? format : "table", show_all);
 
 	g_free_if_set (format);
 

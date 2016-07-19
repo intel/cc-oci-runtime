@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef _CLR_OCI_UTIL_H
-#define _CLR_OCI_UTIL_H
+#ifndef _CC_OCI_UTIL_H
+#define _CC_OCI_UTIL_H
 
 #include <stdio.h>
 
@@ -30,9 +30,9 @@
 #include "config.h"
 
 /** Calculate size of array specified by \a x. */
-#define CLR_OCI_ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
+#define CC_OCI_ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
-#define CLR_OCI_MAX(a, b) ((a) > (b) ? (a) : (b))
+#define CC_OCI_MAX(a, b) ((a) > (b) ? (a) : (b))
 
 /** Call \c g_free() if \a ptr is set */
 #define g_free_if_set(ptr) \
@@ -46,9 +46,9 @@
 		node=NULL; }
 
 #ifdef DEBUG
-	void clr_oci_node_dump(GNode* node);
+	void cc_oci_node_dump(GNode* node);
 #else
-	#define clr_oci_node_dump(x)
+	#define cc_oci_node_dump(x)
 #endif /* DEBUG */
 
 /**
@@ -60,7 +60,7 @@
  *
  * \return \c true on success, else \c false.
  */
-#define clr_oci_get_object(reader, file, object) \
+#define cc_oci_get_object(reader, file, object) \
 __extension__ ({ \
 	int _ret; \
 	_ret = json_reader_read_member (reader, object); \
@@ -73,19 +73,19 @@ __extension__ ({ \
 
 #define __unused__ __attribute__((unused))
 
-gchar *clr_oci_get_iso8601_timestamp (void);
-gboolean clr_oci_setup_console (const char *console);
-gboolean clr_oci_create_pidfile (const gchar *pidfile, GPid pid);
-gboolean clr_oci_rm_rf (const gchar *path);
-gchar *clr_oci_json_obj_to_string (JsonObject *obj, gboolean pretty,
+gchar *cc_oci_get_iso8601_timestamp (void);
+gboolean cc_oci_setup_console (const char *console);
+gboolean cc_oci_create_pidfile (const gchar *pidfile, GPid pid);
+gboolean cc_oci_rm_rf (const gchar *path);
+gchar *cc_oci_json_obj_to_string (JsonObject *obj, gboolean pretty,
 		gsize *string_len);
-gchar *clr_oci_json_arr_to_string (JsonArray *array, gboolean pretty);
-gboolean clr_oci_replace_string (gchar **str, const char *from,
+gchar *cc_oci_json_arr_to_string (JsonArray *array, gboolean pretty);
+gboolean cc_oci_replace_string (gchar **str, const char *from,
 		const char *to);
-gboolean clr_oci_file_to_strv (const char *file, gchar ***strv);
+gboolean cc_oci_file_to_strv (const char *file, gchar ***strv);
 char** node_to_strv(GNode* root);
 gboolean gnode_free(GNode* node, gpointer data);
-int clr_oci_get_signum (const gchar *signame);
-gchar *clr_oci_resolve_path (const gchar *path);
+int cc_oci_get_signum (const gchar *signame);
+gchar *cc_oci_resolve_path (const gchar *path);
 
-#endif /* _CLR_OCI_UTIL_H */
+#endif /* _CC_OCI_UTIL_H */

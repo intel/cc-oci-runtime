@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  * 
  * Copyright (C) 2016 Intel Corporation
  * 
@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef _CLR_OCI_COMMON_H
-#define _CLR_OCI_COMMON_H
+#ifndef _CC_OCI_COMMON_H
+#define _CC_OCI_COMMON_H
 
 /* unhide static functions to allow all functions to be tested
  * by the unit test framework.
@@ -30,4 +30,4 @@
 #define private static
 #endif
 
-#endif /* _CLR_OCI_COMMON_H */
+#endif /* _CC_OCI_COMMON_H */

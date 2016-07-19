@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -36,7 +36,7 @@
 #include "util.h"
 
 /** Map of \ref oci_namespace values to human-readable strings. */
-static struct clr_oci_map oci_ns_map[] = 
+static struct cc_oci_map oci_ns_map[] = 
 {
 	{ OCI_NS_CGROUP  , "cgroup"  },
 	{ OCI_NS_IPC     , "ipc"     },
@@ -55,7 +55,7 @@ static struct clr_oci_map oci_ns_map[] =
  * \param ns \ref oci_cfg_namespace.
  */
 void
-clr_oci_ns_free (struct oci_cfg_namespace *ns)
+cc_oci_ns_free (struct oci_cfg_namespace *ns)
 {
 	if (! ns) {
 		return;
@@ -74,9 +74,9 @@ clr_oci_ns_free (struct oci_cfg_namespace *ns)
  * else \c NULL.
  */
 const char *
-clr_oci_ns_to_str (enum oci_namespace ns)
+cc_oci_ns_to_str (enum oci_namespace ns)
 {
-	struct clr_oci_map  *p;
+	struct cc_oci_map  *p;
 
 	for (p = oci_ns_map; p && p->name; p++) {
 		if (p->num == ns) {
@@ -96,9 +96,9 @@ clr_oci_ns_to_str (enum oci_namespace ns)
  * error.
  */
 enum oci_namespace
-clr_oci_str_to_ns (const char *str)
+cc_oci_str_to_ns (const char *str)
 {
-	struct clr_oci_map  *p;
+	struct cc_oci_map  *p;
 
 	if ((! str) || (! *str)) {
 		goto out;
@@ -122,10 +122,10 @@ out:
  * used to pass network configuration to the runtime so the network
  * namespace must be supported.
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  *
  * \todo Show the namespace path. For unshare, the strategy should be to
- * call clr_oci_resolve_path (), passing it the value of.
+ * call cc_oci_resolve_path (), passing it the value of.
  * "/proc/self/ns/%s". The complication is that %s does *NOT* match the
  * namespace names chosen by OCI, hence oci_ns_map will need to be
  * extended to add a "gchar *proc_name" element (and tests updated
@@ -135,7 +135,7 @@ out:
  * after this call to determine the reason.
  */
 gboolean
-clr_oci_ns_setup (struct clr_oci_config *config)
+cc_oci_ns_setup (struct cc_oci_config *config)
 {
 	const gchar               *type;
 	GSList                    *l;
@@ -163,7 +163,7 @@ clr_oci_ns_setup (struct clr_oci_config *config)
 			continue;
 		}
 
-		type = clr_oci_ns_to_str (ns->type);
+		type = cc_oci_ns_to_str (ns->type);
 
 		/* The network namespace is the only supported one
 		 * (since it's required to setup networking).

@@ -1,4 +1,4 @@
-#  This file is part of clr-oci-runtime.
+#  This file is part of cc-oci-runtime.
 #
 #  Copyright (C) 2016 Intel Corporation
 #

@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -36,7 +36,7 @@
  * \return Newly-allocated string on success, else \c NULL.
  */
 static gchar *
-clr_oci_json_string (JsonNode* node) {
+cc_oci_json_string (JsonNode* node) {
 	gchar buffer[NODE_BUF_SIZE];
 	GType valueType = json_node_get_value_type(node);
 
@@ -79,7 +79,7 @@ clr_oci_json_string (JsonNode* node) {
  * \param parsing_array \c true if handling an array, else \c false.
  */
 static void
-clr_oci_json_parse_aux(JsonNode* root, GNode* node, bool parsing_array) {
+cc_oci_json_parse_aux(JsonNode* root, GNode* node, bool parsing_array) {
 	guint i;
 
 	g_assert (root);
@@ -104,7 +104,7 @@ clr_oci_json_parse_aux(JsonNode* root, GNode* node, bool parsing_array) {
 					node = g_node_append(node->parent, g_node_new(g_strdup(key->data)));
 				}
 				if (value) {
-					clr_oci_json_parse_aux(value->data, node, false);
+					cc_oci_json_parse_aux(value->data, node, false);
 				}
 
 				key = g_list_next(key);
@@ -125,10 +125,10 @@ clr_oci_json_parse_aux(JsonNode* root, GNode* node, bool parsing_array) {
 
 		for (i = 0; i < array_size; i++) {
 			array_element = json_array_get_element(array, i);
-			clr_oci_json_parse_aux(array_element, node, true);
+			cc_oci_json_parse_aux(array_element, node, true);
 		}
 	} else if (JSON_NODE_TYPE(root) == JSON_NODE_VALUE) {
-		node = g_node_append(node, g_node_new(clr_oci_json_string(root)));
+		node = g_node_append(node, g_node_new(cc_oci_json_string(root)));
 
 		if (parsing_array) {
 			node = g_node_append(node, g_node_new(NULL));
@@ -145,7 +145,7 @@ clr_oci_json_parse_aux(JsonNode* root, GNode* node, bool parsing_array) {
  * \return \c true on success, else \c false.
  */
 bool
-clr_oci_json_parse (GNode** node, const gchar* filename) {
+cc_oci_json_parse (GNode** node, const gchar* filename) {
 	bool result = false;
 	GError* error = NULL;
 	JsonParser* parser = NULL;
@@ -171,7 +171,7 @@ clr_oci_json_parse (GNode** node, const gchar* filename) {
 	}
 
 	*node = g_node_new(g_strdup(filename));
-	clr_oci_json_parse_aux(root, *node, false);
+	cc_oci_json_parse_aux(root, *node, false);
 
 	result = true;
 

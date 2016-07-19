@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -47,7 +47,7 @@ private gchar *defaultsdir = DEFAULTSDIR;
  * Replace any special tokens found in \p args with their expanded
  * values.
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  * \param[in, out] args Command-line to expand.
  *
  * \warning this is not very efficient.
@@ -55,7 +55,7 @@ private gchar *defaultsdir = DEFAULTSDIR;
  * \return \c true on success, else \c false.
  */
 private gboolean
-clr_oci_expand_cmdline (struct clr_oci_config *config,
+cc_oci_expand_cmdline (struct cc_oci_config *config,
 		gchar **args)
 {
 	struct stat       st;
@@ -129,7 +129,7 @@ clr_oci_expand_cmdline (struct clr_oci_config *config,
 		 */
 		config->console = g_build_path ("/",
 				config->state.runtime_path,
-				CLR_OCI_CONSOLE_SOCKET, NULL);
+				CC_OCI_CONSOLE_SOCKET, NULL);
 		config->use_socket_console = true;
 
 		g_debug ("no console device provided, so using socket: %s", config->console);
@@ -160,60 +160,60 @@ clr_oci_expand_cmdline (struct clr_oci_config *config,
 			}
 		}
 
-		ret = clr_oci_replace_string (arg, "@WORKLOAD_DIR@",
+		ret = cc_oci_replace_string (arg, "@WORKLOAD_DIR@",
 				config->oci.root.path);
 		if (! ret) {
 			goto out;
 		}
 
-		ret = clr_oci_replace_string (arg, "@KERNEL@",
+		ret = cc_oci_replace_string (arg, "@KERNEL@",
 				config->vm->kernel_path);
 		if (! ret) {
 			goto out;
 		}
 
-		ret = clr_oci_replace_string (arg, "@KERNEL_PARAMS@",
+		ret = cc_oci_replace_string (arg, "@KERNEL_PARAMS@",
 				config->vm->kernel_params);
 		if (! ret) {
 			goto out;
 		}
 
-		ret = clr_oci_replace_string (arg, "@IMAGE@",
+		ret = cc_oci_replace_string (arg, "@IMAGE@",
 				config->vm->image_path);
 		if (! ret) {
 			goto out;
 		}
 
-		ret = clr_oci_replace_string (arg, "@SIZE@", bytes);
+		ret = cc_oci_replace_string (arg, "@SIZE@", bytes);
 		if (! ret) {
 			goto out;
 		}
 
-		ret = clr_oci_replace_string (arg, "@COMMS_SOCKET@",
+		ret = cc_oci_replace_string (arg, "@COMMS_SOCKET@",
 				config->state.comms_path);
 		if (! ret) {
 			goto out;
 		}
 
-		ret = clr_oci_replace_string (arg, "@PROCESS_SOCKET@",
+		ret = cc_oci_replace_string (arg, "@PROCESS_SOCKET@",
 				procsock_device);
 		if (! ret) {
 			goto out;
 		}
 
-		ret = clr_oci_replace_string (arg, "@CONSOLE_DEVICE@",
+		ret = cc_oci_replace_string (arg, "@CONSOLE_DEVICE@",
 				console_device);
 		if (! ret) {
 			goto out;
 		}
 
-		ret = clr_oci_replace_string (arg, "@NAME@",
+		ret = cc_oci_replace_string (arg, "@NAME@",
 				g_strrstr(uuid_str, "-")+1);
 		if (! ret) {
 			goto out;
 		}
 
-		ret = clr_oci_replace_string (arg, "@UUID@", uuid_str);
+		ret = cc_oci_replace_string (arg, "@UUID@", uuid_str);
 		if (! ret) {
 			goto out;
 		}
@@ -229,16 +229,16 @@ out:
 }
 
 /*!
- * Determine the full path to the \ref CLR_OCI_HYPERVISOR_CMDLINE_FILE
+ * Determine the full path to the \ref CC_OCI_HYPERVISOR_CMDLINE_FILE
  * file.
  * Priority order to get file path : bundle dir, sysconfdir , defaultsdir
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  *
  * \return Newly-allocated string on success, else \c NULL.
  */
 private gchar *
-clr_oci_vm_args_file_path (const struct clr_oci_config *config)
+cc_oci_vm_args_file_path (const struct cc_oci_config *config)
 {
 	gchar *args_file = NULL;
 
@@ -250,8 +250,8 @@ clr_oci_vm_args_file_path (const struct clr_oci_config *config)
 		return NULL;
 	}
 
-	args_file = clr_oci_get_bundlepath_file (config->bundle_path,
-			CLR_OCI_HYPERVISOR_CMDLINE_FILE);
+	args_file = cc_oci_get_bundlepath_file (config->bundle_path,
+			CC_OCI_HYPERVISOR_CMDLINE_FILE);
 	if (! args_file) {
 		return NULL;
 	}
@@ -264,7 +264,7 @@ clr_oci_vm_args_file_path (const struct clr_oci_config *config)
 
 	/* Try sysconfdir if bundle file does not exist */
 	args_file = g_build_path ("/", sysconfdir,
-			CLR_OCI_HYPERVISOR_CMDLINE_FILE, NULL);
+			CC_OCI_HYPERVISOR_CMDLINE_FILE, NULL);
 
 	if (g_file_test (args_file, G_FILE_TEST_EXISTS)) {
 		goto out;
@@ -274,7 +274,7 @@ clr_oci_vm_args_file_path (const struct clr_oci_config *config)
 
 	/* Finally, try stateless dir */
 	args_file = g_build_path ("/", defaultsdir,
-			CLR_OCI_HYPERVISOR_CMDLINE_FILE, NULL);
+			CC_OCI_HYPERVISOR_CMDLINE_FILE, NULL);
 
 	if (g_file_test (args_file, G_FILE_TEST_EXISTS)) {
 		goto out;
@@ -293,13 +293,13 @@ out:
 /*!
  * Generate the list of hypervisor arguments to use.
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  * \param[out] args Command-line to expand.
  *
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_oci_vm_args_get (struct clr_oci_config *config,
+cc_oci_vm_args_get (struct cc_oci_config *config,
 		gchar ***args)
 {
 	gboolean  ret;
@@ -309,18 +309,18 @@ clr_oci_vm_args_get (struct clr_oci_config *config,
 		return false;
 	}
 
-	args_file = clr_oci_vm_args_file_path (config);
+	args_file = cc_oci_vm_args_file_path (config);
 	if (! args_file) {
 		g_critical("File %s not found",
-				CLR_OCI_HYPERVISOR_CMDLINE_FILE);
+				CC_OCI_HYPERVISOR_CMDLINE_FILE);
 	}
 
-	ret = clr_oci_file_to_strv (args_file, args);
+	ret = cc_oci_file_to_strv (args_file, args);
 	if (! ret) {
 		goto out;
 	}
 
-	ret = clr_oci_expand_cmdline (config, *args);
+	ret = cc_oci_expand_cmdline (config, *args);
 	if (! ret) {
 		goto out;
 	}

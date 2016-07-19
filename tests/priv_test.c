@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  * 
  * Copyright (C) 2016 Intel Corporation
  * 
@@ -32,56 +32,56 @@
 #include "../src/logging.h"
 #include "priv.h"
 
-START_TEST(test_clr_oci_get_priv_level) {
+START_TEST(test_cc_oci_get_priv_level) {
 	int                    argc = 2;
 	gchar                 *argv[] = { "IGNORED", "arg", NULL };
-	struct clr_oci_config  config = { {0} };
+	struct cc_oci_config  config = { {0} };
 	struct subcommand      sub;
 	gchar                 *tmpdir = g_dir_make_tmp (NULL, NULL);
 	gchar                 *tmpdir_enoent = g_build_path ("/", tmpdir, "foo", NULL);
 
 	sub.name = "help";
-	ck_assert (clr_oci_get_priv_level (argc, argv, &sub, &config) == -1);
+	ck_assert (cc_oci_get_priv_level (argc, argv, &sub, &config) == -1);
 
 	sub.name = "version";
-	ck_assert (clr_oci_get_priv_level (argc, argv, &sub, &config) == -1);
+	ck_assert (cc_oci_get_priv_level (argc, argv, &sub, &config) == -1);
 
 	sub.name = "list";
 	argv[1] = "--help";
-	ck_assert (clr_oci_get_priv_level (argc, argv, &sub, &config) == -1);
+	ck_assert (cc_oci_get_priv_level (argc, argv, &sub, &config) == -1);
 
 	sub.name = "list";
 	argv[1] = "-h";
-	ck_assert (clr_oci_get_priv_level (argc, argv, &sub, &config) == -1);
+	ck_assert (cc_oci_get_priv_level (argc, argv, &sub, &config) == -1);
 
 	/* set to a non-"--help" value */
 	argv[1] = "foo";
 
 	/* root_dir not specified, so root required */
-	ck_assert (clr_oci_get_priv_level (argc, argv, &sub, &config) == 1);
+	ck_assert (cc_oci_get_priv_level (argc, argv, &sub, &config) == 1);
 
 	config.root_dir = "/";
 
 	if (getuid ()) {
 		/* non-root cannot write to "/" */
-		ck_assert (clr_oci_get_priv_level (argc, argv, &sub, &config) == 1);
+		ck_assert (cc_oci_get_priv_level (argc, argv, &sub, &config) == 1);
 	} else {
 		/* root can write to "/" */
-		ck_assert (clr_oci_get_priv_level (argc, argv, &sub, &config) == 0);
+		ck_assert (cc_oci_get_priv_level (argc, argv, &sub, &config) == 0);
 	}
 
 	config.root_dir = tmpdir;
 
-	ck_assert (clr_oci_get_priv_level (argc, argv, &sub, &config) == 0);
+	ck_assert (cc_oci_get_priv_level (argc, argv, &sub, &config) == 0);
 
 	/* make directory inaccessible to non-root */
 	ck_assert (! g_chmod (tmpdir, 0));
 
 	if (getuid ()) {
-		ck_assert (clr_oci_get_priv_level (argc, argv, &sub, &config) == 1);
+		ck_assert (cc_oci_get_priv_level (argc, argv, &sub, &config) == 1);
 	} else {
 		/* root can write to any directory */
-		ck_assert (clr_oci_get_priv_level (argc, argv, &sub, &config) == 0);
+		ck_assert (cc_oci_get_priv_level (argc, argv, &sub, &config) == 0);
 	}
 
 	/* make directory accessible once again */
@@ -94,30 +94,30 @@ START_TEST(test_clr_oci_get_priv_level) {
 		/* parent directory does exist so no extra privs
 		 * required.
 		 */
-		ck_assert (clr_oci_get_priv_level (argc, argv, &sub, &config) == 0);
+		ck_assert (cc_oci_get_priv_level (argc, argv, &sub, &config) == 0);
 	} else {
 		/* root can write to any directory */
-		ck_assert (clr_oci_get_priv_level (argc, argv, &sub, &config) == 0);
+		ck_assert (cc_oci_get_priv_level (argc, argv, &sub, &config) == 0);
 	}
 
 	/* make parent directory inaccessible to non-root again */
 	ck_assert (! g_chmod (tmpdir, 0));
 
 	if (getuid ()) {
-		ck_assert (clr_oci_get_priv_level (argc, argv, &sub, &config) == 1);
+		ck_assert (cc_oci_get_priv_level (argc, argv, &sub, &config) == 1);
 	} else {
 		/* root can write to any directory */
-		ck_assert (clr_oci_get_priv_level (argc, argv, &sub, &config) == 0);
+		ck_assert (cc_oci_get_priv_level (argc, argv, &sub, &config) == 0);
 	}
 
 	/* make parent directory accessible once again */
 	ck_assert (! g_chmod (tmpdir, 0755));
 
 	if (getuid ()) {
-		ck_assert (clr_oci_get_priv_level (argc, argv, &sub, &config) == 0);
+		ck_assert (cc_oci_get_priv_level (argc, argv, &sub, &config) == 0);
 	} else {
 		/* root can write to any directory */
-		ck_assert (clr_oci_get_priv_level (argc, argv, &sub, &config) == 0);
+		ck_assert (cc_oci_get_priv_level (argc, argv, &sub, &config) == 0);
 	}
 
 	/* clean up */
@@ -129,7 +129,7 @@ START_TEST(test_clr_oci_get_priv_level) {
 Suite* make_priv_suite(void) {
 	Suite* s = suite_create(__FILE__);
 
-	ADD_TEST(test_clr_oci_get_priv_level, s);
+	ADD_TEST(test_cc_oci_get_priv_level, s);
 
 	return s;
 }
@@ -144,7 +144,7 @@ int main(void) {
 
 	options.use_json = false;
 	options.filename = g_strdup ("priv_test_debug.log");
-	(void)clr_oci_log_init(&options);
+	(void)cc_oci_log_init(&options);
 
 	s = make_priv_suite();
 	sr = srunner_create(s);
@@ -153,7 +153,7 @@ int main(void) {
 	number_failed = srunner_ntests_failed(sr);
 	srunner_free(sr);
 
-	clr_oci_log_free (&options);
+	cc_oci_log_free (&options);
 
 	return (number_failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }

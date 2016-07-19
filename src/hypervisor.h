@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  * 
  * Copyright (C) 2016 Intel Corporation
  * 
@@ -18,13 +18,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef _CLR_OCI_HYPERVISOR_H
-#define _CLR_OCI_HYPERVISOR_H
+#ifndef _CC_OCI_HYPERVISOR_H
+#define _CC_OCI_HYPERVISOR_H
 
 /** Name of file containing hypervisor arguments (one per line) */
-#define CLR_OCI_HYPERVISOR_CMDLINE_FILE "hypervisor.args"
+#define CC_OCI_HYPERVISOR_CMDLINE_FILE "hypervisor.args"
 
-gboolean clr_oci_vm_args_get (struct clr_oci_config *config,
+gboolean cc_oci_vm_args_get (struct cc_oci_config *config,
 		gchar ***args);
 
-#endif /* _CLR_OCI_HYPERVISOR_H */
+#endif /* _CC_OCI_HYPERVISOR_H */

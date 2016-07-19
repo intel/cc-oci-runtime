@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -25,7 +25,7 @@
 
 static gboolean
 handler_kill (const struct subcommand *sub,
-		struct clr_oci_config *config,
+		struct cc_oci_config *config,
 		int argc, char *argv[])
 {
 	struct oci_state      *state = NULL;
@@ -56,7 +56,7 @@ handler_kill (const struct subcommand *sub,
 			/* not a number, so try to convert the signame
 			 * name to a number.
 			 */
-			signum = clr_oci_get_signum (signame);
+			signum = cc_oci_get_signum (signame);
 		}
 
 		if (signum < 0) {
@@ -66,20 +66,20 @@ handler_kill (const struct subcommand *sub,
 		}
 	}
 
-	ret = clr_oci_get_config_and_state (&config_file, config, &state);
+	ret = cc_oci_get_config_and_state (&config_file, config, &state);
 	if (! ret) {
 		goto out;
 	}
 
-	if (! clr_oci_config_update (config, state)) {
+	if (! cc_oci_config_update (config, state)) {
 		goto out;
 	}
 
-	ret = clr_oci_kill (config, state, signum);
+	ret = cc_oci_kill (config, state, signum);
 
 out:
 	g_free_if_set (config_file);
-	clr_oci_state_free (state);
+	cc_oci_state_free (state);
 
 	return ret;
 }

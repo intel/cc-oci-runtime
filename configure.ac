@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-#  This file is part of clr-oci-runtime.
+#  This file is part of cc-oci-runtime.
 #
 #  Copyright (C) 2016 Intel Corporation
 #
@@ -21,12 +21,12 @@
 #
 
 AC_PREREQ([2.69])
-AC_INIT([clr-oci-runtime], [0.1], [dev@clearlinux.org])
+AC_INIT([cc-oci-runtime], [0.1], [dev@clearlinux.org])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([foreign -Wall -Werror -Wno-portability silent-rules subdir-objects color-tests no-dist-gzip dist-xz])
 AC_CONFIG_SRCDIR([src/main.c])
 AC_CONFIG_HEADERS([config.h])
-AC_CONFIG_FILES([Makefile data/vm.json data/config.json data/hypervisor.args tests/functional/common.bash tests/functional/data/config-minimal-clr-oci.json])
+AC_CONFIG_FILES([Makefile data/vm.json data/config.json data/hypervisor.args tests/functional/common.bash tests/functional/data/config-minimal-cc-oci.json])
 AC_LANG(C)
 
 LT_INIT

@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  * 
  * Copyright (C) 2016 Intel Corporation
  * 
@@ -18,14 +18,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef _CLR_OCI_CONFIG_H
-#define _CLR_OCI_CONFIG_H
+#ifndef _CC_OCI_CONFIG_H
+#define _CC_OCI_CONFIG_H
 
-gchar *clr_oci_config_file_path (const char *bundle_path);
-void clr_oci_config_free (struct clr_oci_config *config);
+gchar *cc_oci_config_file_path (const char *bundle_path);
+void cc_oci_config_free (struct cc_oci_config *config);
 
 gboolean
-clr_oci_config_check (const struct clr_oci_config *config);
+cc_oci_config_check (const struct cc_oci_config *config);
 
-void clr_oci_hook_free (struct oci_cfg_hook *h);
-#endif /* _CLR_OCI_CONFIG_H */
+void cc_oci_hook_free (struct oci_cfg_hook *h);
+#endif /* _CC_OCI_CONFIG_H */

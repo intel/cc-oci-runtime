@@ -1,12 +1,12 @@
 #!/bin/bash
 #Based on runc tests/integration/helpers.bash
 
-COR="${BATS_TEST_DIRNAME}/../../clr-oci-runtime"
+COR="${BATS_TEST_DIRNAME}/../../cc-oci-runtime"
 
 # Test data dir.
 TEST_DATA_DIR="$(readlink -e "${BATS_TEST_DIRNAME}")/data"
 #Configuration files
-CONFIG="${TEST_DATA_DIR}/config-minimal-clr-oci.json"
+CONFIG="${TEST_DATA_DIR}/config-minimal-cc-oci.json"
 HYPERVISOR_ARGS="${BATS_TEST_DIRNAME}/../../data/hypervisor.args"
 
 BUNDLE_DIR="@BUNDLE_TEST_PATH@"
@@ -14,7 +14,7 @@ ROOTFS_DIR="@BUNDLE_TEST_PATH@"
 CONTAINERS_IMG="@CONTAINERS_IMG@"
 CONTAINER_KERNEL="@CONTAINER_KERNEL@"
 HYPERVISOR_PATH="@QEMU_PATH@"
-COR_LOG_FILE="/run/opencontainer/containers/clr-oci-runtime.log"
+COR_LOG_FILE="/run/opencontainer/containers/cc-oci-runtime.log"
 
 # Verify components needed by Clear Containers
 # If there is a missing component, the tests is skipped
@@ -168,7 +168,7 @@ function setup_common(){
 	#Do all testing without root and with debug info
 	COR_ROOT_DIR=$(mktemp_tests_dir)
 	COR_GLOBAL_OPTIONS="--debug --root $COR_ROOT_DIR"
-	COR_LOG_FILE="$COR_ROOT_DIR/clr-oci-runtime.log"
+	COR_LOG_FILE="$COR_ROOT_DIR/cc-oci-runtime.log"
 	COR="$COR $COR_GLOBAL_OPTIONS"
 	TEST_LOG_FILE="$(pwd)/${BATS_TEST_NAME// /.}.log"
 	if [ -f "$TEST_LOG_FILE" ]

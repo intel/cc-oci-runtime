@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -80,7 +80,7 @@ static const gchar *recognised_shells[] =
  * \return \c true on success, else \c false.
  */
 private gboolean
-clr_oci_cmd_is_shell (const char *cmd)
+cc_oci_cmd_is_shell (const char *cmd)
 {
 	const gchar **shell;
 
@@ -115,7 +115,7 @@ clr_oci_cmd_is_shell (const char *cmd)
  * \return \c true on success, else \c false.
  */
 static gboolean
-clr_oci_close_fds (void) {
+cc_oci_close_fds (void) {
 	char           *fd_dir = "/proc/self/fd";
 	DIR            *dir;
 	struct dirent  *ent;
@@ -160,7 +160,7 @@ clr_oci_close_fds (void) {
  * \param tty Full path to existing device to use.
  */
 static void
-clr_oci_set_child_std_fds (const char *tty) {
+cc_oci_set_child_std_fds (const char *tty) {
 	int fd;
 	int ret;
 
@@ -193,15 +193,15 @@ clr_oci_set_child_std_fds (const char *tty) {
 
 /*! Perform setup on spawned child process.
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  */
 static void
-clr_oci_setup_child (struct clr_oci_config *config)
+cc_oci_setup_child (struct cc_oci_config *config)
 {
 	/* become session leader */
 	setsid ();
 
-	if (! clr_oci_ns_setup (config)) {
+	if (! cc_oci_ns_setup (config)) {
 		return;
 	}
 
@@ -220,7 +220,7 @@ clr_oci_setup_child (struct clr_oci_config *config)
 
 	/* Do not close fds when VM runs in detached mode*/
 	if (! config->detached_mode) {
-		clr_oci_close_fds ();
+		cc_oci_close_fds ();
 	}
 
 	if (! config->use_socket_console) {
@@ -229,7 +229,7 @@ clr_oci_setup_child (struct clr_oci_config *config)
 		// allowing the redirection of the hypervisors standard
 		// streams to a log file that will list any hypervisor
 		// messages/errors.
-		clr_oci_set_child_std_fds (config->console);
+		cc_oci_set_child_std_fds (config->console);
 	}
 }
 
@@ -244,7 +244,7 @@ clr_oci_setup_child (struct clr_oci_config *config)
  * child exit code.
  */
 static void
-clr_oci_child_watcher (GPid pid, gint status,
+cc_oci_child_watcher (GPid pid, gint status,
 		gpointer exit_code) {
 	g_debug ("pid %u ended with exit status %d", pid, status);
 
@@ -265,7 +265,7 @@ clr_oci_child_watcher (GPid pid, gint status,
  * \param[out] exit_code exit code of child process.
  * */
 static void
-clr_oci_hook_watcher(GPid pid, gint status, gpointer exit_code) {
+cc_oci_hook_watcher(GPid pid, gint status, gpointer exit_code) {
 	g_debug ("Hook pid %u ended with exit status %d", pid, status);
 
 	*((gint*)exit_code) = status;
@@ -284,7 +284,7 @@ clr_oci_hook_watcher(GPid pid, gint status, gpointer exit_code) {
  * \return \c true on success, else \c false.
  * */
 static gboolean
-clr_oci_output_watcher(GIOChannel* channel, GIOCondition cond,
+cc_oci_output_watcher(GIOChannel* channel, GIOCondition cond,
                             gint stream)
 {
 	gchar* string;
@@ -394,7 +394,7 @@ clr_run_hook(struct oci_cfg_hook* hook, const gchar* state,
 			args[0], (int)pid);
 
 	/* add watcher to hook */
-	g_child_watch_add(pid, clr_oci_hook_watcher, &hook_exit_code);
+	g_child_watch_add(pid, cc_oci_hook_watcher, &hook_exit_code);
 
 	/* create output channels */
 	out_ch = g_io_channel_unix_new(std_out);
@@ -403,13 +403,13 @@ clr_run_hook(struct oci_cfg_hook* hook, const gchar* state,
 	/* add watchers to channels */
 	if (out_ch) {
 		g_io_add_watch(out_ch, G_IO_IN | G_IO_HUP,
-			(GIOFunc)clr_oci_output_watcher, (gint*)STDOUT_FILENO);
+			(GIOFunc)cc_oci_output_watcher, (gint*)STDOUT_FILENO);
 	} else {
 		g_critical("failed to create out channel");
 	}
 	if (err_ch) {
 		g_io_add_watch(err_ch, G_IO_IN | G_IO_HUP,
-			(GIOFunc)clr_oci_output_watcher, (gint*)STDERR_FILENO);
+			(GIOFunc)cc_oci_output_watcher, (gint*)STDERR_FILENO);
 	} else {
 		g_critical("failed to create err channel");
 	}
@@ -466,12 +466,12 @@ exit:
 /*!
  * Start the hypervisor (in a paused state) as a child process.
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  *
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_oci_vm_launch (struct clr_oci_config *config)
+cc_oci_vm_launch (struct cc_oci_config *config)
 {
 	gchar     **args = NULL;
 	GError     *err = NULL;
@@ -481,7 +481,7 @@ clr_oci_vm_launch (struct clr_oci_config *config)
 	GSpawnFlags flags = 0x0;
 	gchar     **p;
 
-	ret = clr_oci_vm_args_get (config, &args);
+	ret = cc_oci_vm_args_get (config, &args);
 	if (! (ret && args)) {
 		return ret;
 	}
@@ -501,7 +501,7 @@ clr_oci_vm_launch (struct clr_oci_config *config)
 			args,
 			NULL, /* inherit parents environment */
 			flags,
-			(GSpawnChildSetupFunc)clr_oci_setup_child,
+			(GSpawnChildSetupFunc)cc_oci_setup_child,
 			(gpointer)config,
 			&config->state.workload_pid,
 			NULL,
@@ -553,7 +553,7 @@ clr_oci_vm_launch (struct clr_oci_config *config)
 			(unsigned)config->state.workload_pid);
 
 	if (config->pid_file) {
-		ret = clr_oci_create_pidfile (config->pid_file,
+		ret = cc_oci_create_pidfile (config->pid_file,
 				config->state.workload_pid);
 	} else {
 		ret = true;
@@ -628,14 +628,14 @@ exit:
 /*!
  * Create a connection to the VM, run a command and disconnect.
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  * \param argc Argument count.
  * \param argv Argument vector.
  *
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_oci_vm_connect (struct clr_oci_config *config,
+cc_oci_vm_connect (struct cc_oci_config *config,
 		int argc,
 		char *const argv[]) {
 	gchar     **args = NULL;
@@ -660,7 +660,7 @@ clr_oci_vm_connect (struct clr_oci_config *config,
 	 * FIXME: This is a pragmatic (but potentially unreliable) solution
 	 * FIXME:   if the user wants to run an unknown shell.
 	 */
-	if (clr_oci_cmd_is_shell (argv[0])) {
+	if (cc_oci_cmd_is_shell (argv[0])) {
 		cmd_is_just_shell = true;
 	}
 
@@ -690,7 +690,7 @@ clr_oci_vm_connect (struct clr_oci_config *config,
 
 	args_len = (guint)argc;
 
-	/* +2 for CLR_OCI_EXEC_CMD + hostname to connect to */
+	/* +2 for CC_OCI_EXEC_CMD + hostname to connect to */
 	args_len += 2;
 
 	/* +1 for NULL terminator */
@@ -700,7 +700,7 @@ clr_oci_vm_connect (struct clr_oci_config *config,
 	}
 
 	/* The command to use to connect to the VM */
-	args[0] = g_strdup (CLR_OCI_EXEC_CMD);
+	args[0] = g_strdup (CC_OCI_EXEC_CMD);
 	if (! args[0]) {
 		ret = false;
 		goto out;
@@ -739,7 +739,7 @@ clr_oci_vm_connect (struct clr_oci_config *config,
 			args,
 			NULL, /* inherit parents environment */
 			flags,
-			(GSpawnChildSetupFunc)clr_oci_close_fds,
+			(GSpawnChildSetupFunc)cc_oci_close_fds,
 			NULL, /* user_data */
 			&pid,
 			NULL, /* standard_input */
@@ -757,7 +757,7 @@ clr_oci_vm_connect (struct clr_oci_config *config,
 	g_debug ("child process ('%s') running with pid %u",
 			args[0], (unsigned)pid);
 
-	g_child_watch_add (pid, clr_oci_child_watcher, &exit_code);
+	g_child_watch_add (pid, cc_oci_child_watcher, &exit_code);
 
 	/* wait for child to finish */
 	g_main_loop_run (main_loop);

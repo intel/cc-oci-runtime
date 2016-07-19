@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -18,18 +18,18 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef _CLR_OCI_STATE_H
-#define _CLR_OCI_STATE_H
+#ifndef _CC_OCI_STATE_H
+#define _CC_OCI_STATE_H
 
-gboolean clr_oci_state_file_get (struct clr_oci_config *config);
-struct oci_state *clr_oci_state_file_read (const char *file);
-void clr_oci_state_free (struct oci_state *state);
-gboolean clr_oci_state_file_create (struct clr_oci_config *config,
+gboolean cc_oci_state_file_get (struct cc_oci_config *config);
+struct oci_state *cc_oci_state_file_read (const char *file);
+void cc_oci_state_free (struct oci_state *state);
+gboolean cc_oci_state_file_create (struct cc_oci_config *config,
 		const char *created_timestamp);
-gboolean clr_oci_state_file_delete (const struct clr_oci_config *config);
-gboolean clr_oci_state_file_exists (struct clr_oci_config *config);
-const char *clr_oci_status_to_str (enum oci_status status);
-enum oci_status clr_oci_str_to_status (const char *str);
-int clr_oci_status_length (void);
+gboolean cc_oci_state_file_delete (const struct cc_oci_config *config);
+gboolean cc_oci_state_file_exists (struct cc_oci_config *config);
+const char *cc_oci_status_to_str (enum oci_status status);
+enum oci_status cc_oci_str_to_status (const char *str);
+int cc_oci_status_length (void);
 
-#endif /* _CLR_OCI_STATE_H */
+#endif /* _CC_OCI_STATE_H */

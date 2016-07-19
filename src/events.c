@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -28,7 +28,7 @@
 struct watcher_vm_data
 {
 	GMainLoop              *loop;
-	struct clr_oci_config *config;
+	struct cc_oci_config *config;
 	struct oci_state *state;
 	gboolean result;
 };
@@ -37,7 +37,7 @@ struct watcher_vm_data
 /**
  * Stops show_container_stats main loop when the 
  * container VM is destroyed verifying 
- * if \ref CLR_OCI_PROCESS_SOCKET is removed.
+ * if \ref CC_OCI_PROCESS_SOCKET is removed.
  *
  * \param monitor \c GFileMonitor.
  * \param file \c GFile.
@@ -68,7 +68,7 @@ watcher_destroyed_vm (GFileMonitor            *monitor,
 
 	name = g_path_get_basename (path);
 
-	if (g_strcmp0 (CLR_OCI_PROCESS_SOCKET, name)) {
+	if (g_strcmp0 (CC_OCI_PROCESS_SOCKET, name)) {
 		return;
 	}
 
@@ -80,13 +80,13 @@ watcher_destroyed_vm (GFileMonitor            *monitor,
 
 /*!
  * Get container stats (cpu, memory, etc) in json format.
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  * \param state \ref oci_state.
  *
  * \return json string on success, else NULL
  */
 static gchar*
-get_container_stats(struct clr_oci_config *config,
+get_container_stats(struct cc_oci_config *config,
 	struct oci_state *state)
 {
 	JsonObject  *root = NULL;
@@ -125,7 +125,7 @@ get_container_stats(struct clr_oci_config *config,
 	json_object_set_string_member (root, "id", config->optarg_container_id);
 	json_object_set_string_member (root, "id", config->optarg_container_id);
 	json_object_set_object_member (root, "data", data);
-	stats_str = clr_oci_json_obj_to_string (root, false, &str_len);
+	stats_str = cc_oci_json_obj_to_string (root, false, &str_len);
 
 out:
 	return stats_str;
@@ -148,7 +148,7 @@ show_interval_stats(struct watcher_vm_data *data)
  * If interval param is \c 0 will show the stats once and exit;
  * otherwise the function will block and show stats after
  * "interval" seconds.
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  * \param state \ref oci_state.
  * \param state \ref interval to show.
  * \param interval seconds to pause between displaying statistics.
@@ -156,7 +156,7 @@ show_interval_stats(struct watcher_vm_data *data)
  * \return \c true on success, else \c false.
  */
 gboolean
-show_container_stats(struct clr_oci_config *config,
+show_container_stats(struct cc_oci_config *config,
 	struct oci_state *state, int interval)
 {
 

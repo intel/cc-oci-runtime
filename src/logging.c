@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -38,7 +38,7 @@
 #include "common.h"
 
 /** Flags to pass to \c g_log_set_handler(). */
-#define CLR_OCI_LOG_FLAGS \
+#define CC_OCI_LOG_FLAGS \
 (                                                                 \
  (G_LOG_LEVEL_ERROR | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION ) | \
                                                                   \
@@ -50,11 +50,11 @@
 )
 
 /** Size of buffer for logging. */
-#define CLR_OCI_LOG_BUFSIZE 1024
+#define CC_OCI_LOG_BUFSIZE 1024
 
 /** Fallback logging for catastrophic failures. */
-#define CLR_OCI_ERROR(...) \
-	clr_oci_error (__FILE__, __LINE__, __func__, __VA_ARGS__)
+#define CC_OCI_ERROR(...) \
+	cc_oci_error (__FILE__, __LINE__, __func__, __VA_ARGS__)
 
 extern gboolean enable_debug;
 
@@ -62,7 +62,7 @@ extern gboolean enable_debug;
  * Last-ditch logging routine which sends an error
  * message to syslog.
  *
- * This function is called by \ref clr_oci_log_handler()
+ * This function is called by \ref cc_oci_log_handler()
  * when it detects an error which stops it from writing to the standard
  * log file.
  *
@@ -72,13 +72,13 @@ extern gboolean enable_debug;
  * \param fmt Format and arguments to log.
  */
 private void
-clr_oci_error (const char *file,
+cc_oci_error (const char *file,
 		int line_number,
 		const char *function,
 		const char *fmt,
 		...)
 {
-	gchar    buffer[CLR_OCI_LOG_BUFSIZE];
+	gchar    buffer[CC_OCI_LOG_BUFSIZE];
 	va_list  ap;
 	int      ret;
 
@@ -90,9 +90,9 @@ clr_oci_error (const char *file,
 	va_start (ap, fmt);
 
 	/* detect overrun */
-	buffer[CLR_OCI_LOG_BUFSIZE-1] = '\0';
+	buffer[CC_OCI_LOG_BUFSIZE-1] = '\0';
 
-	ret = g_vsnprintf (buffer, CLR_OCI_LOG_BUFSIZE, fmt, ap);
+	ret = g_vsnprintf (buffer, CC_OCI_LOG_BUFSIZE, fmt, ap);
 	if (ret < 0) {
 		syslog (LOG_ERR, "ERROR: %s: %d: %s: "
 				"failed to prepare log buffer "
@@ -102,14 +102,14 @@ clr_oci_error (const char *file,
 				function,
 				fmt);
 		goto out;
-	} else if (buffer[CLR_OCI_LOG_BUFSIZE-1] != '\0') {
+	} else if (buffer[CC_OCI_LOG_BUFSIZE-1] != '\0') {
 		syslog (LOG_ERR, "BUG: %s: %d: %s: "
 				"buffer is too small "
 				"(%d) (fmt=\"%s\")\n",
 				file,
 				line_number,
 				function,
-				CLR_OCI_LOG_BUFSIZE,
+				CC_OCI_LOG_BUFSIZE,
 				fmt);
 		goto out;
 	}
@@ -136,7 +136,7 @@ out:
  * \return Newly-allocated string containing entry suitable for logging.
  */
 static gchar *
-clr_oci_log_to_json (const gchar *timestamp,
+cc_oci_log_to_json (const gchar *timestamp,
 		const gchar *level,
 		const gchar *message)
 {
@@ -155,7 +155,7 @@ clr_oci_log_to_json (const gchar *timestamp,
 	json_object_set_string_member (obj, "mesg", message);
 	json_object_set_string_member (obj, "time", timestamp);
 
-	data = clr_oci_json_obj_to_string (obj, false, &data_len);
+	data = cc_oci_json_obj_to_string (obj, false, &data_len);
 	json_object_unref (obj);
 
 	return data;
@@ -174,7 +174,7 @@ clr_oci_log_to_json (const gchar *timestamp,
  * or \c NULL on error.
  */
 static char *
-clr_oci_msg_fmt (const gchar *log_domain,
+cc_oci_msg_fmt (const gchar *log_domain,
 		const gchar *log_level,
 		const char *message,
 		const char *timestamp,
@@ -188,7 +188,7 @@ clr_oci_msg_fmt (const gchar *log_domain,
 
 	if (use_json) {
 		gchar *str = NULL;
-		str = clr_oci_log_to_json (timestamp, log_level, message);
+		str = cc_oci_log_to_json (timestamp, log_level, message);
 		if (str) {
 			final = g_strdup_printf ("%s\n", str);
 			g_free (str);
@@ -217,7 +217,7 @@ clr_oci_msg_fmt (const gchar *log_domain,
  * \return \c true on success, else \c false.
  */
 static gboolean
-clr_oci_log_msg_write (const char *filename, const char *message)
+cc_oci_log_msg_write (const char *filename, const char *message)
 {
 	GIOChannel  *channel = NULL;
 	GError      *err = NULL;
@@ -229,9 +229,9 @@ clr_oci_log_msg_write (const char *filename, const char *message)
 	g_assert (filename);
 	g_assert (message);
 
-	fd = open (filename, flags, CLR_OCI_LOGFILE_MODE);
+	fd = open (filename, flags, CC_OCI_LOGFILE_MODE);
 	if (fd < 0) {
-		CLR_OCI_ERROR ("failed to open logfile %s for writing: %s",
+		CC_OCI_ERROR ("failed to open logfile %s for writing: %s",
 				filename, strerror (errno));
 		goto out;
 	}
@@ -239,7 +239,7 @@ clr_oci_log_msg_write (const char *filename, const char *message)
 	/* append to file if it already exists */
 	channel = g_io_channel_unix_new (fd);
 	if (! channel) {
-		CLR_OCI_ERROR ("failed to create I/O channel");
+		CC_OCI_ERROR ("failed to create I/O channel");
 		goto out;
 	}
 
@@ -251,7 +251,7 @@ clr_oci_log_msg_write (const char *filename, const char *message)
 			&err);
 
 	if (status != G_IO_STATUS_NORMAL) {
-		CLR_OCI_ERROR ("failed to write to I/O channel: %s",
+		CC_OCI_ERROR ("failed to write to I/O channel: %s",
 				err->message);
 		g_error_free (err);
 		goto out;
@@ -261,7 +261,7 @@ clr_oci_log_msg_write (const char *filename, const char *message)
 			TRUE, /* flush */
 			&err);
 	if (status != G_IO_STATUS_NORMAL) {
-		CLR_OCI_ERROR ("failed to close I/O channel: %s",
+		CC_OCI_ERROR ("failed to close I/O channel: %s",
 				err->message);
 		g_error_free (err);
 		goto out;
@@ -307,7 +307,7 @@ out:
  * \param user_data Logging options (in the form of \ref clr_log_options).
  */
 static void
-clr_oci_log_handler (const gchar *log_domain,
+cc_oci_log_handler (const gchar *log_domain,
 		GLogLevelFlags log_level,
 		const gchar *message,
 		gpointer user_data)
@@ -380,15 +380,15 @@ clr_oci_log_handler (const gchar *log_domain,
 		break;
 	}
 
-	timestamp = clr_oci_get_iso8601_timestamp ();
+	timestamp = cc_oci_get_iso8601_timestamp ();
 	if (! timestamp) {
 		goto out;
 	}
 
-	final = clr_oci_msg_fmt (log_domain, level, message,
+	final = cc_oci_msg_fmt (log_domain, level, message,
 			timestamp, options->use_json);
 	if (! final) {
-		CLR_OCI_ERROR ("failed to format log entry");
+		CC_OCI_ERROR ("failed to format log entry");
 		goto out;
 	}
 
@@ -411,7 +411,7 @@ clr_oci_log_handler (const gchar *log_domain,
 	}
 
 	if (options->filename) {
-		ret = clr_oci_log_msg_write (options->filename, final);
+		ret = cc_oci_log_msg_write (options->filename, final);
 		if (! ret) {
 			goto out;
 		}
@@ -426,12 +426,12 @@ update_global_log:
 		if (options->use_json) {
 			g_free_if_set (final);
 
-			final = clr_oci_msg_fmt (log_domain, level, message, timestamp, false);
+			final = cc_oci_msg_fmt (log_domain, level, message, timestamp, false);
 			if (! final) {
 				goto out;
 			}
 		}
-		ret = clr_oci_log_msg_write (options->global_logfile,
+		ret = cc_oci_log_msg_write (options->global_logfile,
 				final);
 		if (! ret) {
 			goto out;
@@ -451,7 +451,7 @@ out:
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_oci_log_init (const struct clr_log_options *options)
+cc_oci_log_init (const struct clr_log_options *options)
 {
 	g_assert (options);
 
@@ -465,7 +465,7 @@ clr_oci_log_init (const struct clr_log_options *options)
 			return false;
 		}
 
-		ret = g_mkdir_with_parents (dir, CLR_OCI_DIR_MODE);
+		ret = g_mkdir_with_parents (dir, CC_OCI_DIR_MODE);
 		if (ret) {
 			g_free (dir);
 			return false;
@@ -475,8 +475,8 @@ clr_oci_log_init (const struct clr_log_options *options)
 	}
 
 	(void)g_log_set_handler (G_LOG_DOMAIN,
-			(GLogLevelFlags)CLR_OCI_LOG_FLAGS,
-			clr_oci_log_handler,
+			(GLogLevelFlags)CC_OCI_LOG_FLAGS,
+			cc_oci_log_handler,
 			(gpointer)options);
 
 	return true;
@@ -489,7 +489,7 @@ clr_oci_log_init (const struct clr_log_options *options)
  * \param options \ref clr_log_options.
  */
 void
-clr_oci_log_free (struct clr_log_options *options)
+cc_oci_log_free (struct clr_log_options *options)
 {
 	if (! options) {
 		return;

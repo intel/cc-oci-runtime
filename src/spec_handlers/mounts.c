@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -21,11 +21,11 @@
 #include "spec_handler.h"
 #include "mount.h"
 
-static struct clr_oci_mount* current_mount = NULL;
+static struct cc_oci_mount* current_mount = NULL;
 static bool error_detected = false;
 
 /** Map of mount flags. */
-static struct clr_oci_mnt_flag_map {
+static struct cc_oci_mnt_flag_map {
 	const char    *name;  /*!< Human-readable name */
 	unsigned long  value; /*!< Numeric mount flag value */
 } mnt_flag_map[] = {
@@ -65,7 +65,7 @@ static struct clr_oci_mnt_flag_map {
 static unsigned long int
 mount_get_flag_value (const gchar *flag)
 {
-	struct clr_oci_mnt_flag_map* m;
+	struct cc_oci_mnt_flag_map* m;
 
 	for (m = mnt_flag_map; m->name; m++) {
 		if (! g_strcmp0 (m->name, flag)) {
@@ -133,7 +133,7 @@ save_current_mount(GSList** mount_list) {
 	current_mount = NULL;
 	return;
 err:
-	clr_oci_mount_free(current_mount);
+	cc_oci_mount_free(current_mount);
 	error_detected = true;
 	current_mount = NULL;
 }
@@ -142,10 +142,10 @@ err:
  * function to handle mount section
  *
  * \param root contains mount section.
- * \param config \ref clr_oci_config..
+ * \param config \ref cc_oci_config..
  */
 static void
-handle_mounts_section(GNode* root, struct clr_oci_config* config) {
+handle_mounts_section(GNode* root, struct cc_oci_config* config) {
 	GString* mount_flags = NULL;
 
 	if ((!root) || error_detected) {
@@ -157,7 +157,7 @@ handle_mounts_section(GNode* root, struct clr_oci_config* config) {
 	} else if (root->children) {
 		/* create a new mount and fill it */
 		if (!current_mount) {
-			current_mount = g_new0 (struct clr_oci_mount, 1);
+			current_mount = g_new0 (struct cc_oci_mount, 1);
 		}
 
 		if (g_strcmp0(root->data, "destination") == 0) {
@@ -185,7 +185,7 @@ handle_mounts_section(GNode* root, struct clr_oci_config* config) {
 }
 
 static bool
-mounts_handle_section(GNode* root, struct clr_oci_config* config) {
+mounts_handle_section(GNode* root, struct cc_oci_config* config) {
 	error_detected = false;
 
 	if (! root) {

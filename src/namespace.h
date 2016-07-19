@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  * 
  * Copyright (C) 2016 Intel Corporation
  * 
@@ -18,12 +18,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef _CLR_OCI_NAMESPACE_H
-#define _CLR_OCI_NAMESPACE_H
+#ifndef _CC_OCI_NAMESPACE_H
+#define _CC_OCI_NAMESPACE_H
 
-void clr_oci_ns_free (struct oci_cfg_namespace *ns);
-gboolean clr_oci_ns_setup (struct clr_oci_config *config);
-const char *clr_oci_ns_to_str (enum oci_namespace ns);
-enum oci_namespace clr_oci_str_to_ns (const char *str);
+void cc_oci_ns_free (struct oci_cfg_namespace *ns);
+gboolean cc_oci_ns_setup (struct cc_oci_config *config);
+const char *cc_oci_ns_to_str (enum oci_namespace ns);
+enum oci_namespace cc_oci_str_to_ns (const char *str);
 
-#endif /* _CLR_OCI_NAMESPACE_H */
+#endif /* _CC_OCI_NAMESPACE_H */

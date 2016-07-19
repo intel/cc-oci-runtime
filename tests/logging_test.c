@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  * 
  * Copyright (C) 2016 Intel Corporation
  * 
@@ -34,13 +34,13 @@
 gboolean enable_debug = true;
 
 void
-clr_oci_error (const char *file,
+cc_oci_error (const char *file,
 		int line_number,
 		const char *function,
 		const char *fmt,
 		...);
 
-START_TEST(test_clr_oci_log_init) {
+START_TEST(test_cc_oci_log_init) {
 	const gchar *logfile = "logging_test_debug.log";
 	gboolean ret;
 	gchar *contents = NULL;
@@ -58,7 +58,7 @@ START_TEST(test_clr_oci_log_init) {
 	options.filename = g_build_path ("/", tmpdir, logfile, NULL);
 
 	/* setup logging */
-	ck_assert (clr_oci_log_init(&options));
+	ck_assert (cc_oci_log_init(&options));
 
 	/* ensure log file doesn't exist before any logging calls made */
 	ck_assert (! g_file_test (options.filename, G_FILE_TEST_EXISTS));
@@ -107,7 +107,7 @@ START_TEST(test_clr_oci_log_init) {
 
 	ck_assert (! g_remove (options.filename));
 
-	clr_oci_error (__FILE__, __LINE__, __func__, "testing clr_oci_error");
+	cc_oci_error (__FILE__, __LINE__, __func__, "testing cc_oci_error");
 
 	/************************************************************/
 	/* Now, test g_debug() handling */
@@ -195,7 +195,7 @@ START_TEST(test_clr_oci_log_init) {
 	options.use_json = false;
 	options.global_logfile = g_new0(char, PATH_MAX);
 	g_snprintf(options.global_logfile, PATH_MAX, "%s", options.filename);
-	ck_assert (clr_oci_log_init(&options));
+	ck_assert (cc_oci_log_init(&options));
 	g_message("testing g_message with global log file");
 	options.use_json = true;
 	g_message("testing g_message with global log file");
@@ -205,7 +205,7 @@ START_TEST(test_clr_oci_log_init) {
 
 	ck_assert (! g_remove (options.filename));
 	ck_assert (! g_remove (tmpdir));
-	clr_oci_log_free (&options);
+	cc_oci_log_free (&options);
 	g_free (tmpdir);
 
 } END_TEST
@@ -213,7 +213,7 @@ START_TEST(test_clr_oci_log_init) {
 Suite* make_runtime_suite(void) {
 	Suite* s = suite_create(__FILE__);
 
-	ADD_TEST(test_clr_oci_log_init, s);
+	ADD_TEST(test_cc_oci_log_init, s);
 
 	return s;
 }

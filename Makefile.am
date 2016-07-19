@@ -1,4 +1,4 @@
-#  This file is part of clr-oci-runtime.
+#  This file is part of cc-oci-runtime.
 #
 #  Copyright (C) 2016 Intel Corporation
 #
@@ -38,7 +38,7 @@ commit_id:
 
 STORED_COMMIT = $(shell cat commit_id 2>/dev/null)
 
-src/commands/clr_oci_runtime-version.$(OBJEXT): \
+src/commands/cc_oci_runtime-version.$(OBJEXT): \
 	 commit_id
 
 AM_CPPFLAGS = -I $(top_srcdir)/src -DG_LOG_DOMAIN=\"$(PACKAGE_NAME)\" \
@@ -63,7 +63,7 @@ DISTCHECK_CONFIGURE_FLAGS = \
 	--enable-code-coverage \
 	--enable-functional-tests
 
-bin_PROGRAMS = clr-oci-runtime
+bin_PROGRAMS = cc-oci-runtime
 
 common_sources = \
 	src/util.c src/util.h \
@@ -113,17 +113,17 @@ common_sources = \
 	src/spec_handlers/mounts.c \
 	src/spec_handlers/annotations.c
 
-clr_oci_runtime_SOURCES = \
+cc_oci_runtime_SOURCES = \
 	src/main.c \
 	$(common_sources)
 
-clr_oci_runtime_LDADD = \
+cc_oci_runtime_LDADD = \
 	$(GLIB_LIBS) \
 	$(GIO_LIBS) \
 	$(JSON_GLIB_LIBS) \
 	$(UUID_LIBS)
 
-clr_oci_runtime_CFLAGS = \
+cc_oci_runtime_CFLAGS = \
 	$(AM_CFLAGS) \
 	$(GLIB_CFLAGS) \
 	$(GIO_CFLAGS) \
@@ -137,7 +137,7 @@ bats_test_sources = \
 	tests/functional/help.bats \
 	tests/functional/start.bats \
 	tests/functional/version.bats \
-	tests/functional/data/config-minimal-clr-oci.json.in
+	tests/functional/data/config-minimal-cc-oci.json.in
 
 EXTRA_DIST = \
 	LICENSE \

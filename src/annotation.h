@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  * 
  * Copyright (C) 2016 Intel Corporation
  * 
@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef _CLR_OCI_ANNOTATION_H
-#define _CLR_OCI_ANNOTATION_H
+#ifndef _CC_OCI_ANNOTATION_H
+#define _CC_OCI_ANNOTATION_H
 
 #include <stdbool.h>
 
@@ -30,7 +30,7 @@
 #include "util.h"
 #include "oci.h"
 
-void clr_oci_annotations_free_all (GSList *annotations);
-JsonObject *clr_oci_annotations_to_json (const struct clr_oci_config *config);
+void cc_oci_annotations_free_all (GSList *annotations);
+JsonObject *cc_oci_annotations_to_json (const struct cc_oci_config *config);
 
-#endif /* _CLR_OCI_ANNOTATION_H */
+#endif /* _CC_OCI_ANNOTATION_H */

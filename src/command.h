@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef _CLR_OCI_COMMAND_H
-#define _CLR_OCI_COMMAND_H
+#ifndef _CC_OCI_COMMAND_H
+#define _CC_OCI_COMMAND_H
 
 #include <stdbool.h>
 
@@ -49,14 +49,14 @@ struct subcommand
 	 * handled, it is also the argument handler for the sub-command.
 	 *
 	 * \param sub \ref subcommand being called.
-	 * \param config \ref clr_oci_config.
+	 * \param config \ref cc_oci_config.
 	 * \param argc Argument count for sub-command.
 	 * \param argv Argument vector for sub-command.
 	 *
 	 * \return \c true on success, else \c false.
 	 */
 	gboolean (*handler) (const struct subcommand *sub,
-			struct clr_oci_config *config,
+			struct cc_oci_config *config,
 			int argc, char *argv[]);
 
 	/*! sub-command description help(required). */
@@ -68,7 +68,7 @@ struct subcommand
  *
  * This structure is used to simplify command-line parsing for various
  * similar sub-commands. Values are eventually added to a \ref
- * clr_oci_config.
+ * cc_oci_config.
  */
 struct start_data {
 	gchar *bundle;
@@ -79,13 +79,13 @@ struct start_data {
 };
 
 gboolean handle_command_toggle (const struct subcommand *sub,
-		struct clr_oci_config *config,
+		struct cc_oci_config *config,
 		int argc, char *argv[], gboolean pause);
 gboolean handle_command_stop (const struct subcommand *sub,
-		struct clr_oci_config *config,
+		struct cc_oci_config *config,
 		int argc, char *argv[]);
 gboolean handle_command_setup (const struct subcommand *sub,
-		struct clr_oci_config *config,
+		struct cc_oci_config *config,
 		int argc, char *argv[]);
 gboolean handle_default_usage (int argc, char *argv[], const char *cmd, gboolean *ret, int min_argc, const char *extra);
 gboolean handle_option_console (const gchar *option_name,
@@ -115,4 +115,4 @@ extern struct subcommand command_version;
 
 extern struct subcommand *subcommands[];
 
-#endif /* _CLR_OCI_COMMAND_H */
+#endif /* _CC_OCI_COMMAND_H */

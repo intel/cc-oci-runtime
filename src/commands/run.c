@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  * 
  * Copyright (C) 2016 Intel Corporation
  * 
@@ -81,7 +81,7 @@ static GOptionEntry options_run[] =
 
 static gboolean
 handler_run (const struct subcommand *sub,
-		struct clr_oci_config *config,
+		struct cc_oci_config *config,
 		int argc, char *argv[])
 {
 	g_assert (sub);
@@ -91,7 +91,7 @@ handler_run (const struct subcommand *sub,
 		return false;
 	}
 
-	return clr_oci_run (config);
+	return cc_oci_run (config);
 }
 
 struct subcommand command_run =

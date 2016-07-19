@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  * 
  * Copyright (C) 2016 Intel Corporation
  * 
@@ -68,7 +68,7 @@ int main(void) {
 
 	options.use_json = false;
 	options.filename = g_strdup ("vm_test_debug.log");
-	(void)clr_oci_log_init(&options);
+	(void)cc_oci_log_init(&options);
 
 	s = make_vm_suite();
 	sr = srunner_create(s);
@@ -77,7 +77,7 @@ int main(void) {
 	number_failed = srunner_ntests_failed(sr);
 	srunner_free(sr);
 
-	clr_oci_log_free (&options);
+	cc_oci_log_free (&options);
 
 	return (number_failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
