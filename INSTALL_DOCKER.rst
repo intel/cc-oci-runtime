@@ -21,7 +21,7 @@ Overview
 The following steps install and configure `Clear Containers`_ and Docker_ into an existing `Clear Linux`_ distribution. You will require `Clear Linux`_ version 8620 or above.
 Again, please note that `Clear Containers`_ can run on top of other distributions. Here `Clear Linux`_ is used as one example of a distribution `Clear Containers`_ can run on.
 
-After this installation you will be able to launch Docker_ container payloads using either the default Docker_ (``runc``) Linux Container runtime or the `Clear Containers`_ QEMU/KVM hypervisor based runtime - ``clr-oci-runtime``.
+After this installation you will be able to launch Docker_ container payloads using either the default Docker_ (``runc``) Linux Container runtime or the `Clear Containers`_ QEMU/KVM hypervisor based runtime - ``cc-oci-runtime``.
 
 Installation Steps
 ------------------
@@ -136,18 +136,18 @@ To enable your user to access both Docker and KVM you will need to add them to t
 
     sudo usermod -G kvm,docker -a <USERNAME>
 
-Download the clr-oci-runtime 2.0 code
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Download the cc-oci-runtime 2.0 code
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. attention::
-   Update this section when clr-oci-runtime is available in a Clear Linux bundle
+   Update this section when cc-oci-runtime is available in a Clear Linux bundle
 
-Download, build and install the clr-oci-runtime from source:
+Download, build and install the ``cc-oci-runtime`` from source:
 
   ::
 
-    cor_source=${HOME}/clr-oci-runtime
-    git clone https://github.com/01org/clr-oci-runtime.git $cor_source
+    cor_source=${HOME}/cc-oci-runtime
+    git clone https://github.com/01org/cc-oci-runtime.git $cor_source
     cd $cor_source
     autoreconf -fvi
     bash autogen.sh --disable-cppcheck --disable-valgrind
@@ -191,31 +191,31 @@ Locate where your OCI runtime got installed
 
     ::
 
-      which clr-oci-runtime
-      #typically /usr/bin/clr-oci-runtime
+      which cc-oci-runtime
+      #typically /usr/bin/cc-oci-runtime
 
 Then edit the Docker_ systemd unit file ExecStart to make `Clear Containers`_ the default runtime.
 
   ::
 
     Edit: /usr/lib/systemd/system/docker-upstream.service
-    ExecStart=/usr/bin/dockerd-upstream --add-runtime cor=/usr/bin/clr-oci-runtime--default-runtime=cor -H fd://
+    ExecStart=/usr/bin/dockerd-upstream --add-runtime cor=/usr/bin/cc-oci-runtime --default-runtime=cor -H fd://
 
 
 Install the Clear Container container kernel image
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-`Clear Containers`_ utilise a root filesystem and Linux kernel image to run the Docker_ container payloads. The kernel was installed by the linux-container-testing RPM. The root filesystem image can be obtained from the `Clear Linux`_ download site. The runtime default config file for they hypervisor can be copied into place from the clr-oci-runtime source tree:
+`Clear Containers`_ utilise a root filesystem and Linux kernel image to run the Docker_ container payloads. The kernel was installed by the linux-container-testing RPM. The root filesystem image can be obtained from the `Clear Linux`_ download site. The runtime default config file for they hypervisor can be copied into place from the ``cc-oci-runtime`` source tree:
 
   ::
 
-    sudo mkdir -p /var/lib/clr-oci-runtime/data/image
-    cd /var/lib/clr-oci-runtime/data/image/
+    sudo mkdir -p /var/lib/cc-oci-runtime/data/image
+    cd /var/lib/cc-oci-runtime/data/image/
     sudo curl -O https://download.clearlinux.org/releases/8900/clear/clear-8900-containers.img.xz
     sudo unxz clear-8900-containers.img.xz
     sudo mv clear-8900-containers.img clear-containers.img
-    sudo cp /usr/lib/kernel/vmlinux-4.5-9.container.testing /var/lib/clr-oci-runtime/data/kernel/vmlinux.container
-    sudo cp $cor_source/data/hypervisor.args /usr/share/defaults/clr-oci-runtime/
+    sudo cp /usr/lib/kernel/vmlinux-4.5-9.container.testing /var/lib/cc-oci-runtime/data/kernel/vmlinux.container
+    sudo cp $cor_source/data/hypervisor.args /usr/share/defaults/cc-oci-runtime/
 
 Restart Docker Again
 ~~~~~~~~~~~~~~~~~~~~
