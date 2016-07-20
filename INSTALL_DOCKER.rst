@@ -38,6 +38,8 @@ If your user does not already have ``sudo`` rights, you should add your user to 
 
     usermod -G wheel -a <USERNAME>
 
+This change will take effect once you have logged out as root and logged back in as <USERNAME>.
+
 And you will also need to add your user or group to the ``/etc/sudoers`` file, for example:
 
   ::
@@ -142,6 +144,13 @@ To enable your user to access both Docker and KVM you will need to add them to t
   ::
 
     sudo usermod -G kvm,docker -a <USERNAME>
+
+Then run the following commands to add those group ids to your active login session:
+
+  ::
+
+    newgrp kvm
+    newgrp docker
 
 Download the cc-oci-runtime 2.0 code
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
