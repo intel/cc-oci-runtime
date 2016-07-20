@@ -25,7 +25,7 @@
 #define CC_OCI_LOGFILE_MODE		0640
 
 /** Options to pass to cc_oci_log_handler(). */
-struct clr_log_options
+struct cc_log_options
 {
     /* Full path to logfile to use. */
     char     *filename;
@@ -37,7 +37,7 @@ struct clr_log_options
     gboolean  use_json;
 };
 
-gboolean cc_oci_log_init (const struct clr_log_options *options);
-void cc_oci_log_free (struct clr_log_options *options);
+gboolean cc_oci_log_init (const struct cc_log_options *options);
+void cc_oci_log_free (struct cc_log_options *options);
 
 #endif /* _CC_OCI_LOGGING_H */

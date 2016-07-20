@@ -304,7 +304,7 @@ out:
  * \param log_domain glib log domain.
  * \param log_level \c G_LOG_LEVEL_*.
  * \param message Text to log.
- * \param user_data Logging options (in the form of \ref clr_log_options).
+ * \param user_data Logging options (in the form of \ref cc_log_options).
  */
 static void
 cc_oci_log_handler (const gchar *log_domain,
@@ -315,13 +315,13 @@ cc_oci_log_handler (const gchar *log_domain,
 	const gchar                  *level = NULL;;
 	gchar                        *final = NULL;
 	gchar                        *timestamp = NULL;
-	const struct clr_log_options *options;
+	const struct cc_log_options *options;
 	static gboolean               initialised = FALSE;
 	gboolean                      ret;
 
 	g_assert (message);
 
-	options = (const struct clr_log_options *)user_data;
+	options = (const struct cc_log_options *)user_data;
 
 	g_assert (options);
 
@@ -446,12 +446,12 @@ out:
 /*!
  * Initialise logging.
  *
- * \param options \ref clr_log_options.
+ * \param options \ref cc_log_options.
 
  * \return \c true on success, else \c false.
  */
 gboolean
-cc_oci_log_init (const struct clr_log_options *options)
+cc_oci_log_init (const struct cc_log_options *options)
 {
 	g_assert (options);
 
@@ -486,10 +486,10 @@ cc_oci_log_init (const struct clr_log_options *options)
  *
  * Free resources held by the logging options.
  *
- * \param options \ref clr_log_options.
+ * \param options \ref cc_log_options.
  */
 void
-cc_oci_log_free (struct clr_log_options *options)
+cc_oci_log_free (struct cc_log_options *options)
 {
 	if (! options) {
 		return;

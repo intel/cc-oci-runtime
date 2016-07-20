@@ -80,7 +80,7 @@ int main(void) {
 	int number_failed;
 	Suite* s;
 	SRunner* sr;
-	struct clr_log_options options = { 0 };
+	struct cc_log_options options = { 0 };
 
 	options.use_json = false;
 

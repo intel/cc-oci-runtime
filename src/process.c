@@ -316,7 +316,7 @@ cc_oci_output_watcher(GIOChannel* channel, GIOCondition cond,
  * \return \c true on success, else \c false.
  * */
 static gboolean
-clr_run_hook(struct oci_cfg_hook* hook, const gchar* state,
+cc_run_hook(struct oci_cfg_hook* hook, const gchar* state,
              gsize state_length) {
 	GError* error = NULL;
 	gboolean ret = false;
@@ -575,7 +575,7 @@ out:
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_run_hooks(GSList* hooks, const gchar* state_file_path,
+cc_run_hooks(GSList* hooks, const gchar* state_file_path,
               gboolean stop_on_failure) {
 	GSList* i = NULL;
 	struct oci_cfg_hook* hook = NULL;
@@ -610,7 +610,7 @@ clr_run_hooks(GSList* hooks, const gchar* state_file_path,
 
 	for (i=g_slist_nth(hooks, 0); i; i=g_slist_next(i) ) {
 		hook = (struct oci_cfg_hook*)i->data;
-		if ((!clr_run_hook(hook, container_state, length)) && stop_on_failure) {
+		if ((!cc_run_hook(hook, container_state, length)) && stop_on_failure) {
 			goto exit;
 		}
 	}

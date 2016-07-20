@@ -46,7 +46,7 @@ START_TEST(test_cc_oci_log_init) {
 	gchar *contents = NULL;
 	gchar **lines = NULL;
 	GError *error = NULL;
-	struct clr_log_options options = { 0 };
+	struct cc_log_options options = { 0 };
 	gchar *tmpdir = g_dir_make_tmp (NULL, NULL);
 	JsonParser *parser = NULL;
 	JsonReader *reader = NULL;
