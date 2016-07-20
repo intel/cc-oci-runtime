@@ -257,11 +257,22 @@ struct cc_oci_vm_cfg {
 	gchar *kernel_params;
 };
 
-/** clr-specific network configuration data. */
+/** cc-specific network configuration data. */
 struct cc_oci_net_cfg {
 
 	/** Network gateway (xxx.xxx.xxx.xxx). */
+	gchar  *hostname;
+
+	/** Network gateway (xxx.xxx.xxx.xxx). */
 	gchar  *gateway;
+
+	/** TODO: Do not limit number of DNS servers */
+
+	/** DNS IP (xxx.xxx.xxx.xxx). */
+	gchar  *dns_ip1;
+
+	/** DNS IP (xxx.xxx.xxx.xxx). */
+	gchar  *dns_ip2;
 
 	/** MAC address with colon separators (xx:xx:xx:xx:xx:xx). */
 	gchar  *mac_address;
@@ -269,11 +280,23 @@ struct cc_oci_net_cfg {
 	/** IPv4 address (xxx.xxx.xxx.xxx). */
 	gchar  *ip_address;
 
-	/** Name of network interface to use. */
+	/** IPv4 subnet mask (xxx.xxx.xxx.xxx). */
+	gchar  *subnet_mask;
+
+	/** Name of network interface (veth) within the namespace
+	 * This should also be the name of the interface within the VM */
 	gchar  *ifname;
 
-	/** Name of network bridge. */
+	/** Name of network bridge using to connect if to tap_device. */
 	gchar  *bridge;
+
+	/** Name of the QEMU tap device */
+	gchar  *tap_device;
+
+	/** IPv6 address */
+	gchar  *ipv6_address;
+
+	/** TODO: Add support for routes */
 };
 
 /**

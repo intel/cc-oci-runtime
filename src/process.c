@@ -55,6 +55,7 @@
 #include "process.h"
 #include "state.h"
 #include "namespace.h"
+#include "networking.h"
 #include "common.h"
 
 static GMainLoop* main_loop = NULL;
@@ -479,18 +480,10 @@ cc_oci_vm_netcfg_get (struct cc_oci_config *config)
 		return false;
 	}
 
-	/* FIXME: fake it for now */
-#if 1
-	config->net.gateway = g_strdup ("xxx.xxx.xxx.xxx");
-	config->net.mac_address = g_strdup ("xx:xx:xx:xx:xx:xx");
-	config->net.ip_address = g_strdup ("xxx.xxx.xxx.xxx");
-	config->net.ifname = g_strdup ("ifname");
-	config->net.bridge = g_strdup ("bridge");
-
-	g_critical ("FIXME: faking network config setup");
-#endif
-
-	/* FIXME: what about ipv6? */
+	/* TODO: We need to support multiple networks */
+	if ( !cc_oci_network_discover ("eth0", config)) {
+		return false;
+	}
 
 	return true;
 }
@@ -518,11 +511,17 @@ cc_oci_vm_netcfg_to_strv (struct cc_oci_config *config)
 		return NULL;
 	}
 
+	if (config->net.hostname)    count++;
 	if (config->net.gateway)     count++;
+	if (config->net.dns_ip1)     count++;
+	if (config->net.dns_ip2)     count++;
 	if (config->net.mac_address) count++;
+	if (config->net.ipv6_address)  count++;
 	if (config->net.ip_address)  count++;
+	if (config->net.subnet_mask) count++;
 	if (config->net.ifname)      count++;
 	if (config->net.bridge)      count++;
+	if (config->net.tap_device)  count++;
 
 	if (! count) {
 		return NULL;
@@ -534,9 +533,24 @@ cc_oci_vm_netcfg_to_strv (struct cc_oci_config *config)
 		return NULL;
 	}
 
+	if (config->net.hostname) {
+		cfg[--count] = g_strdup_printf ("@HOSTNAME@=%s",
+				config->net.hostname);
+	}
+
 	if (config->net.gateway) {
 		cfg[--count] = g_strdup_printf ("@GATEWAY@=%s",
 				config->net.gateway);
+	}
+
+	if (config->net.dns_ip1) {
+		cfg[--count] = g_strdup_printf ("@DNS_IP1@=%s",
+				config->net.dns_ip1);
+	}
+
+	if (config->net.dns_ip2) {
+		cfg[--count] = g_strdup_printf ("@DNS_IP2@=%s",
+				config->net.dns_ip2);
 	}
 
 	if (config->net.mac_address) {
@@ -544,9 +558,19 @@ cc_oci_vm_netcfg_to_strv (struct cc_oci_config *config)
 				config->net.mac_address);
 	}
 
+	if (config->net.ipv6_address) {
+		cfg[--count] = g_strdup_printf ("@IPV6_ADDRESS@=%s",
+				config->net.ipv6_address);
+	}
+
 	if (config->net.ip_address) {
 		cfg[--count] = g_strdup_printf ("@IP_ADDRESS@=%s",
 				config->net.ip_address);
+	}
+
+	if (config->net.subnet_mask) {
+		cfg[--count] = g_strdup_printf ("@SUBNET_MASK@=%s",
+				config->net.subnet_mask);
 	}
 
 	if (config->net.ifname) {
@@ -557,6 +581,11 @@ cc_oci_vm_netcfg_to_strv (struct cc_oci_config *config)
 	if (config->net.bridge) {
 		cfg[--count] = g_strdup_printf ("@BRIDGE@=%s",
 				config->net.bridge);
+	}
+
+	if (config->net.tap_device) {
+		cfg[--count] = g_strdup_printf ("@TAP_DEVICE@=%s",
+				config->net.tap_device);
 	}
 
 	return cfg;
@@ -596,16 +625,28 @@ cc_oci_vm_netcfg_from_str (struct cc_oci_config *config,
 			break;
 		}
 
-		if (! g_strcmp0 (fields[0], "@GATEWAY@")) {
+		if (! g_strcmp0 (fields[0], "@HOSTNAME@")) {
+			config->net.hostname = g_strdup (fields[1]);
+		} else if (! g_strcmp0 (fields[0], "@GATEWAY@")) {
 			config->net.gateway = g_strdup (fields[1]);
+		} else if (! g_strcmp0 (fields[0], "@DNS_IP1@")) {
+			config->net.dns_ip1 = g_strdup (fields[1]);
+		} else if (! g_strcmp0 (fields[0], "@DNS_IP2@")) {
+			config->net.dns_ip2 = g_strdup (fields[1]);
 		} else if (! g_strcmp0 (fields[0], "@MAC_ADDRESS@")) {
 			config->net.mac_address = g_strdup (fields[1]);
+		} else if (! g_strcmp0 (fields[0], "@IPV6_ADDRESS@")) {
+			config->net.ipv6_address = g_strdup (fields[1]);
 		} else if (! g_strcmp0 (fields[0], "@IP_ADDRESS@")) {
 			config->net.ip_address = g_strdup (fields[1]);
+		} else if (! g_strcmp0 (fields[0], "@SUBNET_MASK@")) {
+			config->net.subnet_mask = g_strdup (fields[1]);
 		} else if (! g_strcmp0 (fields[0], "@IFNAME@")) {
 			config->net.ifname = g_strdup (fields[1]);
 		} else if (! g_strcmp0 (fields[0], "@BRIDGE@")) {
 			config->net.bridge = g_strdup (fields[1]);
+		} else if (! g_strcmp0 (fields[0], "@TAP_DEVICE@")) {
+			config->net.tap_device = g_strdup (fields[1]);
 		}
 
 		g_strfreev (fields);
@@ -739,6 +780,7 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 			goto child_failed;
 		}
 
+
 		g_debug ("building hypervisor command-line");
 
 		// FIXME: add network config bits to following functions:
@@ -810,6 +852,12 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 		ret = false;
 		goto out;
 
+	}
+
+	/* TODO: Find the right place to do this */
+	if (! cc_oci_network_create(config)) {
+		g_critical ("failed to create network");
+		goto out;
 	}
 
 	/* flatten config into a bytestream to send to the child */
@@ -908,6 +956,8 @@ out:
 	if (net_cfg_pipe[1] != -1) close (net_cfg_pipe[1]);
 	if (child_err_pipe[0] != -1) close (child_err_pipe[0]);
 	if (child_err_pipe[1] != -1) close (child_err_pipe[1]);
+
+	/* TODO: Free the network configuration buffers */
 
 	if (args) {
 		g_strfreev (args);
