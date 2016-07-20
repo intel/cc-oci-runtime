@@ -13,7 +13,7 @@ Introduction
 
 This document details how to install Docker-1.12-rc4 and the necessary parts of `Clear Containers`_  into a `Clear Linux`_ distribution.
 
-You will need to have a `Clear Linux`_ installation before commencing this procedure, although `Clear Containers`_ do not depend on `Clear Linux`_ as a host and can be run on top of other distributions.
+You will need to have a `Clear Linux`_ installation before commencing this procedure, although `Clear Containers`_ do not depend on `Clear Linux`_ as a host and can be run on top of other distributions. See `Installing Clear Linux`_ for more details.
 
 
 Overview
@@ -31,7 +31,7 @@ Enable sudo
 
 You will need root privileges in order to run a number of the following commands. It is recommended you run these commands from a user account with ``sudo`` rights. 
 
-If your user does not already have ``sudo`` rights, you should add your user to wheel group whilst logged in as ``root``:
+If your user does not already have ``sudo`` rights, you should add your user to ``wheel`` group whilst logged in as ``root``:
 
   ::
 
@@ -250,6 +250,8 @@ You now have Docker_ installed with `Clear Containers`_ enabled as the default O
 .. _Clear Linux: www.clearlinux.org
 
 .. _Docker: https://www.docker.com/
+
+.. _Installing Clear Linux: https://clearlinux.org/documentation/gs_getting_started.html
 
 .. _OCI: https://www.opencontainers.org/
 
