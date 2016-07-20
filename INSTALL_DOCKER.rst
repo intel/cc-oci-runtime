@@ -13,13 +13,14 @@ Introduction
 
 This document details how to install Docker-1.12-rc4 and the necessary parts of `Clear Containers`_  into a `Clear Linux`_ distribution.
 
-You will need to have a `Clear Linux`_ installation before commencing this procedure, although `Clear Containers`_ do not depend on `Clear Linux`_ as a host and can be run on top of other distributions.
+You will need to have a `Clear Linux`_ installation before commencing this procedure, although `Clear Containers`_ do not depend on `Clear Linux`_ as a host and can be run on top of other distributions. See `Installing Clear Linux`_ for more details.
 
 
 Overview
 --------
 The following steps install and configure `Clear Containers`_ and Docker_ into an existing `Clear Linux`_ distribution. You will require `Clear Linux`_ version 8620 or above.
-Again, please note that `Clear Containers`_ can run on top of other distributions. Here `Clear Linux`_ is used as one example of a distribution `Clear Containers`_ can run on.
+
+Again, please note that `Clear Containers`_ can run on top of other distributions. Here, `Clear Linux`_ is used as one example of a distribution `Clear Containers`_ can run on. This document does not cover installing `Clear Containers`_ on other distributions.
 
 After this installation you will be able to launch Docker_ container payloads using either the default Docker_ (``runc``) Linux Container runtime or the `Clear Containers`_ QEMU/KVM hypervisor based runtime - ``cc-oci-runtime``.
 
@@ -31,11 +32,13 @@ Enable sudo
 
 You will need root privileges in order to run a number of the following commands. It is recommended you run these commands from a user account with ``sudo`` rights. 
 
-If your user does not already have ``sudo`` rights, you should add your user to wheel group whilst logged in as ``root``:
+If your user does not already have ``sudo`` rights, you should add your user to ``wheel`` group whilst logged in as ``root``:
 
   ::
 
     usermod -G wheel -a <USERNAME>
+
+This change will take effect once you have logged out as root and logged back in as <USERNAME>.
 
 And you will also need to add your user or group to the ``/etc/sudoers`` file, for example:
 
@@ -64,6 +67,12 @@ Update your Clear Linux
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 The more recent your version of `Clear Linux`_ the better `Clear Containers`_ will perform, and the general recommendation is that you ensure that you are on the latest version of Clear Linux, or at least version 8620.
+
+To check which version of `Clear Linux`_ you are on, and what the latest available is, from within `Clear Linux`_ run:
+
+  ::
+
+    swupd update -s
 
 To update your `Clear Linux`_ installation to the latest execute:
 
@@ -136,6 +145,13 @@ To enable your user to access both Docker and KVM you will need to add them to t
 
     sudo usermod -G kvm,docker -a <USERNAME>
 
+Then run the following commands to add those group ids to your active login session:
+
+  ::
+
+    newgrp kvm
+    newgrp docker
+
 Download the cc-oci-runtime 2.0 code
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -149,7 +165,6 @@ Download, build and install the ``cc-oci-runtime`` from source:
     cor_source=${HOME}/cc-oci-runtime
     git clone https://github.com/01org/cc-oci-runtime.git $cor_source
     cd $cor_source
-    autoreconf -fvi
     bash autogen.sh --disable-cppcheck --disable-valgrind
     make
     sudo make install
@@ -209,13 +224,12 @@ Install the Clear Container container kernel image
 
   ::
 
-    sudo mkdir -p /var/lib/cc-oci-runtime/data/image
+    sudo mkdir -p /var/lib/cc-oci-runtime/data/{image,kernel}
     cd /var/lib/cc-oci-runtime/data/image/
     sudo curl -O https://download.clearlinux.org/releases/8900/clear/clear-8900-containers.img.xz
     sudo unxz clear-8900-containers.img.xz
-    sudo mv clear-8900-containers.img clear-containers.img
-    sudo cp /usr/lib/kernel/vmlinux-4.5-9.container.testing /var/lib/cc-oci-runtime/data/kernel/vmlinux.container
-    sudo cp $cor_source/data/hypervisor.args /usr/share/defaults/cc-oci-runtime/
+    sudo cp -s clear-8900-containers.img clear-containers.img
+    sudo cp -s /usr/lib/kernel/vmlinux-4.5-9.container.testing /var/lib/cc-oci-runtime/data/kernel/vmlinux.container
 
 Restart Docker Again
 ~~~~~~~~~~~~~~~~~~~~
@@ -225,8 +239,8 @@ In order for the changes to take effect (and verify that the new parameters are 
   ::
 
     sudo systemctl daemon-reload
-    sudosystemctl restart docker-upstream
-    sudosystemctl status docker-upstream
+    sudo systemctl restart docker-upstream
+    sudo systemctl status docker-upstream
 
 Verify the runtime
 ~~~~~~~~~~~~~~~~~~
@@ -250,6 +264,8 @@ You now have Docker_ installed with `Clear Containers`_ enabled as the default O
 .. _Clear Linux: www.clearlinux.org
 
 .. _Docker: https://www.docker.com/
+
+.. _Installing Clear Linux: https://clearlinux.org/documentation/gs_getting_started.html
 
 .. _OCI: https://www.opencontainers.org/
 
