@@ -364,6 +364,7 @@ cc_run_hook(struct oci_cfg_hook* hook, const gchar* state,
 
 	flags |= G_SPAWN_DO_NOT_REAP_CHILD;
 	flags |= G_SPAWN_CLOEXEC_PIPES;
+	flags |= G_SPAWN_FILE_AND_ARGV_ZERO;
 
 	g_debug ("running hook command:");
 	for (gchar** p = args; p && *p; p++) {
