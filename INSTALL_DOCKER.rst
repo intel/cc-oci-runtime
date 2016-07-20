@@ -165,7 +165,6 @@ Download, build and install the ``cc-oci-runtime`` from source:
     cor_source=${HOME}/cc-oci-runtime
     git clone https://github.com/01org/cc-oci-runtime.git $cor_source
     cd $cor_source
-    autoreconf -fvi
     bash autogen.sh --disable-cppcheck --disable-valgrind
     make
     sudo make install
