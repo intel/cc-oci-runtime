@@ -544,7 +544,7 @@ cc_oci_create_container_workload (struct cc_oci_config *config)
 		env = g_strjoinv ("\n", config->oci.process.env);
 		ret = g_file_set_contents (envpath, env, -1, &err);
 		if (! ret) {
-			g_critical ("failed to create clr env file (%s): %s",
+			g_critical ("failed to create environment file (%s): %s",
 					envpath, err->message);
 			g_error_free (err);
 			goto out;
@@ -596,7 +596,7 @@ cc_oci_create_container_workload (struct cc_oci_config *config)
 			contents->str, (gssize)contents->len, &err);
 
 	if (! ret) {
-		g_critical ("failed to create clr workload file (%s): %s",
+		g_critical ("failed to create workload file (%s): %s",
 				config->vm->workload_path, err->message);
 		g_error_free (err);
 		goto out;
@@ -608,7 +608,7 @@ cc_oci_create_container_workload (struct cc_oci_config *config)
 		goto out;
 	}
 
-	g_debug ("created clr workload_path %s", config->vm->workload_path);
+	g_debug ("created workload_path %s", config->vm->workload_path);
 
 	ret = true;
 

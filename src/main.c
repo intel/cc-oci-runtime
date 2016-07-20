@@ -35,7 +35,7 @@
 static char *program_name;
 
 /** Logging options */
-static struct clr_log_options clr_log_options;
+static struct cc_log_options cc_log_options;
 
 static gchar *format;
 static gchar *criu;
@@ -69,14 +69,14 @@ static GOptionEntry options_global[] =
 	{
 		"global-log", 0, G_OPTION_FLAG_NONE,
 		G_OPTION_ARG_STRING,
-		&clr_log_options.global_logfile,
+		&cc_log_options.global_logfile,
 		"enable global logging",
 		NULL
 	},
 	{
 		"log", 0, G_OPTION_FLAG_NONE,
 		G_OPTION_ARG_STRING,
-		&clr_log_options.filename,
+		&cc_log_options.filename,
 		"specify path to output log file",
 		NULL
 	},
@@ -231,13 +231,13 @@ out:
 /*!
  * Setup logging.
  *
- * \param options \ref clr_log_options.
+ * \param options \ref cc_log_options.
  * \param config \ref cc_oci_config.
  *
  * \return \c true on success, else \c false.
  */
 static gboolean
-setup_logging (struct clr_log_options *options,
+setup_logging (struct cc_log_options *options,
 		struct cc_oci_config *config)
 {
 	g_assert (options);
@@ -318,7 +318,7 @@ handle_arguments (int argc, char **argv)
 	}
 
 	if (format && ! g_strcmp0 (format, "json")) {
-		clr_log_options.use_json = true;
+		cc_log_options.use_json = true;
 		g_free (format);
 	}
 
@@ -364,7 +364,7 @@ handle_arguments (int argc, char **argv)
 	}
 
 	if (priv_level >= 0 &&
-			! setup_logging (&clr_log_options, &config)) {
+			! setup_logging (&cc_log_options, &config)) {
 		/* Send message to stderr as in case logging is
 		 * completely broken due to failed setup.
 		 */
@@ -401,10 +401,10 @@ out:
 /**
  * Handle cleanup.
  *
- * \param options \ref clr_log_options.
+ * \param options \ref cc_log_options.
  */
 static void
-cleanup (struct clr_log_options *options)
+cleanup (struct cc_log_options *options)
 {
 	g_assert (options);
 
@@ -424,7 +424,7 @@ main (int argc, char **argv)
 
 	ret = handle_arguments (argc, argv);
 
-	cleanup (&clr_log_options);
+	cleanup (&cc_log_options);
 
 	exit (ret ? EXIT_SUCCESS : EXIT_FAILURE);
 }
