@@ -19,7 +19,8 @@ You will need to have a `Clear Linux`_ installation before commencing this proce
 Overview
 --------
 The following steps install and configure `Clear Containers`_ and Docker_ into an existing `Clear Linux`_ distribution. You will require `Clear Linux`_ version 8620 or above.
-Again, please note that `Clear Containers`_ can run on top of other distributions. Here `Clear Linux`_ is used as one example of a distribution `Clear Containers`_ can run on.
+
+Again, please note that `Clear Containers`_ can run on top of other distributions. Here, `Clear Linux`_ is used as one example of a distribution `Clear Containers`_ can run on. This document does not cover installing `Clear Containers`_ on other distributions.
 
 After this installation you will be able to launch Docker_ container payloads using either the default Docker_ (``runc``) Linux Container runtime or the `Clear Containers`_ QEMU/KVM hypervisor based runtime - ``cc-oci-runtime``.
 
