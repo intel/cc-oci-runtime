@@ -85,8 +85,8 @@ AC_DEFUN([AX_CODE_COVERAGE],[
 	AC_MSG_CHECKING([whether to build with code coverage support])
 	AC_ARG_ENABLE([code-coverage],
 	  AS_HELP_STRING([--enable-code-coverage],
-	  [Whether to enable code coverage support]),,
-	  enable_code_coverage=yes)
+	  [Whether to enable code coverage support]),enable_code_coverage=yes,
+	  enable_code_coverage=no)
 
 	AM_CONDITIONAL([CODE_COVERAGE_ENABLED], [test x$enable_code_coverage = xyes])
 	AC_SUBST([CODE_COVERAGE_ENABLED], [$enable_code_coverage])
