@@ -20,6 +20,7 @@
 
 #include <stdlib.h>
 #include <stdbool.h>
+#include <unistd.h>
 
 #include <check.h>
 #include <glib.h>
@@ -62,11 +63,11 @@ START_TEST(test_cc_oci_get_priv_level) {
 
 	config.root_dir = "/";
 
-	if (getuid ()) {
-		/* non-root cannot write to "/" */
+	if (access (config.root_dir, W_OK) < 0) {
+		/* user cannot write to root_dir */
 		ck_assert (cc_oci_get_priv_level (argc, argv, &sub, &config) == 1);
 	} else {
-		/* root can write to "/" */
+		/* user can write to root_dir */
 		ck_assert (cc_oci_get_priv_level (argc, argv, &sub, &config) == 0);
 	}
 
