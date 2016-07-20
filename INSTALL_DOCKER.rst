@@ -239,8 +239,8 @@ In order for the changes to take effect (and verify that the new parameters are 
   ::
 
     sudo systemctl daemon-reload
-    sudosystemctl restart docker-upstream
-    sudosystemctl status docker-upstream
+    sudo systemctl restart docker-upstream
+    sudo systemctl status docker-upstream
 
 Verify the runtime
 ~~~~~~~~~~~~~~~~~~
