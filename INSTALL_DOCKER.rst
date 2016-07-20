@@ -224,13 +224,12 @@ Install the Clear Container container kernel image
 
   ::
 
-    sudo mkdir -p /var/lib/cc-oci-runtime/data/image
+    sudo mkdir -p /var/lib/cc-oci-runtime/data/{image,kernel}
     cd /var/lib/cc-oci-runtime/data/image/
     sudo curl -O https://download.clearlinux.org/releases/8900/clear/clear-8900-containers.img.xz
     sudo unxz clear-8900-containers.img.xz
-    sudo mv clear-8900-containers.img clear-containers.img
-    sudo cp /usr/lib/kernel/vmlinux-4.5-9.container.testing /var/lib/cc-oci-runtime/data/kernel/vmlinux.container
-    sudo cp $cor_source/data/hypervisor.args /usr/share/defaults/cc-oci-runtime/
+    sudo cp -s clear-8900-containers.img clear-containers.img
+    sudo cp -s /usr/lib/kernel/vmlinux-4.5-9.container.testing /var/lib/cc-oci-runtime/data/kernel/vmlinux.container
 
 Restart Docker Again
 ~~~~~~~~~~~~~~~~~~~~
