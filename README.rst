@@ -1,13 +1,13 @@
 .. contents::
 .. sectnum::
 
-``clr-oci-runtime``
+``cc-oci-runtime``
 ===================
 
 Overview
 --------
 
-``clr-oci-runtime`` is an Open Containers Initiative (OCI_) "runtime"
+``cc-oci-runtime`` is an Open Containers Initiative (OCI_) "runtime"
 that launches an Intel_ VT-x secured Clear Containers 2.0 hypervisor,
 rather than a standard Linux container. It leverages the highly
 optimised `Clear Linux`_ technology to achieve this goal.
@@ -19,7 +19,7 @@ containerd_) and other OCI_-conforming container managers.
 
 Henceforth, the tool will simply be referred to as "the runtime".
 
-See the canonical `clr-oci-runtime home page`_ for the latest
+See the canonical `cc-oci-runtime home page`_ for the latest
 information.
 
 Requirements
@@ -57,7 +57,7 @@ If the runtime is configured for docker and "``docker run``" is
 specified without "``-ti``", no output is currently generated to either
 the console or the docker log ("``docker logs``" command).
 
-See https://github.com/01org/clr-oci-runtime/issues/17
+See https://github.com/01org/cc-oci-runtime/issues/17
 
 Networking
 ~~~~~~~~~~
@@ -70,9 +70,9 @@ assumes the runtime will create a traditional container.
 This feature is currently WIP and is expected to land soon - a branch
 containing experimental code can be found here:
 
-- https://github.com/01org/clr-oci-runtime/tree/networking
+- https://github.com/01org/cc-oci-runtime/tree/networking
 
-See https://github.com/01org/clr-oci-runtime/issues/38
+See https://github.com/01org/cc-oci-runtime/issues/38
 
 ``exec``
 ~~~~~~~~
@@ -81,7 +81,7 @@ The ``exec`` command that allows a new process to run inside a container
 is not fully implemented, in part due to the fact that `Networking`_ is not
 yet available.
 
-See https://github.com/01org/clr-oci-runtime/issues/18
+See https://github.com/01org/cc-oci-runtime/issues/18
 
 Hostname
 ~~~~~~~~
@@ -90,7 +90,7 @@ The hostname specified in the OCI_ configuration file is not currently
 applied to the Clear Container, in part due to the fact that
 `Networking`_ is not yet available.
 
-See https://github.com/01org/clr-oci-runtime/issues/19
+See https://github.com/01org/cc-oci-runtime/issues/19
 
 Running a workload as a non-``root`` user/group
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -99,14 +99,14 @@ The runtime currently ignores the request to run the workload as a
 non-root user and/or group, defaulting to running as the "``root``" user
 (inside the Clear Container).
 
-See https://github.com/01org/clr-oci-runtime/issues/20
+See https://github.com/01org/cc-oci-runtime/issues/20
 
 Annotations
 ~~~~~~~~~~~
 
 OCI_ Annotations are not currently exposed inside the Clear Container.
 
-See https://github.com/01org/clr-oci-runtime/issues/21
+See https://github.com/01org/cc-oci-runtime/issues/21
 
 No checkpoint and restore commands
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -115,7 +115,7 @@ Although the runtime provides stub implementations of these commands,
 this is currently purely to satisfy Docker_ - the commands do *NOT*
 save/restore the state of the Clear Container.
 
-See https://github.com/01org/clr-oci-runtime/issues/22
+See https://github.com/01org/cc-oci-runtime/issues/22
 
 Running under ``docker``
 ------------------------
@@ -123,7 +123,7 @@ Running under ``docker``
 Assuming a Docker_ 1.12 environment, start the Docker_ daemon specifying
 the "``--add-runtime $alias=$path``" option. For example::
 
-    $ sudo dockerd --add-runtime cor=/usr/bin/clr-oci-runtime
+    $ sudo dockerd --add-runtime cor=/usr/bin/cc-oci-runtime
 
 Then, to run a Clear Container using the runtime, specify "``--runtime cor``".
 
@@ -138,7 +138,7 @@ If you are running Containerd_ directly, without Docker_:
 
 - Start the server daemon::
 
-    $ sudo /usr/local/bin/containerd --debug --runtime $PWD/clr-oci-runtime
+    $ sudo /usr/local/bin/containerd --debug --runtime $PWD/cc-oci-runtime
 
 - Launch a hypervisor::
 
@@ -156,7 +156,7 @@ If you are running Containerd_ directly, without Docker_:
 - Forcibly stop the hypervisor::
 
     $ name=foo
-    $ sudo ./clr-oci-runtime stop "$name"
+    $ sudo ./cc-oci-runtime stop "$name"
 
 Running stand-alone
 -------------------
@@ -167,13 +167,13 @@ or ``containerd``::
     $ name=foo
     $ pidfile=/tmp/cor.pid
     $ logfile=/tmp/cor.log
-    $ sudo ./clr-oci-runtime --debug create --console $(tty) --bundle "$bundle_dir" "$name"
-    $ sudo ./clr-oci-runtime --debug start "$name"
+    $ sudo ./cc-oci-runtime --debug create --console $(tty) --bundle "$bundle_dir" "$name"
+    $ sudo ./cc-oci-runtime --debug start "$name"
 
 Or, to simulate how ``containerd`` calls the runtime::
 
-    $ sudo ./clr-oci-runtime --log "$logfile" --log-format json create --bundle "$bundle_dir" --console $(tty) -d --pid-file "$pidfile" "$name"
-    $ sudo ./clr-oci-runtime --log "$logfile" --log-format json start "$name"
+    $ sudo ./cc-oci-runtime --log "$logfile" --log-format json create --bundle "$bundle_dir" --console $(tty) -d --pid-file "$pidfile" "$name"
+    $ sudo ./cc-oci-runtime --log "$logfile" --log-format json start "$name"
 
 Running as a non-privileged user
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -199,13 +199,13 @@ To run non-privileged::
     $ name=foo
     $ dir=/tmp/cor
     $ mkdir -p "$dir"
-    $ ./clr-oci-runtime --root "$dir" create --console $(tty) --bundle "$oci_bundle_directory" "$name"
-    $ ./clr-oci-runtime --root "$dir" start "$name"
+    $ ./cc-oci-runtime --root "$dir" create --console $(tty) --bundle "$oci_bundle_directory" "$name"
+    $ ./cc-oci-runtime --root "$dir" start "$name"
 
 Community
 ---------
 
-See `the contributing page <https://github.com/01org/clr-oci-runtime/blob/master/CONTRIBUTING.md#contact>`_.
+See `the contributing page <https://github.com/01org/cc-oci-runtime/blob/master/CONTRIBUTING.md#contact>`_.
 
 Building
 --------
@@ -264,15 +264,15 @@ be looked for in the following directories (in order):
 - The system configuration directory ("``./configure --sysconfdir=...``").
   
   With no ``--prefix`` or with ``--prefix=/``, the file will be looked
-  for in ``/etc/clr-oci-runtime/``".
+  for in ``/etc/cc-oci-runtime/``".
 
 - The defaults directory.
  
-  This is a directory called "``defaults/clr-oci-runtime/``" below the
+  This is a directory called "``defaults/cc-oci-runtime/``" below the
   configured data directory ("``./configure --datadir=...``").
   
   With no ``--prefix`` or with ``--prefix=/``, the file will be looked
-  for in ``/usr/share/defaults/clr-oci-runtime/``".
+  for in ``/usr/share/defaults/cc-oci-runtime/``".
 
 The first file found will be used and the runtime will log the full path
 to each configuration file used (see `Logging`_).
@@ -317,7 +317,7 @@ Currently, the runtime will expand the following `special tags` found in
 
 - ``@COMMS_SOCKET@`` - path to the hypervisor control socket (QMP socket for qemu).
 - ``@CONSOLE_DEVICE@`` - hypervisor arguments used to control where console I/O is sent to.
-- ``@IMAGE@`` - clr rootfs image path (read from ``config.json``).
+- ``@IMAGE@`` - Clear Containers rootfs image path (read from ``config.json``).
 - ``@KERNEL_PARAMS@`` - kernel parameters (from ``config.json``).
 - ``@KERNEL@`` - path to kernel (from ``config.json``).
 - ``@NAME@`` - VM name.
@@ -339,7 +339,7 @@ since it is always written to in ASCII format and includes Process ID
 details. Also note that all instances of the runtime will append to
 the global log.
 
-The global log file is named ``clr-oci-runtime.log``, and will be
+The global log file is named ``cc-oci-runtime.log``, and will be
 written into the directory specified by "``--root``".  The default
 runtime state directory is ``/run/opencontainer/containers/`` if no
 "``--root``" argument is supplied.
@@ -388,7 +388,7 @@ To build the API documentation::
 
   $ doxygen Doxyfile
 
-Then, point your browser at ``/tmp/doxygen-clr-oci-runtime``. If you
+Then, point your browser at ``/tmp/doxygen-cc-oci-runtime``. If you
 don't like that location, change the value of ``OUTPUT_DIRECTORY`` in
 the file ``Doxyfile``.
 
@@ -407,7 +407,7 @@ Debugging
 - If you want to debug as a non-root user, specify the "``--root``"
   global option. For example::
 
-    $ gdb --args ./clr-oci-runtime \
+    $ gdb --args ./cc-oci-runtime \
         --debug \
         --root /tmp/cor/ \
         --global-log /tmp/global.log \
@@ -428,7 +428,7 @@ Links
 
 .. _OCI: https://www.opencontainers.org/
 
-.. _`clr-oci-runtime home page`: https://github.com/01org/clr-oci-runtime
+.. _`cc-oci-runtime home page`: https://github.com/01org/cc-oci-runtime
 
 .. _runc: https://github.com/opencontainers/runc
 
@@ -450,4 +450,4 @@ Links
 .. [#oci-runtime-cli-clarification]
    https://github.com/opencontainers/runtime-spec/issues/434
 
-.. _`functional tests README`: https://github.com/01org/clr-oci-runtime/tree/master/tests/functional/README.rst
+.. _`functional tests README`: https://github.com/01org/cc-oci-runtime/tree/master/tests/functional/README.rst

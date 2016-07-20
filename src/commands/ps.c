@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -24,7 +24,7 @@
 
 static gboolean
 handler_ps (const struct subcommand *sub,
-		struct clr_oci_config *config,
+		struct cc_oci_config *config,
 		int argc, char *argv[])
 {
 	// default ps options
@@ -47,7 +47,7 @@ handler_ps (const struct subcommand *sub,
 
 	}
 
-	if (! clr_oci_state_file_exists(config)) {
+	if (! cc_oci_state_file_exists(config)) {
 		g_warning ("state file does not exist for container %s",
 				config->optarg_container_id);
 		return false;

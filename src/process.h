@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  * 
  * Copyright (C) 2016 Intel Corporation
  * 
@@ -18,15 +18,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef _CLR_OCI_PROCESS_H
-#define _CLR_OCI_PROCESS_H
+#ifndef _CC_OCI_PROCESS_H
+#define _CC_OCI_PROCESS_H
 
-gboolean clr_oci_vm_launch (struct clr_oci_config *config);
+gboolean cc_oci_vm_launch (struct cc_oci_config *config);
 
-gboolean clr_run_hooks(GSList* hooks, const gchar* state_file_path,
+gboolean cc_run_hooks(GSList* hooks, const gchar* state_file_path,
                        gboolean stop_on_failure);
 
-gboolean clr_oci_vm_connect (struct clr_oci_config *config,
+gboolean cc_oci_vm_connect (struct cc_oci_config *config,
 		int argc, char *const argv[]);
 
-#endif /* _CLR_OCI_PROCESS_H */
+#endif /* _CC_OCI_PROCESS_H */

@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -42,7 +42,7 @@ save_current_ns (GSList **ns_list)
 }
 
 static void
-handle_namespaces_section (GNode *root, struct clr_oci_config *config)
+handle_namespaces_section (GNode *root, struct cc_oci_config *config)
 {
 	if ((! root) || error_detected) {
 		return;
@@ -64,7 +64,7 @@ handle_namespaces_section (GNode *root, struct clr_oci_config *config)
 				goto err;
 			}
 
-			current_ns->type = clr_oci_str_to_ns (type);
+			current_ns->type = cc_oci_str_to_ns (type);
 			if ((! type) || (! *type) || (current_ns->type == OCI_NS_INVALID)) {
 				g_critical ("invalid namespace type: %s",
 						type ? type : "");
@@ -86,13 +86,13 @@ handle_namespaces_section (GNode *root, struct clr_oci_config *config)
 	return;
 
 err:
-	clr_oci_ns_free (current_ns);
+	cc_oci_ns_free (current_ns);
 	error_detected = true;
 	current_ns = NULL;
 }
 
 static void
-handle_linux_section (GNode *root, struct clr_oci_config *config)
+handle_linux_section (GNode *root, struct cc_oci_config *config)
 {
 	if (! (root && root->children)) {
 		return;
@@ -106,7 +106,7 @@ handle_linux_section (GNode *root, struct clr_oci_config *config)
 }
 
 static bool
-linux_handle_section (GNode *root, struct clr_oci_config *config)
+linux_handle_section (GNode *root, struct cc_oci_config *config)
 {
 	gboolean ret = false;
 

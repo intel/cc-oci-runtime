@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -27,7 +27,7 @@
  * \param a \ref oci_cfg_annotation.
  */
 private void
-clr_oci_annotation_free (struct oci_cfg_annotation *a) {
+cc_oci_annotation_free (struct oci_cfg_annotation *a) {
 	if (! a) {
 		return;
 	}
@@ -44,24 +44,24 @@ clr_oci_annotation_free (struct oci_cfg_annotation *a) {
  * \param annotations List of \ref oci_cfg_annotation.
  */
 void
-clr_oci_annotations_free_all (GSList *annotations) {
+cc_oci_annotations_free_all (GSList *annotations) {
 	if (! annotations) {
 		return;
 	}
 
 	g_slist_free_full (annotations,
-            (GDestroyNotify)clr_oci_annotation_free);
+            (GDestroyNotify)cc_oci_annotation_free);
 }
 
 /*!
  * Convert the list of annotations to a JSON object.
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  *
  * \return \c JsonObject
  */
 JsonObject *
-clr_oci_annotations_to_json (const struct clr_oci_config *config)
+cc_oci_annotations_to_json (const struct cc_oci_config *config)
 {
         JsonObject *obj = NULL;
         GSList *l;

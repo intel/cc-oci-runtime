@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -59,7 +59,7 @@ struct subcommand *subcommands[] =
  * (between paused and running).
  *
  * \param sub \ref subcommand.
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  * \param argc Argument count.
  * \param argv Argument vector.
  * \param pause If \c true, pause the VM, else resume it.
@@ -68,7 +68,7 @@ struct subcommand *subcommands[] =
  */
 gboolean
 handle_command_toggle (const struct subcommand *sub,
-		struct clr_oci_config *config,
+		struct cc_oci_config *config,
 		int argc, char *argv[], gboolean pause)
 {
 	struct oci_state      *state = NULL;
@@ -89,7 +89,7 @@ handle_command_toggle (const struct subcommand *sub,
 	/* Used to allow us to find the state file */
 	config->optarg_container_id = argv[0];
 
-	ret = clr_oci_get_config_and_state (&config_file, config, &state);
+	ret = cc_oci_get_config_and_state (&config_file, config, &state);
 	if (! ret) {
 		goto out;
 	}
@@ -97,11 +97,11 @@ handle_command_toggle (const struct subcommand *sub,
 	/* Transfer certain state elements to config to allow the state *
 	 * file to be rewritten with full details.
 	 */
-	if (! clr_oci_config_update (config, state)) {
+	if (! cc_oci_config_update (config, state)) {
 		goto out;
 	}
 
-	ret = clr_oci_toggle (config, state, pause);
+	ret = cc_oci_toggle (config, state, pause);
 	if (! ret) {
 		goto out;
 	}
@@ -113,7 +113,7 @@ handle_command_toggle (const struct subcommand *sub,
 
 out:
 	g_free_if_set (config_file);
-	clr_oci_state_free (state);
+	cc_oci_state_free (state);
 
 	if (! ret) {
 		g_critical ("failed to %s container %s\n",
@@ -127,7 +127,7 @@ out:
  * Handle commands to stop the Hypervisor cleanly.
  *
  * \param sub \ref subcommand.
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  * \param argc Argument count.
  * \param argv Argument vector.
  *
@@ -135,7 +135,7 @@ out:
  */
 gboolean
 handle_command_stop (const struct subcommand *sub,
-		struct clr_oci_config *config,
+		struct cc_oci_config *config,
 		int argc, char *argv[])
 {
 	struct oci_state  *state = NULL;
@@ -155,7 +155,7 @@ handle_command_stop (const struct subcommand *sub,
 	config->optarg_container_id = argv[0];
 
 	/* FIXME: deal with containerd calling "delete" twice */
-	if (! clr_oci_state_file_exists (config)) {
+	if (! cc_oci_state_file_exists (config)) {
 		g_warning ("state file does not exist for container %s",
 				config->optarg_container_id);
 
@@ -164,19 +164,19 @@ handle_command_stop (const struct subcommand *sub,
 		goto out;
 	}
 
-	ret = clr_oci_get_config_and_state (&config_file, config, &state);
+	ret = cc_oci_get_config_and_state (&config_file, config, &state);
 	if (! ret) {
 		goto out;
 	}
 
 	/* convert json file to GNode */
-	if (! clr_oci_json_parse(&root, config_file)) {
+	if (! cc_oci_json_parse(&root, config_file)) {
 		goto out;
 	}
 
 #ifdef DEBUG
 	/* show json file converted to GNode */
-	clr_oci_node_dump(root);
+	cc_oci_node_dump(root);
 #endif /*DEBUG*/
 
 	g_node_children_foreach(root, G_TRAVERSE_ALL,
@@ -188,7 +188,7 @@ handle_command_stop (const struct subcommand *sub,
 	config->oci.mounts = state->mounts;
 	state->mounts = NULL;
 
-	ret = clr_oci_stop (config, state);
+	ret = cc_oci_stop (config, state);
 	if (! ret) {
 		goto out;
 	}
@@ -199,7 +199,7 @@ handle_command_stop (const struct subcommand *sub,
 
 out:
 	g_free_if_set (config_file);
-	clr_oci_state_free (state);
+	cc_oci_state_free (state);
 
 	if (! ret) {
 		g_critical ("failed to stop container %s\n",
@@ -214,7 +214,7 @@ out:
  * creating the state file.
  *
  * \param sub \ref subcommand.
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  * \param argc Argument count.
  * \param argv Argument vector.
  *
@@ -222,7 +222,7 @@ out:
  */
 gboolean
 handle_command_setup (const struct subcommand *sub,
-		struct clr_oci_config *config,
+		struct cc_oci_config *config,
 		int argc, char *argv[])
 {
 	gboolean  ret;
@@ -248,7 +248,7 @@ handle_command_setup (const struct subcommand *sub,
 			return false;
 		}
 
-		config->bundle_path = clr_oci_resolve_path (start_data.bundle);
+		config->bundle_path = cc_oci_resolve_path (start_data.bundle);
 		g_free (start_data.bundle);
 		start_data.bundle = NULL;
 	} else {
@@ -259,7 +259,7 @@ handle_command_setup (const struct subcommand *sub,
 			return false;
 		}
 
-		config->bundle_path = clr_oci_resolve_path (argv[1]);
+		config->bundle_path = cc_oci_resolve_path (argv[1]);
 	}
 
 	config->console = start_data.console;

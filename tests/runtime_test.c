@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  * 
  * Copyright (C) 2016 Intel Corporation
  * 
@@ -30,18 +30,18 @@
 #include "oci.h"
 #include "runtime.h"
 
-START_TEST(test_clr_oci_runtime_path_get) {
+START_TEST(test_cc_oci_runtime_path_get) {
 	gchar *expected;
-	struct clr_oci_config config = { {0} };
+	struct cc_oci_config config = { {0} };
 
-	ck_assert (! clr_oci_runtime_path_get (NULL));
+	ck_assert (! cc_oci_runtime_path_get (NULL));
 
 	/* container_id not set */
-	ck_assert (! clr_oci_runtime_path_get (&config));
+	ck_assert (! cc_oci_runtime_path_get (&config));
 
 	config.optarg_container_id = "foo";
 
-	ck_assert (clr_oci_runtime_path_get (&config));
+	ck_assert (cc_oci_runtime_path_get (&config));
 
 	expected = g_strdup_printf ("%s/%s",
 			"/run/opencontainer/containers",
@@ -52,19 +52,19 @@ START_TEST(test_clr_oci_runtime_path_get) {
 
 } END_TEST
 
-START_TEST(test_clr_oci_runtime_dir_setup) {
+START_TEST(test_cc_oci_runtime_dir_setup) {
 	gboolean ret;
 	gchar *tmpdir = g_dir_make_tmp (NULL, NULL);
-	struct clr_oci_config config = { {0} };
+	struct cc_oci_config config = { {0} };
 
-	ck_assert (! clr_oci_runtime_dir_setup (NULL));
+	ck_assert (! cc_oci_runtime_dir_setup (NULL));
 
 	/* container_id not set */
-	ck_assert (! clr_oci_runtime_dir_setup (&config));
+	ck_assert (! cc_oci_runtime_dir_setup (&config));
 
 	config.optarg_container_id = "foo";
 
-	/* Set the runtimepath which subverts clr_oci_runtime_dir_setup()
+	/* Set the runtimepath which subverts cc_oci_runtime_dir_setup()
 	 * setting it.
 	 */
 	g_snprintf (config.state.runtime_path,
@@ -76,7 +76,7 @@ START_TEST(test_clr_oci_runtime_dir_setup) {
 	ret = g_file_test (config.state.runtime_path, G_FILE_TEST_EXISTS);
 	ck_assert (! ret);
 
-	ck_assert (clr_oci_runtime_dir_setup (&config));
+	ck_assert (cc_oci_runtime_dir_setup (&config));
 
 	ret = g_file_test (config.state.runtime_path,
 			G_FILE_TEST_EXISTS | G_FILE_TEST_IS_DIR);
@@ -89,29 +89,29 @@ START_TEST(test_clr_oci_runtime_dir_setup) {
 
 } END_TEST
 
-START_TEST(test_clr_oci_runtime_dir_delete) {
+START_TEST(test_cc_oci_runtime_dir_delete) {
 	gboolean ret;
 	gchar *tmpdir = g_dir_make_tmp (NULL, NULL);
-	struct clr_oci_config config = { {0} };
+	struct cc_oci_config config = { {0} };
 
-	ck_assert (! clr_oci_runtime_dir_delete (NULL));
+	ck_assert (! cc_oci_runtime_dir_delete (NULL));
 
 	/* No runtime_path set */
-	ck_assert (! clr_oci_runtime_dir_delete (&config));
+	ck_assert (! cc_oci_runtime_dir_delete (&config));
 
 	g_snprintf (config.state.runtime_path,
 			(gulong)sizeof (config.state.runtime_path),
 			"hello");
 
 	/* runtime_path is not absolute */
-	ck_assert (! clr_oci_runtime_dir_delete (&config));
+	ck_assert (! cc_oci_runtime_dir_delete (&config));
 
 	g_snprintf (config.state.runtime_path,
 			(gulong)sizeof (config.state.runtime_path),
 			"../hello");
 
 	/* runtime_path still not absolute */
-	ck_assert (! clr_oci_runtime_dir_delete (&config));
+	ck_assert (! cc_oci_runtime_dir_delete (&config));
 
 	g_snprintf (config.state.runtime_path,
 			(gulong)sizeof (config.state.runtime_path),
@@ -121,7 +121,7 @@ START_TEST(test_clr_oci_runtime_dir_delete) {
 	ret = g_file_test (config.state.runtime_path, G_FILE_TEST_EXISTS);
 	ck_assert (ret);
 
-	ck_assert (clr_oci_runtime_dir_delete (&config));
+	ck_assert (cc_oci_runtime_dir_delete (&config));
 
 	ret = g_file_test (config.state.runtime_path,
 			G_FILE_TEST_EXISTS | G_FILE_TEST_IS_DIR);
@@ -133,9 +133,9 @@ START_TEST(test_clr_oci_runtime_dir_delete) {
 Suite* make_runtime_suite(void) {
 	Suite* s = suite_create(__FILE__);
 
-	ADD_TEST(test_clr_oci_runtime_path_get, s);
-	ADD_TEST(test_clr_oci_runtime_dir_setup, s);
-	ADD_TEST(test_clr_oci_runtime_dir_delete, s);
+	ADD_TEST(test_cc_oci_runtime_path_get, s);
+	ADD_TEST(test_cc_oci_runtime_dir_setup, s);
+	ADD_TEST(test_cc_oci_runtime_dir_delete, s);
 
 	return s;
 }
@@ -150,7 +150,7 @@ int main(void) {
 
 	options.use_json = false;
 	options.filename = g_strdup ("runtime_test_debug.log");
-	(void)clr_oci_log_init(&options);
+	(void)cc_oci_log_init(&options);
 
 	s = make_runtime_suite();
 	sr = srunner_create(s);
@@ -159,7 +159,7 @@ int main(void) {
 	number_failed = srunner_ntests_failed(sr);
 	srunner_free(sr);
 
-	clr_oci_log_free (&options);
+	cc_oci_log_free (&options);
 
 	return (number_failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }

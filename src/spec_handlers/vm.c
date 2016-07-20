@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -26,12 +26,12 @@
 #include "util.h"
 
 static void
-handle_kernel_section(GNode* root, struct clr_oci_config* config) {
+handle_kernel_section(GNode* root, struct cc_oci_config* config) {
 	if (! (root && root->children)) {
 		return;
 	}
 	if (g_strcmp0(root->data, "path") == 0) {
-		g_autofree gchar* path = clr_oci_resolve_path(root->children->data);
+		g_autofree gchar* path = cc_oci_resolve_path(root->children->data);
 		if (path) {
 			if (snprintf(config->vm->kernel_path,
 			    sizeof(config->vm->kernel_path),
@@ -45,12 +45,12 @@ handle_kernel_section(GNode* root, struct clr_oci_config* config) {
 }
 
 static void
-handle_vm_section(GNode* root, struct clr_oci_config* config) {
+handle_vm_section(GNode* root, struct cc_oci_config* config) {
 	if (! (root && root->children)) {
 		return;
 	}
 	if (g_strcmp0(root->data, "path") == 0) {
-		g_autofree gchar* path = clr_oci_resolve_path(root->children->data);
+		g_autofree gchar* path = cc_oci_resolve_path(root->children->data);
 		if (path) {
 			if (snprintf(config->vm->hypervisor_path,
 			    sizeof(config->vm->hypervisor_path),
@@ -60,7 +60,7 @@ handle_vm_section(GNode* root, struct clr_oci_config* config) {
 		}
 
 	} else if(g_strcmp0(root->data, "image") == 0) {
-		g_autofree gchar* path = clr_oci_resolve_path(root->children->data);
+		g_autofree gchar* path = cc_oci_resolve_path(root->children->data);
 		if (path) {
 			if (snprintf(config->vm->image_path,
 			    sizeof(config->vm->image_path),
@@ -75,7 +75,7 @@ handle_vm_section(GNode* root, struct clr_oci_config* config) {
 }
 
 static bool
-vm_handle_section(GNode* root, struct clr_oci_config* config) {
+vm_handle_section(GNode* root, struct cc_oci_config* config) {
 	gboolean ret = false;
 	struct stat st;
 
@@ -90,7 +90,7 @@ vm_handle_section(GNode* root, struct clr_oci_config* config) {
 	}
 
 	if(! config->vm) {
-		config->vm = g_malloc0(sizeof(struct clr_oci_vm_cfg));
+		config->vm = g_malloc0(sizeof(struct cc_oci_vm_cfg));
 	}
 
 	g_node_children_foreach(root, G_TRAVERSE_ALL,

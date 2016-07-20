@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -28,33 +28,33 @@
 #include "../src/oci.h"
 #include "../src/logging.h"
 
-void clr_oci_annotation_free (struct oci_cfg_annotation *a);
-void clr_oci_annotations_free_all (GSList *annotations);
+void cc_oci_annotation_free (struct oci_cfg_annotation *a);
+void cc_oci_annotations_free_all (GSList *annotations);
 
-START_TEST(test_clr_oci_annotation_free) {
+START_TEST(test_cc_oci_annotation_free) {
 	struct oci_cfg_annotation* a;
 
-	clr_oci_annotation_free(NULL);
+	cc_oci_annotation_free(NULL);
 
 	/* memory leaks will be detected by valgrind */
 	a = g_new0(struct oci_cfg_annotation, 1);
-	clr_oci_annotation_free(a);
+	cc_oci_annotation_free(a);
 
 	a = g_new0(struct oci_cfg_annotation, 1);
 	a->key = g_strdup("test");
-	clr_oci_annotation_free(a);
+	cc_oci_annotation_free(a);
 
 	a = g_new0(struct oci_cfg_annotation, 1);
 	a->key = g_strdup("test");
 	a->value = g_strdup("test");
-	clr_oci_annotation_free(a);
+	cc_oci_annotation_free(a);
 } END_TEST
 
-START_TEST(test_clr_oci_annotations_free_all) {
+START_TEST(test_cc_oci_annotations_free_all) {
 	GSList* list = NULL;
 	struct oci_cfg_annotation* a;
 
-	clr_oci_annotations_free_all(NULL);
+	cc_oci_annotations_free_all(NULL);
 
 	list = g_slist_append(list, NULL);
 
@@ -67,15 +67,15 @@ START_TEST(test_clr_oci_annotations_free_all) {
 	a->value = g_strdup("test");
 	list = g_slist_append(list, a);
 
-	clr_oci_annotations_free_all(list);
+	cc_oci_annotations_free_all(list);
 
 } END_TEST
 
 Suite* make_annotation_suite(void) {
 	Suite* s = suite_create(__FILE__);
 
-	ADD_TEST(test_clr_oci_annotation_free, s);
-	ADD_TEST(test_clr_oci_annotations_free_all, s);
+	ADD_TEST(test_cc_oci_annotation_free, s);
+	ADD_TEST(test_cc_oci_annotations_free_all, s);
 
 	return s;
 }
@@ -90,7 +90,7 @@ int main (void) {
 
 	options.use_json = false;
 	options.filename = g_strdup ("annotation_test_debug.log");
-	(void)clr_oci_log_init(&options);
+	(void)cc_oci_log_init(&options);
 
 	s = make_annotation_suite();
 	sr = srunner_create(s);
@@ -99,7 +99,7 @@ int main (void) {
 	number_failed = srunner_ntests_failed(sr);
 	srunner_free(sr);
 
-	clr_oci_log_free (&options);
+	cc_oci_log_free (&options);
 
 	return (number_failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }

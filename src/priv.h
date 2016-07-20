@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  * 
  * Copyright (C) 2016 Intel Corporation
  * 
@@ -18,15 +18,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef _CLR_OCI_PRIV_H
-#define _CLR_OCI_PRIV_H
+#ifndef _CC_OCI_PRIV_H
+#define _CC_OCI_PRIV_H
 
 #include "command.h"
 
 gint
-clr_oci_get_priv_level (int argc,
+cc_oci_get_priv_level (int argc,
 		char *argv[],
 		struct subcommand *sub,
-		struct clr_oci_config *config);
+		struct cc_oci_config *config);
 
-#endif /* _CLR_OCI_PRIV_H */
+#endif /* _CC_OCI_PRIV_H */

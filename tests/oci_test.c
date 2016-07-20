@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -36,16 +36,16 @@
 #include "../src/state.h"
 #include "../src/oci.h"
 
-gboolean clr_oci_vm_running (const struct oci_state *state);
-gboolean clr_oci_create_container_workload (struct clr_oci_config *config);
+gboolean cc_oci_vm_running (const struct oci_state *state);
+gboolean cc_oci_create_container_workload (struct cc_oci_config *config);
 
 // TODO: add a 2nd VM state file
-START_TEST(test_clr_oci_list) {
-	struct clr_oci_config config = { { 0 } };
+START_TEST(test_cc_oci_list) {
+	struct cc_oci_config config = { { 0 } };
 	gboolean ret;
 	gchar *tmpdir;
 	gchar *vm1_dir;
-	struct clr_oci_config vm1_config = { { 0 } };
+	struct cc_oci_config vm1_config = { { 0 } };
 	gchar *outfile = NULL;
 	gchar *contents;
 	gchar **lines;
@@ -55,23 +55,23 @@ START_TEST(test_clr_oci_list) {
 	JsonNode *node = NULL;
 	const gchar *value;
 
-	ck_assert (! clr_oci_list (NULL, NULL, true));
-	ck_assert (! clr_oci_list (NULL, NULL, false));
+	ck_assert (! cc_oci_list (NULL, NULL, true));
+	ck_assert (! cc_oci_list (NULL, NULL, false));
 
-	ck_assert (! clr_oci_list (NULL, "", true));
-	ck_assert (! clr_oci_list (NULL, "", false));
+	ck_assert (! cc_oci_list (NULL, "", true));
+	ck_assert (! cc_oci_list (NULL, "", false));
 
-	ck_assert (! clr_oci_list (&config, NULL, true));
-	ck_assert (! clr_oci_list (&config, NULL, false));
+	ck_assert (! cc_oci_list (&config, NULL, true));
+	ck_assert (! cc_oci_list (&config, NULL, false));
 
-	ck_assert (! clr_oci_list (&config, "", true));
-	ck_assert (! clr_oci_list (&config, "", false));
+	ck_assert (! cc_oci_list (&config, "", true));
+	ck_assert (! cc_oci_list (&config, "", false));
 
-	ck_assert (! clr_oci_list (&config, "", true));
-	ck_assert (! clr_oci_list (&config, "", false));
+	ck_assert (! cc_oci_list (&config, "", true));
+	ck_assert (! cc_oci_list (&config, "", false));
 
-	ck_assert (! clr_oci_list (&config, "invalid format", true));
-	ck_assert (! clr_oci_list (&config, "invalid format", false));
+	ck_assert (! cc_oci_list (&config, "invalid format", true));
+	ck_assert (! cc_oci_list (&config, "invalid format", false));
 
 	tmpdir = g_dir_make_tmp (NULL, NULL);
 	ck_assert (tmpdir);
@@ -87,7 +87,7 @@ START_TEST(test_clr_oci_list) {
 	/* test default ASCII output - no VMs */
 
 	SAVE_OUTPUT (outfile) {
-		ret = clr_oci_list (&config, "table", false);
+		ret = cc_oci_list (&config, "table", false);
 	}
 	ck_assert (ret);
 
@@ -121,7 +121,7 @@ START_TEST(test_clr_oci_list) {
 	/* test ASCII output - no VMs, all mode */
 
 	SAVE_OUTPUT (outfile) {
-		ret = clr_oci_list (&config, "table", true);
+		ret = cc_oci_list (&config, "table", true);
 	}
 	ck_assert (ret);
 
@@ -158,7 +158,7 @@ START_TEST(test_clr_oci_list) {
 	/* test JSON output - no VMs */
 
 	SAVE_OUTPUT (outfile) {
-		ret = clr_oci_list (&config, "json", false);
+		ret = cc_oci_list (&config, "json", false);
 	}
 	ck_assert (ret);
 
@@ -184,7 +184,7 @@ START_TEST(test_clr_oci_list) {
 	/* test JSON output - no VMs, all mode */
 
 	SAVE_OUTPUT (outfile) {
-		ret = clr_oci_list (&config, "json", true);
+		ret = cc_oci_list (&config, "json", true);
 	}
 	ck_assert (ret);
 
@@ -216,7 +216,7 @@ START_TEST(test_clr_oci_list) {
 	/* test default ASCII output - no VMs */
 
 	SAVE_OUTPUT (outfile) {
-		ret = clr_oci_list (&config, "table", false);
+		ret = cc_oci_list (&config, "table", false);
 	}
 	ck_assert (ret);
 
@@ -250,7 +250,7 @@ START_TEST(test_clr_oci_list) {
 	/* test JSON output - no VMs */
 
 	SAVE_OUTPUT (outfile) {
-		ret = clr_oci_list (&config, "json", false);
+		ret = cc_oci_list (&config, "json", false);
 	}
 	ck_assert (ret);
 
@@ -283,7 +283,7 @@ START_TEST(test_clr_oci_list) {
 	/* test default ASCII output - 1 VM */
 
 	SAVE_OUTPUT (outfile) {
-		ret = clr_oci_list (&config, "table", false);
+		ret = cc_oci_list (&config, "table", false);
 	}
 	ck_assert (ret);
 
@@ -334,7 +334,7 @@ START_TEST(test_clr_oci_list) {
 	/* test default ASCII output - 1 VM, all mode */
 
 	SAVE_OUTPUT (outfile) {
-		ret = clr_oci_list (&config, "table", true);
+		ret = cc_oci_list (&config, "table", true);
 	}
 	ck_assert (ret);
 
@@ -394,7 +394,7 @@ START_TEST(test_clr_oci_list) {
 	/* test JSON output - 1 VM */
 
 	SAVE_OUTPUT (outfile) {
-		ret = clr_oci_list (&config, "json", false);
+		ret = cc_oci_list (&config, "json", false);
 	}
 	ck_assert (ret);
 
@@ -466,7 +466,7 @@ START_TEST(test_clr_oci_list) {
 	/* test JSON output - 1 VM, all mode */
 
 	SAVE_OUTPUT (outfile) {
-		ret = clr_oci_list (&config, "json", true);
+		ret = cc_oci_list (&config, "json", true);
 	}
 	ck_assert (ret);
 
@@ -563,57 +563,57 @@ START_TEST(test_clr_oci_list) {
 
 	ck_assert (! g_remove (tmpdir));
 	g_free (tmpdir);
-	clr_oci_config_free (&vm1_config);
-	clr_oci_config_free (&config);
+	cc_oci_config_free (&vm1_config);
+	cc_oci_config_free (&config);
 	g_free (vm1_dir);
 
 } END_TEST
 
-START_TEST(test_clr_oci_get_bundle_path) {
+START_TEST(test_cc_oci_get_bundle_path) {
 	gchar *path;
 
-	ck_assert (! clr_oci_get_bundlepath_file (NULL, NULL));
-	ck_assert (! clr_oci_get_bundlepath_file ("", ""));
-	ck_assert (! clr_oci_get_bundlepath_file ("", NULL));
-	ck_assert (! clr_oci_get_bundlepath_file (NULL, ""));
+	ck_assert (! cc_oci_get_bundlepath_file (NULL, NULL));
+	ck_assert (! cc_oci_get_bundlepath_file ("", ""));
+	ck_assert (! cc_oci_get_bundlepath_file ("", NULL));
+	ck_assert (! cc_oci_get_bundlepath_file (NULL, ""));
 
-	path = clr_oci_get_bundlepath_file ("a", "b");
+	path = cc_oci_get_bundlepath_file ("a", "b");
 	ck_assert (path);
 	ck_assert (! g_strcmp0 (path, "a/b"));
 	g_free (path);
 
-	path = clr_oci_get_bundlepath_file ("/a", "b");
+	path = cc_oci_get_bundlepath_file ("/a", "b");
 	ck_assert (path);
 	ck_assert (! g_strcmp0 (path, "/a/b"));
 	g_free (path);
 
-	path = clr_oci_get_bundlepath_file ("/a", "/b");
+	path = cc_oci_get_bundlepath_file ("/a", "/b");
 	ck_assert (path);
 	ck_assert (! g_strcmp0 (path, "/a/b"));
 	g_free (path);
 
-	path = clr_oci_get_bundlepath_file ("/a/", "/b");
+	path = cc_oci_get_bundlepath_file ("/a/", "/b");
 	ck_assert (path);
 	ck_assert (! g_strcmp0 (path, "/a/b"));
 	g_free (path);
 
-	path = clr_oci_get_bundlepath_file ("/a/", "/b/");
+	path = cc_oci_get_bundlepath_file ("/a/", "/b/");
 	ck_assert (path);
 	ck_assert (! g_strcmp0 (path, "/a/b/"));
 	g_free (path);
 } END_TEST
 
-START_TEST(test_clr_oci_config_update) {
-	struct clr_oci_config config = { { 0 } };
+START_TEST(test_cc_oci_config_update) {
+	struct cc_oci_config config = { { 0 } };
 	struct oci_state *state;
-	struct clr_oci_mount *m;
-	struct clr_oci_vm_cfg *vm;
+	struct cc_oci_mount *m;
+	struct cc_oci_vm_cfg *vm;
 	state = g_malloc0 (sizeof (struct oci_state));
 	ck_assert (state);
 
-	ck_assert (! clr_oci_config_update (NULL, NULL));
-	ck_assert (! clr_oci_config_update (NULL, state));
-	ck_assert (! clr_oci_config_update (&config, NULL));
+	ck_assert (! cc_oci_config_update (NULL, NULL));
+	ck_assert (! cc_oci_config_update (NULL, state));
+	ck_assert (! cc_oci_config_update (&config, NULL));
 
 	ck_assert (! config.oci.mounts);
 	ck_assert (! config.console);
@@ -627,7 +627,7 @@ START_TEST(test_clr_oci_config_update) {
 	state->console = g_strdup ("console");
 
 	/* create mount object */
-	m = g_malloc0 (sizeof (struct clr_oci_mount));
+	m = g_malloc0 (sizeof (struct cc_oci_mount));
 	ck_assert (m);
 	m->mnt.mnt_fsname = g_strdup ("fsname");
 	m->mnt.mnt_dir = g_strdup ("dir");
@@ -639,7 +639,7 @@ START_TEST(test_clr_oci_config_update) {
 	ck_assert (g_slist_length (state->mounts) == 1);
 
 	/* create vm object */
-	vm = g_malloc0 (sizeof(struct clr_oci_vm_cfg));
+	vm = g_malloc0 (sizeof(struct cc_oci_vm_cfg));
 	ck_assert (vm);
 	g_strlcpy (vm->hypervisor_path, "hypervisor_path", sizeof (vm->hypervisor_path));
 	g_strlcpy (vm->image_path, "image_path", sizeof (vm->image_path));
@@ -651,7 +651,7 @@ START_TEST(test_clr_oci_config_update) {
 	state->vm = vm;
 
 	/* perform the transfer */
-	ck_assert (clr_oci_config_update (&config, state));
+	ck_assert (cc_oci_config_update (&config, state));
 
 	ck_assert (! state->mounts);
 	ck_assert (! state->console);
@@ -665,7 +665,7 @@ START_TEST(test_clr_oci_config_update) {
 	ck_assert (g_slist_length (config.oci.mounts) == 1);
 
 	/* check mount object */
-	m = (struct clr_oci_mount *)g_slist_nth_data (config.oci.mounts, 0);
+	m = (struct cc_oci_mount *)g_slist_nth_data (config.oci.mounts, 0);
 	ck_assert (m);
 	ck_assert (! g_strcmp0 (m->mnt.mnt_fsname, "fsname"));
 	ck_assert (! g_strcmp0 (m->mnt.mnt_dir, "dir"));
@@ -683,14 +683,14 @@ START_TEST(test_clr_oci_config_update) {
 	ck_assert (! g_strcmp0 (config.vm->kernel_params, "kernel params"));
 
 	/* clean up */
-	clr_oci_config_free (&config);
-	clr_oci_state_free (state);
+	cc_oci_config_free (&config);
+	cc_oci_state_free (state);
 
 } END_TEST
 
-START_TEST(test_clr_oci_get_config_and_state) {
-	struct clr_oci_config config = { { 0 } };
-	struct clr_oci_config vm1_config = { { 0 } };
+START_TEST(test_cc_oci_get_config_and_state) {
+	struct cc_oci_config config = { { 0 } };
+	struct cc_oci_config vm1_config = { { 0 } };
 	struct oci_state *state;
 	gchar *config_file = NULL;
 	gchar *tmpdir;
@@ -699,15 +699,15 @@ START_TEST(test_clr_oci_get_config_and_state) {
 	tmpdir = g_dir_make_tmp (NULL, NULL);
 	ck_assert (tmpdir);
 
-	ck_assert (! clr_oci_get_config_and_state (NULL, NULL, NULL));
-	ck_assert (! clr_oci_get_config_and_state (NULL, &config, &state));
-	ck_assert (! clr_oci_get_config_and_state (NULL, NULL, &state));
-	ck_assert (! clr_oci_get_config_and_state (&config_file, NULL, NULL));
-	ck_assert (! clr_oci_get_config_and_state (NULL, &config, NULL));
-	ck_assert (! clr_oci_get_config_and_state (&config_file, &config, NULL));
+	ck_assert (! cc_oci_get_config_and_state (NULL, NULL, NULL));
+	ck_assert (! cc_oci_get_config_and_state (NULL, &config, &state));
+	ck_assert (! cc_oci_get_config_and_state (NULL, NULL, &state));
+	ck_assert (! cc_oci_get_config_and_state (&config_file, NULL, NULL));
+	ck_assert (! cc_oci_get_config_and_state (NULL, &config, NULL));
+	ck_assert (! cc_oci_get_config_and_state (&config_file, &config, NULL));
 
 	/* no container id */
-	ck_assert (! clr_oci_get_config_and_state (&config_file, &config, &state));
+	ck_assert (! cc_oci_get_config_and_state (&config_file, &config, &state));
 
 	/* create a VM state file */
 	ck_assert (test_helper_create_state_file ("vm1", tmpdir, &vm1_config));
@@ -718,7 +718,7 @@ START_TEST(test_clr_oci_get_config_and_state) {
 	ck_assert (config.root_dir);
 
 	/* load details of vm1_config into config and state */
-	ck_assert (clr_oci_get_config_and_state (&config_file, &config, &state));
+	ck_assert (cc_oci_get_config_and_state (&config_file, &config, &state));
 
 	/* check config */
 	ck_assert (! g_strcmp0 (config.state.runtime_path, vm1_config.state.runtime_path));
@@ -764,36 +764,36 @@ START_TEST(test_clr_oci_get_config_and_state) {
 
 	ck_assert (! g_remove (tmpdir));
 	g_free (tmpdir);
-	clr_oci_config_free (&vm1_config);
-	clr_oci_config_free (&config);
+	cc_oci_config_free (&vm1_config);
+	cc_oci_config_free (&config);
 	g_free (config_file);
-	clr_oci_state_free (state);
+	cc_oci_state_free (state);
 
 } END_TEST
 
-START_TEST(test_clr_oci_vm_running) {
+START_TEST(test_cc_oci_vm_running) {
 	struct oci_state state = {0};
 
-	ck_assert (! clr_oci_vm_running (NULL));
+	ck_assert (! cc_oci_vm_running (NULL));
 
 	/* no pid */
-	ck_assert (! clr_oci_vm_running (&state));
+	ck_assert (! cc_oci_vm_running (&state));
 
 	/* our pid */
 	state.pid = getpid ();
-	ck_assert (clr_oci_vm_running (&state));
+	ck_assert (cc_oci_vm_running (&state));
 
 	/* invalid pid (we hope: this is potential an unreliable test).
 	 */
 	state.pid = (pid_t)INT_MAX;
-	ck_assert (! clr_oci_vm_running (&state));
+	ck_assert (! cc_oci_vm_running (&state));
 
 } END_TEST
 
-START_TEST(test_clr_oci_create_container_workload) {
+START_TEST(test_cc_oci_create_container_workload) {
 	gboolean ret;
 	g_autofree gchar *tmpdir = NULL;
-	struct clr_oci_config config = { { 0 } };
+	struct cc_oci_config config = { { 0 } };
 	g_autofree gchar *execfile = NULL;
 	g_autofree gchar *envfile = NULL;
 	g_autofree gchar *exec_contents = NULL;
@@ -803,8 +803,8 @@ START_TEST(test_clr_oci_create_container_workload) {
 	tmpdir = g_dir_make_tmp (NULL, NULL);
 	ck_assert (tmpdir);
 
-	ck_assert (! clr_oci_create_container_workload (NULL));
-	ck_assert (! clr_oci_create_container_workload (&config));
+	ck_assert (! cc_oci_create_container_workload (NULL));
+	ck_assert (! cc_oci_create_container_workload (&config));
 
 	g_strlcpy (config.oci.root.path,
 			tmpdir,
@@ -825,9 +825,9 @@ START_TEST(test_clr_oci_create_container_workload) {
 	config.oci.process.env[2] = g_strdup ("a=b");
 
 	/* no vm config */
-	ck_assert (! clr_oci_create_container_workload (&config));
+	ck_assert (! cc_oci_create_container_workload (&config));
 
-	config.vm = g_malloc0 (sizeof(struct clr_oci_vm_cfg));
+	config.vm = g_malloc0 (sizeof(struct cc_oci_vm_cfg));
 	ck_assert (config.vm);
 
 	g_strlcpy (config.vm->hypervisor_path, "hypervisor-path",
@@ -849,7 +849,7 @@ START_TEST(test_clr_oci_create_container_workload) {
 	envfile = g_build_path ("/", tmpdir, ".dockerenv", NULL);
 	ck_assert (envfile);
 
-	ck_assert (clr_oci_create_container_workload (&config));
+	ck_assert (cc_oci_create_container_workload (&config));
 
 	ret = g_file_get_contents (execfile, &exec_contents, NULL, NULL);
 	ck_assert (ret);
@@ -879,14 +879,14 @@ START_TEST(test_clr_oci_create_container_workload) {
 	ck_assert (! g_remove (execfile));
 	ck_assert (! g_remove (envfile));
 	ck_assert (! g_remove (tmpdir));
-	clr_oci_config_free (&config);
+	cc_oci_config_free (&config);
 
 } END_TEST
 
-START_TEST(test_clr_oci_kill) {
-	struct clr_oci_config config_tmp = { { 0 } };
-	struct clr_oci_config config = { { 0 } };
-	struct clr_oci_config config_new = { { 0 } };
+START_TEST(test_cc_oci_kill) {
+	struct cc_oci_config config_tmp = { { 0 } };
+	struct cc_oci_config config = { { 0 } };
+	struct cc_oci_config config_new = { { 0 } };
 	struct oci_state *state = NULL;
 	struct oci_state *state_new = NULL;
 	gboolean ret;
@@ -901,7 +901,7 @@ START_TEST(test_clr_oci_kill) {
 		G_SPAWN_DO_NOT_REAP_CHILD);
 	gchar *args[] = { "sleep", "999", NULL };
 
-	ck_assert (! clr_oci_kill (NULL, NULL, 0));
+	ck_assert (! cc_oci_kill (NULL, NULL, 0));
 
 	tmpdir = g_dir_make_tmp (NULL, NULL);
 	ck_assert (tmpdir);
@@ -931,14 +931,14 @@ START_TEST(test_clr_oci_kill) {
 
 	config.optarg_container_id = config_tmp.optarg_container_id;
 
-	ck_assert (clr_oci_get_config_and_state (&config_file,
+	ck_assert (cc_oci_get_config_and_state (&config_file,
 				&config, &state));
 
-	ck_assert (clr_oci_config_update (&config, state));
+	ck_assert (cc_oci_config_update (&config, state));
 
 	ck_assert (state->pid == config_tmp.state.workload_pid);
 
-	ck_assert (clr_oci_kill (&config, state, SIGTERM));
+	ck_assert (cc_oci_kill (&config, state, SIGTERM));
 	(void)waitpid (state->pid, &status, 0);
 
 	ck_assert (kill (config.state.workload_pid, 0) < 0);
@@ -951,7 +951,7 @@ START_TEST(test_clr_oci_kill) {
 	config_new.root_dir = g_strdup (tmpdir);
 	ck_assert (config_new.root_dir);
 
-	ck_assert (clr_oci_get_config_and_state (&config_file_new,
+	ck_assert (cc_oci_get_config_and_state (&config_file_new,
 				&config_new, &state_new));
 
 	ck_assert (state_new->status == OCI_STATUS_STOPPED);
@@ -960,11 +960,11 @@ START_TEST(test_clr_oci_kill) {
 	ck_assert (! g_remove (config_tmp.state.state_file_path));
 	ck_assert (! g_remove (config_tmp.state.runtime_path));
 
-	clr_oci_state_free (state);
-	clr_oci_state_free (state_new);
-	clr_oci_config_free (&config_tmp);
-	clr_oci_config_free (&config);
-	clr_oci_config_free (&config_new);
+	cc_oci_state_free (state);
+	cc_oci_state_free (state_new);
+	cc_oci_config_free (&config_tmp);
+	cc_oci_config_free (&config);
+	cc_oci_config_free (&config_new);
 
 	ck_assert (! g_remove (tmpdir));
 
@@ -973,13 +973,13 @@ START_TEST(test_clr_oci_kill) {
 Suite* make_oci_suite(void) {
 	Suite* s = suite_create(__FILE__);
 
-	ADD_TEST (test_clr_oci_list, s);
-	ADD_TEST (test_clr_oci_get_bundle_path, s);
-	ADD_TEST (test_clr_oci_config_update, s);
-	ADD_TEST (test_clr_oci_get_config_and_state, s);
-	ADD_TEST (test_clr_oci_vm_running, s);
-	ADD_TEST (test_clr_oci_create_container_workload, s);
-	ADD_TEST (test_clr_oci_kill, s);
+	ADD_TEST (test_cc_oci_list, s);
+	ADD_TEST (test_cc_oci_get_bundle_path, s);
+	ADD_TEST (test_cc_oci_config_update, s);
+	ADD_TEST (test_cc_oci_get_config_and_state, s);
+	ADD_TEST (test_cc_oci_vm_running, s);
+	ADD_TEST (test_cc_oci_create_container_workload, s);
+	ADD_TEST (test_cc_oci_kill, s);
 
 	return s;
 }
@@ -994,7 +994,7 @@ int main (void) {
 
 	options.use_json = false;
 	options.filename = g_strdup ("oci_test_debug.log");
-	(void)clr_oci_log_init(&options);
+	(void)cc_oci_log_init(&options);
 
 	s = make_oci_suite();
 	sr = srunner_create(s);
@@ -1003,7 +1003,7 @@ int main (void) {
 	number_failed = srunner_ntests_failed(sr);
 	srunner_free(sr);
 
-	clr_oci_log_free (&options);
+	cc_oci_log_free (&options);
 
 	return (number_failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }

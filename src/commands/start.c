@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  * 
  * Copyright (C) 2016 Intel Corporation
  * 
@@ -45,7 +45,7 @@ static GOptionEntry options_start[] =
 
 static gboolean
 handler_start (const struct subcommand *sub,
-		struct clr_oci_config *config,
+		struct cc_oci_config *config,
 		int argc, char *argv[])
 {
 	struct oci_state  *state;
@@ -64,7 +64,7 @@ handler_start (const struct subcommand *sub,
 
 	config->optarg_container_id = argv[0];
 
-	ret = clr_oci_get_config_and_state (&config_file, config, &state);
+	ret = cc_oci_get_config_and_state (&config_file, config, &state);
 	if (! ret) {
 		return false;
 	}
@@ -72,11 +72,11 @@ handler_start (const struct subcommand *sub,
 	/* Transfer certain state elements to config to allow the
 	 * state file to be rewritten with full details.
 	 */
-	if (! clr_oci_config_update (config, state)) {
+	if (! cc_oci_config_update (config, state)) {
 		return false;
 	}
 
-	return clr_oci_start (config, state);
+	return cc_oci_start (config, state);
 }
 
 struct subcommand command_start =

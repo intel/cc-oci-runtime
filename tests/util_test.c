@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -30,95 +30,95 @@
 #include "../src/logging.h"
 #include "../src/json.h"
 
-START_TEST(test_clr_oci_rm_rf) {
+START_TEST(test_cc_oci_rm_rf) {
 
 	gchar *tmpdir = g_dir_make_tmp (NULL, NULL);
 
 	ck_assert (tmpdir);
 
-	ck_assert (! clr_oci_rm_rf (""));
-	ck_assert (! clr_oci_rm_rf (NULL));
+	ck_assert (! cc_oci_rm_rf (""));
+	ck_assert (! cc_oci_rm_rf (NULL));
 
-	ck_assert (clr_oci_rm_rf (tmpdir));
+	ck_assert (cc_oci_rm_rf (tmpdir));
 
 	g_free (tmpdir);
 
 } END_TEST
 
-START_TEST(test_clr_oci_replace_string) {
+START_TEST(test_cc_oci_replace_string) {
 	gchar    *str = g_strdup ("");
 	gboolean  ret;
 
 	/* NOP tests */
-	ck_assert (clr_oci_replace_string (&str, NULL, NULL));
-	ck_assert (clr_oci_replace_string (&str, NULL, ""));
-	ck_assert (clr_oci_replace_string (&str, "", NULL));
-	ck_assert (clr_oci_replace_string (&str, "", ""));
+	ck_assert (cc_oci_replace_string (&str, NULL, NULL));
+	ck_assert (cc_oci_replace_string (&str, NULL, ""));
+	ck_assert (cc_oci_replace_string (&str, "", NULL));
+	ck_assert (cc_oci_replace_string (&str, "", ""));
 
 	g_free (str);
 
 	/* ensure if from string not found, string is not disrupted */
 	str = g_strdup ("hello");
-	ret = clr_oci_replace_string (&str, "@hello@", "world");
+	ret = cc_oci_replace_string (&str, "@hello@", "world");
 	ck_assert (ret);
 	ck_assert (! g_strcmp0 (str, "hello"));
 	g_free (str);
 
 	/* replacement taking up entire string */
 	str = g_strdup ("@hello@");
-	ret = clr_oci_replace_string (&str, "@hello@", "world");
+	ret = cc_oci_replace_string (&str, "@hello@", "world");
 	ck_assert (ret);
 	ck_assert (! g_strcmp0 (str, "world"));
 	g_free (str);
 
 	/* replacement at start of string */
 	str = g_strdup ("@hello@foo");
-	ret = clr_oci_replace_string (&str, "@hello@", "world");
+	ret = cc_oci_replace_string (&str, "@hello@", "world");
 	ck_assert (ret);
 	ck_assert (! g_strcmp0 (str, "worldfoo"));
 	g_free (str);
 
 	/* replacement at end of string */
 	str = g_strdup ("foo@hello@");
-	ret = clr_oci_replace_string (&str, "@hello@", "world");
+	ret = cc_oci_replace_string (&str, "@hello@", "world");
 	ck_assert (ret);
 	ck_assert (! g_strcmp0 (str, "fooworld"));
 	g_free (str);
 
 	/* replacement mid-string */
 	str = g_strdup ("foo@hello@bar");
-	ret = clr_oci_replace_string (&str, "@hello@", "world");
+	ret = cc_oci_replace_string (&str, "@hello@", "world");
 	ck_assert (ret);
 	ck_assert (! g_strcmp0 (str, "fooworldbar"));
 	g_free (str);
 
 	/* ensure deleting the from value works */
 	str = g_strdup ("foo@hello@bar");
-	ret = clr_oci_replace_string (&str, "@hello@", "");
+	ret = cc_oci_replace_string (&str, "@hello@", "");
 	ck_assert (ret);
 	ck_assert (! g_strcmp0 (str, "foobar"));
 	g_free (str);
 
 } END_TEST
 
-START_TEST(test_clr_oci_create_pidfile) {
+START_TEST(test_cc_oci_create_pidfile) {
 	gchar *tmpdir = g_dir_make_tmp (NULL, NULL);
 	gchar *tmpfile = g_build_path ("/", tmpdir, "foo.pid", NULL);
 	gchar *contents;
 	gboolean ret;
 
-	ck_assert (! clr_oci_create_pidfile (NULL, 0));
-	ck_assert (! clr_oci_create_pidfile ("", 0));
-	ck_assert (! clr_oci_create_pidfile (NULL, -1));
-	ck_assert (! clr_oci_create_pidfile ("", -1));
+	ck_assert (! cc_oci_create_pidfile (NULL, 0));
+	ck_assert (! cc_oci_create_pidfile ("", 0));
+	ck_assert (! cc_oci_create_pidfile (NULL, -1));
+	ck_assert (! cc_oci_create_pidfile ("", -1));
 
-	ck_assert (! clr_oci_create_pidfile ("foo", 0));
-	ck_assert (! clr_oci_create_pidfile ("foo", -1));
+	ck_assert (! cc_oci_create_pidfile ("foo", 0));
+	ck_assert (! cc_oci_create_pidfile ("foo", -1));
 
-	ck_assert (! clr_oci_create_pidfile ("no-leading-slash", 123));
-	ck_assert (! clr_oci_create_pidfile (tmpfile, -1));
+	ck_assert (! cc_oci_create_pidfile ("no-leading-slash", 123));
+	ck_assert (! cc_oci_create_pidfile (tmpfile, -1));
 
-	ck_assert (clr_oci_create_pidfile (tmpfile, 123));
+	ck_assert (cc_oci_create_pidfile (tmpfile, 123));
 
 	/* check contents */
 	ret = g_file_get_contents (tmpfile, &contents, NULL, NULL);
@@ -127,7 +127,7 @@ START_TEST(test_clr_oci_create_pidfile) {
 	g_free (contents);
 
 	/* Ensure existing file overwritten */
-	ck_assert (clr_oci_create_pidfile (tmpfile, 456));
+	ck_assert (cc_oci_create_pidfile (tmpfile, 456));
 
 	/* check contents */
 	ret = g_file_get_contents (tmpfile, &contents, NULL, NULL);
@@ -143,30 +143,30 @@ START_TEST(test_clr_oci_create_pidfile) {
 
 } END_TEST
 
-START_TEST(test_clr_oci_file_to_strv) {
+START_TEST(test_cc_oci_file_to_strv) {
 	gboolean ret;
 	gchar **strv = NULL;
 	gchar *tmpdir = g_dir_make_tmp (NULL, NULL);
 	gchar *tmpfile = g_build_path ("/", tmpdir, "foo.txt", NULL);
 
-	ck_assert (! clr_oci_file_to_strv (NULL, NULL));
-	ck_assert (! clr_oci_file_to_strv ("", NULL));
+	ck_assert (! cc_oci_file_to_strv (NULL, NULL));
+	ck_assert (! cc_oci_file_to_strv ("", NULL));
 
-	ck_assert (! clr_oci_file_to_strv ("foo", NULL));
-	ck_assert (! clr_oci_file_to_strv ("foo", &strv));
+	ck_assert (! cc_oci_file_to_strv ("foo", NULL));
+	ck_assert (! cc_oci_file_to_strv ("foo", &strv));
 
 	/* tmpfile does not exist */
-	ck_assert (! clr_oci_file_to_strv (tmpfile, &strv));
+	ck_assert (! cc_oci_file_to_strv (tmpfile, &strv));
 
 	/* file doesn't contain NL */
 	ret = g_file_set_contents (tmpfile, "", -1, NULL);
 	ck_assert (ret);
-	ck_assert (! clr_oci_file_to_strv (tmpfile, &strv));
+	ck_assert (! cc_oci_file_to_strv (tmpfile, &strv));
 
 	/* file only contains a single NL */
 	ret = g_file_set_contents (tmpfile, "\n", -1, NULL);
 	ck_assert (ret);
-	ck_assert (clr_oci_file_to_strv (tmpfile, &strv));
+	ck_assert (cc_oci_file_to_strv (tmpfile, &strv));
 
 	/* we expect a single field containing an empty string */
 	ck_assert (strv[0]);
@@ -180,7 +180,7 @@ START_TEST(test_clr_oci_file_to_strv) {
 	ret = g_file_set_contents (tmpfile, "hello\nworld", -1, NULL);
 	ck_assert (ret);
 
-	ck_assert (clr_oci_file_to_strv (tmpfile, &strv));
+	ck_assert (cc_oci_file_to_strv (tmpfile, &strv));
 	ck_assert (strv);
 
 	ck_assert (strv[0]);
@@ -197,7 +197,7 @@ START_TEST(test_clr_oci_file_to_strv) {
 	ret = g_file_set_contents (tmpfile, "\nhello", -1, NULL);
 	ck_assert (ret);
 
-	ck_assert (clr_oci_file_to_strv (tmpfile, &strv));
+	ck_assert (cc_oci_file_to_strv (tmpfile, &strv));
 	ck_assert (strv);
 
 	ck_assert (strv[0]);
@@ -214,7 +214,7 @@ START_TEST(test_clr_oci_file_to_strv) {
 	ret = g_file_set_contents (tmpfile, "hello\nworld\n", -1, NULL);
 	ck_assert (ret);
 
-	ck_assert (clr_oci_file_to_strv (tmpfile, &strv));
+	ck_assert (cc_oci_file_to_strv (tmpfile, &strv));
 	ck_assert (strv);
 
 	ck_assert (strv[0]);
@@ -232,10 +232,10 @@ START_TEST(test_clr_oci_file_to_strv) {
 
 } END_TEST
 
-START_TEST(test_clr_oci_get_iso8601_timestamp) {
+START_TEST(test_cc_oci_get_iso8601_timestamp) {
 	gchar *t;
 
-	t = clr_oci_get_iso8601_timestamp ();
+	t = cc_oci_get_iso8601_timestamp ();
 	ck_assert (t);
 
 	ck_assert (check_timestamp_format (t));
@@ -250,20 +250,20 @@ START_TEST(test_clr_oci_get_iso8601_timestamp) {
  * - object containing an object (containing various types).
  * - object containing a double.
  */
-START_TEST(test_clr_oci_json_obj_to_string) {
+START_TEST(test_cc_oci_json_obj_to_string) {
 	gchar *str;
 	JsonObject *obj;
 	gboolean ret;
 	gchar **fields;
 	gchar *value;
 
-	ck_assert (! clr_oci_json_obj_to_string (NULL, false, NULL));
-	ck_assert (! clr_oci_json_obj_to_string (NULL, true, NULL));
+	ck_assert (! cc_oci_json_obj_to_string (NULL, false, NULL));
+	ck_assert (! cc_oci_json_obj_to_string (NULL, true, NULL));
 
 	obj = json_object_new ();
 
 	/* empty object, non-pretty */
-	str = clr_oci_json_obj_to_string (obj, false, NULL);
+	str = cc_oci_json_obj_to_string (obj, false, NULL);
 	ck_assert (str);
 
 	ret = g_regex_match_simple (
@@ -276,7 +276,7 @@ START_TEST(test_clr_oci_json_obj_to_string) {
 	g_free (str);
 
 	/* empty object, pretty */
-	str = clr_oci_json_obj_to_string (obj, true, NULL);
+	str = cc_oci_json_obj_to_string (obj, true, NULL);
 	ck_assert (str);
 
 	ret = g_regex_match_simple (
@@ -301,7 +301,7 @@ START_TEST(test_clr_oci_json_obj_to_string) {
 
 	json_object_set_null_member (obj, "test-null");
 
-	str = clr_oci_json_obj_to_string (obj, false, NULL);
+	str = cc_oci_json_obj_to_string (obj, false, NULL);
 	ck_assert (str);
 
 	fields = g_strsplit (str, ",", -1);
@@ -343,24 +343,24 @@ START_TEST(test_clr_oci_json_obj_to_string) {
  * - array containing an array (of various types).
  * - array containing an object (containing various types).
  */
-START_TEST(test_clr_oci_json_arr_to_string) {
+START_TEST(test_cc_oci_json_arr_to_string) {
 	gchar *str;
 	JsonArray *array;
 	gboolean ret;
 
-	ck_assert (! clr_oci_json_arr_to_string (NULL, false));
-	ck_assert (! clr_oci_json_arr_to_string (NULL, true));
+	ck_assert (! cc_oci_json_arr_to_string (NULL, false));
+	ck_assert (! cc_oci_json_arr_to_string (NULL, true));
 
 	array = json_array_new ();
 
 	/* empty array, non-pretty */
-	str = clr_oci_json_arr_to_string (array, false);
+	str = cc_oci_json_arr_to_string (array, false);
 	ck_assert (str);
 	ck_assert (! g_strcmp0 (str, "[]"));
 	g_free (str);
 
 	/* empty array, pretty */
-	str = clr_oci_json_arr_to_string (array, true);
+	str = cc_oci_json_arr_to_string (array, true);
 	ck_assert (str);
 
 	ret = g_regex_match_simple (
@@ -381,7 +381,7 @@ START_TEST(test_clr_oci_json_arr_to_string) {
 	json_array_add_double_element (array, 3.1412);
 	json_array_add_string_element (array, "foo bar");
 
-	str = clr_oci_json_arr_to_string (array, false);
+	str = cc_oci_json_arr_to_string (array, false);
 	ck_assert (str);
 
 	ret = g_regex_match_simple (
@@ -403,20 +403,20 @@ START_TEST(test_clr_oci_json_arr_to_string) {
 
 } END_TEST
 
-START_TEST(test_clr_oci_get_signum) {
-	ck_assert(clr_oci_get_signum(NULL) == -1);
-	ck_assert(clr_oci_get_signum("NOSIG") == -1);
-	ck_assert(clr_oci_get_signum("") == -1);
-	ck_assert(clr_oci_get_signum("SIGTERM") != -1);
-	ck_assert(clr_oci_get_signum("TERM") != -1);
+START_TEST(test_cc_oci_get_signum) {
+	ck_assert(cc_oci_get_signum(NULL) == -1);
+	ck_assert(cc_oci_get_signum("NOSIG") == -1);
+	ck_assert(cc_oci_get_signum("") == -1);
+	ck_assert(cc_oci_get_signum("SIGTERM") != -1);
+	ck_assert(cc_oci_get_signum("TERM") != -1);
 } END_TEST
 
-START_TEST(test_clr_oci_node_dump) {
+START_TEST(test_cc_oci_node_dump) {
 	GNode* node;
-	clr_oci_node_dump(NULL);
-	clr_oci_json_parse(&node, TEST_DATA_DIR "/node.json");
+	cc_oci_node_dump(NULL);
+	cc_oci_json_parse(&node, TEST_DATA_DIR "/node.json");
 	ck_assert(node);
-	clr_oci_node_dump(node);
+	cc_oci_node_dump(node);
 	g_free_node(node);
 } END_TEST
 
@@ -429,7 +429,7 @@ START_TEST(test_clr_oci_node_dump) {
  * - relative maximum: _POSIX_PATH_MAX
  * - pathconf(3)
  */
-START_TEST(test_clr_oci_resolve_path) {
+START_TEST(test_cc_oci_resolve_path) {
 	gchar *tmpdir;
 	gchar *file;
 	gchar *slink;
@@ -448,10 +448,10 @@ START_TEST(test_clr_oci_resolve_path) {
 	/* create a symlink */
 	ck_assert (! symlink (file, slink));
 
-	ck_assert (! clr_oci_resolve_path (NULL));
-	ck_assert (! clr_oci_resolve_path (""));
-	ck_assert (! clr_oci_resolve_path ("not a path"));
-	ck_assert (! clr_oci_resolve_path ("/does/not/exist"));
+	ck_assert (! cc_oci_resolve_path (NULL));
+	ck_assert (! cc_oci_resolve_path (""));
+	ck_assert (! cc_oci_resolve_path ("not a path"));
+	ck_assert (! cc_oci_resolve_path ("/does/not/exist"));
 
 	/*******************************/
 	/* check a known valid path */
@@ -459,7 +459,7 @@ START_TEST(test_clr_oci_resolve_path) {
 	d = g_get_tmp_dir ();
 	ck_assert (d);
 
-	path = clr_oci_resolve_path (d);
+	path = cc_oci_resolve_path (d);
 	ck_assert (path);
 	ck_assert (! g_strcmp0 (path, d));
 	g_free (path);
@@ -467,7 +467,7 @@ START_TEST(test_clr_oci_resolve_path) {
 	/*******************************/
 	/* file doesn't exist */
 
-	path = clr_oci_resolve_path (file);
+	path = cc_oci_resolve_path (file);
 	ck_assert (! path);
 
 	/*******************************/
@@ -475,7 +475,7 @@ START_TEST(test_clr_oci_resolve_path) {
 
 	ck_assert (g_file_set_contents (file, "", -1, NULL));
 
-	path = clr_oci_resolve_path (file);
+	path = cc_oci_resolve_path (file);
 	ck_assert (path);
 	ck_assert (! g_strcmp0 (path, file));
 	g_free (path);
@@ -486,7 +486,7 @@ START_TEST(test_clr_oci_resolve_path) {
 	/* break the symlink by removing the file it points to */
 	ck_assert (! g_remove (file));
 
-	path = clr_oci_resolve_path (slink);
+	path = cc_oci_resolve_path (slink);
 	ck_assert (! path);
 
 	/*******************************/
@@ -495,7 +495,7 @@ START_TEST(test_clr_oci_resolve_path) {
 	/* re create the file */
 	ck_assert (g_file_set_contents (file, "", -1, NULL));
 
-	path = clr_oci_resolve_path (slink);
+	path = cc_oci_resolve_path (slink);
 	ck_assert (path);
 
 	ck_assert (! g_strcmp0 (path, file));
@@ -514,16 +514,16 @@ START_TEST(test_clr_oci_resolve_path) {
 Suite* make_util_suite(void) {
 	Suite* s = suite_create(__FILE__);
 
-	ADD_TEST(test_clr_oci_rm_rf, s);
-	ADD_TEST(test_clr_oci_replace_string, s);
-	ADD_TEST(test_clr_oci_create_pidfile, s);
-	ADD_TEST(test_clr_oci_file_to_strv, s);
-	ADD_TEST(test_clr_oci_get_iso8601_timestamp, s);
-	ADD_TEST(test_clr_oci_json_obj_to_string, s);
-	ADD_TEST(test_clr_oci_json_arr_to_string, s);
-	ADD_TEST(test_clr_oci_get_signum, s);
-	ADD_TEST(test_clr_oci_node_dump, s);
-	ADD_TEST(test_clr_oci_resolve_path, s);
+	ADD_TEST(test_cc_oci_rm_rf, s);
+	ADD_TEST(test_cc_oci_replace_string, s);
+	ADD_TEST(test_cc_oci_create_pidfile, s);
+	ADD_TEST(test_cc_oci_file_to_strv, s);
+	ADD_TEST(test_cc_oci_get_iso8601_timestamp, s);
+	ADD_TEST(test_cc_oci_json_obj_to_string, s);
+	ADD_TEST(test_cc_oci_json_arr_to_string, s);
+	ADD_TEST(test_cc_oci_get_signum, s);
+	ADD_TEST(test_cc_oci_node_dump, s);
+	ADD_TEST(test_cc_oci_resolve_path, s);
 
 	return s;
 }
@@ -538,7 +538,7 @@ int main(void) {
 
 	options.use_json = false;
 	options.filename = g_strdup ("util_test_debug.log");
-	(void)clr_oci_log_init(&options);
+	(void)cc_oci_log_init(&options);
 
 	s = make_util_suite();
 	sr = srunner_create(s);
@@ -547,7 +547,7 @@ int main(void) {
 	number_failed = srunner_ntests_failed(sr);
 	srunner_free(sr);
 
-	clr_oci_log_free (&options);
+	cc_oci_log_free (&options);
 
 	return (number_failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }

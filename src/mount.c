@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -31,7 +31,7 @@
  * automatically, hence do not need to be mounted before the VM is
  * started.
  */
-static struct mntent clr_oci_mounts_to_ignore[] =
+static struct mntent cc_oci_mounts_to_ignore[] =
 {
 	{ NULL, (char *)"/proc"           , NULL, NULL, -1, -1 },
 	{ NULL, (char *)"/dev"            , NULL, NULL, -1, -1 },
@@ -43,36 +43,36 @@ static struct mntent clr_oci_mounts_to_ignore[] =
 };
 
 /*!
- * Determine if the specified \ref clr_oci_mount represents a
+ * Determine if the specified \ref cc_oci_mount represents a
  * mount that can be ignored.
  *
- * \param m \ref clr_oci_mount.
+ * \param m \ref cc_oci_mount.
  *
  * \return \c true if mount can be ignored, else \c false.
  */
 private gboolean
-clr_oci_mount_ignore (struct clr_oci_mount *m)
+cc_oci_mount_ignore (struct cc_oci_mount *m)
 {
 	struct mntent  *me;
 	size_t          i;
-	size_t          max = CLR_OCI_ARRAY_SIZE (clr_oci_mounts_to_ignore);
+	size_t          max = CC_OCI_ARRAY_SIZE (cc_oci_mounts_to_ignore);
 
 	if (! m) {
 		return false;
 	}
 
 	for (i = 0; i < max; i++) {
-		me = &clr_oci_mounts_to_ignore[i];
+		me = &cc_oci_mounts_to_ignore[i];
 
-		if (clr_oci_found_str_mntent_match (me, m, mnt_fsname)) {
+		if (cc_oci_found_str_mntent_match (me, m, mnt_fsname)) {
 			goto ignore;
 		}
 
-		if (clr_oci_found_str_mntent_match (me, m, mnt_dir)) {
+		if (cc_oci_found_str_mntent_match (me, m, mnt_dir)) {
 			goto ignore;
 		}
 
-		if (clr_oci_found_str_mntent_match (me, m, mnt_type)) {
+		if (cc_oci_found_str_mntent_match (me, m, mnt_type)) {
 			goto ignore;
 		}
 	}
@@ -85,12 +85,12 @@ ignore:
 }
 
 /*!
- * Free the specified \ref clr_oci_mount.
+ * Free the specified \ref cc_oci_mount.
  *
- * \param m \ref clr_oci_mount.
+ * \param m \ref cc_oci_mount.
  */
 void
-clr_oci_mount_free (struct clr_oci_mount *m)
+cc_oci_mount_free (struct cc_oci_mount *m)
 {
 	g_assert (m);
 
@@ -105,29 +105,29 @@ clr_oci_mount_free (struct clr_oci_mount *m)
 /*!
  * Free all mounts.
  *
- * \param mounts List of \ref clr_oci_mount.
+ * \param mounts List of \ref cc_oci_mount.
  */
 void
-clr_oci_mounts_free_all (GSList *mounts)
+cc_oci_mounts_free_all (GSList *mounts)
 {
 	if (! mounts) {
 		return;
 	}
 
-	g_slist_free_full (mounts, (GDestroyNotify)clr_oci_mount_free);
+	g_slist_free_full (mounts, (GDestroyNotify)cc_oci_mount_free);
 }
 
 /*!
  * Mount the resource specified by \p m.
  *
- * \param m \ref clr_oci_mount.
+ * \param m \ref cc_oci_mount.
  * \param dry_run If \c true, don't actually call \c mount(2),
  * just log what would be done.
  *
  * \return \c true on success, else \c false.
  */
 private gboolean
-clr_oci_perform_mount (const struct clr_oci_mount *m, gboolean dry_run)
+cc_oci_perform_mount (const struct cc_oci_mount *m, gboolean dry_run)
 {
 	const char *fmt = "%smount%s %s of type %s "
 		"onto %s with options '%s' "
@@ -183,12 +183,12 @@ clr_oci_perform_mount (const struct clr_oci_mount *m, gboolean dry_run)
 /*!
  * Setup required mounts.
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  *
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_oci_handle_mounts (struct clr_oci_config *config)
+cc_oci_handle_mounts (struct cc_oci_config *config)
 {
 	GSList    *l;
 	gboolean   ret;
@@ -200,9 +200,9 @@ clr_oci_handle_mounts (struct clr_oci_config *config)
 	}
 
 	for (l = config->oci.mounts; l && l->data; l = g_slist_next (l)) {
-		struct clr_oci_mount *m = (struct clr_oci_mount *)l->data;
+		struct cc_oci_mount *m = (struct cc_oci_mount *)l->data;
 
-		if (clr_oci_mount_ignore (m)) {
+		if (cc_oci_mount_ignore (m)) {
 			g_debug ("ignoring mount %s", m->mnt.mnt_dir);
 			continue;
 		}
@@ -225,7 +225,7 @@ clr_oci_handle_mounts (struct clr_oci_config *config)
 			dirname_dest = g_strdup(m->dest);
 		}
 
-		ret = g_mkdir_with_parents (dirname_dest, CLR_OCI_DIR_MODE);
+		ret = g_mkdir_with_parents (dirname_dest, CC_OCI_DIR_MODE);
 		if (ret < 0) {
 			g_critical ("failed to create mount directory: %s (%s)",
 					m->dest, strerror (errno));
@@ -236,7 +236,7 @@ clr_oci_handle_mounts (struct clr_oci_config *config)
 		g_free(dirname_dest);
 		dirname_dest = NULL;
 
-		if (! clr_oci_perform_mount (m, config->dry_run_mode)) {
+		if (! cc_oci_perform_mount (m, config->dry_run_mode)) {
 			return false;
 		}
 	}
@@ -247,12 +247,12 @@ clr_oci_handle_mounts (struct clr_oci_config *config)
 /*!
  * Unmount the mount specified by \p m.
  *
- * \param m \ref clr_oci_mount.
+ * \param m \ref cc_oci_mount.
  *
  * \return \c true on success, else \c false.
  */
 private gboolean
-clr_oci_perform_unmount (const struct clr_oci_mount *m)
+cc_oci_perform_unmount (const struct cc_oci_mount *m)
 {
 	if (! m) {
 		return false;
@@ -266,12 +266,12 @@ clr_oci_perform_unmount (const struct clr_oci_mount *m)
 /*!
  * Unmount all mounts.
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  *
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_oci_handle_unmounts (const struct clr_oci_config *config)
+cc_oci_handle_unmounts (const struct cc_oci_config *config)
 {
 	GSList  *l;
 
@@ -280,14 +280,14 @@ clr_oci_handle_unmounts (const struct clr_oci_config *config)
 	}
 
 	for (l = config->oci.mounts; l && l->data; l = g_slist_next (l)) {
-		struct clr_oci_mount *m = (struct clr_oci_mount *)l->data;
+		struct cc_oci_mount *m = (struct cc_oci_mount *)l->data;
 
 		if (m->ignore_mount) {
 			/* was never mounted */
 			continue;
 		}
 
-		if (! clr_oci_perform_unmount (m)) {
+		if (! cc_oci_perform_unmount (m)) {
 			return false;
 		}
 	}
@@ -299,15 +299,15 @@ clr_oci_handle_unmounts (const struct clr_oci_config *config)
  * Convert the list of mounts to a JSON array.
  *
  * Note that the returned array will be empty unless any of the list of
- * mounts provided in \ref CLR_OCI_CONFIG_FILE were actually mounted
+ * mounts provided in \ref CC_OCI_CONFIG_FILE were actually mounted
  * (many are ignored as they are unecessary in the hypervisor case).
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  *
  * \return \c JsonArray on success, else \c NULL.
  */
 JsonArray *
-clr_oci_mounts_to_json (const struct clr_oci_config *config)
+cc_oci_mounts_to_json (const struct cc_oci_config *config)
 {
 	JsonArray *array = NULL;
 	GSList *l;
@@ -315,7 +315,7 @@ clr_oci_mounts_to_json (const struct clr_oci_config *config)
 	array  = json_array_new ();
 
 	for (l = config->oci.mounts; l && l->data; l = g_slist_next (l)) {
-		struct clr_oci_mount *m = (struct clr_oci_mount *)l->data;
+		struct cc_oci_mount *m = (struct cc_oci_mount *)l->data;
 
 		if (m->ignore_mount) {
 			/* was never mounted */

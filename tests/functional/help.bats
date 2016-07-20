@@ -7,17 +7,17 @@ load common
   run $COR -h
   [ "$status" -eq 0 ]
   [[ ${lines[0]} =~ Usage:+ ]]
-  [[ ${lines[1]} == *clr-oci-runtime* ]]
+  [[ ${lines[1]} == *cc-oci-runtime* ]]
 
   run $COR --help
   [ "$status" -eq 0 ]
   [[ ${lines[0]} =~ Usage:+ ]]
-  [[ ${lines[1]} == *clr-oci-runtime* ]]
+  [[ ${lines[1]} == *cc-oci-runtime* ]]
 
   run $COR help
   [ "$status" -eq 0 ]
   [[ ${lines[0]} =~ Usage:+ ]]
-  [[ ${lines[1]} == *clr-oci-runtime* ]]
+  [[ ${lines[1]} == *cc-oci-runtime* ]]
 }
 
 @test "cor exec -h" {

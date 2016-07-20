@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  * 
  * Copyright (C) 2016 Intel Corporation
  * 
@@ -18,11 +18,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef _CLR_OCI_NETWORK_H
-#define _CLR_OCI_NETWORK_H
+#ifndef _CC_OCI_NETWORK_H
+#define _CC_OCI_NETWORK_H
 
-gboolean clr_oci_vm_pause (const gchar *socket_path, GPid pid);
-gboolean clr_oci_vm_resume (const gchar *socket_path, GPid pid);
-gboolean clr_oci_vm_shutdown (const gchar *socket_path, GPid pid);
+gboolean cc_oci_vm_pause (const gchar *socket_path, GPid pid);
+gboolean cc_oci_vm_resume (const gchar *socket_path, GPid pid);
+gboolean cc_oci_vm_shutdown (const gchar *socket_path, GPid pid);
 
-#endif /* _CLR_OCI_NETWORK_H */
+#endif /* _CC_OCI_NETWORK_H */

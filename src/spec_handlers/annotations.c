@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -21,7 +21,7 @@
 #include "spec_handler.h"
 
 static void
-handle_annotation (GNode* root, struct clr_oci_config* config)
+handle_annotation (GNode* root, struct cc_oci_config* config)
 {
 	const gchar *key, *value;
 
@@ -54,7 +54,7 @@ handle_annotation (GNode* root, struct clr_oci_config* config)
 }
 
 static bool
-annotations_handle_section (GNode* root, struct clr_oci_config* config)
+annotations_handle_section (GNode* root, struct cc_oci_config* config)
 {
 	if (! root) {
 		g_critical("root node is NULL");

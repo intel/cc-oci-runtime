@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  * 
  * Copyright (C) 2016 Intel Corporation
  * 
@@ -28,55 +28,55 @@
 #include "../src/logging.h"
 #include "../src/process.h"
 
-gboolean clr_oci_cmd_is_shell (const char *cmd);
+gboolean cc_oci_cmd_is_shell (const char *cmd);
 
-START_TEST(test_clr_oci_cmd_is_shell) {
+START_TEST(test_cc_oci_cmd_is_shell) {
 
-	ck_assert (! clr_oci_cmd_is_shell (""));
-	ck_assert (! clr_oci_cmd_is_shell (NULL));
+	ck_assert (! cc_oci_cmd_is_shell (""));
+	ck_assert (! cc_oci_cmd_is_shell (NULL));
 
-	ck_assert (clr_oci_cmd_is_shell ("sh"));
-	ck_assert (clr_oci_cmd_is_shell ("/sh"));
-	ck_assert (clr_oci_cmd_is_shell ("/bin/sh"));
-	ck_assert (clr_oci_cmd_is_shell ("/usr/bin/sh"));
-	ck_assert (clr_oci_cmd_is_shell ("/usr/local/bin/sh"));
+	ck_assert (cc_oci_cmd_is_shell ("sh"));
+	ck_assert (cc_oci_cmd_is_shell ("/sh"));
+	ck_assert (cc_oci_cmd_is_shell ("/bin/sh"));
+	ck_assert (cc_oci_cmd_is_shell ("/usr/bin/sh"));
+	ck_assert (cc_oci_cmd_is_shell ("/usr/local/bin/sh"));
 
-	ck_assert (clr_oci_cmd_is_shell ("bash"));
-	ck_assert (clr_oci_cmd_is_shell ("/bash"));
-	ck_assert (clr_oci_cmd_is_shell ("/bin/bash"));
-	ck_assert (clr_oci_cmd_is_shell ("/usr/bin/bash"));
-	ck_assert (clr_oci_cmd_is_shell ("/usr/local/bin/bash"));
+	ck_assert (cc_oci_cmd_is_shell ("bash"));
+	ck_assert (cc_oci_cmd_is_shell ("/bash"));
+	ck_assert (cc_oci_cmd_is_shell ("/bin/bash"));
+	ck_assert (cc_oci_cmd_is_shell ("/usr/bin/bash"));
+	ck_assert (cc_oci_cmd_is_shell ("/usr/local/bin/bash"));
 
-	ck_assert (clr_oci_cmd_is_shell ("zsh"));
-	ck_assert (clr_oci_cmd_is_shell ("/zsh"));
-	ck_assert (clr_oci_cmd_is_shell ("/bin/zsh"));
-	ck_assert (clr_oci_cmd_is_shell ("/usr/bin/zsh"));
-	ck_assert (clr_oci_cmd_is_shell ("/usr/local/bin/zsh"));
+	ck_assert (cc_oci_cmd_is_shell ("zsh"));
+	ck_assert (cc_oci_cmd_is_shell ("/zsh"));
+	ck_assert (cc_oci_cmd_is_shell ("/bin/zsh"));
+	ck_assert (cc_oci_cmd_is_shell ("/usr/bin/zsh"));
+	ck_assert (cc_oci_cmd_is_shell ("/usr/local/bin/zsh"));
 
-	ck_assert (clr_oci_cmd_is_shell ("ksh"));
-	ck_assert (clr_oci_cmd_is_shell ("/ksh"));
-	ck_assert (clr_oci_cmd_is_shell ("/bin/ksh"));
-	ck_assert (clr_oci_cmd_is_shell ("/usr/bin/ksh"));
-	ck_assert (clr_oci_cmd_is_shell ("/usr/local/bin/ksh"));
+	ck_assert (cc_oci_cmd_is_shell ("ksh"));
+	ck_assert (cc_oci_cmd_is_shell ("/ksh"));
+	ck_assert (cc_oci_cmd_is_shell ("/bin/ksh"));
+	ck_assert (cc_oci_cmd_is_shell ("/usr/bin/ksh"));
+	ck_assert (cc_oci_cmd_is_shell ("/usr/local/bin/ksh"));
 
-	ck_assert (clr_oci_cmd_is_shell ("csh"));
-	ck_assert (clr_oci_cmd_is_shell ("/csh"));
-	ck_assert (clr_oci_cmd_is_shell ("/bin/csh"));
-	ck_assert (clr_oci_cmd_is_shell ("/usr/bin/csh"));
-	ck_assert (clr_oci_cmd_is_shell ("/usr/local/bin/csh"));
+	ck_assert (cc_oci_cmd_is_shell ("csh"));
+	ck_assert (cc_oci_cmd_is_shell ("/csh"));
+	ck_assert (cc_oci_cmd_is_shell ("/bin/csh"));
+	ck_assert (cc_oci_cmd_is_shell ("/usr/bin/csh"));
+	ck_assert (cc_oci_cmd_is_shell ("/usr/local/bin/csh"));
 
-	ck_assert (! clr_oci_cmd_is_shell ("true"));
-	ck_assert (! clr_oci_cmd_is_shell ("/true"));
-	ck_assert (! clr_oci_cmd_is_shell ("/bin/true"));
-	ck_assert (! clr_oci_cmd_is_shell ("/usr/bin/true"));
-	ck_assert (! clr_oci_cmd_is_shell ("/usr/local/bin/true"));
+	ck_assert (! cc_oci_cmd_is_shell ("true"));
+	ck_assert (! cc_oci_cmd_is_shell ("/true"));
+	ck_assert (! cc_oci_cmd_is_shell ("/bin/true"));
+	ck_assert (! cc_oci_cmd_is_shell ("/usr/bin/true"));
+	ck_assert (! cc_oci_cmd_is_shell ("/usr/local/bin/true"));
 
 } END_TEST
 
 Suite* make_process_suite(void) {
 	Suite* s = suite_create(__FILE__);
 
-	ADD_TEST(test_clr_oci_cmd_is_shell, s);
+	ADD_TEST(test_cc_oci_cmd_is_shell, s);
 
 	return s;
 }
@@ -91,7 +91,7 @@ int main(void) {
 
 	options.use_json = false;
 	options.filename = g_strdup ("process_test_debug.log");
-	(void)clr_oci_log_init(&options);
+	(void)cc_oci_log_init(&options);
 
 	s = make_process_suite();
 	sr = srunner_create(s);
@@ -100,7 +100,7 @@ int main(void) {
 	number_failed = srunner_ntests_failed(sr);
 	srunner_free(sr);
 
-	clr_oci_log_free (&options);
+	cc_oci_log_free (&options);
 
 	return (number_failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }

@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -31,7 +31,7 @@
  *
  * - Some sub-commands do not require root.
  * - Some sub-commands require root to:
- *   - create directories below \ref CLR_OCI_RUNTIME_DIR_PREFIX
+ *   - create directories below \ref CC_OCI_RUNTIME_DIR_PREFIX
  *     (or config->root_dir).
  *   - call mount(2).
  *   - read files created by other commands run as root.
@@ -39,24 +39,24 @@
  *   if passed "--help".
  *
  * \note warning: This function can not be totally reliable since at the
- * time it is called, \ref CLR_OCI_CONFIG_FILE has not been parsed so it
+ * time it is called, \ref CC_OCI_CONFIG_FILE has not been parsed so it
  * cannot know if any mounts will actually need to be performed (some
  * are ignored).
  *
  * \param argc Argument count.
  * \param argv Argument vector.
  * \param sub Sub-command.
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  *
  * \return \c 1 if higher privileges are required,
  *         \c 0 if higher privileges not required,
  *         \c -1 if no potentially privileged setup should be performed.
  */
 gint
-clr_oci_get_priv_level (int argc,
+cc_oci_get_priv_level (int argc,
 		char *argv[],
 		struct subcommand *sub,
-		struct clr_oci_config *config)
+		struct cc_oci_config *config)
 {
 	g_assert (sub);
 	g_assert (config);
@@ -101,7 +101,7 @@ clr_oci_get_priv_level (int argc,
 			}
 		}
 	} else {
-		/* the default root is CLR_OCI_RUNTIME_DIR_PREFIX, which
+		/* the default root is CC_OCI_RUNTIME_DIR_PREFIX, which
 		 * requires root.
 		 */
 		return 1;

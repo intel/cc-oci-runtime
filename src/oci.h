@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -26,8 +26,8 @@
  * \see https://www.opencontainers.org/.
  */
 
-#ifndef _CLR_OCI_H
-#define _CLR_OCI_H
+#ifndef _CC_OCI_H
+#define _CC_OCI_H
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -48,63 +48,63 @@
 #endif
 
 /** Version of the https://github.com/opencontainers/specs we support. */
-#define CLR_OCI_SUPPORTED_SPEC_VERSION	"1.0.0-rc1"
+#define CC_OCI_SUPPORTED_SPEC_VERSION	"1.0.0-rc1"
 
 /** Name of OCI configuration file. */
-#define CLR_OCI_CONFIG_FILE		"config.json"
+#define CC_OCI_CONFIG_FILE		"config.json"
 
 /** Name of hypervisor socket used to control an already running VM */
-#define CLR_OCI_HYPERVISOR_SOCKET	"hypervisor.sock"
+#define CC_OCI_HYPERVISOR_SOCKET	"hypervisor.sock"
 
 /** Name of hypervisor socket used to determine if VM is running */
-#define CLR_OCI_PROCESS_SOCKET		"process.sock"
+#define CC_OCI_PROCESS_SOCKET		"process.sock"
 
 /** Name of hypervisor socket used as a console device. */
-#define CLR_OCI_CONSOLE_SOCKET		"console.sock"
+#define CC_OCI_CONSOLE_SOCKET		"console.sock"
 
-/** File generated below \ref CLR_OCI_RUNTIME_DIR_PREFIX at runtime that
+/** File generated below \ref CC_OCI_RUNTIME_DIR_PREFIX at runtime that
  * contains metadata about the running instance.
  */
-#define CLR_OCI_STATE_FILE		"state.json"
+#define CC_OCI_STATE_FILE		"state.json"
 
 /** Directory below which container-specific directory will be created.
  */
-#define CLR_OCI_RUNTIME_DIR_PREFIX	"/run/opencontainer/containers"
+#define CC_OCI_RUNTIME_DIR_PREFIX	"/run/opencontainer/containers"
 
-/** Mode for \ref CLR_OCI_WORKLOAD_FILE. */
-#define CLR_OCI_SCRIPT_MODE		0755
+/** Mode for \ref CC_OCI_WORKLOAD_FILE. */
+#define CC_OCI_SCRIPT_MODE		0755
 
 /** Mode for all created directories. */
-#define CLR_OCI_DIR_MODE                0750
+#define CC_OCI_DIR_MODE                0750
 
-/** Platform we expect \ref CLR_OCI_CONFIG_FILE to specify. */
-#define CLR_OCI_EXPECTED_PLATFORM	"linux"
+/** Platform we expect \ref CC_OCI_CONFIG_FILE to specify. */
+#define CC_OCI_EXPECTED_PLATFORM	"linux"
 
-/** Architecture we expect \ref CLR_OCI_CONFIG_FILE to specify. */
-#define CLR_OCI_EXPECTED_ARCHITECTURE	"amd64"
+/** Architecture we expect \ref CC_OCI_CONFIG_FILE to specify. */
+#define CC_OCI_EXPECTED_ARCHITECTURE	"amd64"
 
 /** File that will be executed automatically on VM boot by
  * container-workload.service.
  */
-#define CLR_OCI_WORKLOAD_FILE		"/.containerexec"
+#define CC_OCI_WORKLOAD_FILE		"/.containerexec"
 
 /** Name of file containing environment variables that will be set
  * inside the VM.
  *
  * Note: name is historical.
  */
-#define CLR_OCI_ENV_FILE		"/.dockerenv"
+#define CC_OCI_ENV_FILE		"/.dockerenv"
 
-/** Shell to use for \ref CLR_OCI_WORKLOAD_FILE. */
-#define CLR_OCI_WORKLOAD_SHELL		"/bin/sh"
+/** Shell to use for \ref CC_OCI_WORKLOAD_FILE. */
+#define CC_OCI_WORKLOAD_SHELL		"/bin/sh"
 
 /** Command to use to allow "exec" to connect to the container. */
-#define CLR_OCI_EXEC_CMD               "ssh"
+#define CC_OCI_EXEC_CMD               "ssh"
 
 /** File that contains vm spec configuration, used if vm node
- * in CLR_OCI_CONFIG_FILE bundle file
+ * in CC_OCI_CONFIG_FILE bundle file
 */
-#define CLR_OCI_VM_CONFIG "vm.json"
+#define CC_OCI_VM_CONFIG "vm.json"
 
 /** Status of an OCI container. */
 enum oci_status {
@@ -207,7 +207,7 @@ struct oci_cfg_linux {
 };
 
 /** Representation of the OCI runtime schema embodied by
- * \ref CLR_OCI_CONFIG_FILE.
+ * \ref CC_OCI_CONFIG_FILE.
  *
  * \see https://github.com/opencontainers/runtime-spec/blob/master/schema/schema.json
  */
@@ -216,7 +216,7 @@ struct oci_cfg {
 	struct oci_cfg_hooks         hooks;
 	gchar                       *hostname;
 
-	/** List of \ref clr_oci_mount mounts.
+	/** List of \ref cc_oci_mount mounts.
 	 *
 	 * These are handled specially (due to mount flags),
 	 * so there is no \c oci_cfg_mount type.
@@ -238,7 +238,7 @@ struct oci_cfg {
 };
 
 /** clr-specific VM configuration data. */
-struct clr_oci_vm_cfg {
+struct cc_oci_vm_cfg {
 	/** Full path to the hypervisor. */
 	gchar hypervisor_path[PATH_MAX];
 
@@ -248,7 +248,7 @@ struct clr_oci_vm_cfg {
 	/** Full path to kernel to use for VM. */
 	gchar kernel_path[PATH_MAX];
 
-	/** Full path to CLR_OCI_WORKLOAD_FILE
+	/** Full path to CC_OCI_WORKLOAD_FILE
 	 * (which exists below "root_path").
 	 */
 	gchar workload_path[PATH_MAX];
@@ -258,7 +258,7 @@ struct clr_oci_vm_cfg {
 };
 
 /** clr-specific network configuration data. */
-struct clr_oci_net_cfg {
+struct cc_oci_net_cfg {
 
 	/** Network gateway (xxx.xxx.xxx.xxx). */
 	gchar  *gateway;
@@ -280,12 +280,12 @@ struct clr_oci_net_cfg {
  * Generic type that maps an integer value
  * to a human-readable string.
  */
-struct clr_oci_map {
+struct cc_oci_map {
 	int           num;
 	const gchar  *name;
 };
 
-/** OCI State, read from \ref CLR_OCI_STATE_FILE.
+/** OCI State, read from \ref CC_OCI_STATE_FILE.
  *
  * \see https://github.com/opencontainers/runtime-spec/blob/master/runtime.md#state
  *
@@ -309,7 +309,7 @@ struct oci_state {
 	enum oci_status  status; /*!< OCI status of container. */
 	gchar           *create_time; /*!< ISO 8601 timestamp. */
 
-	/** List of \ref clr_oci_mount mounts.
+	/** List of \ref cc_oci_mount mounts.
 	 *
 	 * These are handled specially (due to mount flags),
 	 * so there is no \c oci_cfg_mount type.
@@ -321,36 +321,36 @@ struct oci_state {
          */
         GSList          *annotations;
 
-	/* See member of same name in \ref clr_oci_config. */
+	/* See member of same name in \ref cc_oci_config. */
 	gchar           *console;
 
-	/* See member of same name in \ref clr_oci_config. */
+	/* See member of same name in \ref cc_oci_config. */
 	gboolean         use_socket_console;
 
-	struct clr_oci_vm_cfg *vm;
+	struct cc_oci_vm_cfg *vm;
 };
 
 /** clr-specific state fields. */
-struct clr_oci_container_state {
+struct cc_oci_container_state {
 	/** Full path to generated state file. */
 	gchar state_file_path[PATH_MAX];
 
 	/** Full path to container-specific directory below
-	 * \ref CLR_OCI_RUNTIME_DIR_PREFIX (or below the modified root
-	 * specified in \ref clr_oci_config).
+	 * \ref CC_OCI_RUNTIME_DIR_PREFIX (or below the modified root
+	 * specified in \ref cc_oci_config).
 	 */
 	gchar runtime_path[PATH_MAX];
 
 	/** Full path to socket used to control the hypervisor
-	 * below \ref CLR_OCI_RUNTIME_DIR_PREFIX (or below the modified
-	 * root specified in \ref clr_oci_config).
+	 * below \ref CC_OCI_RUNTIME_DIR_PREFIX (or below the modified
+	 * root specified in \ref cc_oci_config).
 	 */
 	gchar comms_path[PATH_MAX];
 
 	/** Full path to socket used to determine when the hypervisor
 	 * has been shut down.
-	 * Created below \ref CLR_OCI_RUNTIME_DIR_PREFIX
-	 * (or below the modified root specified in \ref clr_oci_config).
+	 * Created below \ref CC_OCI_RUNTIME_DIR_PREFIX
+	 * (or below the modified root specified in \ref cc_oci_config).
 	 */
 	gchar procsock_path[PATH_MAX];
 
@@ -362,7 +362,7 @@ struct clr_oci_container_state {
 };
 
 /** clr-specific mount details. */
-struct clr_oci_mount {
+struct cc_oci_mount {
 	/** Flags to pass to \c mount(2). */
 	unsigned long  flags;
 
@@ -381,23 +381,23 @@ struct clr_oci_mount {
  *
  * \note The main user of this object is "start" - other commands
  * generally use \ref oci_state and then partially "fill in" the
- * appropriate fields in a \ref clr_oci_config object depending on what
+ * appropriate fields in a \ref cc_oci_config object depending on what
  * they are trying to accomplish.
  */
-struct clr_oci_config {
+struct cc_oci_config {
 	/** Official OCI configuration parameters. */
 	struct oci_cfg                  oci;
 
 	/** VM configuration
 	 * (which should eventually be encoded in OCI configuration).
 	 */
-	struct clr_oci_vm_cfg           *vm;
+	struct cc_oci_vm_cfg           *vm;
 
 	/** Network configuration. */
-	struct clr_oci_net_cfg           net;
+	struct cc_oci_net_cfg           net;
 
 	/** Container-specific state. */
-	struct clr_oci_container_state  state;
+	struct cc_oci_container_state  state;
 
 	/** Path to directory containing OCI bundle to run. */
 	gchar *bundle_path;
@@ -414,7 +414,7 @@ struct clr_oci_config {
 	gboolean use_socket_console;
 
 	/** If set, use an alternative root directory to the default
-	 * CLR_OCI_RUNTIME_DIR_PREFIX.
+	 * CC_OCI_RUNTIME_DIR_PREFIX.
 	 */
 	gchar *root_dir;
 
@@ -428,35 +428,35 @@ struct clr_oci_config {
 	gboolean detached_mode;
 };
 
-gboolean clr_oci_attach(struct clr_oci_config *config,
+gboolean cc_oci_attach(struct cc_oci_config *config,
 		struct oci_state *state);
-gchar *clr_oci_config_file_path (const gchar *bundle_path);
-gboolean clr_oci_create (struct clr_oci_config *config);
-gboolean clr_oci_start (struct clr_oci_config *config,
+gchar *cc_oci_config_file_path (const gchar *bundle_path);
+gboolean cc_oci_create (struct cc_oci_config *config);
+gboolean cc_oci_start (struct cc_oci_config *config,
 		struct oci_state *state);
-gboolean clr_oci_run (struct clr_oci_config *config);
-void clr_oci_config_free (struct clr_oci_config *config);
-gchar *clr_oci_get_bundlepath_file (const gchar *bundle_path,
+gboolean cc_oci_run (struct cc_oci_config *config);
+void cc_oci_config_free (struct cc_oci_config *config);
+gchar *cc_oci_get_bundlepath_file (const gchar *bundle_path,
 		const gchar *file);
-gboolean clr_oci_get_config_and_state (gchar **config_file,
-		struct clr_oci_config *config,
+gboolean cc_oci_get_config_and_state (gchar **config_file,
+		struct cc_oci_config *config,
 		struct oci_state **state);
-void clr_oci_state_free (struct oci_state *state);
-gboolean clr_oci_stop (struct clr_oci_config *config,
+void cc_oci_state_free (struct oci_state *state);
+gboolean cc_oci_stop (struct cc_oci_config *config,
         struct oci_state *state);
-gboolean clr_oci_toggle (struct clr_oci_config *config,
+gboolean cc_oci_toggle (struct cc_oci_config *config,
 		struct oci_state *state, gboolean pause);
-gboolean clr_oci_exec (struct clr_oci_config *config,
+gboolean cc_oci_exec (struct cc_oci_config *config,
 		struct oci_state *state,
 		int argc, char *const args[]);
-gboolean clr_oci_list (struct clr_oci_config *config,
+gboolean cc_oci_list (struct cc_oci_config *config,
 		const gchar *format, gboolean show_all);
-gboolean clr_oci_delete (struct clr_oci_config *config,
+gboolean cc_oci_delete (struct cc_oci_config *config,
 		struct oci_state *state);
-gboolean clr_oci_kill (struct clr_oci_config *config,
+gboolean cc_oci_kill (struct cc_oci_config *config,
 		struct oci_state *state, int signum);
 
-gboolean clr_oci_config_update (struct clr_oci_config *config,
+gboolean cc_oci_config_update (struct cc_oci_config *config,
 		struct oci_state *state);
 
-#endif /* _CLR_OCI_H */
+#endif /* _CC_OCI_H */

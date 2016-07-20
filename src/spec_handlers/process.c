@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -25,7 +25,7 @@
 #include "util.h"
 
 static void
-handle_user_section (GNode *root, struct clr_oci_config *config)
+handle_user_section (GNode *root, struct cc_oci_config *config)
 {
 	if (! root) {
 		return;
@@ -40,7 +40,7 @@ handle_user_section (GNode *root, struct clr_oci_config *config)
 }
 
 static void
-handle_process_section(GNode* root, struct clr_oci_config* config) {
+handle_process_section(GNode* root, struct cc_oci_config* config) {
 	if (! (root && root->children)) {
 		return;
 	}
@@ -65,7 +65,7 @@ handle_process_section(GNode* root, struct clr_oci_config* config) {
 }
 
 static bool
-process_handle_section(GNode* root, struct clr_oci_config* config)
+process_handle_section(GNode* root, struct cc_oci_config* config)
 {
 	if (! root) {
 		g_critical("root node is NULL");

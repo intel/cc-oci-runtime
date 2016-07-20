@@ -1,10 +1,10 @@
-# Contributing to clr-oci-runtime
+# Contributing to cc-oci-runtime
 
-clr-oci-runtime is an open source project licensed under the [GPL v2 License] (https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html).
+cc-oci-runtime is an open source project licensed under the [GPL v2 License] (https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html).
 
 ## Coding Style
 
-The coding style for clr-oci-runtime is roughly K&R with function names in
+The coding style for cc-oci-runtime is roughly K&R with function names in
 column 0, and variable names aligned in declarations.
 
 The right results can be almost achieved by doing the following.
@@ -12,7 +12,7 @@ The right results can be almost achieved by doing the following.
 * GNU Emacs: if you're not using auto-newline, the following should do the right thing:
 
 ```
-	(defun clr-oci-runtime-c-mode-common-hook ()
+	(defun cc-oci-runtime-c-mode-common-hook ()
 	  (c-set-style "k&r")
 	  (setq indent-tabs-mode t
 	        c-basic-offset 8))
@@ -65,7 +65,7 @@ For example:
 
 ## Pull requests
 
-We accept [github pull requests](https://github.com/01org/clr-oci-runtime/pulls).
+We accept [github pull requests](https://github.com/01org/cc-oci-runtime/pulls).
 
 ## Contact
 
@@ -83,7 +83,7 @@ The [mailing list](https://lists.01.org/mailman/listinfo/cc-devel) is a more dur
 communication channel.
 
 If it's a bug not already documented, by all means please [open an
-issue in github](https://github.com/01org/clr-oci-runtime/issues/new) so we all get
+issue in github](https://github.com/01org/cc-oci-runtime/issues/new) so we all get
 visibility on the problem and work toward resolution.
 
 ## Closing issues

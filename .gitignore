@@ -13,10 +13,10 @@ aclocal.m4
 autom4te.cache
 CLEAR-CONTAINERS.img
 cloud-init
-clr-oci-runtime
-clr-oci-runtime-*-coverage/
-clr-oci-runtime-*-coverage.info
-clr-oci-runtime-*.tar.xz
+cc-oci-runtime
+cc-oci-runtime-*-coverage/
+cc-oci-runtime-*-coverage.info
+cc-oci-runtime-*.tar.xz
 commit_id
 compile
 config.*
@@ -49,4 +49,4 @@ stamp-h1
 *_test
 test-driver
 tests/functional/common.bash
-tests/functional/data/config-minimal-clr-oci.json
+tests/functional/data/config-minimal-cc-oci.json

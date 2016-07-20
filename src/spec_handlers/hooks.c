@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -50,7 +50,7 @@ save_current_hook(GSList** hooks_list) {
 	return;
 
 err:
-	clr_oci_hook_free(current_hook);
+	cc_oci_hook_free(current_hook);
 	error_detected = true;
 	current_hook = NULL;
 }
@@ -91,7 +91,7 @@ handle_hook(GNode* root, GSList** list) {
 }
 
 static void
-handle_hooks_section(GNode* root, struct clr_oci_config* config) {
+handle_hooks_section(GNode* root, struct cc_oci_config* config) {
 	GSList** current_list = NULL;
 
 	if (! (root && root->children) || error_detected) {
@@ -117,7 +117,7 @@ handle_hooks_section(GNode* root, struct clr_oci_config* config) {
 }
 
 static bool
-hooks_handle_section(GNode* root, struct clr_oci_config* config) {
+hooks_handle_section(GNode* root, struct cc_oci_config* config) {
 	error_detected = false;
 
 	if (! root) {

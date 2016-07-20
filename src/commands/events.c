@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  * 
  * Copyright (C) 2016 Intel Corporation
  * 
@@ -43,7 +43,7 @@ static GOptionEntry options_events[] =
 
 static gboolean
 handler_events (const struct subcommand *sub,
-		struct clr_oci_config *config,
+		struct cc_oci_config *config,
 		int argc, char *argv[])
 {
 	gboolean               ret = false;
@@ -67,7 +67,7 @@ handler_events (const struct subcommand *sub,
 
 	/* Used to allow us to find the state file */
 	config->optarg_container_id = argv[0];
-	ret = clr_oci_get_config_and_state (&config_file, config, &state);
+	ret = cc_oci_get_config_and_state (&config_file, config, &state);
 	if (! ret) {
 		goto out;
 	}
@@ -80,7 +80,7 @@ handler_events (const struct subcommand *sub,
 
 out:
 	g_free_if_set (config_file);
-	clr_oci_state_free (state);
+	cc_oci_state_free (state);
 
 	return ret;
 }

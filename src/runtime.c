@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -32,12 +32,12 @@
 /*!
  * Update the specified config with the runtime path.
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  *
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_oci_runtime_path_get (struct clr_oci_config *config)
+cc_oci_runtime_path_get (struct cc_oci_config *config)
 {
 	if (! config) {
 		return false;
@@ -51,7 +51,7 @@ clr_oci_runtime_path_get (struct clr_oci_config *config)
 			(gulong)sizeof (config->state.runtime_path),
 			"%s/%s",
 			config->root_dir ? config->root_dir
-			: CLR_OCI_RUNTIME_DIR_PREFIX,
+			: CC_OCI_RUNTIME_DIR_PREFIX,
 			config->optarg_container_id);
 
 	return true;
@@ -60,12 +60,12 @@ clr_oci_runtime_path_get (struct clr_oci_config *config)
 /*!
  * Create the runtime path specified by \p config.
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  *
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_oci_runtime_dir_setup (struct clr_oci_config *config)
+cc_oci_runtime_dir_setup (struct cc_oci_config *config)
 {
 	g_autofree gchar *dirname = NULL;
 
@@ -78,7 +78,7 @@ clr_oci_runtime_dir_setup (struct clr_oci_config *config)
 	 * the path.
 	 */
 	if (! config->state.runtime_path[0]) {
-		if (! clr_oci_runtime_path_get (config)) {
+		if (! cc_oci_runtime_path_get (config)) {
 			return false;
 		}
 	}
@@ -87,37 +87,37 @@ clr_oci_runtime_dir_setup (struct clr_oci_config *config)
 			(gulong)sizeof (config->state.comms_path),
 			"%s/%s",
 			config->state.runtime_path,
-			CLR_OCI_HYPERVISOR_SOCKET);
+			CC_OCI_HYPERVISOR_SOCKET);
 
 	g_snprintf (config->state.procsock_path,
 			(gulong)sizeof (config->state.procsock_path),
 			"%s/%s",
 			config->state.runtime_path,
-			CLR_OCI_PROCESS_SOCKET);
+			CC_OCI_PROCESS_SOCKET);
 
 	dirname = g_path_get_dirname (config->state.runtime_path);
 	if (! dirname) {
 		return false;
 	}
 
-	if (g_mkdir_with_parents (dirname, CLR_OCI_DIR_MODE)) {
+	if (g_mkdir_with_parents (dirname, CC_OCI_DIR_MODE)) {
 		g_critical ("failed to create directory %s: %s",
 				dirname, strerror (errno));
 	}
 
 	g_debug ("creating directory %s", config->state.runtime_path);
 
-	return ! g_mkdir (config->state.runtime_path, CLR_OCI_DIR_MODE);
+	return ! g_mkdir (config->state.runtime_path, CC_OCI_DIR_MODE);
 }
 
 /*!
  * Recursively delete the runtime directory specified by \p config.
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_oci_runtime_dir_delete (struct clr_oci_config *config)
+cc_oci_runtime_dir_delete (struct cc_oci_config *config)
 {
 	if (! config) {
 		return false;
@@ -126,5 +126,5 @@ clr_oci_runtime_dir_delete (struct clr_oci_config *config)
 		return false;
 	}
 
-	return clr_oci_rm_rf (config->state.runtime_path);
+	return cc_oci_rm_rf (config->state.runtime_path);
 }

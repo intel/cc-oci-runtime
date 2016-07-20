@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -18,8 +18,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef _CLR_OCI_MOUNT_H
-#define _CLR_OCI_MOUNT_H
+#ifndef _CC_OCI_MOUNT_H
+#define _CC_OCI_MOUNT_H
 
 #include <stdbool.h>
 
@@ -35,21 +35,21 @@
  * with an mntent from an oci_mount.
  *
  * \param mntent Mount entry.
- * \param clr_oci_mount \ref clr_oci_mount.
+ * \param cc_oci_mount \ref cc_oci_mount.
  * \param element \c mntent mount source path.
  *
  * \return \c true if a match is found, else \c false.
  */
-#define clr_oci_found_str_mntent_match(mntent, clr_oci_mount, element) \
+#define cc_oci_found_str_mntent_match(mntent, cc_oci_mount, element) \
 	((mntent)->element && \
-	 (! g_strcmp0 ((mntent)->element, (clr_oci_mount)->mnt.element)))
+	 (! g_strcmp0 ((mntent)->element, (cc_oci_mount)->mnt.element)))
 
-gboolean clr_oci_handle_mounts (struct clr_oci_config *config);
-gboolean clr_oci_handle_unmounts (const struct clr_oci_config *config);
+gboolean cc_oci_handle_mounts (struct cc_oci_config *config);
+gboolean cc_oci_handle_unmounts (const struct cc_oci_config *config);
 
-void clr_oci_mounts_free_all (GSList *mounts);
-void clr_oci_mount_free (struct clr_oci_mount *m);
+void cc_oci_mounts_free_all (GSList *mounts);
+void cc_oci_mount_free (struct cc_oci_mount *m);
 
-JsonArray *clr_oci_mounts_to_json (const struct clr_oci_config *config);
+JsonArray *cc_oci_mounts_to_json (const struct cc_oci_config *config);
 
-#endif /* _CLR_OCI_MOUNT_H */
+#endif /* _CC_OCI_MOUNT_H */

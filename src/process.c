@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -81,7 +81,7 @@ static const gchar *recognised_shells[] =
  * \return \c true on success, else \c false.
  */
 private gboolean
-clr_oci_cmd_is_shell (const char *cmd)
+cc_oci_cmd_is_shell (const char *cmd)
 {
 	const gchar **shell;
 
@@ -116,7 +116,7 @@ clr_oci_cmd_is_shell (const char *cmd)
  * \return \c true on success, else \c false.
  */
 static gboolean
-clr_oci_close_fds (void) {
+cc_oci_close_fds (void) {
 	char           *fd_dir = "/proc/self/fd";
 	DIR            *dir;
 	struct dirent  *ent;
@@ -161,7 +161,7 @@ clr_oci_close_fds (void) {
  * \param tty Full path to existing device to use.
  */
 static void
-clr_oci_set_child_std_fds (const char *tty) {
+cc_oci_set_child_std_fds (const char *tty) {
 	int fd;
 	int ret;
 
@@ -194,12 +194,12 @@ clr_oci_set_child_std_fds (const char *tty) {
 
 /*! Perform setup on spawned child process.
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  *
  * \return \c true on success, else \c false.
  */
 static gboolean
-clr_oci_setup_child (struct clr_oci_config *config)
+cc_oci_setup_child (struct cc_oci_config *config)
 {
 	/* become session leader */
 	setsid ();
@@ -219,7 +219,7 @@ clr_oci_setup_child (struct clr_oci_config *config)
 
 	/* Do not close fds when VM runs in detached mode*/
 	if (! config->detached_mode) {
-		clr_oci_close_fds ();
+		cc_oci_close_fds ();
 	}
 
 	if (! config->use_socket_console) {
@@ -228,7 +228,7 @@ clr_oci_setup_child (struct clr_oci_config *config)
 		// allowing the redirection of the hypervisors standard
 		// streams to a log file that will list any hypervisor
 		// messages/errors.
-		clr_oci_set_child_std_fds (config->console);
+		cc_oci_set_child_std_fds (config->console);
 	}
 
 	return true;
@@ -245,7 +245,7 @@ clr_oci_setup_child (struct clr_oci_config *config)
  * child exit code.
  */
 static void
-clr_oci_child_watcher (GPid pid, gint status,
+cc_oci_child_watcher (GPid pid, gint status,
 		gpointer exit_code) {
 	g_debug ("pid %u ended with exit status %d", pid, status);
 
@@ -266,7 +266,7 @@ clr_oci_child_watcher (GPid pid, gint status,
  * \param[out] exit_code exit code of child process.
  * */
 static void
-clr_oci_hook_watcher(GPid pid, gint status, gpointer exit_code) {
+cc_oci_hook_watcher(GPid pid, gint status, gpointer exit_code) {
 	g_debug ("Hook pid %u ended with exit status %d", pid, status);
 
 	*((gint*)exit_code) = status;
@@ -285,7 +285,7 @@ clr_oci_hook_watcher(GPid pid, gint status, gpointer exit_code) {
  * \return \c true on success, else \c false.
  * */
 static gboolean
-clr_oci_output_watcher(GIOChannel* channel, GIOCondition cond,
+cc_oci_output_watcher(GIOChannel* channel, GIOCondition cond,
                             gint stream)
 {
 	gchar* string;
@@ -317,7 +317,7 @@ clr_oci_output_watcher(GIOChannel* channel, GIOCondition cond,
  * \return \c true on success, else \c false.
  * */
 static gboolean
-clr_run_hook(struct oci_cfg_hook* hook, const gchar* state,
+cc_run_hook(struct oci_cfg_hook* hook, const gchar* state,
              gsize state_length) {
 	GError* error = NULL;
 	gboolean ret = false;
@@ -395,7 +395,7 @@ clr_run_hook(struct oci_cfg_hook* hook, const gchar* state,
 			args[0], (int)pid);
 
 	/* add watcher to hook */
-	g_child_watch_add(pid, clr_oci_hook_watcher, &hook_exit_code);
+	g_child_watch_add(pid, cc_oci_hook_watcher, &hook_exit_code);
 
 	/* create output channels */
 	out_ch = g_io_channel_unix_new(std_out);
@@ -404,13 +404,13 @@ clr_run_hook(struct oci_cfg_hook* hook, const gchar* state,
 	/* add watchers to channels */
 	if (out_ch) {
 		g_io_add_watch(out_ch, G_IO_IN | G_IO_HUP,
-			(GIOFunc)clr_oci_output_watcher, (gint*)STDOUT_FILENO);
+			(GIOFunc)cc_oci_output_watcher, (gint*)STDOUT_FILENO);
 	} else {
 		g_critical("failed to create out channel");
 	}
 	if (err_ch) {
 		g_io_add_watch(err_ch, G_IO_IN | G_IO_HUP,
-			(GIOFunc)clr_oci_output_watcher, (gint*)STDERR_FILENO);
+			(GIOFunc)cc_oci_output_watcher, (gint*)STDERR_FILENO);
 	} else {
 		g_critical("failed to create err channel");
 	}
@@ -468,12 +468,12 @@ exit:
 /*!
  * Obtain the network configuration by querying the network namespace.
  *
- * \param[in,out] config \ref clr_oci_config.
+ * \param[in,out] config \ref cc_oci_config.
  *
  * \return \c true on success, else \c false.
  */
 static gboolean
-clr_oci_vm_netcfg_get (struct clr_oci_config *config)
+cc_oci_vm_netcfg_get (struct cc_oci_config *config)
 {
 	if ((! config)) {
 		return false;
@@ -500,12 +500,12 @@ clr_oci_vm_netcfg_get (struct clr_oci_config *config)
  * returning the data in "name=value" format in a
  * dynamically-allocated string vector.
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  *
  * \return \c string vector on success, , else \c NULL.
  */
 static gchar **
-clr_oci_vm_netcfg_to_strv (struct clr_oci_config *config)
+cc_oci_vm_netcfg_to_strv (struct cc_oci_config *config)
 {
 	gchar  **cfg = NULL;
 	gsize    count = 0;
@@ -514,7 +514,7 @@ clr_oci_vm_netcfg_to_strv (struct clr_oci_config *config)
 		return NULL;
 	}
 
-	if (! clr_oci_vm_netcfg_get (config)) {
+	if (! cc_oci_vm_netcfg_get (config)) {
 		return NULL;
 	}
 
@@ -566,14 +566,14 @@ clr_oci_vm_netcfg_to_strv (struct clr_oci_config *config)
  * Add the network configuration (via \p netcfg) to the specified
  * config.
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  * \param netcfg Newline-separated "name=value" format
  *   network configuration.
  *
  * \return \c true on success, else \c false.
  */
 static gboolean
-clr_oci_vm_netcfg_from_str (struct clr_oci_config *config,
+cc_oci_vm_netcfg_from_str (struct cc_oci_config *config,
 		const gchar *netcfg)
 {
 	gchar  **lines = NULL;
@@ -622,12 +622,12 @@ clr_oci_vm_netcfg_from_str (struct clr_oci_config *config,
  * Due to the way networking is handled in Docker, the logic here
  * is unfortunately rather complex.
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  *
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_oci_vm_launch (struct clr_oci_config *config)
+cc_oci_vm_launch (struct cc_oci_config *config)
 {
 	gboolean           ret = false;
 	GPid               pid;
@@ -643,7 +643,7 @@ clr_oci_vm_launch (struct clr_oci_config *config)
 	g_autofree gchar  *final = NULL;
 	g_autofree gchar  *timestamp = NULL;
 
-	timestamp = clr_oci_get_iso8601_timestamp ();
+	timestamp = cc_oci_get_iso8601_timestamp ();
 	if (! timestamp) {
 		goto out;
 	}
@@ -654,7 +654,7 @@ clr_oci_vm_launch (struct clr_oci_config *config)
 	 * the hooks run successfully. The child will automatically
 	 * inherit the namespaces.
 	 */
-	if (! clr_oci_ns_setup (config)) {
+	if (! cc_oci_ns_setup (config)) {
 		goto out;
 	}
 
@@ -679,7 +679,7 @@ clr_oci_vm_launch (struct clr_oci_config *config)
 		goto out;
 	}
 
-	if (! clr_oci_fd_set_cloexec (child_err_pipe[1])) {
+	if (! cc_oci_fd_set_cloexec (child_err_pipe[1])) {
 		g_critical ("failed to set close-exec bit on fd");
 		goto out;
 	}
@@ -735,7 +735,7 @@ clr_oci_vm_launch (struct clr_oci_config *config)
 
 		g_debug ("adding netcfg to config");
 
-		if (! clr_oci_vm_netcfg_from_str (config, netcfg)) {
+		if (! cc_oci_vm_netcfg_from_str (config, netcfg)) {
 			goto child_failed;
 		}
 
@@ -743,17 +743,17 @@ clr_oci_vm_launch (struct clr_oci_config *config)
 
 		// FIXME: add network config bits to following functions:
 		//
-		// - clr_oci_container_state()
+		// - cc_oci_container_state()
 		// - oci_state()
-		// - clr_oci_update_options()
+		// - cc_oci_update_options()
 
-		ret = clr_oci_vm_args_get (config, &args);
+		ret = cc_oci_vm_args_get (config, &args);
 		if (! (ret && args)) {
 			goto child_failed;
 		}
 
 		// FIXME: add netcfg to state file
-		ret = clr_oci_state_file_create (config, timestamp);
+		ret = cc_oci_state_file_create (config, timestamp);
 		if (! ret) {
 			g_critical ("failed to recreate state file");
 			goto out;
@@ -764,7 +764,7 @@ clr_oci_vm_launch (struct clr_oci_config *config)
 			g_debug ("arg: '%s'", *p);
 		}
 
-		if (! clr_oci_setup_child (config)) {
+		if (! cc_oci_setup_child (config)) {
 			goto child_failed;
 		}
 
@@ -787,7 +787,7 @@ clr_oci_vm_launch (struct clr_oci_config *config)
 	child_err_pipe[1] = -1;
 
 	/* create state file before hooks run */
-	ret = clr_oci_state_file_create (config, timestamp);
+	ret = cc_oci_state_file_create (config, timestamp);
 	if (! ret) {
 		g_critical ("failed to create state file");
 		goto out;
@@ -797,14 +797,14 @@ clr_oci_vm_launch (struct clr_oci_config *config)
 	 * including the exit code and the stderr is returned to
 	 * the caller and the container is torn down.
 	 */
-	ret = clr_run_hooks (config->oci.hooks.prestart,
+	ret = cc_run_hooks (config->oci.hooks.prestart,
 			config->state.state_file_path,
 			true);
 	if (! ret) {
 		g_critical ("failed to run prestart hooks");
 	}
 
-	netcfgv = clr_oci_vm_netcfg_to_strv (config);
+	netcfgv = cc_oci_vm_netcfg_to_strv (config);
 	if (! netcfgv) {
 		g_critical ("failed to obtain network config");
 		ret = false;
@@ -897,7 +897,7 @@ clr_oci_vm_launch (struct clr_oci_config *config)
 			(unsigned)config->state.workload_pid);
 
 	if (config->pid_file) {
-		ret = clr_oci_create_pidfile (config->pid_file,
+		ret = cc_oci_create_pidfile (config->pid_file,
 				config->state.workload_pid);
 	} else {
 		ret = true;
@@ -930,7 +930,7 @@ child_failed:
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_run_hooks(GSList* hooks, const gchar* state_file_path,
+cc_run_hooks(GSList* hooks, const gchar* state_file_path,
               gboolean stop_on_failure) {
 	GSList* i = NULL;
 	struct oci_cfg_hook* hook = NULL;
@@ -965,7 +965,7 @@ clr_run_hooks(GSList* hooks, const gchar* state_file_path,
 
 	for (i=g_slist_nth(hooks, 0); i; i=g_slist_next(i) ) {
 		hook = (struct oci_cfg_hook*)i->data;
-		if ((!clr_run_hook(hook, container_state, length)) && stop_on_failure) {
+		if ((!cc_run_hook(hook, container_state, length)) && stop_on_failure) {
 			goto exit;
 		}
 	}
@@ -983,14 +983,14 @@ exit:
 /*!
  * Create a connection to the VM, run a command and disconnect.
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  * \param argc Argument count.
  * \param argv Argument vector.
  *
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_oci_vm_connect (struct clr_oci_config *config,
+cc_oci_vm_connect (struct cc_oci_config *config,
 		int argc,
 		char *const argv[]) {
 	gchar     **args = NULL;
@@ -1015,7 +1015,7 @@ clr_oci_vm_connect (struct clr_oci_config *config,
 	 * FIXME: This is a pragmatic (but potentially unreliable) solution
 	 * FIXME:   if the user wants to run an unknown shell.
 	 */
-	if (clr_oci_cmd_is_shell (argv[0])) {
+	if (cc_oci_cmd_is_shell (argv[0])) {
 		cmd_is_just_shell = true;
 	}
 
@@ -1045,7 +1045,7 @@ clr_oci_vm_connect (struct clr_oci_config *config,
 
 	args_len = (guint)argc;
 
-	/* +2 for CLR_OCI_EXEC_CMD + hostname to connect to */
+	/* +2 for CC_OCI_EXEC_CMD + hostname to connect to */
 	args_len += 2;
 
 	/* +1 for NULL terminator */
@@ -1055,7 +1055,7 @@ clr_oci_vm_connect (struct clr_oci_config *config,
 	}
 
 	/* The command to use to connect to the VM */
-	args[0] = g_strdup (CLR_OCI_EXEC_CMD);
+	args[0] = g_strdup (CC_OCI_EXEC_CMD);
 	if (! args[0]) {
 		ret = false;
 		goto out;
@@ -1094,7 +1094,7 @@ clr_oci_vm_connect (struct clr_oci_config *config,
 			args,
 			NULL, /* inherit parents environment */
 			flags,
-			(GSpawnChildSetupFunc)clr_oci_close_fds,
+			(GSpawnChildSetupFunc)cc_oci_close_fds,
 			NULL, /* user_data */
 			&pid,
 			NULL, /* standard_input */
@@ -1112,7 +1112,7 @@ clr_oci_vm_connect (struct clr_oci_config *config,
 	g_debug ("child process ('%s') running with pid %u",
 			args[0], (unsigned)pid);
 
-	g_child_watch_add (pid, clr_oci_child_watcher, &exit_code);
+	g_child_watch_add (pid, cc_oci_child_watcher, &exit_code);
 
 	/* wait for child to finish */
 	g_main_loop_run (main_loop);

@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  * 
  * Copyright (C) 2016 Intel Corporation
  * 
@@ -69,7 +69,7 @@ int main(void) {
 	options.filename = g_build_path ("/",
             cwd,
             "platform_test_debug.log", NULL);
-	(void)clr_oci_log_init(&options);
+	(void)cc_oci_log_init(&options);
 
 	s = make_platform_suite();
 	sr = srunner_create(s);
@@ -78,7 +78,7 @@ int main(void) {
 	number_failed = srunner_ntests_failed(sr);
 	srunner_free(sr);
 
-	clr_oci_log_free (&options);
+	cc_oci_log_free (&options);
 
 	g_free (cwd);
 

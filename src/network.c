@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -23,7 +23,7 @@
  * Qemu QMP routines, used to talk to a running hypervisor.
  *
  * QMP messages are single-line UTF-8-encoded JSON documents.
- * Each message is separated by \ref CLR_OCI_MSG_SEPARATOR.
+ * Each message is separated by \ref CC_OCI_MSG_SEPARATOR.
  *
  * See: http://wiki.qemu.org/QMP
  */
@@ -43,13 +43,13 @@
 #include "network.h"
 
 /** Size of buffer to use to receive network data */
-#define CLR_OCI_NET_BUF_SIZE 2048
+#define CC_OCI_NET_BUF_SIZE 2048
 
 /** String that separates messages returned from the hypervisor */
-#define CLR_OCI_MSG_SEPARATOR "\r\n"
+#define CC_OCI_MSG_SEPARATOR "\r\n"
 
 /*! VM connection object. */
-struct clr_oci_vm_conn
+struct cc_oci_vm_conn
 {
 	/*! Full path to named socket. */
 	gchar socket_path[PATH_MAX];
@@ -67,7 +67,7 @@ struct clr_oci_vm_conn
  * \param msg \c GString.
  */
 static void
-clr_oci_net_msg_free (GString *msg)
+cc_oci_net_msg_free (GString *msg)
 {
 	g_assert (msg);
 
@@ -80,13 +80,13 @@ clr_oci_net_msg_free (GString *msg)
  * \param msgs List of \c GString's.
  */
 static void
-clr_oci_net_msgs_free_all (GSList *msgs)
+cc_oci_net_msgs_free_all (GSList *msgs)
 {
 	if (! msgs) {
 		return;
 	}
 
-	g_slist_free_full (msgs, (GDestroyNotify)clr_oci_net_msg_free);
+	g_slist_free_full (msgs, (GDestroyNotify)cc_oci_net_msg_free);
 }
 
 /*!
@@ -100,13 +100,13 @@ clr_oci_net_msgs_free_all (GSList *msgs)
  * \return \c true on success, else \c false.
  */
 static gboolean
-clr_oci_qmp_msg_recv (GSocket *socket,
+cc_oci_qmp_msg_recv (GSocket *socket,
 		gsize expected_count,
 		GSList **msgs,
 		gsize *count)
 {
 	gboolean     ret = false;
-	gchar        buffer[CLR_OCI_NET_BUF_SIZE];
+	gchar        buffer[CC_OCI_NET_BUF_SIZE];
 	gsize        total = 0;
 	gssize       bytes;
 	gssize       msg_len;
@@ -126,10 +126,10 @@ clr_oci_qmp_msg_recv (GSocket *socket,
 
 	do {
 		/* reset */
-		memset (buffer, '\0', CLR_OCI_NET_BUF_SIZE);
+		memset (buffer, '\0', CC_OCI_NET_BUF_SIZE);
 
 		/* read a chunk */
-		bytes = g_socket_receive (socket, buffer, CLR_OCI_NET_BUF_SIZE,
+		bytes = g_socket_receive (socket, buffer, CC_OCI_NET_BUF_SIZE,
 				NULL, &error);
 
 		if (bytes <= 0) {
@@ -158,7 +158,7 @@ clr_oci_qmp_msg_recv (GSocket *socket,
 			 * complete message has been received yet.
 			 */
 			p = g_strstr_len (received->str, (gssize)total,
-					CLR_OCI_MSG_SEPARATOR);
+					CC_OCI_MSG_SEPARATOR);
 			if (! p) {
 				/* No complete message to operate on */
 				break;
@@ -186,7 +186,7 @@ clr_oci_qmp_msg_recv (GSocket *socket,
 			 */
 			g_string_erase (received, 0,
 					(gssize)
-					((gsize)msg_len + sizeof (CLR_OCI_MSG_SEPARATOR)-1));
+					((gsize)msg_len + sizeof (CC_OCI_MSG_SEPARATOR)-1));
 
 			/* Get ready to potentially receive a new
 			 * message (caller is responsible for freeing the list).
@@ -236,7 +236,7 @@ out:
  * \return \c true on success, else \c false.
  */
 static gboolean
-clr_oci_qmp_check_result (const char *result, gsize bytes,
+cc_oci_qmp_check_result (const char *result, gsize bytes,
 		gboolean expect_empty)
 {
 	gboolean      ret;
@@ -297,7 +297,7 @@ out:
 /*!
  * Send a QMP message to the hypervisor.
  *
- * \param conn \ref clr_oci_vm_conn to use.
+ * \param conn \ref cc_oci_vm_conn to use.
  * \param msg Data to send (json format).
  * \param msg_len message length.
  * \param expected_resp_count Expected number of response messages.
@@ -307,7 +307,7 @@ out:
  * \return \c true on success, else \c false.
  */
 static gboolean
-clr_oci_qmp_msg_send (struct clr_oci_vm_conn *conn,
+cc_oci_qmp_msg_send (struct cc_oci_vm_conn *conn,
 		const char *msg,
 		gsize msg_len,
 		gsize expected_resp_count,
@@ -345,7 +345,7 @@ clr_oci_qmp_msg_send (struct clr_oci_vm_conn *conn,
 		}
 
 		/* Get the response */
-		ret = clr_oci_qmp_msg_recv (conn->socket,
+		ret = cc_oci_qmp_msg_recv (conn->socket,
 				1, &msgs, &msg_count);
 		if (! ret) {
 			goto out;
@@ -358,13 +358,13 @@ clr_oci_qmp_msg_send (struct clr_oci_vm_conn *conn,
 		}
 
 		/* Check it */
-		ret = clr_oci_qmp_check_result (recv_msg->str,
+		ret = cc_oci_qmp_check_result (recv_msg->str,
 				recv_msg->len, true);
 		if (! ret) {
 			goto out;
 		}
 
-		clr_oci_net_msgs_free_all (msgs);
+		cc_oci_net_msgs_free_all (msgs);
 
 		initialised = true;
 
@@ -393,7 +393,7 @@ clr_oci_qmp_msg_send (struct clr_oci_vm_conn *conn,
 	}
 
 	/* Get the response */
-	ret = clr_oci_qmp_msg_recv (conn->socket,
+	ret = cc_oci_qmp_msg_recv (conn->socket,
 			expected_resp_count,
 			&msgs, &msg_count);
 	if (! ret) {
@@ -435,7 +435,7 @@ clr_oci_qmp_msg_send (struct clr_oci_vm_conn *conn,
 	}
 
 	/* Check message */
-	ret = clr_oci_qmp_check_result (recv_msg->str,
+	ret = cc_oci_qmp_check_result (recv_msg->str,
 			recv_msg->len, expect_empty);
 	if (! ret) {
 		goto out;
@@ -445,7 +445,7 @@ clr_oci_qmp_msg_send (struct clr_oci_vm_conn *conn,
 
 out:
 	if (msgs) {
-		clr_oci_net_msgs_free_all (msgs);
+		cc_oci_net_msgs_free_all (msgs);
 	}
 
 	return ret;
@@ -454,7 +454,7 @@ out:
 /*!
  * Send a QMP shutdown message to the hypervisor.
  *
- * \param conn \ref clr_oci_vm_conn to use.
+ * \param conn \ref cc_oci_vm_conn to use.
  * \param pid \c GPid of hypervisor process.
  *
  * \warning \p pid is only required for the temporary shutdown
@@ -463,7 +463,7 @@ out:
  * \return \c true on success, else \c false.
  */
 static gboolean
-clr_oci_qmp_shutdown (struct clr_oci_vm_conn *conn, GPid pid)
+cc_oci_qmp_shutdown (struct cc_oci_vm_conn *conn, GPid pid)
 {
 	g_assert (conn);
 	g_assert (pid);
@@ -478,45 +478,45 @@ clr_oci_qmp_shutdown (struct clr_oci_vm_conn *conn, GPid pid)
 	 * 2) {"timestamp": {"seconds": X, "microseconds": X}, "event": "POWERDOWN"}
 	 * 3) {"timestamp": {"seconds": X, "microseconds": X}, "event": "SHUTDOWN"}
 	 */
-	return clr_oci_qmp_msg_send (conn, shutdown_msg,
+	return cc_oci_qmp_msg_send (conn, shutdown_msg,
 			sizeof(shutdown_msg)-1, 3, false);
 }
 
 /*!
  * Send a QMP pause message to the hypervisor.
  *
- * \param conn \ref clr_oci_vm_conn to use.
+ * \param conn \ref cc_oci_vm_conn to use.
  * \param pid \c GPid of hypervisor process.
  *
  * \return \c true on success, else \c false.
  */
 static gboolean
-clr_oci_qmp_pause (struct clr_oci_vm_conn *conn, GPid pid)
+cc_oci_qmp_pause (struct cc_oci_vm_conn *conn, GPid pid)
 {
 	const char pause_msg[] = "{ \"execute\": \"stop\" }";
 	g_assert (conn);
 	g_assert (pid);
 
-	return clr_oci_qmp_msg_send (conn, pause_msg,
+	return cc_oci_qmp_msg_send (conn, pause_msg,
 			sizeof(pause_msg)-1, 2, false);
 }
 
 /*!
  * Send a QMP resume message to the hypervisor.
  *
- * \param conn \ref clr_oci_vm_conn to use.
+ * \param conn \ref cc_oci_vm_conn to use.
  * \param pid \c GPid of hypervisor process.
  *
  * \return \c true on success, else \c false.
  */
 static gboolean
-clr_oci_qmp_resume (struct clr_oci_vm_conn *conn, GPid pid)
+cc_oci_qmp_resume (struct cc_oci_vm_conn *conn, GPid pid)
 {
 	const char resume_msg[] = "{ \"execute\": \"cont\" }";
 	g_assert (conn);
 	g_assert (pid);
 
-	return clr_oci_qmp_msg_send (conn, resume_msg,
+	return cc_oci_qmp_msg_send (conn, resume_msg,
 			sizeof(resume_msg)-1, 2, false);
 }
 
@@ -528,7 +528,7 @@ clr_oci_qmp_resume (struct clr_oci_vm_conn *conn, GPid pid)
  * \return \c true on success, else \c false.
  */
 static gboolean
-clr_oci_qmp_check_welcome (GSocket *socket)
+cc_oci_qmp_check_welcome (GSocket *socket)
 {
 	GError      *error = NULL;
 	JsonParser  *parser = NULL;
@@ -540,7 +540,7 @@ clr_oci_qmp_check_welcome (GSocket *socket)
 
 	g_assert (socket);
 
-	ret = clr_oci_qmp_msg_recv (socket, 1, &msgs, &msg_count);
+	ret = cc_oci_qmp_msg_recv (socket, 1, &msgs, &msg_count);
 	if (! ret) {
 		goto out;
 	}
@@ -578,7 +578,7 @@ out:
 		g_object_unref (parser);
 	}
 	if (msgs) {
-		clr_oci_net_msgs_free_all (msgs);
+		cc_oci_net_msgs_free_all (msgs);
 	}
 
 	g_debug ("handled qmp welcome");
@@ -587,7 +587,7 @@ out:
 }
 
 static void
-clr_oci_vm_conn_free (struct clr_oci_vm_conn *conn)
+cc_oci_vm_conn_free (struct cc_oci_vm_conn *conn)
 {
 	g_assert (conn);
 
@@ -597,25 +597,25 @@ clr_oci_vm_conn_free (struct clr_oci_vm_conn *conn)
 }
 
 /*!
- * Create a new \ref clr_oci_vm_conn and connect to hypervisor to
+ * Create a new \ref cc_oci_vm_conn and connect to hypervisor to
  * perform initial welcome negotiation.
  *
  * \param socket_path Full path to named socket.
  * \param pid Process ID of running hypervisor.
  *
- * \return \ref clr_oci_vm_conn on success, else \c NULL.
+ * \return \ref cc_oci_vm_conn on success, else \c NULL.
  */
-static struct clr_oci_vm_conn *
-clr_oci_vm_conn_new (const gchar *socket_path, GPid pid)
+static struct cc_oci_vm_conn *
+cc_oci_vm_conn_new (const gchar *socket_path, GPid pid)
 {
-	struct clr_oci_vm_conn  *conn = NULL;
+	struct cc_oci_vm_conn  *conn = NULL;
 	GError                  *error = NULL;
 	gboolean                 ret = false;
 
 	g_assert (socket_path);
 	g_assert (pid);
 
-	conn = g_new0 (struct clr_oci_vm_conn, 1);
+	conn = g_new0 (struct cc_oci_vm_conn, 1);
 	if (! conn) {
 		return NULL;
 	}
@@ -651,7 +651,7 @@ clr_oci_vm_conn_new (const gchar *socket_path, GPid pid)
 
 	g_debug ("connected to socket path %s", socket_path);
 
-	ret = clr_oci_qmp_check_welcome (conn->socket);
+	ret = cc_oci_qmp_check_welcome (conn->socket);
 	if (! ret) {
 		goto err;
 	}
@@ -659,7 +659,7 @@ clr_oci_vm_conn_new (const gchar *socket_path, GPid pid)
 	return conn;
 
 err:
-	clr_oci_vm_conn_free (conn);
+	cc_oci_vm_conn_free (conn);
 
 	return NULL;
 }
@@ -667,33 +667,33 @@ err:
 /*!
  * Request the running hypervisor shutdown.
  *
- * \param socket_path Path to \ref CLR_OCI_HYPERVISOR_SOCKET.
+ * \param socket_path Path to \ref CC_OCI_HYPERVISOR_SOCKET.
  * \param pid \c GPid of hypervisor process.
  *
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_oci_vm_shutdown (const gchar *socket_path, GPid pid)
+cc_oci_vm_shutdown (const gchar *socket_path, GPid pid)
 {
 	gboolean                 ret = false;
-	struct clr_oci_vm_conn  *conn = NULL;
+	struct cc_oci_vm_conn  *conn = NULL;
 
 	g_assert (socket_path);
 	g_assert (pid);
 
-	conn = clr_oci_vm_conn_new (socket_path, pid);
+	conn = cc_oci_vm_conn_new (socket_path, pid);
 	if (! conn) {
 		goto out;
 	}
 
-	ret = clr_oci_qmp_shutdown (conn, pid);
+	ret = cc_oci_qmp_shutdown (conn, pid);
 	if (! ret) {
 		goto out;
 	}
 
 out:
 	if (conn) {
-		clr_oci_vm_conn_free (conn);
+		cc_oci_vm_conn_free (conn);
 	}
 
 	return ret;
@@ -702,32 +702,32 @@ out:
 /*!
  * Request the running hypervisor pause.
  *
- * \param socket_path Path to \ref CLR_OCI_HYPERVISOR_SOCKET.
+ * \param socket_path Path to \ref CC_OCI_HYPERVISOR_SOCKET.
  * \param pid \c GPid of hypervisor process.
  *
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_oci_vm_pause (const gchar *socket_path, GPid pid)
+cc_oci_vm_pause (const gchar *socket_path, GPid pid)
 {
 	gboolean                 ret = false;
-	struct clr_oci_vm_conn  *conn = NULL;
+	struct cc_oci_vm_conn  *conn = NULL;
 
 	g_assert (socket_path);
 	g_assert (pid);
 
-	conn = clr_oci_vm_conn_new (socket_path, pid);
+	conn = cc_oci_vm_conn_new (socket_path, pid);
 	if (! conn) {
 		goto out;
 	}
 
-	ret = clr_oci_qmp_pause (conn, pid);
+	ret = cc_oci_qmp_pause (conn, pid);
 	if (! ret) {
 		goto out;
 	}
 
 out:
-	clr_oci_vm_conn_free (conn);
+	cc_oci_vm_conn_free (conn);
 
 	return ret;
 }
@@ -735,32 +735,32 @@ out:
 /*!
  * Request the running hypervisor unpause.
  *
- * \param socket_path Path to \ref CLR_OCI_HYPERVISOR_SOCKET.
+ * \param socket_path Path to \ref CC_OCI_HYPERVISOR_SOCKET.
  * \param pid \c GPid of hypervisor process.
  *
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_oci_vm_resume (const gchar *socket_path, GPid pid)
+cc_oci_vm_resume (const gchar *socket_path, GPid pid)
 {
 	gboolean                 ret = false;
-	struct clr_oci_vm_conn  *conn = NULL;
+	struct cc_oci_vm_conn  *conn = NULL;
 
 	g_assert (socket_path);
 	g_assert (pid);
 
-	conn = clr_oci_vm_conn_new (socket_path, pid);
+	conn = cc_oci_vm_conn_new (socket_path, pid);
 	if (! conn) {
 		goto out;
 	}
 
-	ret = clr_oci_qmp_resume (conn, pid);
+	ret = cc_oci_qmp_resume (conn, pid);
 	if (! ret) {
 		goto out;
 	}
 
 out:
-	clr_oci_vm_conn_free (conn);
+	cc_oci_vm_conn_free (conn);
 
 	return ret;
 }

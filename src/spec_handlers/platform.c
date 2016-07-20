@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  * 
  * Copyright (C) 2016 Intel Corporation
  * 
@@ -21,7 +21,7 @@
 #include "spec_handler.h"
 
 static void
-handle_platform_section(GNode* root, struct clr_oci_config* config) {
+handle_platform_section(GNode* root, struct cc_oci_config* config) {
 	if (! (root && root->children)) {
 		return;
 	}
@@ -33,7 +33,7 @@ handle_platform_section(GNode* root, struct clr_oci_config* config) {
 }
 
 static bool
-platform_handle_section(GNode* root, struct clr_oci_config* config) {
+platform_handle_section(GNode* root, struct cc_oci_config* config) {
 	gboolean  ret = false;
 
 	if (! root) {
@@ -55,11 +55,11 @@ platform_handle_section(GNode* root, struct clr_oci_config* config) {
 	}
 
 	ret = g_strcmp0 (config->oci.platform.os,
-			CLR_OCI_EXPECTED_PLATFORM);
+			CC_OCI_EXPECTED_PLATFORM);
 	if (ret) {
 		g_critical ("unexpected os: got '%s', expected '%s'",
 				config->oci.platform.os,
-				CLR_OCI_EXPECTED_PLATFORM);
+				CC_OCI_EXPECTED_PLATFORM);
 		return false;
 	}
 
@@ -69,12 +69,12 @@ platform_handle_section(GNode* root, struct clr_oci_config* config) {
 	}
 
 	ret = g_strcmp0 (config->oci.platform.arch,
-			CLR_OCI_EXPECTED_ARCHITECTURE);
+			CC_OCI_EXPECTED_ARCHITECTURE);
 	if (ret) {
 		g_critical ("unexpected architecture: "
 				"got '%s', expected '%s'",
 				config->oci.platform.arch,
-				CLR_OCI_EXPECTED_ARCHITECTURE);
+				CC_OCI_EXPECTED_ARCHITECTURE);
 		return false;
 	}
 

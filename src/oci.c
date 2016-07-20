@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -92,7 +92,7 @@ struct socket_watcher_data
  */
 struct process_watcher_data
 {
-	struct clr_oci_config  *config;
+	struct cc_oci_config  *config;
 	GMainLoop              *loop;
 	GSocket                *socket;
 	GSocketAddress         *src_address;
@@ -109,7 +109,7 @@ struct process_watcher_data
  * \return Newly-allocated path string on success, else \c NULL.
  */
 gchar *
-clr_oci_get_bundlepath_file (const gchar *bundle_path,
+cc_oci_get_bundlepath_file (const gchar *bundle_path,
 		const gchar *file)
 {
 	if ((!bundle_path) || (!(*bundle_path)) ||
@@ -126,7 +126,7 @@ clr_oci_get_bundlepath_file (const gchar *bundle_path,
  *
  * \param[out] config_file Dynamically-allocated path to containers
  * config file.
- * \param[out] config \ref clr_oci_config.
+ * \param[out] config \ref cc_oci_config.
  * \param[out] state \ref oci_state.
  *
  * \note Used by the "stop" command.
@@ -134,23 +134,23 @@ clr_oci_get_bundlepath_file (const gchar *bundle_path,
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_oci_get_config_and_state (gchar **config_file,
-		struct clr_oci_config *config,
+cc_oci_get_config_and_state (gchar **config_file,
+		struct cc_oci_config *config,
 		struct oci_state **state)
 {
 	if ((!config_file) || (!config) || (!state)) {
 		return false;
 	}
 
-	if (! clr_oci_runtime_path_get (config)) {
+	if (! cc_oci_runtime_path_get (config)) {
 			return false;
 	}
 
-	if (! clr_oci_state_file_get (config)) {
+	if (! cc_oci_state_file_get (config)) {
 		return false;
 	}
 
-	*state = clr_oci_state_file_read (config->state.state_file_path);
+	*state = cc_oci_state_file_read (config->state.state_file_path);
 	if (! (*state)) {
 		g_critical("failed to read state file for container %s",
 		           config->optarg_container_id);
@@ -169,7 +169,7 @@ clr_oci_get_config_and_state (gchar **config_file,
 			(*state)->procsock_path,
 			sizeof (config->state.procsock_path));
 
-	*config_file = clr_oci_config_file_path ((*state)->bundle_path);
+	*config_file = cc_oci_config_file_path ((*state)->bundle_path);
 	if (! (*config_file)) {
 		goto err;
 	}
@@ -177,7 +177,7 @@ clr_oci_get_config_and_state (gchar **config_file,
 	return true;
 
 err:
-	clr_oci_state_free (*state);
+	cc_oci_state_free (*state);
 	g_free_if_set (*config_file);
 	return false;
 }
@@ -185,14 +185,14 @@ err:
 /*!
  * Forcibly stop the Hypervisor.
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  * \param state \ref oci_state.
  * \param signum Signal number to send to hypervisor.
  *
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_oci_kill (struct clr_oci_config *config,
+cc_oci_kill (struct cc_oci_config *config,
 		struct oci_state *state,
 		int signum)
 {
@@ -209,7 +209,7 @@ clr_oci_kill (struct clr_oci_config *config,
 	config->state.status = OCI_STATUS_STOPPING;
 
 	/* update state file */
-	if (! clr_oci_state_file_create (config, state->create_time)) {
+	if (! cc_oci_state_file_create (config, state->create_time)) {
 		g_critical ("failed to recreate state file");
 		return false;
 	}
@@ -222,7 +222,7 @@ clr_oci_kill (struct clr_oci_config *config,
 				strerror (errno));
 		/* revert container status */
 		config->state.status = last_status;
-		if (! clr_oci_state_file_create (config, state->create_time)) {
+		if (! cc_oci_state_file_create (config, state->create_time)) {
 			g_critical ("failed to recreate state file");
 			return false;
 		}
@@ -232,7 +232,7 @@ clr_oci_kill (struct clr_oci_config *config,
 	config->state.status = OCI_STATUS_STOPPED;
 
 	/* update state file */
-	if (! clr_oci_state_file_create (config, state->create_time)) {
+	if (! cc_oci_state_file_create (config, state->create_time)) {
 		g_critical ("failed to recreate state file");
 		return false;
 	}
@@ -248,7 +248,7 @@ clr_oci_kill (struct clr_oci_config *config,
  * \return \c true on success, else \c false.
  */
 private gboolean
-clr_oci_vm_running (const struct oci_state *state)
+cc_oci_vm_running (const struct oci_state *state)
 {
 	if (! (state && state->pid)) {
 		return false;
@@ -329,7 +329,7 @@ watcher_socket_stdout(GIOChannel* source, GIOCondition condition,
 	}
 out:
 	/* if vm is not running exit */
-	if (! clr_oci_vm_running(data->state)) {
+	if (! cc_oci_vm_running(data->state)) {
 		if (data->loop) {
 			g_main_loop_quit(data->loop);
 			return false;
@@ -376,7 +376,7 @@ watcher_stdin(GIOChannel* source, GIOCondition condition,
 		(GIOFunc)watcher_socket_stdin, buffer);
 out:
 	/* if vm is not running exit */
-	if (! clr_oci_vm_running(data->state)) {
+	if (! cc_oci_vm_running(data->state)) {
 		if (data->loop) {
 			g_main_loop_quit(data->loop);
 			return false;
@@ -389,13 +389,13 @@ out:
 /*!
  * Attach to the Hypervisor.
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  * \param state \ref oci_state.
  *
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_oci_attach (struct clr_oci_config *config,
+cc_oci_attach (struct cc_oci_config *config,
 		struct oci_state *state)
 {
 	gboolean result = false;
@@ -500,9 +500,9 @@ fail1:
 
 /*!
  * Create the containers Clear Linux workload file
- * (\ref CLR_OCI_WORKLOAD_FILE).
+ * (\ref CC_OCI_WORKLOAD_FILE).
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  *
  * \warning FIXME: Need to support running the workload as a different user/group.
  * Something like:
@@ -512,7 +512,7 @@ fail1:
  * \return \c true on success, else \c false.
  */
 private gboolean
-clr_oci_create_container_workload (struct clr_oci_config *config)
+cc_oci_create_container_workload (struct cc_oci_config *config)
 {
 	GString           *contents = NULL;
 	GError            *err = NULL;
@@ -536,7 +536,7 @@ clr_oci_create_container_workload (struct clr_oci_config *config)
 		g_autofree gchar  *env = NULL;
 
 		envpath = g_build_path ("/", config->oci.root.path,
-				CLR_OCI_ENV_FILE, NULL);
+				CC_OCI_ENV_FILE, NULL);
 		if (! envpath) {
 			return false;
 		}
@@ -552,7 +552,7 @@ clr_oci_create_container_workload (struct clr_oci_config *config)
 	}
 
 	path = g_build_path ("/", config->oci.root.path,
-			CLR_OCI_WORKLOAD_FILE, NULL);
+			CC_OCI_WORKLOAD_FILE, NULL);
 	if (! path) {
 		return false;
 	}
@@ -588,7 +588,7 @@ clr_oci_create_container_workload (struct clr_oci_config *config)
 			"#!%s\n"
 			"cd %s\n"
 			"%s\n",
-			CLR_OCI_WORKLOAD_SHELL,
+			CC_OCI_WORKLOAD_SHELL,
 			cwd,
 			workload_cmdline);
 
@@ -602,7 +602,7 @@ clr_oci_create_container_workload (struct clr_oci_config *config)
 		goto out;
 	}
 
-	if (g_chmod (config->vm->workload_path, CLR_OCI_SCRIPT_MODE) < 0) {
+	if (g_chmod (config->vm->workload_path, CC_OCI_SCRIPT_MODE) < 0) {
 		g_critical ("failed to set mode for file file %s",
 				config->vm->workload_path);
 		goto out;
@@ -625,24 +625,24 @@ out:
  * Clean up all resources (including unmounts) for
  * the specified config.
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  *
  * \return \c true on success, else \c false.
  */
 static gboolean
-clr_oci_cleanup (struct clr_oci_config *config)
+cc_oci_cleanup (struct cc_oci_config *config)
 {
 	g_assert (config);
 
-	if (! clr_oci_handle_unmounts (config)) {
+	if (! cc_oci_handle_unmounts (config)) {
 		return false;
 	}
 
-	if (! clr_oci_state_file_delete (config)) {
+	if (! cc_oci_state_file_delete (config)) {
 		return false;
 	}
 
-	if (! clr_oci_runtime_dir_delete (config)) {
+	if (! cc_oci_runtime_dir_delete (config)) {
 		return false;
 	}
 
@@ -650,15 +650,15 @@ clr_oci_cleanup (struct clr_oci_config *config)
 }
 
 /*!
- * Parse the \c GNode representation of \ref CLR_OCI_CONFIG_FILE
- * and save values in the provided \ref clr_oci_config.
+ * Parse the \c GNode representation of \ref CC_OCI_CONFIG_FILE
+ * and save values in the provided \ref cc_oci_config.
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  *
  * \return \c true on success, else \c false.
  */
 static gboolean
-clr_oci_config_file_parse (struct clr_oci_config *config)
+cc_oci_config_file_parse (struct cc_oci_config *config)
 {
 	g_autofree gchar  *config_file = NULL;
 	g_autofree gchar  *cwd = NULL;
@@ -669,7 +669,7 @@ clr_oci_config_file_parse (struct clr_oci_config *config)
 		return false;
 	}
 
-	config_file = clr_oci_config_file_path (config->bundle_path);
+	config_file = cc_oci_config_file_path (config->bundle_path);
 	if (! config_file) {
 		return false;
 	}
@@ -683,7 +683,7 @@ clr_oci_config_file_parse (struct clr_oci_config *config)
 
 	/* Set bundle directory as working directory. This is required
 	 * to deal with relative paths (paths relative to the bundle
-	 * directory) in CLR_OCI_CONFIG_FILE which must
+	 * directory) in CC_OCI_CONFIG_FILE which must
 	 * be resolved to absolutes.
 	 */
 	if (g_chdir (config->bundle_path) != 0) {
@@ -694,16 +694,16 @@ clr_oci_config_file_parse (struct clr_oci_config *config)
 	}
 
 	/* convert json file to GNode */
-	if (! clr_oci_json_parse (&root, config_file)) {
+	if (! cc_oci_json_parse (&root, config_file)) {
 		goto out;
 	}
 
 #ifdef DEBUG
 	/* show json file converted to GNode */
-	clr_oci_node_dump (root);
+	cc_oci_node_dump (root);
 #endif /*DEBUG*/
 
-	/* parse the GNode representation of CLR_OCI_CONFIG_FILE */
+	/* parse the GNode representation of CC_OCI_CONFIG_FILE */
 	g_node_children_foreach (root, G_TRAVERSE_ALL,
 		(GNodeForeachFunc)process_config_start, (gpointer)config);
 
@@ -729,12 +729,12 @@ out:
  * Create the state file, apply mounts and run hooks,
  * but do not start the VM.
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  *
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_oci_create (struct clr_oci_config *config)
+cc_oci_create (struct cc_oci_config *config)
 {
 	gboolean  ret = false;
 
@@ -742,15 +742,15 @@ clr_oci_create (struct clr_oci_config *config)
 		return false;
 	}
 
-	if (! clr_oci_config_file_parse (config)) {
+	if (! cc_oci_config_file_parse (config)) {
 		return false;
 	}
 
-	if (! clr_oci_config_check (config)) {
+	if (! cc_oci_config_check (config)) {
 		return false;
 	}
 
-	if (! clr_oci_runtime_dir_setup (config)) {
+	if (! cc_oci_runtime_dir_setup (config)) {
 		if (g_file_test (config->state.runtime_path,
 					G_FILE_TEST_EXISTS |
 					G_FILE_TEST_IS_DIR)) {
@@ -763,12 +763,12 @@ clr_oci_create (struct clr_oci_config *config)
 		return false;
 	}
 
-	if (! clr_oci_handle_mounts (config)) {
+	if (! cc_oci_handle_mounts (config)) {
 		g_critical ("failed to handle mounts");
 		return false;
 	}
 
-	if (! clr_oci_create_container_workload (config)) {
+	if (! cc_oci_create_container_workload (config)) {
 		g_critical ("failed to create workload");
 		return false;
 	}
@@ -782,7 +782,7 @@ clr_oci_create (struct clr_oci_config *config)
 	/* start VM is a stopped state (containerd requires a
 	 * valid pid in the pidfile after a successful "create").
 	 */
-	if (! clr_oci_vm_launch (config)) {
+	if (! cc_oci_vm_launch (config)) {
 		g_critical ("failed to launch VM");
 		goto out;
 	}
@@ -794,7 +794,7 @@ out:
 }
 
 /*!
- * Called when the \ref CLR_OCI_PROCESS_SOCKET file is closed by the VM,
+ * Called when the \ref CC_OCI_PROCESS_SOCKET file is closed by the VM,
  * denoting process shutdown.
  *
  * \param source \c GIOChannel.
@@ -821,7 +821,7 @@ handle_socket_close (GIOChannel              *source,
 }
 
 /**
- * Connect to \ref CLR_OCI_PROCESS_SOCKET and set a watch to trigger
+ * Connect to \ref CC_OCI_PROCESS_SOCKET and set a watch to trigger
  * when the socket is closed (denoting the VM has shutdown).
  *
  * \param data \ref process_watcher_data.
@@ -907,7 +907,7 @@ fail1:
 }
 
 /**
- * Determine when \ref CLR_OCI_PROCESS_SOCKET is created.
+ * Determine when \ref CC_OCI_PROCESS_SOCKET is created.
  *
  * \param monitor \c GFileMonitor.
  * \param file \c GFile.
@@ -941,11 +941,11 @@ watcher_runtime_dir (GFileMonitor            *monitor,
 	name = g_path_get_basename (path);
 
 	/* ignore non-matching files */
-	if (g_strcmp0 (CLR_OCI_PROCESS_SOCKET, name)) {
+	if (g_strcmp0 (CC_OCI_PROCESS_SOCKET, name)) {
 		return;
 	}
 
-	/* CLR_OCI_PROCESS_SOCKET has now been created, so delete the
+	/* CC_OCI_PROCESS_SOCKET has now been created, so delete the
 	 * monitor.
 	 */
 	g_object_unref (monitor);
@@ -958,15 +958,15 @@ watcher_runtime_dir (GFileMonitor            *monitor,
 }
 
 /*!
- * Start a VM previously setup by a call to clr_oci_create().
+ * Start a VM previously setup by a call to cc_oci_create().
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  * \param state \ref oci_state.
  *
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_oci_start (struct clr_oci_config *config,
+cc_oci_start (struct cc_oci_config *config,
 		struct oci_state *state)
 {
 	gboolean       ret = false;
@@ -983,7 +983,7 @@ clr_oci_start (struct clr_oci_config *config,
 	}
 
 	if (state->status == OCI_STATUS_RUNNING) {
-		if (clr_oci_vm_running (state)) {
+		if (cc_oci_vm_running (state)) {
 			g_critical ("container %s is already running",
 					config->optarg_container_id);
 		} else {
@@ -996,7 +996,7 @@ clr_oci_start (struct clr_oci_config *config,
 	} else if (state->status != OCI_STATUS_CREATED) {
 		g_critical ("unexpected state for container %s: %s",
 				config->optarg_container_id,
-				clr_oci_status_to_str (state->status));
+				cc_oci_status_to_str (state->status));
 		return false;
 	}
 
@@ -1006,7 +1006,7 @@ clr_oci_start (struct clr_oci_config *config,
 			g_free (config->bundle_path);
 		}
 
-		config->bundle_path = clr_oci_resolve_path (start_data.bundle);
+		config->bundle_path = cc_oci_resolve_path (start_data.bundle);
 		g_free (start_data.bundle);
 		start_data.bundle = NULL;
 	}
@@ -1068,7 +1068,7 @@ clr_oci_start (struct clr_oci_config *config,
 	/* "create" left the VM in a stopped state, so now let it
 	 * continue.
 	 *
-	 * This will result in \ref CLR_OCI_PROCESS_SOCKET being
+	 * This will result in \ref CC_OCI_PROCESS_SOCKET being
 	 * created, however there will be a delay. Since we wish to
 	 * connect to this socket, the approach is to use an inotify
 	 * watch to wait for the socket file to exist, then connect to
@@ -1089,7 +1089,7 @@ clr_oci_start (struct clr_oci_config *config,
 	config->state.status = OCI_STATUS_RUNNING;
 
 	/* update state file after run container */
-	if (! clr_oci_state_file_create (config, state->create_time)) {
+	if (! cc_oci_state_file_create (config, state->create_time)) {
 		g_critical ("failed to recreate state file");
 		ret = false;
 		goto out;
@@ -1097,14 +1097,14 @@ clr_oci_start (struct clr_oci_config *config,
 
 	/* If a hook returns a non-zero exit code, then an error is
 	logged and the remaining hooks are executed. */
-	clr_run_hooks (config->oci.hooks.poststart,
+	cc_run_hooks (config->oci.hooks.poststart,
 	              config->state.state_file_path, false);
 
 	if (wait) {
 		g_main_loop_run (data.loop);
 
 		/* Read state file to detect if the VM was stopped */
-		ret = clr_oci_get_config_and_state (&config_file, config,
+		ret = cc_oci_get_config_and_state (&config_file, config,
 				&state);
 		if (! ret) {
 			goto out;
@@ -1113,7 +1113,7 @@ clr_oci_start (struct clr_oci_config *config,
 		/* If the VM was stopped then *do not* cleanup */
 		if (config->state.status != OCI_STATUS_STOPPED &&
 			config->state.status != OCI_STATUS_STOPPING) {
-			ret = clr_oci_cleanup (config);
+			ret = cc_oci_cleanup (config);
 			if (data.failed) {
 				ret = false;
 			}
@@ -1150,12 +1150,12 @@ out:
 /*!
  * Start the hypervisor and run the workload.
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  *
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_oci_run (struct clr_oci_config *config)
+cc_oci_run (struct cc_oci_config *config)
 {
 	struct oci_state  *state;
 
@@ -1163,18 +1163,18 @@ clr_oci_run (struct clr_oci_config *config)
 		return false;
 	}
 
-	if (! clr_oci_create (config)) {
+	if (! cc_oci_create (config)) {
 		return false;
 	}
 
-	/* FIXME: Inefficient - clr_oci_create() has already created the
+	/* FIXME: Inefficient - cc_oci_create() has already created the
 	 * state file, so should not need to re-read it!!
 	 *
 	 * we could potentially associate config and state
 	 * (config->state), but great care would need to be taken on
 	 * cleanup.
 	 */
-	state = clr_oci_state_file_read (config->state.state_file_path);
+	state = cc_oci_state_file_read (config->state.state_file_path);
 	if (! state) {
 		g_critical ("failed to read state file "
 				"for container %s",
@@ -1182,7 +1182,7 @@ clr_oci_run (struct clr_oci_config *config)
 		return false;
 	}
 
-	if (! clr_oci_start (config, state)) {
+	if (! cc_oci_start (config, state)) {
 		return false;
 	}
 
@@ -1192,13 +1192,13 @@ clr_oci_run (struct clr_oci_config *config)
 /*!
  * Stop the Hypervisor.
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  * \param state \ref oci_state.
  *
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_oci_stop (struct clr_oci_config *config,
+cc_oci_stop (struct cc_oci_config *config,
 		struct oci_state *state)
 {
 	gboolean  ret;
@@ -1206,8 +1206,8 @@ clr_oci_stop (struct clr_oci_config *config,
 	g_assert (config);
 	g_assert (state);
 
-	if (clr_oci_vm_running (state)) {
-		ret = clr_oci_vm_shutdown (state->comms_path, state->pid);
+	if (cc_oci_vm_running (state)) {
+		ret = cc_oci_vm_shutdown (state->comms_path, state->pid);
 		if (! ret) {
 			return false;
 		}
@@ -1223,14 +1223,14 @@ clr_oci_stop (struct clr_oci_config *config,
 				state->id, state->pid);
 	}
 
-	ret = clr_oci_cleanup (config);
+	ret = cc_oci_cleanup (config);
 
 	/* The post-stop hooks are called after the container process is
 	 * stopped. Cleanup or debugging could be performed in such a
 	 * hook. If a hook returns a non-zero exit code, then an error
 	 * is logged and the remaining hooks are executed.
 	 */
-	clr_run_hooks (config->oci.hooks.poststop,
+	cc_run_hooks (config->oci.hooks.poststop,
 	              config->state.state_file_path, false);
 
 	return ret;
@@ -1239,14 +1239,14 @@ clr_oci_stop (struct clr_oci_config *config,
 /*!
  * Toggle the state of the Hypervisor.
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  * \param state \ref oci_state.
  * \param pause If \c true, pause the VM, else resume it.
  *
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_oci_toggle (struct clr_oci_config *config,
+cc_oci_toggle (struct cc_oci_config *config,
 		struct oci_state *state,
 		gboolean pause)
 {
@@ -1261,11 +1261,11 @@ clr_oci_toggle (struct clr_oci_config *config,
 
 	if (state->status == dest_status) {
 		g_warning ("already %s",
-				clr_oci_status_to_str (state->status));
+				cc_oci_status_to_str (state->status));
 		return true;
 	}
 
-	fp = pause ? clr_oci_vm_pause : clr_oci_vm_resume;
+	fp = pause ? cc_oci_vm_pause : cc_oci_vm_resume;
 
 	ret = fp (state->comms_path, state->pid);
 	if (! ret) {
@@ -1274,14 +1274,14 @@ clr_oci_toggle (struct clr_oci_config *config,
 
 	config->state.status = dest_status;
 
-	return clr_oci_state_file_create (config, state->create_time);
+	return cc_oci_state_file_create (config, state->create_time);
 }
 
 /*!
  * Run the command specified by \p argv in the hypervisor
  * and wait for it to finish.
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  * \param state \ref oci_state.
  * \param argc Argument count.
  * \param argv Argument vector.
@@ -1289,7 +1289,7 @@ clr_oci_toggle (struct clr_oci_config *config,
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_oci_exec (struct clr_oci_config *config,
+cc_oci_exec (struct cc_oci_config *config,
 		struct oci_state *state,
 		int argc,
 		char *const argv[])
@@ -1299,7 +1299,7 @@ clr_oci_exec (struct clr_oci_config *config,
 	g_assert (argc);
 	g_assert (argv);
 
-	if (! clr_oci_vm_connect (config, argc, argv)) {
+	if (! cc_oci_vm_connect (config, argc, argv)) {
 		g_critical ("failed to connect to VM");
 		return false;
 	}
@@ -1317,7 +1317,7 @@ clr_oci_exec (struct clr_oci_config *config,
  * \note FIXME: maybe we should simply not display a VM if it is destroyed?
  */
 static void
-clr_oci_list_vm (const struct oci_state *state,
+cc_oci_list_vm (const struct oci_state *state,
 		const struct format_options *options)
 {
 	JsonObject  *obj = NULL;
@@ -1326,10 +1326,10 @@ clr_oci_list_vm (const struct oci_state *state,
 	g_assert (state);
 	g_assert (options);
 
-	if (! clr_oci_vm_running (state)) {
-		status = clr_oci_status_to_str (OCI_STATUS_STOPPED);
+	if (! cc_oci_vm_running (state)) {
+		status = cc_oci_status_to_str (OCI_STATUS_STOPPED);
 	} else {
-		status = clr_oci_status_to_str (state->status);
+		status = cc_oci_status_to_str (state->status);
 	}
 
 	if (! options->use_json) {
@@ -1418,9 +1418,9 @@ clr_oci_list_vm (const struct oci_state *state,
  * \return \ref oci_state on success, else \c NULL.
  */
 static struct oci_state *
-clr_oci_vm_get_state (const gchar *name, const char *root_dir)
+cc_oci_vm_get_state (const gchar *name, const char *root_dir)
 {
-	struct clr_oci_config  config = { { 0 } };
+	struct cc_oci_config  config = { { 0 } };
 	struct oci_state      *state = NULL;
 	gchar                 *config_file = NULL;
 
@@ -1432,18 +1432,18 @@ clr_oci_vm_get_state (const gchar *name, const char *root_dir)
 		config.root_dir = g_strdup (root_dir);
 	}
 
-	if (! clr_oci_runtime_path_get (&config)) {
+	if (! cc_oci_runtime_path_get (&config)) {
 		return NULL;
 	}
 
-	if (! clr_oci_state_file_get (&config)) {
+	if (! cc_oci_state_file_get (&config)) {
 		return NULL;
 	}
 
-	state = clr_oci_state_file_read (config.state.state_file_path);
+	state = cc_oci_state_file_read (config.state.state_file_path);
 
 	g_free_if_set (config_file);
-	clr_oci_config_free (&config);
+	cc_oci_config_free (&config);
 
 	return state;
 }
@@ -1462,7 +1462,7 @@ clr_oci_vm_get_state (const gchar *name, const char *root_dir)
  * test required to handle PIDs in the code below).
  */
 static void
-clr_oci_update_options (const struct oci_state *state,
+cc_oci_update_options (const struct oci_state *state,
 		struct format_options *options)
 {
 	static int   status_max = 0;
@@ -1473,42 +1473,42 @@ clr_oci_update_options (const struct oci_state *state,
 	g_assert (options);
 
 	if (! status_max) {
-		status_max = clr_oci_status_length ();
+		status_max = cc_oci_status_length ();
 		options->status_width = status_max;
 	}
 
 	g_string_assign(str, state->id);
-	options->id_width = CLR_OCI_MAX (options->id_width,
+	options->id_width = CC_OCI_MAX (options->id_width,
 			(int)str->len);
 
 	g_string_printf(str, "%u", (unsigned)state->pid);
-	options->pid_width = CLR_OCI_MAX (options->pid_width,
+	options->pid_width = CC_OCI_MAX (options->pid_width,
 			(int)str->len);
 
 	/* XXX: a PID may be shorter than its column heading, so handle
 	 * that.
 	 */
-	options->pid_width = CLR_OCI_MAX (options->pid_width,
+	options->pid_width = CC_OCI_MAX (options->pid_width,
 			(int)sizeof("PID")-1);
 
 	g_string_assign(str, state->bundle_path);
-	options->bundle_width = CLR_OCI_MAX (options->bundle_width,
+	options->bundle_width = CC_OCI_MAX (options->bundle_width,
 			(int)str->len);
 
 	g_string_assign(str, state->create_time);
-	options->created_width = CLR_OCI_MAX (options->created_width,
+	options->created_width = CC_OCI_MAX (options->created_width,
 			(int)str->len);
 
 	g_string_assign(str, state->vm->hypervisor_path);
-	options->hypervisor_width = CLR_OCI_MAX (options->hypervisor_width,
+	options->hypervisor_width = CC_OCI_MAX (options->hypervisor_width,
 			(int)str->len);
 
 	g_string_assign(str, state->vm->image_path);
-	options->image_width = CLR_OCI_MAX (options->image_width,
+	options->image_width = CC_OCI_MAX (options->image_width,
 			(int)str->len);
 
 	g_string_assign(str, state->vm->kernel_path);
-	options->kernel_width = CLR_OCI_MAX (options->kernel_width,
+	options->kernel_width = CC_OCI_MAX (options->kernel_width,
 			(int)str->len);
 
 	g_string_free(str, true);
@@ -1522,7 +1522,7 @@ clr_oci_update_options (const struct oci_state *state,
  * - There may be no VMS to report on.
  * - VMs may be destroyed as this function runs.
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  * \param format Type of format to present list in ("json", "table",
  * or NULL for text).
  * \param show_all If \c true, show all details.
@@ -1530,7 +1530,7 @@ clr_oci_update_options (const struct oci_state *state,
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_oci_list (struct clr_oci_config *config, const gchar *format,
+cc_oci_list (struct cc_oci_config *config, const gchar *format,
         gboolean show_all)
 {
 	GDir                   *dir;
@@ -1547,7 +1547,7 @@ clr_oci_list (struct clr_oci_config *config, const gchar *format,
 
 	dirname = config->root_dir
 		? config->root_dir
-		: CLR_OCI_RUNTIME_DIR_PREFIX;
+		: CC_OCI_RUNTIME_DIR_PREFIX;
 
 	if (! g_strcmp0 (format, "json")) {
 		options.use_json = true;
@@ -1581,7 +1581,7 @@ clr_oci_list (struct clr_oci_config *config, const gchar *format,
 
 		g_free (path);
 
-		state = clr_oci_vm_get_state (name, dirname);
+		state = cc_oci_vm_get_state (name, dirname);
 		if (! state) {
 			continue;
 		}
@@ -1590,7 +1590,7 @@ clr_oci_list (struct clr_oci_config *config, const gchar *format,
 			/* calculate the maximum field widths
 			 * to display the state values.
 			 */
-			clr_oci_update_options (state, &options);
+			cc_oci_update_options (state, &options);
 		}
 
 		vms = g_slist_append (vms, state);
@@ -1641,10 +1641,10 @@ no_vms:
 	}
 
 	/* display the VMs, again using the calculated widths */
-	g_slist_foreach (vms, (GFunc)clr_oci_list_vm, &options);
+	g_slist_foreach (vms, (GFunc)cc_oci_list_vm, &options);
 
 	if (options.use_json) {
-		str = clr_oci_json_arr_to_string (options.array, false);
+		str = cc_oci_json_arr_to_string (options.array, false);
 		if (! str) {
 			goto out;
 		}
@@ -1654,7 +1654,7 @@ no_vms:
 	}
 
 	/* clean up */
-	g_slist_free_full (vms, (GDestroyNotify)clr_oci_state_free);
+	g_slist_free_full (vms, (GDestroyNotify)cc_oci_state_free);
 
 out:
 	if (dir) {
@@ -1669,15 +1669,15 @@ out:
  * Transfer certain elements from \p state to \p config.
  *
  * This is required since a state file is only ever generated from a
- * \ref clr_oci_config object.
+ * \ref cc_oci_config object.
  *
- * \param config \ref clr_oci_config.
+ * \param config \ref cc_oci_config.
  * \param state \ref oci_state.
  *
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_oci_config_update (struct clr_oci_config *config,
+cc_oci_config_update (struct cc_oci_config *config,
 		struct oci_state *state)
 {
 	if (! (config && state)) {

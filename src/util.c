@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  *
  * Copyright (C) 2016 Intel Corporation
  *
@@ -34,12 +34,12 @@
 #include "config.h"
 
 /** Full path to \c rm(1) command. */
-#define CLR_OCI_RM_CMD "/bin/rm"
+#define CC_OCI_RM_CMD "/bin/rm"
 
 #define make_table_entry(value) \
 { value, #value }
 
-static struct clr_oci_signal_table
+static struct cc_oci_signal_table
 {
 	int          num;
 	const gchar *name;
@@ -94,9 +94,9 @@ static struct clr_oci_signal_table
  * \return signal number, or -1 on error.
  */
 int
-clr_oci_get_signum (const gchar *signame)
+cc_oci_get_signum (const gchar *signame)
 {
-	struct clr_oci_signal_table  *s;
+	struct cc_oci_signal_table  *s;
 	gchar full_name[32] = { 0 };
 
 	if (! signame) {
@@ -124,7 +124,7 @@ clr_oci_get_signum (const gchar *signame)
  * \return Newly-allocated string.
  */
 gchar *
-clr_oci_get_iso8601_timestamp (void)
+cc_oci_get_iso8601_timestamp (void)
 {
 	GTimeVal   tv;
 	GDateTime *dt = NULL;
@@ -170,7 +170,7 @@ out:
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_oci_create_pidfile (const gchar *pidfile, GPid pid)
+cc_oci_create_pidfile (const gchar *pidfile, GPid pid)
 {
 	gboolean  ret = false;
 	GError   *err = NULL;
@@ -220,7 +220,7 @@ out:
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_oci_rm_rf (const gchar *path)
+cc_oci_rm_rf (const gchar *path)
 {
 	gchar *cmd;
 	gboolean ret = false;
@@ -230,7 +230,7 @@ clr_oci_rm_rf (const gchar *path)
 	}
 
 	cmd = g_strdup_printf ("%s -rf \"%s\" >/dev/null 2>&1",
-			CLR_OCI_RM_CMD, path);
+			CC_OCI_RM_CMD, path);
 	if (! cmd) {
 		return false;
 	}
@@ -256,7 +256,7 @@ clr_oci_rm_rf (const gchar *path)
  * \return Newly-allocated string on success, else \c NULL.
  */
 gchar *
-clr_oci_json_obj_to_string (JsonObject *obj, gboolean pretty, gsize *string_len)
+cc_oci_json_obj_to_string (JsonObject *obj, gboolean pretty, gsize *string_len)
 {
 	JsonGenerator  *generator;
 	JsonNode       *root;
@@ -293,7 +293,7 @@ clr_oci_json_obj_to_string (JsonObject *obj, gboolean pretty, gsize *string_len)
  * \return Newly-allocated string on success, else \c NULL.
  */
 gchar *
-clr_oci_json_arr_to_string (JsonArray *array, gboolean pretty)
+cc_oci_json_arr_to_string (JsonArray *array, gboolean pretty)
 {
 	JsonGenerator  *generator;
 	JsonNode       *root;
@@ -338,7 +338,7 @@ clr_oci_json_arr_to_string (JsonArray *array, gboolean pretty)
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_oci_replace_string (gchar **str, const char *from, const char *to)
+cc_oci_replace_string (gchar **str, const char *from, const char *to)
 {
 	gchar  *p;
 	gchar  *new = NULL;
@@ -385,7 +385,7 @@ clr_oci_replace_string (gchar **str, const char *from, const char *to)
  * \return \c true on success, else \c false.
  */
 gboolean
-clr_oci_file_to_strv (const char *file, gchar ***strv)
+cc_oci_file_to_strv (const char *file, gchar ***strv)
 {
 	gchar     *contents = NULL;
 	GError    *err = NULL;
@@ -479,7 +479,7 @@ gnode_free(GNode* node, gpointer data) {
  * \return Newly-allocated path string on success, else \c NULL.
  */
 gchar *
-clr_oci_resolve_path (const gchar *path)
+cc_oci_resolve_path (const gchar *path)
 {
 	char tmp[PATH_MAX] = { 0 };
 
@@ -516,7 +516,7 @@ clr_oci_resolve_path (const gchar *path)
  * \return \c true on success, else \c false.
  **/
 gboolean
-clr_oci_fd_set_cloexec (int fd)
+cc_oci_fd_set_cloexec (int fd)
 {
 	int flags;
 
@@ -540,7 +540,7 @@ clr_oci_fd_set_cloexec (int fd)
 
 #ifdef DEBUG
 static gboolean
-clr_oci_node_dump_aux(GNode* node, gpointer data) {
+cc_oci_node_dump_aux(GNode* node, gpointer data) {
 	gchar indent[LINE_MAX] = { 0 };
 	guint i;
 	for (i = 0; i < g_node_depth(node); i++) {
@@ -551,11 +551,11 @@ clr_oci_node_dump_aux(GNode* node, gpointer data) {
 }
 
 void
-clr_oci_node_dump(GNode* node) {
+cc_oci_node_dump(GNode* node) {
 	if (!node) {
 		return;
 	}
 	g_message("debug: " "======== Dumping GNode: ========");
-	g_node_traverse(node, G_PRE_ORDER, G_TRAVERSE_ALL, -1, clr_oci_node_dump_aux, NULL);
+	g_node_traverse(node, G_PRE_ORDER, G_TRAVERSE_ALL, -1, cc_oci_node_dump_aux, NULL);
 }
 #endif /*DEBUG*/

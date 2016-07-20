@@ -1,5 +1,5 @@
 /*
- * This file is part of clr-oci-runtime.
+ * This file is part of cc-oci-runtime.
  * 
  * Copyright (C) 2016 Intel Corporation
  * 
@@ -24,13 +24,13 @@ static void
 show_version (void)
 {
 	g_print ("%s version: %s\n", PACKAGE_NAME, PACKAGE_VERSION);
-	g_print ("spec version: %s\n", CLR_OCI_SUPPORTED_SPEC_VERSION);
+	g_print ("spec version: %s\n", CC_OCI_SUPPORTED_SPEC_VERSION);
 	g_print ("commit: %s\n", GIT_COMMIT);
 }
 
 static gboolean
 handler_version (const struct subcommand *sub,
-		struct clr_oci_config *config,
+		struct cc_oci_config *config,
 		int argc, char *argv[])
 {
 	(void)sub;
