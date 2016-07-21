@@ -477,12 +477,19 @@ exit:
 static gboolean
 cc_oci_vm_netcfg_get (struct cc_oci_config *config)
 {
-	if ((! config)) {
+	if (!config) {
 		return false;
 	}
 
 	/* TODO: We need to support multiple networks */
-	if ( !cc_oci_network_discover ("eth0", config)) {
+	/* We need to scan the network namespace for
+	 * all valid ethernet interfaces and configure
+	 * the interfaces one at a time
+	 * Currently this is hardcoded to eth0 as the
+	 * docker network plugin's create interfaces
+	 * in the sequence eth0, eth1,....
+	 */
+	if (!cc_oci_network_discover ("eth0", config)) {
 		g_critical("Network discovery failed");
 		return false;
 	}
