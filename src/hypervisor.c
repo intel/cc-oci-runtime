@@ -43,6 +43,62 @@
 private gchar *sysconfdir = SYSCONFDIR;
 private gchar *defaultsdir = DEFAULTSDIR;
 
+static gchar *
+cc_oci_expand_net_cmdline(struct cc_oci_config *config) {
+	/* www.kernel.org/doc/Documentation/filesystems/nfs/nfsroot.txt
+        * ip=<client-ip>:<server-ip>:<gw-ip>:<netmask>:<hostname>:
+         * <device>:<autoconf>:<dns0-ip>:<dns1-ip>
+	 */
+
+	/* FIXME. Sending multiple ip= does not seem to work
+	 * Hence support one or the other for now
+	 * Explore dracut or systemd based network init
+	 */
+
+	if ( config->net.ip_address != NULL ) {
+		return ( g_strdup_printf("ip=%s:::%s:%s:%s:off::",
+			config->net.ip_address,
+			config->net.subnet_mask,
+			config->net.hostname,
+			config->net.ifname) );
+	}
+
+	if ( config->net.ipv6_address != NULL ) {
+		return ( g_strdup_printf("ip=[%s]:::::%s:off::",
+			config->net.ipv6_address,
+			config->net.ifname) );
+	}
+
+	return g_strdup("");
+}
+
+#define QEMU_FMT_NETDEV "tap,ifname=%s,script=no,downscript=no,id=%s"
+
+static gchar *
+cc_oci_expand_netdev_cmdline(struct cc_oci_config *config) {
+
+	return g_strdup_printf(QEMU_FMT_NETDEV,
+		config->net.tap_device,
+		config->net.tap_device);
+}
+
+#define QEMU_FMT_DEVICE "driver=virtio-net,netdev=%s"
+#define QEMU_FMT_DEVICE_MAC QEMU_FMT_DEVICE ",mac=%s"
+
+static gchar *
+cc_oci_expand_net_device_cmdline(struct cc_oci_config *config) {
+
+	if ( config->net.mac_address == NULL ) {
+		return g_strdup_printf(QEMU_FMT_DEVICE,
+			config->net.tap_device);
+	} else {
+		return g_strdup_printf(QEMU_FMT_DEVICE_MAC,
+			config->net.tap_device,
+			config->net.mac_address);
+	}
+}
+
+
 /*!
  * Replace any special tokens found in \p args with their expanded
  * values.
@@ -71,6 +127,12 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 	const char        uuid_pattern[UUID_MAX] = "00000000-0000-0000-0000-000000000000";
 	char              uuid_str[UUID_MAX] = { 0 };
 	gint              uuid_index = 0;
+
+	gchar            *kernel_net_params = NULL;
+	gchar            *net_device_params = NULL;
+	gchar            *netdev_params = NULL;
+	gchar            *net_device_option = NULL;
+	gchar            *netdev_option = NULL;
 
 	if (! (config && args)) {
 		return false;
@@ -147,6 +209,25 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 
 	procsock_device = g_strdup_printf ("socket,id=procsock,path=%s,server,nowait", config->state.procsock_path);
 
+	kernel_net_params = cc_oci_expand_net_cmdline(config);
+
+	if ( config->net.tap_device == NULL ) {
+		/* Support --net=none */
+		/* Hacky, no clean way to add/remove args today
+		 * For multiple network we need to have a way to append
+		 * args to the hypervisor command line vs substitution
+		 */
+		netdev_option = g_strdup("-net");
+		netdev_params = g_strdup("none");
+		net_device_option = g_strdup("-net");
+		net_device_params = g_strdup("none");
+	} else {
+		netdev_option = g_strdup("-netdev");
+		net_device_option = g_strdup("-device");
+		netdev_params = cc_oci_expand_netdev_cmdline(config);
+		net_device_params = cc_oci_expand_net_device_cmdline(config);
+	}
+
 	for (arg = args, count = 0; arg && *arg; arg++, count++) {
 		if (! count) {
 			/* command must be the first entry */
@@ -174,6 +255,12 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 
 		ret = cc_oci_replace_string (arg, "@KERNEL_PARAMS@",
 				config->vm->kernel_params);
+		if (! ret) {
+			goto out;
+		}
+
+		ret = cc_oci_replace_string (arg, "@KERNEL_NET_PARAMS@",
+					      kernel_net_params);
 		if (! ret) {
 			goto out;
 		}
@@ -218,48 +305,31 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 			goto out;
 		}
 
-		if (config->net.gateway) {
-			ret = cc_oci_replace_string (arg,
-					"@GATEWAY@", config->net.gateway);
-			if (! ret) {
-				goto out;
-			}
+		/* For multiple network we need to have a way to append
+		 * args to the hypervisor command line vs substitution
+		 */
+		ret = cc_oci_replace_string (arg, "@NETDEV@",
+					      netdev_option);
+		if (! ret) {
+			goto out;
 		}
 
-		if (config->net.mac_address) {
-			ret = cc_oci_replace_string (arg,
-					"@MAC_ADDRESS@",
-					config->net.mac_address);
-			if (! ret) {
-				goto out;
-			}
+		ret = cc_oci_replace_string (arg, "@NETDEV_PARAMS@",
+					      netdev_params);
+		if (! ret) {
+			goto out;
 		}
 
-		if (config->net.ip_address) {
-			ret = cc_oci_replace_string (arg,
-					"@IP_ADDRESS@",
-					config->net.ip_address);
-			if (! ret) {
-				goto out;
-			}
+		ret = cc_oci_replace_string (arg, "@NETDEVICE@",
+					      net_device_option);
+		if (! ret) {
+			goto out;
 		}
 
-		if (config->net.ifname) {
-			ret = cc_oci_replace_string (arg,
-					"@IFNAME@",
-					config->net.ifname);
-			if (! ret) {
-				goto out;
-			}
-		}
-
-		if (config->net.bridge) {
-			ret = cc_oci_replace_string (arg,
-					"@BRIDGE@",
-					config->net.bridge);
-			if (! ret) {
-				goto out;
-			}
+		ret = cc_oci_replace_string (arg, "@NETDEVICE_PARAMS@",
+					      net_device_params);
+		if (! ret) {
+			goto out;
 		}
 	}
 
@@ -268,6 +338,11 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 out:
 	g_free_if_set (bytes);
 	g_free_if_set (console_device);
+	g_free_if_set (kernel_net_params);
+	g_free_if_set (net_device_params);
+	g_free_if_set (netdev_params);
+	g_free_if_set (net_device_option);
+	g_free_if_set (netdev_option);
 
 	return ret;
 }

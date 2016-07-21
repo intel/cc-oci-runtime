@@ -12,7 +12,7 @@ memory-backend-file,id=mem0,mem-path=@IMAGE@,size=@SIZE@
 -kernel
 @KERNEL@
 -append
-@KERNEL_PARAMS@
+@KERNEL_PARAMS@ @KERNEL_NET_PARAMS@
 -device
 virtio-9p-pci,fsdev=workload9p,mount_tag=rootfs
 -fsdev
@@ -42,3 +42,7 @@ unix:@COMMS_SOCKET@,server,nowait
 -nographic
 -vga
 none
+@NETDEV@
+@NETDEV_PARAMS@
+@NETDEVICE@
+@NETDEVICE_PARAMS@

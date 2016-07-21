@@ -159,9 +159,15 @@ cc_oci_config_free (struct cc_oci_config *config)
                 (GDestroyNotify)cc_oci_ns_free);
 	}
 
+	g_free_if_set (config->net.hostname);
 	g_free_if_set (config->net.gateway);
 	g_free_if_set (config->net.mac_address);
 	g_free_if_set (config->net.ip_address);
+	g_free_if_set (config->net.subnet_mask);
+	g_free_if_set (config->net.ipv6_address);
 	g_free_if_set (config->net.ifname);
 	g_free_if_set (config->net.bridge);
+	g_free_if_set (config->net.tap_device);
+	g_free_if_set (config->net.dns_ip1);
+	g_free_if_set (config->net.dns_ip2);
 }

@@ -72,6 +72,7 @@ common_sources = \
 	src/process.c src/process.h \
 	src/mount.c src/mount.h \
 	src/network.c src/network.h \
+	src/networking.c src/networking.h \
 	src/state.c src/state.h \
 	src/events.c src/events.h \
 	src/runtime.c src/runtime.h \
