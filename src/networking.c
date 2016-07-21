@@ -132,6 +132,11 @@ gboolean
 cc_oci_network_create (const struct cc_oci_config * const config) {
 	gchar cmd_line[1024];
 
+	/* No networking enabled */
+	if (config->net.ifname == NULL) {
+		return true;
+	}
+
 	if (!cc_oci_tap_create(config->net.tap_device)) {
 		return false;
 	}
@@ -286,7 +291,6 @@ cc_oci_network_discover (const gchar * const ifname,
 		return false;
 	}
 
-	config->net.ifname = g_strdup (ifname);
 
 	if (getifaddrs(&ifaddrs) == -1) {
 		g_critical("getifaddrs() failed with errno =  %d %s \n",
@@ -301,16 +305,18 @@ cc_oci_network_discover (const gchar * const ifname,
 		}
 
 		g_debug("	Interface := [%s]", ifa->ifa_name);
-
 		if (g_strcmp0(ifa->ifa_name, ifname) != 0) {
 			continue;
 		}
 
-		family = ifa->ifa_addr->sa_family;
 
+		family = ifa->ifa_addr->sa_family;
 		if ((family != AF_INET) && (family != AF_INET6)) {
 			continue;
 		}
+
+		/* We have found at least one interface that matches */
+		config->net.ifname = g_strdup (ifname);
 
 		/* Assuming interfaces has both IPv4 and IPv6 addrs */
 		if ( family == AF_INET6 ) {
@@ -361,11 +367,8 @@ cc_oci_network_discover (const gchar * const ifname,
 #if 1
 	config->net.dns_ip1 = g_strdup ("");
 	config->net.dns_ip2 = g_strdup ("");
-
-
 	g_critical ("FIXME: faking network config setup");
 #endif
-
 
 	return true;
 }

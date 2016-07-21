@@ -483,6 +483,7 @@ cc_oci_vm_netcfg_get (struct cc_oci_config *config)
 
 	/* TODO: We need to support multiple networks */
 	if ( !cc_oci_network_discover ("eth0", config)) {
+		g_critical("Network discovery failed");
 		return false;
 	}
 
@@ -855,7 +856,6 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 
 	}
 
-	/* TODO: Find the right place to do this */
 	if (! cc_oci_network_create(config)) {
 		g_critical ("failed to create network");
 		goto out;
