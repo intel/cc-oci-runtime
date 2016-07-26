@@ -100,6 +100,23 @@ struct process_watcher_data
 	gboolean                failed;
 };
 
+/**
+ * List of spec handlers used to process config on start
+ */
+static struct spec_handler* start_spec_handlers[] = {
+	&annotations_spec_handler,
+	&hooks_spec_handler,
+	&mounts_spec_handler,
+	&platform_spec_handler,
+	&process_spec_handler,
+	&root_spec_handler,
+	&vm_spec_handler,
+	&linux_spec_handler,
+
+	/* terminator */
+	NULL
+};
+
 /*!
  * Get the path of the specified file below the bundle path.
  *
@@ -704,8 +721,10 @@ cc_oci_config_file_parse (struct cc_oci_config *config)
 #endif /*DEBUG*/
 
 	/* parse the GNode representation of CC_OCI_CONFIG_FILE */
-	g_node_children_foreach (root, G_TRAVERSE_ALL,
-		(GNodeForeachFunc)process_config_start, (gpointer)config);
+	if (! cc_oci_process_config(root, config, start_spec_handlers)) {
+		g_critical ("failed to process config");
+		goto out;
+	}
 
 	/* Supplement the OCI config by determining VM configuration
 	 * details.
