@@ -50,15 +50,6 @@ specification, there are still a few feature gaps.
 The remainder of this section documents those gaps, all of which
 are being worked on.
 
-Non-interactive "``docker run``" and Docker_ logs
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If the runtime is configured for docker and "``docker run``" is
-specified without "``-ti``", no output is currently generated to either
-the console or the docker log ("``docker logs``" command).
-
-See https://github.com/01org/cc-oci-runtime/issues/17
-
 Networking
 ~~~~~~~~~~
 
