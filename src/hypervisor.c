@@ -196,7 +196,7 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 				config->console);
 		}
 	} else {
-		console_device = g_strdup ("stdio,id=charconsole0,signal=off");
+		console_device = g_strdup_printf ("serial,id=charconsole0,path=%s", config->console);
 	}
 
 	procsock_device = g_strdup_printf ("socket,id=procsock,path=%s,server,nowait", config->state.procsock_path);

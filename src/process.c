@@ -154,43 +154,6 @@ cc_oci_close_fds (void) {
 	return true;
 }
 
-/*!
- * Set standard streams to the specified terminal device.
- *
- * \param tty Full path to existing device to use.
- */
-static void
-cc_oci_set_child_std_fds (const char *tty) {
-	int fd;
-	int ret;
-
-	g_assert (tty);
-
-	if (! tty) {
-		return;
-	}
-
-	fd = open (tty, (O_RDWR | O_NOCTTY));
-	if (fd < 0) {
-		g_critical("Open failed for terminal device %s\n", tty);
-		return;
-	}
-
-	ret = dup2 (fd, STDIN_FILENO);
-	g_assert (ret >= 0);
-
-	ret = dup2 (fd, STDOUT_FILENO);
-	g_assert (ret >= 0);
-
-	ret = dup2 (fd, STDERR_FILENO);
-	g_assert (ret >= 0);
-
-	if (fd) {
-		/* only close the fd if it *isn't* STDIN_FILENO !! */
-		close (fd);
-	}
-}
-
 /*! Perform setup on spawned child process.
  *
  * \param config \ref cc_oci_config.
@@ -223,14 +186,6 @@ cc_oci_setup_child (struct cc_oci_config *config)
 		cc_oci_close_fds ();
 	}
 
-	if (! config->use_socket_console) {
-		// FIXME: instead of redirecting standard streams in the
-		// standard case, use a "-chardev" option instead,
-		// allowing the redirection of the hypervisors standard
-		// streams to a log file that will list any hypervisor
-		// messages/errors.
-		cc_oci_set_child_std_fds (config->console);
-	}
 }
 
 /*!
