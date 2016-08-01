@@ -24,6 +24,8 @@
 /** Mode for logfiles. */
 #define CC_OCI_LOGFILE_MODE		0640
 
+#include "oci-config.h"
+
 /** Options to pass to cc_oci_log_handler(). */
 struct cc_log_options
 {
@@ -36,11 +38,15 @@ struct cc_log_options
     /* Full path to global logfile to append to. */
     char     *global_logfile;
 
+    /* Full path to hypervisor log dir. */
+    char     *hypervisor_log_dir;
+
     /* If \c true, log in JSON, else ASCII. */
     gboolean  use_json;
 };
 
 gboolean cc_oci_log_init (const struct cc_log_options *options);
 void cc_oci_log_free (struct cc_log_options *options);
+void cc_oci_setup_hypervisor_logs (struct cc_oci_config *config);
 
 #endif /* _CC_OCI_LOGGING_H */

@@ -57,6 +57,7 @@
 #include "namespace.h"
 #include "networking.h"
 #include "common.h"
+#include "logging.h"
 
 static GMainLoop* main_loop = NULL;
 static GMainLoop* hook_loop = NULL;
@@ -185,6 +186,8 @@ cc_oci_setup_child (struct cc_oci_config *config)
 	if (! config->detached_mode) {
 		cc_oci_close_fds ();
 	}
+
+	cc_oci_setup_hypervisor_logs(config);
 
 	return true;
 }

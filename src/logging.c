@@ -31,6 +31,7 @@
 #include <glib/gprintf.h>
 #include <json-glib/json-glib.h>
 #include <json-glib/json-gobject.h>
+#include <glib/gstdio.h>
 
 #include "oci.h"
 #include "util.h"
@@ -55,6 +56,11 @@
 /** Fallback logging for catastrophic failures. */
 #define CC_OCI_ERROR(...) \
 	cc_oci_error (__FILE__, __LINE__, __func__, __VA_ARGS__)
+
+#define HYPERVISOR_STDOUT_FILE "hypervisor.stdout"
+#define HYPERVISOR_STDERR_FILE "hypervisor.stderr"
+
+static gchar* hypervisor_log_dir;
 
 /*!
  * Last-ditch logging routine which sends an error
@@ -472,12 +478,79 @@ cc_oci_log_init (const struct cc_log_options *options)
 		g_free (dir);
 	}
 
+	hypervisor_log_dir = options->hypervisor_log_dir;
+
 	(void)g_log_set_handler (G_LOG_DOMAIN,
 			(GLogLevelFlags)CC_OCI_LOG_FLAGS,
 			cc_oci_log_handler,
 			(gpointer)options);
 
 	return true;
+}
+
+/**
+ *
+ * Setup hypervisor logs
+ *
+ * redirect hypervisor's stdout and stderr to $containerId-hypervisor.stdout and
+ * $containerId-hypervisor.stderr respectively. Directory where log files will
+ * be created can be specified with --hypervisor-log-dir option, if not path is
+ * provided hypervisor output won't be logged therefore will be ignored
+ *
+ * \param config \ref cc_oci_config.
+ */
+void cc_oci_setup_hypervisor_logs (struct cc_oci_config *config)
+{
+	const struct qemu_log_file {
+		const gchar *path;
+		const int std_fd;
+	} qemu_log_files[] = {
+		{ HYPERVISOR_STDOUT_FILE, STDOUT_FILENO },
+		{ HYPERVISOR_STDERR_FILE, STDERR_FILENO },
+		{ NULL }
+	};
+
+	if (! config) {
+		return;
+	}
+
+	/* ensure that we have a directory for hypervisor logs */
+	if (! hypervisor_log_dir) {
+		return;
+	}
+
+	/* ensure that current pid is the hypervisor id */
+	if (config->state.workload_pid != getpid ()) {
+		return;
+	}
+
+	if (g_mkdir_with_parents(hypervisor_log_dir, CC_OCI_DIR_MODE)) {
+		g_critical("failed to create hypervisor log directory '%s'",
+			hypervisor_log_dir);
+		return;
+	}
+
+	for (const struct qemu_log_file *i = qemu_log_files; i && i->path; ++i) {
+		g_autofree gchar* std_file_name = g_strjoin("-", config->optarg_container_id,
+			i->path, NULL);
+		g_autofree gchar* std_file_path = g_build_path ("/", hypervisor_log_dir,
+			std_file_name, NULL);
+
+		if (std_file_path) {
+			/* creating log file
+			 * i.e: $hypervisor_log_dir/$containerId-hypervidor.stdout
+			 */
+			int std_file_fd = g_creat(std_file_path, CC_OCI_LOGFILE_MODE);
+			if (std_file_fd < 0) {
+				g_critical("failed to create file: %s", std_file_path);
+			/* redirecting stdout/stderr to a file */
+			} else if (dup2(std_file_fd, i->std_fd) < 0) {
+				g_critical("failed to dup %s", std_file_path);
+			}
+		} else {
+			g_critical("failed to build path: %s", i->path);
+		}
+	}
 }
 
 /**
@@ -495,4 +568,5 @@ cc_oci_log_free (struct cc_log_options *options)
 
 	g_free_if_set (options->filename);
 	g_free_if_set (options->global_logfile);
+	g_free_if_set (options->hypervisor_log_dir);
 }
