@@ -282,6 +282,9 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 		net_device_params = cc_oci_expand_net_device_cmdline(config);
 	}
 
+	/* Note: @NETDEV@: For multiple network we need to have a way to append
+	 * args to the hypervisor command line vs substitution
+	 */
 	struct special_tag {
 		const gchar* name;
 		const gchar* value;
@@ -338,33 +341,6 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 			if (! cc_oci_replace_string(arg, tag->name, tag->value)) {
 				goto out;
 			}
-		}
-
-		/* For multiple network we need to have a way to append
-		 * args to the hypervisor command line vs substitution
-		 */
-		ret = cc_oci_replace_string (arg, "@NETDEV@",
-					      netdev_option);
-		if (! ret) {
-			goto out;
-		}
-
-		ret = cc_oci_replace_string (arg, "@NETDEV_PARAMS@",
-					      netdev_params);
-		if (! ret) {
-			goto out;
-		}
-
-		ret = cc_oci_replace_string (arg, "@NETDEVICE@",
-					      net_device_option);
-		if (! ret) {
-			goto out;
-		}
-
-		ret = cc_oci_replace_string (arg, "@NETDEVICE_PARAMS@",
-					      net_device_params);
-		if (! ret) {
-			goto out;
 		}
 	}
 
