@@ -21,6 +21,8 @@
 #ifndef _CC_OCI_CONFIG_H
 #define _CC_OCI_CONFIG_H
 
+#include "spec_handler.h"
+
 gchar *cc_oci_config_file_path (const char *bundle_path);
 void cc_oci_config_free (struct cc_oci_config *config);
 
@@ -28,4 +30,8 @@ gboolean
 cc_oci_config_check (const struct cc_oci_config *config);
 
 void cc_oci_hook_free (struct oci_cfg_hook *h);
+
+gboolean
+cc_oci_process_config (GNode* root, struct cc_oci_config* config,
+	struct spec_handler** spec_handlers);
 #endif /* _CC_OCI_CONFIG_H */

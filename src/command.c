@@ -23,6 +23,7 @@
 #include "json.h"
 #include "config.h"
 #include "state.h"
+#include "oci-config.h"
 
 #include <glib/gstdio.h>
 
@@ -49,6 +50,16 @@ struct subcommand *subcommands[] =
 	&command_stop,
 	&command_update,
 	&command_version,
+
+	/* terminator */
+	NULL
+};
+
+/**
+ * List of spec handlers used to process config on stop
+ */
+static struct spec_handler *stop_spec_handlers[] = {
+	&hooks_spec_handler,
 
 	/* terminator */
 	NULL
@@ -179,8 +190,10 @@ handle_command_stop (const struct subcommand *sub,
 	cc_oci_node_dump(root);
 #endif /*DEBUG*/
 
-	g_node_children_foreach(root, G_TRAVERSE_ALL,
-	    (GNodeForeachFunc)process_config_stop, (gpointer)config);
+	if (! cc_oci_process_config(root, config, stop_spec_handlers)) {
+		g_critical ("failed to process config");
+		goto out;
+	}
 
 	g_free_node(root);
 

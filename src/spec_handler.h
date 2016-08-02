@@ -39,8 +39,15 @@ struct spec_handler {
 	bool (*handle_section)(GNode*, struct cc_oci_config*);
 };
 
-void process_config_start (GNode* root, struct cc_oci_config* config);
-void process_config_stop (GNode* root, struct cc_oci_config* config);
+extern struct spec_handler annotations_spec_handler;
+extern struct spec_handler hooks_spec_handler;
+extern struct spec_handler mounts_spec_handler;
+extern struct spec_handler platform_spec_handler;
+extern struct spec_handler process_spec_handler;
+extern struct spec_handler root_spec_handler;
+extern struct spec_handler vm_spec_handler;
+extern struct spec_handler linux_spec_handler;
+
 gboolean get_spec_vm_from_cfg_file (struct cc_oci_config* config);
 
 #endif /* _CC_OCI_SPEC_HANDLER_H */
