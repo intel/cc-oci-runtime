@@ -23,6 +23,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <string.h>
+#include <errno.h>
 
 #include <glib.h>
 #include <uuid/uuid.h>
@@ -186,25 +188,77 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 	 * CONTROL+c will not cause the VM to exit.
 	 */
 	if (! config->console || ! g_utf8_strlen(config->console, LINE_MAX)) {
-		/* No console specified, so make the hypervisor create
-		 * a Unix domain socket.
-		 */
-		config->console = g_build_path ("/",
-				config->state.runtime_path,
-				CC_OCI_CONSOLE_SOCKET, NULL);
+
 		config->use_socket_console = true;
 
-		g_debug ("no console device provided, so using socket: %s", config->console);
-
-		/* Note that path is not quoted - attempting to do so
-		 * results in qemu failing with the error:
+		/* Temporary fix for non-console output, since -chardev stdio is not working as expected
+		 * 
+		 * Check if called from docker. Use -chardev pipe as virtualconsole.
+		 * Create symlinks to docker named pipes in the format qemu expects.
 		 *
-		 *   Failed to bind socket to "/a/dir/console.sock": No such file or directory
+		 * Eventually move to using "stdio,id=charconsole0,signal=off"
 		 */
-		console_device = g_strdup_printf ("socket,path=%s,server,nowait,id=charconsole0,signal=off",
+		if (! isatty (STDIN_FILENO)) {
+
+			config->console = g_build_path ("/",
+					config->bundle_path,
+					"cc-std", NULL);
+
+			g_debug ("no console device provided , so using pipe: %s", config->console);
+
+			g_autofree gchar *init_stdout = g_build_path ("/",
+							config->bundle_path,
+							"init-stdout", NULL);
+
+			g_autofree gchar *cc_stdout = g_build_path ("/",
+							config->bundle_path,
+							"cc-std.out", NULL);
+
+			g_autofree gchar *init_stdin = g_build_path ("/",
+							config->bundle_path,
+							"init-stdin", NULL);
+			g_autofree gchar *cc_stdin = g_build_path ("/",
+							config->bundle_path,
+							"cc-std.in", NULL);
+
+			if ( symlink (init_stdout, cc_stdout) == -1) {
+				g_critical("Failed to create symlink for output pipe: %s",
+					   strerror (errno));
+				goto out;
+			}
+
+			if ( symlink (init_stdin, cc_stdin) == -1) {
+				g_critical("Failed to create symlink for input pipe: %s",
+					   strerror (errno));
+				goto out;
+			}
+
+			console_device = g_strdup_printf ("pipe,id=charconsole0,path=%s", config->console);
+
+		} else {
+
+			/* In case the runtime is called standalone without console */
+
+			/* No console specified, so make the hypervisor create
+			 * a Unix domain socket.
+			 */	
+			config->console = g_build_path ("/",
+					config->state.runtime_path,
+					CC_OCI_CONSOLE_SOCKET, NULL);
+
+			/* Note that path is not quoted - attempting to do so
+			 * results in qemu failing with the error:
+			 *
+			 *   Failed to bind socket to "/a/dir/console.sock": No such file or directory
+			 */
+
+			g_debug ("no console device provided, so using socket: %s", config->console);
+
+			console_device = g_strdup_printf ("socket,path=%s,server,nowait,id=charconsole0,signal=off",
 				config->console);
+		}
 	} else {
-		console_device = g_strdup ("stdio,id=charconsole0,signal=off");
+		console_device = g_strdup_printf ("serial,id=charconsole0,path=%s", config->console);
 	}
 
 	procsock_device = g_strdup_printf ("socket,id=procsock,path=%s,server,nowait", config->state.procsock_path);
@@ -228,6 +282,28 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 		net_device_params = cc_oci_expand_net_device_cmdline(config);
 	}
 
+	struct special_tag {
+		const gchar* name;
+		const gchar* value;
+	} special_tags[] = {
+		{ "@WORKLOAD_DIR@"      , config->oci.root.path      },
+		{ "@KERNEL@"            , config->vm->kernel_path    },
+		{ "@KERNEL_PARAMS@"     , config->vm->kernel_params  },
+		{ "@KERNEL_NET_PARAMS@" , kernel_net_params          },
+		{ "@IMAGE@"             , config->vm->image_path     },
+		{ "@SIZE@"              , bytes                      },
+		{ "@COMMS_SOCKET@"      , config->state.comms_path   },
+		{ "@PROCESS_SOCKET@"    , procsock_device            },
+		{ "@CONSOLE_DEVICE@"    , console_device             },
+		{ "@NAME@"              , g_strrstr(uuid_str, "-")+1 },
+		{ "@UUID@"              , uuid_str                   },
+		{ "@NETDEV@"            , netdev_option              },
+		{ "@NETDEV_PARAMS@"     , netdev_params              },
+		{ "@NETDEVICE@"         , net_device_option          },
+		{ "@NETDEVICE_PARAMS@"  , net_device_params          },
+		{ NULL }
+	};
+
 	for (arg = args, count = 0; arg && *arg; arg++, count++) {
 		if (! count) {
 			/* command must be the first entry */
@@ -241,68 +317,27 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 			}
 		}
 
-		ret = cc_oci_replace_string (arg, "@WORKLOAD_DIR@",
-				config->oci.root.path);
-		if (! ret) {
-			goto out;
+		/* when first character is '#' line is a comment and must be ignored */
+		if (**arg == '#') {
+			g_strlcpy(*arg, "\0", LINE_MAX);
+			continue;
 		}
 
-		ret = cc_oci_replace_string (arg, "@KERNEL@",
-				config->vm->kernel_path);
-		if (! ret) {
-			goto out;
+		/* looking for '#' */
+		gchar* ptr = g_strstr_len(*arg, LINE_MAX, "#");
+		while (ptr) {
+			/* if '[:space:]#' then replace '#' with '\0' (EOL) */
+			if (g_ascii_isspace(*(ptr-1))) {
+				g_strlcpy(ptr, "\0", LINE_MAX);
+				break;
+			}
+			ptr = g_strstr_len(ptr+1, LINE_MAX, "#");
 		}
 
-		ret = cc_oci_replace_string (arg, "@KERNEL_PARAMS@",
-				config->vm->kernel_params);
-		if (! ret) {
-			goto out;
-		}
-
-		ret = cc_oci_replace_string (arg, "@KERNEL_NET_PARAMS@",
-					      kernel_net_params);
-		if (! ret) {
-			goto out;
-		}
-
-		ret = cc_oci_replace_string (arg, "@IMAGE@",
-				config->vm->image_path);
-		if (! ret) {
-			goto out;
-		}
-
-		ret = cc_oci_replace_string (arg, "@SIZE@", bytes);
-		if (! ret) {
-			goto out;
-		}
-
-		ret = cc_oci_replace_string (arg, "@COMMS_SOCKET@",
-				config->state.comms_path);
-		if (! ret) {
-			goto out;
-		}
-
-		ret = cc_oci_replace_string (arg, "@PROCESS_SOCKET@",
-				procsock_device);
-		if (! ret) {
-			goto out;
-		}
-
-		ret = cc_oci_replace_string (arg, "@CONSOLE_DEVICE@",
-				console_device);
-		if (! ret) {
-			goto out;
-		}
-
-		ret = cc_oci_replace_string (arg, "@NAME@",
-				g_strrstr(uuid_str, "-")+1);
-		if (! ret) {
-			goto out;
-		}
-
-		ret = cc_oci_replace_string (arg, "@UUID@", uuid_str);
-		if (! ret) {
-			goto out;
+		for (struct special_tag* tag=special_tags; tag && tag->name; tag++) {
+			if (! cc_oci_replace_string(arg, tag->name, tag->value)) {
+				goto out;
+			}
 		}
 
 		/* For multiple network we need to have a way to append
@@ -423,6 +458,9 @@ cc_oci_vm_args_get (struct cc_oci_config *config,
 {
 	gboolean  ret;
 	gchar    *args_file = NULL;
+	guint     line_count = 0;
+	gchar   **arg;
+	gchar   **new_args;
 
 	if (! (config && args)) {
 		return false;
@@ -443,6 +481,35 @@ cc_oci_vm_args_get (struct cc_oci_config *config,
 	if (! ret) {
 		goto out;
 	}
+
+	/* count non-empty lines */
+	for (arg = *args; arg && *arg; arg++) {
+		if (**arg != '\0') {
+			line_count++;
+		}
+	}
+
+	new_args = g_malloc0(sizeof(gchar*) * (line_count+1));
+
+	/* copy non-empty lines */
+	for (arg = *args, line_count = 0; arg && *arg; arg++) {
+		/* *do not* add empty lines */
+		if (**arg != '\0') {
+			/* container fails if arg contains spaces */
+			g_strstrip(*arg);
+			new_args[line_count] = *arg;
+			line_count++;
+		} else {
+			/* free empty lines */
+			g_free(*arg);
+		}
+	}
+
+	/* only free pointer to gchar* */
+	g_free(*args);
+
+	/* copy new args */
+	*args = new_args;
 
 	ret = true;
 out:

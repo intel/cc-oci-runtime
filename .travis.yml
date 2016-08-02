@@ -1,0 +1,5 @@
+language: c
+compiler: gcc
+
+script:
+- echo "Empty for now"
