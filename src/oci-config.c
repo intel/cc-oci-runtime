@@ -171,3 +171,48 @@ cc_oci_config_free (struct cc_oci_config *config)
 	g_free_if_set (config->net.dns_ip1);
 	g_free_if_set (config->net.dns_ip2);
 }
+
+/*!
+ * find and call the spec handler for each child of GNode
+ *
+ * \param [in] node GNode
+ * \param[in,out] config cc_oci_config struct
+ *
+ * \return \c false if a spec handler fails, else \c true
+ */
+gboolean
+cc_oci_process_config (GNode *root, struct cc_oci_config *config,
+	struct spec_handler **spec_handlers)
+{
+	GNode* node;
+
+	for (node = g_node_first_child(root); node; node = g_node_next_sibling(node)) {
+		if (! node->data) {
+			continue;
+		}
+
+		if (node->children) {
+			if (g_strcmp0 (node->data, "ociVersion") == 0) {
+				config->oci.oci_version = g_strdup (node->children->data);
+			}
+
+			if (g_strcmp0 (node->data, "hostname") == 0) {
+				config->oci.hostname = g_strdup (node->children->data);
+			}
+		}
+
+		/* looking for right spec handler */
+		for (struct spec_handler** i=spec_handlers; (*i); ++i) {
+			if (g_strcmp0((*i)->name, node->data) == 0) {
+				/* run spec handler */
+				if (! (*i)->handle_section(node, config)) {
+					g_critical("failed spec handler: %s", (*i)->name);
+					return false;
+				}
+				break;
+			}
+		}
+	}
+
+	return true;
+}
