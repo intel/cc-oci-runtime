@@ -113,7 +113,7 @@ AS_IF([test $CPPCHECK = 1],
 AS_IF([test $FUNCTIONAL_TEST = 1],
    [AC_PATH_PROG([BATS_PATH], [bats], [no], [$PATH:/sbin:/usr/sbin])
    if test x"$BATS_PATH" == x"no" ; then
-       AC_MSG_ERROR([Please install bats.])
+       AC_MSG_ERROR([Please install bats (Bash Automated Testing System).)])
    fi
    AC_SUBST(BATS_PATH)]
 )
