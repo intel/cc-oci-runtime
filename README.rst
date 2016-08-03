@@ -123,7 +123,7 @@ Then, to run a Clear Container using the runtime, specify "``--runtime cor``".
 
 For example::
 
-    $ sudo docker-run --runtime cor -ti busybox
+    $ sudo docker run --runtime cor -ti busybox
 
 Running under ``containerd`` (without Docker)
 ---------------------------------------------
