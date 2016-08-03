@@ -5,39 +5,8 @@ language: c
 compiler: gcc
 
 before_script:
-- sudo apt-get -qq install valgrind lcov uuid-dev pkg-config zlib1g-dev libffi-dev gettext libpcre3-dev texinfo gtk-doc-tools cppcheck
-- mkdir cor-dependencies
-- pushd cor-dependencies
-- curl -L -O https://github.com/GNOME/glib/archive/2.49.4.tar.gz
-- tar -xvf 2.49.4.tar.gz
-- pushd glib-2.49.4
-- bash autogen.sh --prefix=/usr
-- make
-- sudo make install
-- popd
-- curl -L -O https://github.com/GNOME/json-glib/archive/1.2.2.tar.gz
-- tar -xvf 1.2.2.tar.gz
-- pushd json-glib-1.2.2
-- bash autogen.sh --prefix=/usr
-- make
-- sudo make install
-- popd
-- curl -L -O https://github.com/libcheck/check/archive/0.10.0.tar.gz
-- tar -xvf 0.10.0.tar.gz
-- pushd check-0.10.0
-- autoreconf --install
-- ./configure --prefix=/usr
-- make
-- sudo make install
-- popd
-- git clone https://github.com/sstephenson/bats.git
-- pushd bats
-- sudo ./install.sh /usr/local
-- popd
-- sudo ldconfig
-- popd
+- ./.travis-setup.sh
 
 script:
 - ./autogen.sh --enable-cppcheck --enable-valgrind
 - make
-
