@@ -27,8 +27,7 @@ autoreconf --force --install --symlink --warnings=all
 args="\
 --sysconfdir=/etc \
 --localstatedir=/var \
---prefix=/usr \
---enable-silent-rules"
+--prefix=/usr"
 
 set -x
 ./configure $args "$@"
