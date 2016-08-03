@@ -65,7 +65,12 @@ check_full_expansion (struct cc_oci_config *config,
 	if (g_strcmp0 (args[5], "comms-path")) {
 		return false;
 	}
-	if (g_strcmp0 (args[6], "stdio,id=charconsole0,signal=off")) {
+
+	gchar *console = g_strdup_printf ("serial,id=charconsole0,path=%s",
+					  config->console);
+	gboolean ok = g_strcmp0 (args[6], console) == 0;
+	g_free (console);
+	if (!ok) {
 		return false;
 	}
 
