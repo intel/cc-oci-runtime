@@ -20,7 +20,7 @@
 
 set -e
 
-export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:/usr/lib/pkgconfig
+export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/lib/pkgconfig
 
 autoreconf --force --install --symlink --warnings=all
 
