@@ -58,8 +58,9 @@ cc_oci_expand_net_cmdline(struct cc_oci_config *config) {
 	 */
 
 	if ( config->net.ip_address != NULL ) {
-		return ( g_strdup_printf("ip=%s:::%s:%s:%s:off::",
+		return ( g_strdup_printf("ip=%s::%s:%s:%s:%s:off::",
 			config->net.ip_address,
+			config->net.gateway,
 			config->net.subnet_mask,
 			config->net.hostname,
 			config->net.ifname) );
