@@ -148,14 +148,18 @@ AC_CACHE_CHECK(
         AC_PATH_PROGS_FEATURE_CHECK([QEMU],
             [qemu-lite-system-x86_64 qemu-system-x86_64],
             [
-                [
-                     QEMUout=`$ac_path_QEMU -machine help | grep -o pc-lite | tail -1`
-                     test "x$QEMUout" = "xpc-lite" && ac_cv_path_QEMU=$ac_path_QEMU ac_path_QEMU_found=:
-                ]
+                QEMUout=`$ac_path_QEMU -machine help | grep -o pc-lite | tail -1`
+                AS_IF([test "x$QEMUout" = "xpc-lite"],
+                      [
+                          ac_cv_path_QEMU=$ac_path_QEMU
+                          has_pc_lite=yes
+                          ac_path_QEMU_found=:
+                      ])
             ],
             [
                 AC_MSG_WARN([No qemu detected with pc-lite machine support using:])
                 ac_cv_path_QEMU=$DEFAULT_QEMU_PATH
+                has_pc_lite=no
             ]
         )
     ]
@@ -226,3 +230,29 @@ AC_ARG_WITH([cc-image],
 )
 
 AC_OUTPUT
+
+dnl === Summary ===============================================================
+
+AS_IF([test x"$disable_tests" = xno], [enable_tests=yes], [enable_tests=no])
+AS_IF([test x"$disable_functional_test" = xno],
+      [enable_functional_tests=yes], [enable_functional_tests=no])
+
+AC_MSG_RESULT([
+cc-oci-runtime - $VERSION
+
+ • General:
+
+       QEMU             : $ac_cv_path_QEMU
+       QEMU pc-lite     : $has_pc_lite
+       Container kernel : $CONTAINER_KERNEL
+       Container image  : $CONTAINERS_IMG
+       Debug build      : $enable_debug
+
+ • Tests:
+
+       Unit tests       : $enable_tests
+       Functional tests : $enable_functional_tests
+       Cppcheck         : $enable_cppcheck
+       Valgrind         : $VALGRIND_ENABLED
+       Code coverage    : $CODE_COVERAGE_ENABLED
+])
