@@ -19,7 +19,7 @@
 
 set -x
 
-glib_version=2.49.4
+glib_version=2.46.2
 json_glib_version=1.2.2
 check_version=0.10.0
 
