@@ -46,6 +46,14 @@
 
 #define TUNDEV "/dev/net/tun"
 
+/* Using unqualified path to enable it to be picked
+ * up from the users enviornment. May be overidden
+ * at build time with fully qualified path
+ */
+#ifndef CC_OCI_IPROUTE2_BIN
+#define CC_OCI_IPROUTE2_BIN "ip"
+#endif
+
 
 /*!
  * Request to create a named tap interface
@@ -92,7 +100,7 @@ out:
 	if (fd != -1) {
 		close(fd);
 	}
-	
+
 	return ret;
 }
 
@@ -110,25 +118,29 @@ static gboolean
 cc_oci_netlink_run(const gchar *cmd_line) {
 	gint exit_status = -1;
 	gboolean ret = false;
+	gchar iproute2_cmd[1024];
 
 	if (cmd_line == NULL){
 		g_critical("invalid netlink command");
 		return false;
 	}
 
-	ret = g_spawn_command_line_sync(cmd_line,
+	g_snprintf(iproute2_cmd, sizeof(iproute2_cmd),
+		"%s %s", CC_OCI_IPROUTE2_BIN, cmd_line);
+
+	ret = g_spawn_command_line_sync(iproute2_cmd,
 				NULL,
 				NULL,
 				&exit_status,
 				NULL);
 
 	if (!ret) {
-		g_critical("failed to spawn [%s]", cmd_line);
+		g_critical("failed to spawn [%s]", iproute2_cmd);
 		return false;
 	}
 
 	if (exit_status) {
-		g_critical("netlink failure [%s] [%d]", cmd_line, exit_status);
+		g_critical("netlink failure [%s] [%d]", iproute2_cmd, exit_status);
 		return false;
 	}
 
@@ -174,7 +186,7 @@ cc_oci_network_create(const struct cc_oci_config *const config) {
 	* netlink commands
 	*/
 
-#define NETLINK_CREATE_BRIDGE "ip link add name %s type bridge"
+#define NETLINK_CREATE_BRIDGE "link add name %s type bridge"
 	g_snprintf(cmd_line, sizeof(cmd_line),
 		NETLINK_CREATE_BRIDGE,
 		config->net.bridge);
@@ -183,7 +195,7 @@ cc_oci_network_create(const struct cc_oci_config *const config) {
 		return false;
 	}
 
-#define NETLINK_SET_MAC	"ip link set dev %s address %s"
+#define NETLINK_SET_MAC	"link set dev %s address %s"
 	/* TODO: Derive non conflicting mac from interface */
 	g_snprintf(cmd_line, sizeof(cmd_line),
 		NETLINK_SET_MAC,
@@ -194,7 +206,7 @@ cc_oci_network_create(const struct cc_oci_config *const config) {
 		return false;
 	}
 
-#define NETLINK_ADD_LINK_BR "ip link set dev %s master %s"
+#define NETLINK_ADD_LINK_BR "link set dev %s master %s"
 	g_snprintf(cmd_line, sizeof(cmd_line),
 		NETLINK_ADD_LINK_BR,
 		config->net.ifname,
@@ -213,7 +225,7 @@ cc_oci_network_create(const struct cc_oci_config *const config) {
 		return false;
 	}
 
-#define NETLINK_LINK_EN	"ip link set dev %s up"
+#define NETLINK_LINK_EN	"link set dev %s up"
 	g_snprintf(cmd_line, sizeof(cmd_line),
 		NETLINK_LINK_EN,
 		config->net.tap_device);
@@ -326,30 +338,115 @@ out:
 	return macaddr;
 }
 
+
+
 /*!
- * Obtain the network configuration of a particular
- * interface by querying the network namespace.
- * Will be scanned from the namespace
+ * Obtain the default gateway in a interface
+ * Temporary: Will be replaced by netlink based implementation
+ *
+ * \param ifname \c interface name
+ *
+ * \return \c string containing default gw on that interface, else \c ""
+ */
+static gchar *
+get_default_gw(const gchar *const ifname)
+{
+	gint exit_status = -1;
+	gboolean ret;
+	gchar iproute2_cmd[1024];
+	gchar *output = NULL;
+	gchar **output_tokens = NULL;
+	gint token_count;
+	gchar *gw = NULL;
+	struct sockaddr_in sa;
+
+	if (ifname == NULL) {
+		g_critical("NULL interface name");
+		return false;
+	}
+
+#define NETLINK_GET_DEFAULT_GW CC_OCI_IPROUTE2_BIN " -4 route list type unicast dev %s exact 0/0"
+
+	g_snprintf(iproute2_cmd, sizeof(iproute2_cmd),
+		NETLINK_GET_DEFAULT_GW, ifname);
+
+	ret = g_spawn_command_line_sync(iproute2_cmd,
+				&output,
+				NULL,
+				&exit_status,
+				NULL);
+
+	if (!ret) {
+		g_critical("failed to spawn [%s]", iproute2_cmd);
+		goto out;
+	}
+
+	if (exit_status) {
+		g_critical("netlink failure [%s] [%d]", iproute2_cmd, exit_status);
+		goto out;
+	}
+
+	if (output == NULL) {
+		goto out;
+	}
+
+	output_tokens = g_strsplit(output, " ", -1);
+
+	for (token_count=0; output_tokens && output_tokens[token_count];) {
+	     token_count++;
+	}
+
+	if (token_count < 3) {
+		g_critical("unable to discover gateway [%s]", output);
+		goto out;
+	}
+
+	if (inet_pton(AF_INET, output_tokens[2], &(sa.sin_addr)) != 1) {
+		g_critical("invalid gateway [%s] [%s]", output, output_tokens[2]);
+		goto out;
+	}
+
+	gw = g_strdup(output_tokens[2]);
+
+out:
+	if (output_tokens != NULL) {
+		g_strfreev(output_tokens);
+	}
+	if (output != NULL) {
+		g_free(output);
+	}
+	if (gw == NULL) {
+		return g_strdup("");
+	}
+	return gw;
+}
+
+/*!
+ * Obtain the network configuration of the container
+ * Currently done by by scanned the namespace
  * Ideally the OCI spec should be modified such that
  * these parameters are sent to the runtime
  *
- * \param[in] ifname \c interface name
+ * The current implementation attempts to find the
+ * first interface with a valid IPv4 address.
+ *
+ * TODO: Support multiple interfaces and IPv6
+ *
  * \param[in,out] config \ref cc_oci_config.
  *
  * \return \c true on success, else \c false.
  */
 gboolean
-cc_oci_network_discover(const gchar *const ifname,
-			struct cc_oci_config *const config)
+cc_oci_network_discover(struct cc_oci_config *const config)
 {
 	struct ifaddrs *ifa = NULL;
 	struct ifaddrs *ifaddrs = NULL;
 	gint family;
+	gchar *ifname;
 
-	if ((!config) || (!ifname)) {
+	if (!config) {
 		return false;
 	}
-
 
 	if (getifaddrs(&ifaddrs) == -1) {
 		g_critical("getifaddrs() failed with errno =  %d %s\n",
@@ -358,63 +455,35 @@ cc_oci_network_discover(const gchar *const ifname,
 	}
 
 	g_debug("Discovering container interfaces");
+
+	/* For now pick the first interface with a valid IP address */
 	for (ifa = ifaddrs; ifa != NULL; ifa = ifa->ifa_next) {
 		if (!ifa->ifa_addr) {
 			continue;
 		}
 
-		/* The same interface with show up multiple times.
-		* Once for each IP that it has
-		* TODO: Check if netlink provides a better interface
-		*/
-		family = ifa->ifa_addr->sa_family;
-		if ((family != AF_INET) && (family != AF_INET6)) {
-			continue;
-		}
-
 		g_debug("Interface := [%s]", ifa->ifa_name);
-		if (g_strcmp0(ifa->ifa_name, ifname)) {
+
+		family = ifa->ifa_addr->sa_family;
+		if (family != AF_INET) {
 			continue;
 		}
 
-		/* We have found at least one interface that matches
-		* For now just pick one IPv4 and one IPv6 address
-		*/
-		if (config->net.ifname == NULL) {
-			config->net.ifname = g_strdup(ifname);
-			config->net.mac_address = get_mac_address(ifname);
-			config->net.gateway = g_strdup("");
-			config->net.tap_device = g_strdup_printf("c%s", ifname);
-			config->net.bridge = g_strdup_printf("b%s", ifname);
+		if (!g_strcmp0(ifa->ifa_name, "lo")) {
+			continue;
 		}
 
-		/* TODO: Support multiple IPs. For now pick the first one */
-		switch (family) {
-		case AF_INET6:
-			if (config->net.ipv6_address != NULL) {
-				break;
-			}
-			config->net.ipv6_address = get_address(family,
-				&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr);
-			break;
-		case AF_INET:
-			if (config->net.ip_address != NULL) {
-				break;
-			}
-
-			if (ifa->ifa_netmask == NULL) {
-				g_critical("Invalid subnet for [%s]", ifname);
-				break;
-			}
-
-			config->net.ip_address = get_address(family,
-				&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr);
-			config->net.subnet_mask = get_address(family,
-				&((struct sockaddr_in *)ifa->ifa_netmask)->sin_addr);
-			break;
-		default:
-			break;
-		}
+		ifname = ifa->ifa_name;
+		config->net.ifname = g_strdup(ifname);
+		config->net.mac_address = get_mac_address(ifname);
+		config->net.tap_device = g_strdup_printf("c%s", ifname);
+		config->net.bridge = g_strdup_printf("b%s", ifname);
+		config->net.ip_address = get_address(family,
+			&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr);
+		config->net.subnet_mask = get_address(family,
+			&((struct sockaddr_in *)ifa->ifa_netmask)->sin_addr);
+		config->net.gateway = get_default_gw(ifname);
+		break;
 	}
 
 	freeifaddrs(ifaddrs);
@@ -423,6 +492,10 @@ cc_oci_network_discover(const gchar *const ifname,
 		config->net.hostname = g_strdup(config->oci.hostname);
 	} else {
 		config->net.hostname = g_strdup("");
+	}
+
+	if (config->net.gateway == NULL) {
+		config->net.gateway = g_strdup("");
 	}
 
 	/* TODO: Need to see if this needed, does resolv.conf handle this */

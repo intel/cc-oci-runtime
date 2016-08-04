@@ -22,7 +22,6 @@
 #define _CC_OCI_NETWORKING_H
 
 gboolean cc_oci_network_create(const struct cc_oci_config *const config);
-gboolean cc_oci_network_discover(const gchar * const iface,
-				 struct cc_oci_config *const config);
+gboolean cc_oci_network_discover(struct cc_oci_config *const config);
 
 #endif /* _CC_OCI_NETWORKING_H */
