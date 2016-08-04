@@ -21,6 +21,8 @@ glib_version=2.49.4
 json_glib_version=1.2.2
 check_version=0.10.0
 
+gnome_dl=https://download.gnome.org/sources
+
 # Install required dependencies to build
 # glib, json-glib, check and cc-oci-runtime
 sudo apt-get -qq install valgrind lcov uuid-dev pkg-config \
@@ -30,28 +32,31 @@ mkdir cor-dependencies
 pushd cor-dependencies
 
 # Build glib
-curl -L -O "https://github.com/GNOME/glib/archive/${glib_version}.tar.gz"
-tar -xvf "${glib_version}.tar.gz"
+glib_major=`echo $glib_version | cut -d. -f1`
+glib_minor=`echo $glib_version | cut -d. -f2`
+curl -L -O "$gnome_dl/glib/${glib_major}.${glib_minor}/glib-${glib_version}.tar.xz"
+tar -xvf "glib-${glib_version}.tar.xz"
 pushd "glib-${glib_version}"
-bash autogen.sh
+./configure
 make
 sudo make install
 popd
 
 # Build json-glib
-curl -L -O "https://github.com/GNOME/json-glib/archive/${json_glib_version}.tar.gz"
-tar -xvf "${json_glib_version}.tar.gz"
+json_major=`echo $json_glib_version | cut -d. -f1`
+json_minor=`echo $json_glib_version | cut -d. -f2`
+curl -L -O "$gnome_dl/json-glib/${json_major}.${json_minor}/json-glib-${json_glib_version}.tar.xz"
+tar -xvf "json-glib-${json_glib_version}.tar.xz"
 pushd "json-glib-${json_glib_version}"
-bash autogen.sh
+./configure
 make
 sudo make install
 popd
 
 # Build check
-curl -L -O "https://github.com/libcheck/check/archive/${check_version}.tar.gz"
-tar -xvf "${check_version}.tar.gz"
+curl -L -O "https://github.com/libcheck/check/releases/download/${check_version}/check-${check_version}.tar.gz"
+tar -xvf "check-${check_version}.tar.gz"
 pushd "check-${check_version}"
-autoreconf --install
 ./configure
 make
 sudo make install
