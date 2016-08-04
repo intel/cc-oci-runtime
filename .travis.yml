@@ -1,5 +1,12 @@
+sudo: required
+dist: trusty
+
 language: c
 compiler: gcc
 
+before_script:
+- ./.travis-setup.sh
+
 script:
-- echo "Empty for now"
+- ./autogen.sh --enable-cppcheck --enable-valgrind
+- make
