@@ -33,7 +33,7 @@ pushd cor-dependencies
 curl -L -O "https://github.com/GNOME/glib/archive/${glib_version}.tar.gz"
 tar -xvf "${glib_version}.tar.gz"
 pushd "glib-${glib_version}"
-bash autogen.sh --prefix=/usr
+bash autogen.sh
 make
 sudo make install
 popd
@@ -42,7 +42,7 @@ popd
 curl -L -O "https://github.com/GNOME/json-glib/archive/${json_glib_version}.tar.gz"
 tar -xvf "${json_glib_version}.tar.gz"
 pushd "json-glib-${json_glib_version}"
-bash autogen.sh --prefix=/usr
+bash autogen.sh
 make
 sudo make install
 popd
@@ -52,7 +52,7 @@ curl -L -O "https://github.com/libcheck/check/archive/${check_version}.tar.gz"
 tar -xvf "${check_version}.tar.gz"
 pushd "check-${check_version}"
 autoreconf --install
-./configure --prefix=/usr
+./configure
 make
 sudo make install
 popd
@@ -63,5 +63,4 @@ pushd bats
 sudo ./install.sh /usr/local
 popd
 
-sudo ldconfig
 popd

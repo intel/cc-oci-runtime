@@ -4,6 +4,13 @@ dist: trusty
 language: c
 compiler: gcc
 
+env:
+  global:
+    - PATH=/usr/local/bin:$PATH
+    - LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+    - PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
+    - ACLOCAL_FLAGS="-I /usr/local/share/aclocal $ACLOCAL_FLAG"
+
 before_script:
 - ./.travis-setup.sh
 
