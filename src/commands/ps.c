@@ -27,8 +27,6 @@ handler_ps (const struct subcommand *sub,
 		struct cc_oci_config *config,
 		int argc, char *argv[])
 {
-	// default ps options
-	gchar     *ps_options = "-ef";
 	gboolean   ret;
 
 	g_assert (sub);
@@ -40,12 +38,6 @@ handler_ps (const struct subcommand *sub,
 	}
 
 	config->optarg_container_id = argv[0];
-
-	if (argc > 1) {
-		ps_options = argv[1];
-	} else {
-
-	}
 
 	if (! cc_oci_state_file_exists(config)) {
 		g_warning ("state file does not exist for container %s",
