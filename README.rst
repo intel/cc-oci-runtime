@@ -1,3 +1,6 @@
+.. image:: https://travis-ci.org/01org/cc-oci-runtime.svg?branch=master
+   :target: https://travis-ci.org/01org/cc-oci-runtime
+
 .. contents::
 .. sectnum::
 
