@@ -53,7 +53,9 @@
 #include "util.h"
 #include "hypervisor.h"
 #include "process.h"
+#include "state.h"
 #include "namespace.h"
+#include "networking.h"
 #include "common.h"
 
 static GMainLoop* main_loop = NULL;
@@ -157,16 +159,14 @@ cc_oci_close_fds (void) {
 /*! Perform setup on spawned child process.
  *
  * \param config \ref cc_oci_config.
+ *
+ * \return \c true on success, else \c false.
  */
-static void
+static gboolean
 cc_oci_setup_child (struct cc_oci_config *config)
 {
 	/* become session leader */
 	setsid ();
-
-	if (! cc_oci_ns_setup (config)) {
-		return;
-	}
 
 	/* arrange for the process to be paused when the child command
 	 * is exec(3)'d to ensure that the VM does not launch until
@@ -175,7 +175,7 @@ cc_oci_setup_child (struct cc_oci_config *config)
 	if (ptrace (PTRACE_TRACEME, 0, NULL, 0) < 0) {
 		g_critical ("failed to ptrace in child: %s",
 				strerror (errno));
-		return;
+		return false;
 	}
 
 	/* log before the fds are closed */
@@ -186,6 +186,7 @@ cc_oci_setup_child (struct cc_oci_config *config)
 		cc_oci_close_fds ();
 	}
 
+	return true;
 }
 
 /*!
@@ -317,6 +318,7 @@ cc_run_hook(struct oci_cfg_hook* hook, const gchar* state,
 
 	flags |= G_SPAWN_DO_NOT_REAP_CHILD;
 	flags |= G_SPAWN_CLOEXEC_PIPES;
+	flags |= G_SPAWN_FILE_AND_ARGV_ZERO;
 
 	g_debug ("running hook command:");
 	for (gchar** p = args; p && *p; p++) {
@@ -418,8 +420,204 @@ exit:
 	return result;
 }
 
+
+/*!
+ * Obtain the network configuration by querying the network namespace.
+ *
+ * \param[in,out] config \ref cc_oci_config.
+ *
+ * \return \c true on success, else \c false.
+ */
+static gboolean
+cc_oci_vm_netcfg_get (struct cc_oci_config *config)
+{
+	if (!config) {
+		return false;
+	}
+
+	/* TODO: We need to support multiple networks */
+	if (!cc_oci_network_discover (config)) {
+		g_critical("Network discovery failed");
+		return false;
+	}
+
+	return true;
+}
+
+/*!
+ * Obtain the network configuration by querying the network namespace,
+ * returning the data in "name=value" format in a
+ * dynamically-allocated string vector.
+ *
+ * \param config \ref cc_oci_config.
+ *
+ * \return \c string vector on success, , else \c NULL.
+ */
+static gchar **
+cc_oci_vm_netcfg_to_strv (struct cc_oci_config *config)
+{
+	gchar  **cfg = NULL;
+	gsize    count = 0;
+
+	if (! config) {
+		return NULL;
+	}
+
+	if (! cc_oci_vm_netcfg_get (config)) {
+		return NULL;
+	}
+
+	if (config->net.hostname)    count++;
+	if (config->net.gateway)     count++;
+	if (config->net.dns_ip1)     count++;
+	if (config->net.dns_ip2)     count++;
+	if (config->net.mac_address) count++;
+	if (config->net.ipv6_address)  count++;
+	if (config->net.ip_address)  count++;
+	if (config->net.subnet_mask) count++;
+	if (config->net.ifname)      count++;
+	if (config->net.bridge)      count++;
+	if (config->net.tap_device)  count++;
+
+	if (! count) {
+		return NULL;
+	}
+
+	/* +1 for NULL terminator */
+	cfg = g_new0 (gchar *, 1+count);
+	if (! cfg) {
+		return NULL;
+	}
+
+	if (config->net.hostname) {
+		cfg[--count] = g_strdup_printf ("@HOSTNAME@=%s",
+				config->net.hostname);
+	}
+
+	if (config->net.gateway) {
+		cfg[--count] = g_strdup_printf ("@GATEWAY@=%s",
+				config->net.gateway);
+	}
+
+	if (config->net.dns_ip1) {
+		cfg[--count] = g_strdup_printf ("@DNS_IP1@=%s",
+				config->net.dns_ip1);
+	}
+
+	if (config->net.dns_ip2) {
+		cfg[--count] = g_strdup_printf ("@DNS_IP2@=%s",
+				config->net.dns_ip2);
+	}
+
+	if (config->net.mac_address) {
+		cfg[--count] = g_strdup_printf ("@MAC_ADDRESS@=%s",
+				config->net.mac_address);
+	}
+
+	if (config->net.ipv6_address) {
+		cfg[--count] = g_strdup_printf ("@IPV6_ADDRESS@=%s",
+				config->net.ipv6_address);
+	}
+
+	if (config->net.ip_address) {
+		cfg[--count] = g_strdup_printf ("@IP_ADDRESS@=%s",
+				config->net.ip_address);
+	}
+
+	if (config->net.subnet_mask) {
+		cfg[--count] = g_strdup_printf ("@SUBNET_MASK@=%s",
+				config->net.subnet_mask);
+	}
+
+	if (config->net.ifname) {
+		cfg[--count] = g_strdup_printf ("@IFNAME@=%s",
+				config->net.ifname);
+	}
+
+	if (config->net.bridge) {
+		cfg[--count] = g_strdup_printf ("@BRIDGE@=%s",
+				config->net.bridge);
+	}
+
+	if (config->net.tap_device) {
+		cfg[--count] = g_strdup_printf ("@TAP_DEVICE@=%s",
+				config->net.tap_device);
+	}
+
+	return cfg;
+}
+
+/*!
+ * Add the network configuration (via \p netcfg) to the specified
+ * config.
+ *
+ * \param config \ref cc_oci_config.
+ * \param netcfg Newline-separated "name=value" format
+ *   network configuration.
+ *
+ * \return \c true on success, else \c false.
+ */
+static gboolean
+cc_oci_vm_netcfg_from_str (struct cc_oci_config *config,
+		const gchar *netcfg)
+{
+	gchar  **lines = NULL;
+	gchar  **line;
+
+	if (! (config && netcfg)) {
+		return false;
+	}
+
+	lines = g_strsplit (netcfg, "\n", -1);
+	if (! lines) {
+		return false;
+	}
+
+	for (line = lines; line && *line; line++) {
+		gchar **fields;
+
+		fields = g_strsplit (*line, "=", 2);
+		if (! fields) {
+			break;
+		}
+
+		if (! g_strcmp0 (fields[0], "@HOSTNAME@")) {
+			config->net.hostname = g_strdup (fields[1]);
+		} else if (! g_strcmp0 (fields[0], "@GATEWAY@")) {
+			config->net.gateway = g_strdup (fields[1]);
+		} else if (! g_strcmp0 (fields[0], "@DNS_IP1@")) {
+			config->net.dns_ip1 = g_strdup (fields[1]);
+		} else if (! g_strcmp0 (fields[0], "@DNS_IP2@")) {
+			config->net.dns_ip2 = g_strdup (fields[1]);
+		} else if (! g_strcmp0 (fields[0], "@MAC_ADDRESS@")) {
+			config->net.mac_address = g_strdup (fields[1]);
+		} else if (! g_strcmp0 (fields[0], "@IPV6_ADDRESS@")) {
+			config->net.ipv6_address = g_strdup (fields[1]);
+		} else if (! g_strcmp0 (fields[0], "@IP_ADDRESS@")) {
+			config->net.ip_address = g_strdup (fields[1]);
+		} else if (! g_strcmp0 (fields[0], "@SUBNET_MASK@")) {
+			config->net.subnet_mask = g_strdup (fields[1]);
+		} else if (! g_strcmp0 (fields[0], "@IFNAME@")) {
+			config->net.ifname = g_strdup (fields[1]);
+		} else if (! g_strcmp0 (fields[0], "@BRIDGE@")) {
+			config->net.bridge = g_strdup (fields[1]);
+		} else if (! g_strcmp0 (fields[0], "@TAP_DEVICE@")) {
+			config->net.tap_device = g_strdup (fields[1]);
+		}
+
+		g_strfreev (fields);
+	}
+
+	g_strfreev (lines);
+
+	return true;
+}
+
 /*!
  * Start the hypervisor (in a paused state) as a child process.
+ *
+ * Due to the way networking is handled in Docker, the logic here
+ * is unfortunately rather complex.
  *
  * \param config \ref cc_oci_config.
  *
@@ -428,49 +626,244 @@ exit:
 gboolean
 cc_oci_vm_launch (struct cc_oci_config *config)
 {
-	gchar     **args = NULL;
-	GError     *err = NULL;
-	gboolean    ret;
-	GPid        pid;
-	int         status = 0;
-	GSpawnFlags flags = 0x0;
-	gchar     **p;
+	gboolean           ret = false;
+	GPid               pid;
+	int                status = 0;
+	size_t             len = 0;
+	ssize_t            bytes;
+	char               buffer[2];
+	int                net_cfg_pipe[2] = {-1, -1};
+	int                child_err_pipe[2] = {-1, -1};
+	gchar            **args = NULL;
+	gchar            **p;
+	gchar            **netcfgv = NULL;
+	g_autofree gchar  *final = NULL;
+	g_autofree gchar  *timestamp = NULL;
 
-	ret = cc_oci_vm_args_get (config, &args);
-	if (! (ret && args)) {
-		return ret;
-	}
-
-	flags |= G_SPAWN_DO_NOT_REAP_CHILD;
-	flags |= G_SPAWN_CLOEXEC_PIPES;
-
-	/* discard stderr and stdout to avoid hangs */
-	flags |= (G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL);
-
-	g_debug ("running command:");
-	for (p = args; p && *p; p++) {
-		g_debug ("arg: '%s'", *p);
-	}
-
-	ret = g_spawn_async_with_pipes(config->oci.root.path,
-			args,
-			NULL, /* inherit parents environment */
-			flags,
-			(GSpawnChildSetupFunc)cc_oci_setup_child,
-			(gpointer)config,
-			&config->state.workload_pid,
-			NULL,
-			NULL,
-			NULL,
-			&err);
-
-	if (! ret) {
-		g_critical ("failed to spawn child: %s", err->message);
-		g_error_free (err);
+	timestamp = cc_oci_get_iso8601_timestamp ();
+	if (! timestamp) {
 		goto out;
 	}
 
-	pid = config->state.workload_pid;
+	config->state.status = OCI_STATUS_CREATED;
+
+	/* The namespace setup occurs in the parent to ensure
+	 * the hooks run successfully. The child will automatically
+	 * inherit the namespaces.
+	 */
+	if (! cc_oci_ns_setup (config)) {
+		goto out;
+	}
+
+	/* Set up 2 comms channels to the child:
+	 *
+	 * - one to send the child the network configuration (*).
+	 *
+	 * - the other to allow detection of successful child setup: if
+	 *   the child closes the pipe, it was successful, but if it
+	 *   writes data to the pipe, setup failed.
+	 */
+
+	if (pipe (net_cfg_pipe) < 0) {
+		g_critical ("failed to create network config pipe: %s",
+				strerror (errno));
+		goto out;
+	}
+
+	if (pipe (child_err_pipe) < 0) {
+		g_critical ("failed to create child error pipe: %s",
+				strerror (errno));
+		goto out;
+	}
+
+	if (! cc_oci_fd_set_cloexec (child_err_pipe[1])) {
+		g_critical ("failed to set close-exec bit on fd");
+		goto out;
+	}
+
+	pid = config->state.workload_pid = fork ();
+	if (pid < 0) {
+		g_critical ("failed to create child: %s",
+				strerror (errno));
+		goto out;
+	}
+
+	if (! pid) {
+		g_autofree gchar  *netcfg = NULL;
+
+		/* child */
+		pid = config->state.workload_pid = getpid ();
+
+		close (net_cfg_pipe[1]);
+		close (child_err_pipe[0]);
+
+		/* block waiting for parent to send network config.
+		 *
+		 * This arrives in 2 parts: first, a size_t representing
+		 * the size of the ASCII name=value data that follows.
+		 */
+
+		/* determine how many bytes to allocate for the network
+		 * config.
+		 */
+		g_debug ("child reading netcfg length");
+
+		bytes = read (net_cfg_pipe[0], &len, sizeof (len));
+		if (bytes < 0) {
+			goto child_failed;
+		}
+
+		g_debug ("allocating %lu bytes for netcfg",
+				(unsigned long int)len);
+
+		netcfg = g_new0 (gchar, 1+len);
+		if (! netcfg) {
+			goto child_failed;
+		}
+
+		g_debug ("reading netcfg from parent");
+
+		bytes = read (net_cfg_pipe[0], netcfg, len);
+		if (ret < 0) {
+			goto child_failed;
+		}
+
+		close (net_cfg_pipe[0]);
+
+		g_debug ("adding netcfg to config");
+
+		if (! cc_oci_vm_netcfg_from_str (config, netcfg)) {
+			goto child_failed;
+		}
+
+
+		g_debug ("building hypervisor command-line");
+
+		// FIXME: add network config bits to following functions:
+		//
+		// - cc_oci_container_state()
+		// - oci_state()
+		// - cc_oci_update_options()
+
+		ret = cc_oci_vm_args_get (config, &args);
+		if (! (ret && args)) {
+			goto child_failed;
+		}
+
+		// FIXME: add netcfg to state file
+		ret = cc_oci_state_file_create (config, timestamp);
+		if (! ret) {
+			g_critical ("failed to recreate state file");
+			goto out;
+		}
+
+		g_debug ("running command:");
+		for (p = args; p && *p; p++) {
+			g_debug ("arg: '%s'", *p);
+		}
+
+		if (! cc_oci_setup_child (config)) {
+			goto child_failed;
+		}
+
+		if (execvp (args[0], args) < 0) {
+			g_critical ("failed to exec child %s: %s",
+					args[0],
+					strerror (errno));
+			abort ();
+		}
+	}
+
+	/* parent */
+
+	g_debug ("child pid is %u", (unsigned)pid);
+
+	close (net_cfg_pipe[0]);
+	net_cfg_pipe[0] = -1;
+
+	close (child_err_pipe[1]);
+	child_err_pipe[1] = -1;
+
+	/* create state file before hooks run */
+	ret = cc_oci_state_file_create (config, timestamp);
+	if (! ret) {
+		g_critical ("failed to create state file");
+		goto out;
+	}
+
+	/* If a hook returns a non-zero exit code, then an error
+	 * including the exit code and the stderr is returned to
+	 * the caller and the container is torn down.
+	 */
+	ret = cc_run_hooks (config->oci.hooks.prestart,
+			config->state.state_file_path,
+			true);
+	if (! ret) {
+		g_critical ("failed to run prestart hooks");
+	}
+
+	netcfgv = cc_oci_vm_netcfg_to_strv (config);
+	if (! netcfgv) {
+		g_critical ("failed to obtain network config");
+		ret = false;
+		goto out;
+
+	}
+
+	if (! cc_oci_network_create(config)) {
+		g_critical ("failed to create network");
+		goto out;
+	}
+
+	/* flatten config into a bytestream to send to the child */
+	final = g_strjoinv ("\n", netcfgv);
+	if (! final) {
+		ret = false;
+		goto out;
+	}
+
+	len = strlen (final);
+
+	g_strfreev (netcfgv);
+
+	g_debug ("sending netcfg (%lu bytes) to child",
+			(unsigned long int)len);
+
+	/* Send netcfg to child.
+	 *
+	 * First, send the length of the network
+	 * config data that will follow.
+	 */
+	bytes = write (net_cfg_pipe[1], &len, sizeof (len));
+	if (bytes < 0) {
+		g_critical ("failed to send netcfg length"
+				" to child: %s",
+				strerror (errno));
+		goto out;
+	}
+
+	/* now, send the network config data */
+	bytes = write (net_cfg_pipe[1], final, len);
+	if (bytes < 0) {
+		g_critical ("failed to send netcfg"
+				" to child: %s",
+				strerror (errno));
+		goto out;
+	}
+
+	g_debug ("checking child setup (blocking)");
+
+	/* block reading child error state */
+	bytes = read (child_err_pipe[0],
+			buffer,
+			sizeof (buffer));
+	if (bytes > 0) {
+		g_critical ("child setup failed");
+		ret = false;
+		goto out;
+	}
+
+	g_debug ("child setup successful");
 
 	/* wait for child to receive the expected SIGTRAP caused
 	 * by it calling exec(2) whilst under PTRACE control.
@@ -502,9 +895,8 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 		goto out;
 	}
 
-	g_debug ("child process ('%s') running in stopped state "
+	g_debug ("child process running in stopped state "
 			"with pid %u",
-		       	args[0],
 			(unsigned)config->state.workload_pid);
 
 	if (config->pid_file) {
@@ -515,9 +907,22 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 	}
 
 out:
-	g_strfreev (args);
+	if (net_cfg_pipe[0] != -1) close (net_cfg_pipe[0]);
+	if (net_cfg_pipe[1] != -1) close (net_cfg_pipe[1]);
+	if (child_err_pipe[0] != -1) close (child_err_pipe[0]);
+	if (child_err_pipe[1] != -1) close (child_err_pipe[1]);
+
+	/* TODO: Free the network configuration buffers */
+
+	if (args) {
+		g_strfreev (args);
+	}
 
 	return ret;
+
+child_failed:
+	(void)write (child_err_pipe[1], "E", 1);
+	exit (EXIT_FAILURE);
 }
 
 /*!

@@ -508,6 +508,36 @@ cc_oci_resolve_path (const gchar *path)
 	return g_strdup (tmp);
 }
 
+/**
+ * Set the close-exec bit on the specified file descriptor.
+ *
+ * \param fd File descriptor to change.
+ *
+ * \return \c true on success, else \c false.
+ **/
+gboolean
+cc_oci_fd_set_cloexec (int fd)
+{
+	int flags;
+
+	if (fd < 0) {
+		return false;
+	}
+
+	flags = fcntl (fd, F_GETFD);
+	if (flags < 0) {
+		return false;
+	}
+
+	flags |= FD_CLOEXEC;
+
+	if (fcntl (fd, F_SETFD, flags) < 0) {
+		return false;
+	}
+
+	return true;
+}
+
 #ifdef DEBUG
 static gboolean
 cc_oci_node_dump_aux(GNode* node, gpointer data) {

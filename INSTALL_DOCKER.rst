@@ -108,6 +108,7 @@ Install the following bundles and RPMs to enable our work in progress linux-cont
     sudo rpm -ivh --nodeps --force https://download.clearlinux.org/current/x86_64/os/Packages/json-glib-lib-1.2.0-8.x86_64.rpm
     sudo rpm -ivh --nodeps --force https://download.clearlinux.org/current/x86_64/os/Packages/linux-container-testing-4.5-9.x86_64.rpm
     sudo rpm -ivh --nodeps --force https://download.clearlinux.org/current/x86_64/os/Packages/linux-container-testing-extra-4.5-9.x86_64.rpm
+    sudo rpm -ivh --nodeps --force https://download.clearlinux.org/current/x86_64/os/Packages/iproute2-dev-4.3.0-25.x86_64.rpm
     #Note: Ignore the errorldconfig:*
     #/usr/lib64/libguile-2.0.so.22.7.2-gdb.scm is not an ELF file - it has the wrong magic bytes at the start.*
 

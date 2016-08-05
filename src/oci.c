@@ -755,7 +755,6 @@ out:
 gboolean
 cc_oci_create (struct cc_oci_config *config)
 {
-	gchar    *timestamp = NULL;
 	gboolean  ret = false;
 
 	if (! config) {
@@ -799,13 +798,6 @@ cc_oci_create (struct cc_oci_config *config)
 		return true;
 	}
 
-	config->state.status = OCI_STATUS_CREATED;
-
-	timestamp = cc_oci_get_iso8601_timestamp ();
-	if (! timestamp) {
-		goto out;
-	}
-
 	/* start VM is a stopped state (containerd requires a
 	 * valid pid in the pidfile after a successful "create").
 	 */
@@ -814,26 +806,9 @@ cc_oci_create (struct cc_oci_config *config)
 		goto out;
 	}
 
-	/* create state file before run hooks */
-	if (! cc_oci_state_file_create (config, timestamp)) {
-		g_critical ("failed to create state file");
-		goto out;
-	}
-
-	/* If a hook returns a non-zero exit code, then an error
-	 * including the exit code and the stderr is returned to the
-	 * caller and the container is torn down.
-	 */
-	if (! cc_run_hooks (config->oci.hooks.prestart,
-	                    config->state.state_file_path, true)) {
-		g_critical ("failed to run prestart hooks");
-	}
-
 	ret = true;
 
 out:
-	g_free (timestamp);
-
 	return ret;
 }
 

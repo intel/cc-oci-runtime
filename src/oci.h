@@ -257,6 +257,53 @@ struct cc_oci_vm_cfg {
 	gchar *kernel_params;
 };
 
+/** cc-specific network configuration data. */
+struct cc_oci_net_cfg {
+
+	/** Network gateway (xxx.xxx.xxx.xxx). */
+	gchar  *hostname;
+
+	/** Network gateway (xxx.xxx.xxx.xxx). */
+	gchar  *gateway;
+
+	/** TODO: Do not limit number of DNS servers */
+
+	/** DNS IP (xxx.xxx.xxx.xxx). */
+	gchar  *dns_ip1;
+
+	/** DNS IP (xxx.xxx.xxx.xxx). */
+	gchar  *dns_ip2;
+
+	/* TODO: Need to support multiple networks
+	 * The parameters below are per network
+	 * interface and we will multiple
+	 */
+
+	/** MAC address with colon separators (xx:xx:xx:xx:xx:xx). */
+	gchar  *mac_address;
+
+	/** IPv4 address (xxx.xxx.xxx.xxx). */
+	gchar  *ip_address;
+
+	/** IPv4 subnet mask (xxx.xxx.xxx.xxx). */
+	gchar  *subnet_mask;
+
+	/** Name of network interface (veth) within the namespace
+	 * This should also be the name of the interface within the VM */
+	gchar  *ifname;
+
+	/** Name of network bridge using to connect if to tap_device. */
+	gchar  *bridge;
+
+	/** Name of the QEMU tap device */
+	gchar  *tap_device;
+
+	/** IPv6 address */
+	gchar  *ipv6_address;
+
+	/** TODO: Add support for routes */
+};
+
 /**
  * Generic type that maps an integer value
  * to a human-readable string.
@@ -373,6 +420,9 @@ struct cc_oci_config {
 	 * (which should eventually be encoded in OCI configuration).
 	 */
 	struct cc_oci_vm_cfg           *vm;
+
+	/** Network configuration. */
+	struct cc_oci_net_cfg           net;
 
 	/** Container-specific state. */
 	struct cc_oci_container_state  state;

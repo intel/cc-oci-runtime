@@ -45,6 +45,63 @@
 private gchar *sysconfdir = SYSCONFDIR;
 private gchar *defaultsdir = DEFAULTSDIR;
 
+static gchar *
+cc_oci_expand_net_cmdline(struct cc_oci_config *config) {
+	/* www.kernel.org/doc/Documentation/filesystems/nfs/nfsroot.txt
+        * ip=<client-ip>:<server-ip>:<gw-ip>:<netmask>:<hostname>:
+         * <device>:<autoconf>:<dns0-ip>:<dns1-ip>
+	 */
+
+	/* FIXME. Sending multiple ip= does not seem to work
+	 * Hence support one or the other for now
+	 * Explore dracut or systemd based network init
+	 */
+
+	if ( config->net.ip_address != NULL ) {
+		return ( g_strdup_printf("ip=%s::%s:%s:%s:%s:off::",
+			config->net.ip_address,
+			config->net.gateway,
+			config->net.subnet_mask,
+			config->net.hostname,
+			config->net.ifname) );
+	}
+
+	if ( config->net.ipv6_address != NULL ) {
+		return ( g_strdup_printf("ip=[%s]:::::%s:off::",
+			config->net.ipv6_address,
+			config->net.ifname) );
+	}
+
+	return g_strdup("");
+}
+
+#define QEMU_FMT_NETDEV "tap,ifname=%s,script=no,downscript=no,id=%s"
+
+static gchar *
+cc_oci_expand_netdev_cmdline(struct cc_oci_config *config) {
+
+	return g_strdup_printf(QEMU_FMT_NETDEV,
+		config->net.tap_device,
+		config->net.tap_device);
+}
+
+#define QEMU_FMT_DEVICE "driver=virtio-net,netdev=%s"
+#define QEMU_FMT_DEVICE_MAC QEMU_FMT_DEVICE ",mac=%s"
+
+static gchar *
+cc_oci_expand_net_device_cmdline(struct cc_oci_config *config) {
+
+	if ( config->net.mac_address == NULL ) {
+		return g_strdup_printf(QEMU_FMT_DEVICE,
+			config->net.tap_device);
+	} else {
+		return g_strdup_printf(QEMU_FMT_DEVICE_MAC,
+			config->net.tap_device,
+			config->net.mac_address);
+	}
+}
+
+
 /*!
  * Replace any special tokens found in \p args with their expanded
  * values.
@@ -56,7 +113,7 @@ private gchar *defaultsdir = DEFAULTSDIR;
  *
  * \return \c true on success, else \c false.
  */
-private gboolean
+gboolean
 cc_oci_expand_cmdline (struct cc_oci_config *config,
 		gchar **args)
 {
@@ -73,6 +130,12 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 	const char        uuid_pattern[UUID_MAX] = "00000000-0000-0000-0000-000000000000";
 	char              uuid_str[UUID_MAX] = { 0 };
 	gint              uuid_index = 0;
+
+	gchar            *kernel_net_params = NULL;
+	gchar            *net_device_params = NULL;
+	gchar            *netdev_params = NULL;
+	gchar            *net_device_option = NULL;
+	gchar            *netdev_option = NULL;
 
 	if (! (config && args)) {
 		return false;
@@ -201,20 +264,47 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 
 	procsock_device = g_strdup_printf ("socket,id=procsock,path=%s,server,nowait", config->state.procsock_path);
 
+	kernel_net_params = cc_oci_expand_net_cmdline(config);
+
+	if ( config->net.tap_device == NULL ) {
+		/* Support --net=none */
+		/* Hacky, no clean way to add/remove args today
+		 * For multiple network we need to have a way to append
+		 * args to the hypervisor command line vs substitution
+		 */
+		netdev_option = g_strdup("-net");
+		netdev_params = g_strdup("none");
+		net_device_option = g_strdup("-net");
+		net_device_params = g_strdup("none");
+	} else {
+		netdev_option = g_strdup("-netdev");
+		net_device_option = g_strdup("-device");
+		netdev_params = cc_oci_expand_netdev_cmdline(config);
+		net_device_params = cc_oci_expand_net_device_cmdline(config);
+	}
+
+	/* Note: @NETDEV@: For multiple network we need to have a way to append
+	 * args to the hypervisor command line vs substitution
+	 */
 	struct special_tag {
 		const gchar* name;
 		const gchar* value;
 	} special_tags[] = {
-		{ "@WORKLOAD_DIR@"  , config->oci.root.path      },
-		{ "@KERNEL@"        , config->vm->kernel_path    },
-		{ "@KERNEL_PARAMS@" , config->vm->kernel_params  },
-		{ "@IMAGE@"         , config->vm->image_path     },
-		{ "@SIZE@"          , bytes                      },
-		{ "@COMMS_SOCKET@"  , config->state.comms_path   },
-		{ "@PROCESS_SOCKET@", procsock_device            },
-		{ "@CONSOLE_DEVICE@", console_device             },
-		{ "@NAME@"          , g_strrstr(uuid_str, "-")+1 },
-		{ "@UUID@"          , uuid_str                   },
+		{ "@WORKLOAD_DIR@"      , config->oci.root.path      },
+		{ "@KERNEL@"            , config->vm->kernel_path    },
+		{ "@KERNEL_PARAMS@"     , config->vm->kernel_params  },
+		{ "@KERNEL_NET_PARAMS@" , kernel_net_params          },
+		{ "@IMAGE@"             , config->vm->image_path     },
+		{ "@SIZE@"              , bytes                      },
+		{ "@COMMS_SOCKET@"      , config->state.comms_path   },
+		{ "@PROCESS_SOCKET@"    , procsock_device            },
+		{ "@CONSOLE_DEVICE@"    , console_device             },
+		{ "@NAME@"              , g_strrstr(uuid_str, "-")+1 },
+		{ "@UUID@"              , uuid_str                   },
+		{ "@NETDEV@"            , netdev_option              },
+		{ "@NETDEV_PARAMS@"     , netdev_params              },
+		{ "@NETDEVICE@"         , net_device_option          },
+		{ "@NETDEVICE_PARAMS@"  , net_device_params          },
 		{ NULL }
 	};
 
@@ -260,6 +350,11 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 out:
 	g_free_if_set (bytes);
 	g_free_if_set (console_device);
+	g_free_if_set (kernel_net_params);
+	g_free_if_set (net_device_params);
+	g_free_if_set (netdev_params);
+	g_free_if_set (net_device_option);
+	g_free_if_set (netdev_option);
 
 	return ret;
 }
@@ -327,7 +422,7 @@ out:
 }
 
 /*!
- * Generate the list of hypervisor arguments to use.
+ * Generate the unexpanded list of hypervisor arguments to use.
  *
  * \param config \ref cc_oci_config.
  * \param[out] args Command-line to expand.
