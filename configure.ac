@@ -104,7 +104,7 @@ PKG_CHECK_MODULES([JSON_GLIB], [json-glib-1.0])
 PKG_CHECK_MODULES([UUID], [uuid])
 
 AS_IF([test $BUILD_TESTS = 1],
-[PKG_CHECK_MODULES([CHECK], [check >= 0.9.14])]
+[PKG_CHECK_MODULES([CHECK], [check])]
 )
 
 AS_IF([test $CPPCHECK = 1],
