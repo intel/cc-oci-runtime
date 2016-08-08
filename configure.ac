@@ -175,13 +175,13 @@ AC_SUBST([QEMU_PATH], [$ac_cv_path_QEMU])
 AC_SUBST([CMDLINE], [$(cat $srcdir/data/kernel-cmdline)])
 
 #bundle path for functional-test
-DEFAULT_BUNDLE_TEST_DIR=$(realpath $srcdir/tests/functional/bundle)
+DEFAULT_BUNDLE_TEST_DIR=$(cd "$srcdir/tests/functional/bundle" 2>/dev/null; pwd -P)
 AC_ARG_WITH([tests-bundle-path],
     [AS_HELP_STRING([--with-tests-bundle-path=[[BUNDLE-PATH]]],
             [path to oci bundle to execute functional tests])
     ],
     [
-        BUNDLE_TEST_PATH=$(realpath $with_tests_bundle_path)
+        BUNDLE_TEST_PATH=$(cd "$with_tests_bundle_path"; pwd -P)
         AC_SUBST([BUNDLE_TEST_PATH])
     ],
     [
@@ -195,7 +195,7 @@ AC_ARG_WITH([tests-rootfs-path],
         [path to rootfs for functional tests])
     ],
     [
-        ROOTFS_PATH=$(realpath $with_tests_rootfs_path)
+        ROOTFS_PATH=$(cd "$with_tests_rootfs_path"; pwd -P)
         AC_SUBST([ROOTFS_PATH])
     ],
     [
