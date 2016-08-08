@@ -95,9 +95,9 @@ AM_CONDITIONAL([FUNCTIONAL_TEST], [test x$disable_functional_test = x"no"])
 
 # Checks for libraries.
 
-required_glib_version=2.44
+required_glib_version=2.46
 PKG_CHECK_MODULES([GLIB], [glib-2.0 >= "$required_glib_version"], have_required_glib=yes, have_required_glib=no)
-AS_IF([test "$have_required_glib" != "yes"], AC_MSG_ERROR([ERROR: need glib ${required_glib_version}+ for the `g_option_context_set_strict_posix' function]))
+AS_IF([test "$have_required_glib" != "yes"], AC_MSG_ERROR([ERROR: need glib ${required_glib_version}+ for the `G_FILE_MONITOR_WATCH_MOVES' flag]))
 
 PKG_CHECK_MODULES([GIO], [gio-unix-2.0])
 PKG_CHECK_MODULES([JSON_GLIB], [json-glib-1.0])
