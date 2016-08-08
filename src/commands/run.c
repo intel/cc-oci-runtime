@@ -30,6 +30,10 @@
 
 extern struct start_data start_data;
 
+/* ignore -pedantic to cast handle_option_console, a function pointer, to a
+ * void* */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
 static GOptionEntry options_run[] =
 {
 	{
@@ -78,6 +82,7 @@ static GOptionEntry options_run[] =
 
 	{NULL}
 };
+#pragma GCC diagnostic pop
 
 static gboolean
 handler_run (const struct subcommand *sub,
