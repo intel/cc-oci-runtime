@@ -148,6 +148,7 @@ EXTRA_DIST = \
 	data/vm.json.in \
 	tests/data \
 	commit_id \
+	versions.txt \
 	$(defaults_DATA) \
 	$(bats_test_sources)
 

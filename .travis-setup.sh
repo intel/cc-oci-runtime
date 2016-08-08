@@ -19,8 +19,8 @@
 
 set -e -x
 
-glib_version=2.46.2
-json_glib_version=1.2.2
+cwd=$(cd `dirname "$0"`; pwd -P)
+source $cwd/versions.txt
 
 gnome_dl=https://download.gnome.org/sources
 
