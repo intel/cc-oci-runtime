@@ -21,14 +21,13 @@ set -e -x
 
 glib_version=2.46.2
 json_glib_version=1.2.2
-check_version=0.10.0
 
 gnome_dl=https://download.gnome.org/sources
 
 # Install required dependencies to build
 # glib, json-glib, check and cc-oci-runtime
 sudo apt-get -qq install valgrind lcov uuid-dev pkg-config \
-  zlib1g-dev libffi-dev gettext libpcre3-dev cppcheck
+  zlib1g-dev libffi-dev gettext libpcre3-dev cppcheck check
 
 mkdir cor-dependencies
 pushd cor-dependencies
@@ -50,15 +49,6 @@ json_minor=`echo $json_glib_version | cut -d. -f2`
 curl -L -O "$gnome_dl/json-glib/${json_major}.${json_minor}/json-glib-${json_glib_version}.tar.xz"
 tar -xvf "json-glib-${json_glib_version}.tar.xz"
 pushd "json-glib-${json_glib_version}"
-./configure
-make
-sudo make install
-popd
-
-# Build check
-curl -L -O "https://github.com/libcheck/check/releases/download/${check_version}/check-${check_version}.tar.gz"
-tar -xvf "check-${check_version}.tar.gz"
-pushd "check-${check_version}"
 ./configure
 make
 sudo make install
