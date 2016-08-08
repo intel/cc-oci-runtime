@@ -175,10 +175,11 @@ cc_oci_config_free (struct cc_oci_config *config)
 /*!
  * find and call the spec handler for each child of GNode
  *
- * \param [in] node GNode
- * \param[in,out] config cc_oci_config struct
+ * \param [in] root \c GNode
+ * \param[in,out] config \ref cc_oci_config.
+ * \param spec_handlers Array of \ref spec_handler's.
  *
- * \return \c false if a spec handler fails, else \c true
+ * \return \c false if a spec handler fails, else \c true.
  */
 gboolean
 cc_oci_process_config (GNode *root, struct cc_oci_config *config,

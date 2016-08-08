@@ -160,7 +160,7 @@ cc_oci_netlink_run(const gchar *cmd_line) {
  * VM compatible tap interfaces in the network
  * plugin, this setup will not be required
  *
- * \param netconfig \c networking configuration
+ * \param config \ref cc_oci_config.
  *
  * \return \c true on success, else \c false.
  */
