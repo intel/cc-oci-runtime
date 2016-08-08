@@ -56,17 +56,25 @@ are being worked on.
 Networking
 ~~~~~~~~~~
 
-Networking within the Clear Container is not currently available.
+Basic Networking within the Clear Container is available:
 
-Networking support is complicated by the way Dockers networking code
-assumes the runtime will create a traditional container.
+* Run a Clear Container using the default docker bridge network::
 
-This feature is currently WIP and is expected to land soon - a branch
-containing experimental code can be found here:
+  $ sudo docker run -it --net=bridge $image
 
-- https://github.com/01org/cc-oci-runtime/tree/networking
+  or simply::
 
-See https://github.com/01org/cc-oci-runtime/issues/38
+  $ sudo docker run -it $image
+
+* Run a Clear Container with networking disabled (only localhost is available)::
+
+  $ sudo docker run -it --net=none $image
+
+See:
+
+- https://github.com/01org/cc-oci-runtime/issues/38
+- https://github.com/01org/cc-oci-runtime/issues/81
+- https://github.com/01org/cc-oci-runtime/issues/82
 
 ``exec``
 ~~~~~~~~
