@@ -41,7 +41,7 @@ Supported Application Versions
 
 The runtime has been tested with the following application versions:
 
-- Docker_ version 1.12-rc4.
+- Docker_ version 1.12.0.
 - Containerd_ version 0.2.2.
 
 Limitations
@@ -123,7 +123,7 @@ Then, to run a Clear Container using the runtime, specify "``--runtime cor``".
 
 For example::
 
-    $ sudo docker-run --runtime cor -ti busybox
+    $ sudo docker run --runtime cor -ti busybox
 
 Running under ``containerd`` (without Docker)
 ---------------------------------------------
