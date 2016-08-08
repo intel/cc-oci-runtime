@@ -28,7 +28,7 @@ gnome_dl=https://download.gnome.org/sources
 # Install required dependencies to build
 # glib, json-glib, check and cc-oci-runtime
 sudo apt-get -qq install valgrind lcov uuid-dev pkg-config \
-  zlib1g-dev libffi-dev gettext libpcre3-dev texinfo gtk-doc-tools cppcheck
+  zlib1g-dev libffi-dev gettext libpcre3-dev cppcheck
 
 mkdir cor-dependencies
 pushd cor-dependencies
