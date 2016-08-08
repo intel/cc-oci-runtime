@@ -47,6 +47,8 @@ __pycache__/
 QEMU-LITE
 stamp-h1
 *_test
+TAGS
+tags
 test-driver
 tests/functional/common.bash
 tests/functional/data/config-minimal-cc-oci.json
