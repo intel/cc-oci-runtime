@@ -42,7 +42,7 @@ src/commands/cc_oci_runtime-version.$(OBJEXT): \
 	 commit_id
 
 data/cc-oci-runtime.sh: data/cc-oci-runtime.sh.in
-	$(SED) \
+	$(AM_V_GEN)$(SED) \
 		-e 's|[@]PACKAGE_NAME[@]|$(PACKAGE_NAME)|g' \
 		-e 's|[@]bindir[@]|$(bindir)|g' \
 		"$<" > "$@"
