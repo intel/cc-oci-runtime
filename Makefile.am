@@ -47,6 +47,8 @@ data/cc-oci-runtime.sh: data/cc-oci-runtime.sh.in
 		-e 's|[@]bindir[@]|$(bindir)|g' \
 		"$<" > "$@"
 
+CLEANFILES += data/cc-oci-runtime.sh
+
 AM_CPPFLAGS = -I $(top_srcdir)/src -DG_LOG_DOMAIN=\"$(PACKAGE_NAME)\" \
 	-DSYSCONFDIR=\"$(sysconfdir)/$(PACKAGE_NAME)\" \
 	-DDEFAULTSDIR=\"$(datadir)/defaults/$(PACKAGE_NAME)\" \
