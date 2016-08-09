@@ -1,5 +1,8 @@
 sudo: required
 dist: trusty
+branches:
+  only:
+    - master
 
 language: c
 compiler: gcc
@@ -10,3 +13,10 @@ before_script:
 script:
 - ./autogen.sh --enable-cppcheck --enable-valgrind
 - make
+
+notifications:
+  email:
+    recipients:
+      - cc-devel@lists.01.org
+    on_success: change
+    on_failure: always
