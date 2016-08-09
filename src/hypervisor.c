@@ -146,6 +146,11 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 		goto out;
 	}
 
+	if (! config->bundle_path) {
+		g_critical ("No bundle path");
+		goto out;
+	}
+
 	/* We're about to launch the hypervisor so validate paths.*/
 
 	if ((!config->vm->image_path[0])
