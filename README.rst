@@ -133,6 +133,17 @@ For example::
 
     $ sudo docker run --runtime cor -ti busybox
 
+Note that if you wish to pass options to the runtime such as
+``--global-log`` (see Logging_) and ``--debug`` (see Debugging_), you
+should instead configure Docker to invoke the helper script like this::
+
+    $ sudo dockerd --add-runtime cor=/usr/bin/cc-oci-runtime.sh
+
+The helper script will call the real runtime binary with the options
+you specify. Make sure you modify ``/usr/bin/cc-oci-runtime.sh`` with
+the options you wish to use (the script contains some examples that
+can be uncommented to enable).
+
 Running under ``containerd`` (without Docker)
 ---------------------------------------------
 
