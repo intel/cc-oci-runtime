@@ -24,7 +24,7 @@ before_script:
 
 script:
 - ./autogen.sh --enable-cppcheck --enable-valgrind --disable-silent-rules
-- make -j5
+- make -j5 CFLAGS=-Werror
 
 notifications:
   email:
