@@ -41,13 +41,20 @@ STORED_COMMIT = $(shell cat commit_id 2>/dev/null)
 src/commands/cc_oci_runtime-version.$(OBJEXT): \
 	 commit_id
 
+data/cc-oci-runtime.sh: data/cc-oci-runtime.sh.in
+	$(SED) \
+		-e 's|[@]PACKAGE_NAME[@]|$(PACKAGE_NAME)|g' \
+		-e 's|[@]bindir[@]|$(bindir)|g' \
+		"$<" > "$@"
+
 AM_CPPFLAGS = -I $(top_srcdir)/src -DG_LOG_DOMAIN=\"$(PACKAGE_NAME)\" \
 	-DSYSCONFDIR=\"$(sysconfdir)/$(PACKAGE_NAME)\" \
 	-DDEFAULTSDIR=\"$(datadir)/defaults/$(PACKAGE_NAME)\" \
 	-DGIT_COMMIT=\"$(STORED_COMMIT)\"
 
 defaultsdir = $(datadir)/defaults/$(PACKAGE_NAME)
-defaults_DATA = data/vm.json data/hypervisor.args data/kernel-cmdline
+defaults_DATA = data/vm.json data/hypervisor.args data/kernel-cmdline \
+				data/cc-oci-runtime.sh.in
 
 AM_CFLAGS = -std=gnu99 -fstack-protector -Wall -pedantic \
 	-Wstrict-prototypes -Wundef -fno-common \
@@ -64,6 +71,7 @@ DISTCHECK_CONFIGURE_FLAGS = \
 	--enable-functional-tests
 
 bin_PROGRAMS = cc-oci-runtime
+dist_bin_SCRIPTS = data/cc-oci-runtime.sh
 
 common_sources = \
 	src/util.c src/util.h \
