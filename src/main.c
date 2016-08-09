@@ -232,28 +232,14 @@ out:
  * Setup logging.
  *
  * \param options \ref cc_log_options.
- * \param config \ref cc_oci_config.
  *
  * \return \c true on success, else \c false.
  */
 static gboolean
-setup_logging (struct cc_log_options *options,
-		struct cc_oci_config *config)
+setup_logging (struct cc_log_options *options)
 {
-	g_assert (options);
-
-	if (! options->global_logfile) {
-		/* FIXME: --global-log is currently always enabled.
-		 *
-		 * For now, always create a global log file since
-		 * containerd doesn't always invoke the runtime with --log
-		 * (which makes debugging awkward).
-		 */
-		options->global_logfile = g_build_path ("/",
-				config->root_dir
-				? config->root_dir
-				: CC_OCI_RUNTIME_DIR_PREFIX,
-				PACKAGE_NAME ".log", NULL);
+	if (! options) {
+		return false;
 	}
 
 	return cc_oci_log_init (options);
@@ -364,7 +350,7 @@ handle_arguments (int argc, char **argv)
 	}
 
 	if (priv_level >= 0 &&
-			! setup_logging (&cc_log_options, &config)) {
+			! setup_logging (&cc_log_options)) {
 		/* Send message to stderr as in case logging is
 		 * completely broken due to failed setup.
 		 */
