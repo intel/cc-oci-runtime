@@ -17,42 +17,39 @@
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-glib_version=2.49.4
-json_glib_version=1.2.2
-check_version=0.10.0
+set -e -x
+
+cwd=$(cd `dirname "$0"`; pwd -P)
+source $cwd/versions.txt
+
+gnome_dl=https://download.gnome.org/sources
 
 # Install required dependencies to build
 # glib, json-glib, check and cc-oci-runtime
 sudo apt-get -qq install valgrind lcov uuid-dev pkg-config \
-  zlib1g-dev libffi-dev gettext libpcre3-dev texinfo gtk-doc-tools cppcheck
+  zlib1g-dev libffi-dev gettext libpcre3-dev cppcheck check
 
 mkdir cor-dependencies
 pushd cor-dependencies
 
 # Build glib
-curl -L -O "https://github.com/GNOME/glib/archive/${glib_version}.tar.gz"
-tar -xvf "${glib_version}.tar.gz"
+glib_major=`echo $glib_version | cut -d. -f1`
+glib_minor=`echo $glib_version | cut -d. -f2`
+curl -L -O "$gnome_dl/glib/${glib_major}.${glib_minor}/glib-${glib_version}.tar.xz"
+tar -xvf "glib-${glib_version}.tar.xz"
 pushd "glib-${glib_version}"
-bash autogen.sh --prefix=/usr
+./configure
 make
 sudo make install
 popd
 
 # Build json-glib
-curl -L -O "https://github.com/GNOME/json-glib/archive/${json_glib_version}.tar.gz"
-tar -xvf "${json_glib_version}.tar.gz"
+json_major=`echo $json_glib_version | cut -d. -f1`
+json_minor=`echo $json_glib_version | cut -d. -f2`
+curl -L -O "$gnome_dl/json-glib/${json_major}.${json_minor}/json-glib-${json_glib_version}.tar.xz"
+tar -xvf "json-glib-${json_glib_version}.tar.xz"
 pushd "json-glib-${json_glib_version}"
-bash autogen.sh --prefix=/usr
-make
-sudo make install
-popd
-
-# Build check
-curl -L -O "https://github.com/libcheck/check/archive/${check_version}.tar.gz"
-tar -xvf "${check_version}.tar.gz"
-pushd "check-${check_version}"
-autoreconf --install
-./configure --prefix=/usr
+./configure
 make
 sudo make install
 popd
@@ -63,5 +60,4 @@ pushd bats
 sudo ./install.sh /usr/local
 popd
 
-sudo ldconfig
 popd
