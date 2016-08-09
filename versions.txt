@@ -1,0 +1,2 @@
+glib_version=2.46.2
+json_glib_version=1.2.2

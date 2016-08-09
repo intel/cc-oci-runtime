@@ -94,10 +94,10 @@ AS_IF([test x"$disable_functional_test" = "xno"],
 AM_CONDITIONAL([FUNCTIONAL_TEST], [test x$disable_functional_test = x"no"])
 
 # Checks for libraries.
+source $srcdir/versions.txt
 
-required_glib_version=2.46
-PKG_CHECK_MODULES([GLIB], [glib-2.0 >= "$required_glib_version"], have_required_glib=yes, have_required_glib=no)
-AS_IF([test "$have_required_glib" != "yes"], AC_MSG_ERROR([ERROR: need glib ${required_glib_version}+ for the `G_FILE_MONITOR_WATCH_MOVES' flag]))
+PKG_CHECK_MODULES([GLIB], [glib-2.0 >= "$glib_version"], have_required_glib=yes, have_required_glib=no)
+AS_IF([test "$have_required_glib" != "yes"], AC_MSG_ERROR([ERROR: need glib ${glib_version}+ for the `G_FILE_MONITOR_WATCH_MOVES' flag]))
 
 PKG_CHECK_MODULES([GIO], [gio-unix-2.0])
 PKG_CHECK_MODULES([JSON_GLIB], [json-glib-1.0])
@@ -175,13 +175,13 @@ AC_SUBST([QEMU_PATH], [$ac_cv_path_QEMU])
 AC_SUBST([CMDLINE], [$(cat $srcdir/data/kernel-cmdline)])
 
 #bundle path for functional-test
-DEFAULT_BUNDLE_TEST_DIR=$(realpath $srcdir/tests/functional/bundle)
+DEFAULT_BUNDLE_TEST_DIR=$(cd "$srcdir/tests/functional/bundle" 2>/dev/null; pwd -P)
 AC_ARG_WITH([tests-bundle-path],
     [AS_HELP_STRING([--with-tests-bundle-path=[[BUNDLE-PATH]]],
             [path to oci bundle to execute functional tests])
     ],
     [
-        BUNDLE_TEST_PATH=$(realpath $with_tests_bundle_path)
+        BUNDLE_TEST_PATH=$(cd "$with_tests_bundle_path"; pwd -P)
         AC_SUBST([BUNDLE_TEST_PATH])
     ],
     [
@@ -195,7 +195,7 @@ AC_ARG_WITH([tests-rootfs-path],
         [path to rootfs for functional tests])
     ],
     [
-        ROOTFS_PATH=$(realpath $with_tests_rootfs_path)
+        ROOTFS_PATH=$(cd "$with_tests_rootfs_path"; pwd -P)
         AC_SUBST([ROOTFS_PATH])
     ],
     [
