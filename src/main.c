@@ -43,9 +43,6 @@ static gboolean show_version;
 static gboolean show_help;
 static gboolean systemd_cgroup;
 
-/** If \c true, enable \c g_debug() output */
-gboolean enable_debug;
-
 /** Path to create state under */
 static gchar *root_dir;
 
@@ -62,7 +59,7 @@ static GOptionEntry options_global[] =
 	},
 	{
 		"debug", 'd', G_OPTION_FLAG_NONE,
-		G_OPTION_ARG_NONE, &enable_debug,
+		G_OPTION_ARG_NONE, &cc_log_options.enable_debug,
 		"enable debug output",
 		NULL
 	},
@@ -360,7 +357,7 @@ handle_arguments (int argc, char **argv)
 		goto out;
 	}
 
-	if (enable_debug) {
+	if (cc_log_options.enable_debug) {
 		/* Record how runtime was invoked in log */
 		gchar *str = g_strjoinv (" ", argv);
 		g_debug ("called as: %s %s", program_name, str);
@@ -406,7 +403,7 @@ main (int argc, char **argv)
 	gboolean ret;
 
 	// FIXME: --debug currently forcibly enabled
-	enable_debug = true;
+	cc_log_options.enable_debug = true;
 
 	ret = handle_arguments (argc, argv);
 

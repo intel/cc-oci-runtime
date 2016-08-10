@@ -135,14 +135,13 @@ Suite* make_priv_suite(void) {
 	return s;
 }
 
-gboolean enable_debug = true;
-
 int main(void) {
 	int number_failed;
 	Suite* s;
 	SRunner* sr;
 	struct cc_log_options options = { 0 };
 
+	options.enable_debug = true;
 	options.use_json = false;
 	options.filename = g_strdup ("priv_test_debug.log");
 	(void)cc_oci_log_init(&options);

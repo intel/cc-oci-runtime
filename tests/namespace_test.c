@@ -33,7 +33,6 @@
 #include "../src/logging.h"
 #include "test_common.h"
 
-gboolean enable_debug = true;
 
 START_TEST(test_cc_oci_ns_to_str) {
 	const char *str;
@@ -190,6 +189,7 @@ int main (void) {
 	SRunner* sr;
 	struct cc_log_options options = { 0 };
 
+	options.enable_debug = true;
 	options.use_json = false;
 	options.filename = g_strdup ("namespace_test_debug.log");
 	(void)cc_oci_log_init(&options);

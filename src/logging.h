@@ -27,6 +27,9 @@
 /** Options to pass to cc_oci_log_handler(). */
 struct cc_log_options
 {
+	/* if \c true, enable debug logging, else disable it */
+	gboolean enable_debug;
+
     /* Full path to logfile to use. */
     char     *filename;
 
