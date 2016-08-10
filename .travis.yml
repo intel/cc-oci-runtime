@@ -15,7 +15,7 @@ before_script:
 - ./.travis-setup.sh
 
 script:
-- ./autogen.sh --enable-cppcheck --enable-valgrind
+- ./autogen.sh --enable-cppcheck --enable-valgrind --disable-silent-rules
 - make
 
 notifications:
