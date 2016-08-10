@@ -22,6 +22,11 @@ set -e -x
 cwd=$(cd `dirname "$0"`; pwd -P)
 source $cwd/versions.txt
 
+# Ensure "make install" as root can find clang
+#
+# See: https://github.com/travis-ci/travis-ci/issues/2607
+export CC=$(which "$CC")
+
 gnome_dl=https://download.gnome.org/sources
 
 # Install required dependencies to build
