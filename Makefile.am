@@ -28,7 +28,7 @@ CHECK_DEPS =
 GIT_COMMIT := $(shell git rev-parse HEAD 2>/dev/null)
 
 commit_id:
-	if [ "x$(GIT_COMMIT)" != "x" ]; then \
+	$(AM_V_GEN)if [ "x$(GIT_COMMIT)" != "x" ]; then \
 		echo "Writing commit id"; \
 		echo $(GIT_COMMIT) > commit_id; \
 	else \
