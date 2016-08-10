@@ -22,6 +22,11 @@ set -e -x
 cwd=$(cd `dirname "$0"`; pwd -P)
 source $cwd/versions.txt
 
+# Ensure "make install" as root can find clang
+#
+# See: https://github.com/travis-ci/travis-ci/issues/2607
+export CC=$(which "$CC")
+
 gnome_dl=https://download.gnome.org/sources
 
 # Install required dependencies to build
@@ -38,7 +43,7 @@ glib_minor=`echo $glib_version | cut -d. -f2`
 curl -L -O "$gnome_dl/glib/${glib_major}.${glib_minor}/glib-${glib_version}.tar.xz"
 tar -xvf "glib-${glib_version}.tar.xz"
 pushd "glib-${glib_version}"
-./configure
+./configure --disable-silent-rules
 make
 sudo make install
 popd
@@ -49,7 +54,7 @@ json_minor=`echo $json_glib_version | cut -d. -f2`
 curl -L -O "$gnome_dl/json-glib/${json_major}.${json_minor}/json-glib-${json_glib_version}.tar.xz"
 tar -xvf "json-glib-${json_glib_version}.tar.xz"
 pushd "json-glib-${json_glib_version}"
-./configure
+./configure --disable-silent-rules
 make
 sudo make install
 popd

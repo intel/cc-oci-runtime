@@ -2,7 +2,9 @@ sudo: required
 dist: trusty
 
 language: c
-compiler: gcc
+compiler:
+  - gcc
+  - clang
 
 env:
   global:
@@ -15,7 +17,7 @@ before_script:
 - ./.travis-setup.sh
 
 script:
-- ./autogen.sh --enable-cppcheck --enable-valgrind
+- ./autogen.sh --enable-cppcheck --enable-valgrind --disable-silent-rules
 - make
 
 notifications:
