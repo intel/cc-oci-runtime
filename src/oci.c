@@ -228,7 +228,7 @@ cc_oci_kill (struct cc_oci_config *config,
 	/* update state file */
 	if (! cc_oci_state_file_create (config, state->create_time)) {
 		g_critical ("failed to recreate state file");
-		return false;
+		goto error;
 	}
 
 	if (kill (state->pid, signum) < 0) {
@@ -241,20 +241,27 @@ cc_oci_kill (struct cc_oci_config *config,
 		config->state.status = last_status;
 		if (! cc_oci_state_file_create (config, state->create_time)) {
 			g_critical ("failed to recreate state file");
-			return false;
 		}
 		return false;
 	}
+
+	last_status = config->state.status;
 
 	config->state.status = OCI_STATUS_STOPPED;
 
 	/* update state file */
 	if (! cc_oci_state_file_create (config, state->create_time)) {
 		g_critical ("failed to recreate state file");
-		return false;
+		goto error;
 	}
 
 	return true;
+
+error:
+	/* revert container status */
+	config->state.status = last_status;
+
+	return false;
 }
 
 /*!
