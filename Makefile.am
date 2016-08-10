@@ -55,8 +55,7 @@ AM_CPPFLAGS = -I $(top_srcdir)/src -DG_LOG_DOMAIN=\"$(PACKAGE_NAME)\" \
 	-DGIT_COMMIT=\"$(STORED_COMMIT)\"
 
 defaultsdir = $(datadir)/defaults/$(PACKAGE_NAME)
-defaults_DATA = data/vm.json data/hypervisor.args data/kernel-cmdline \
-				data/cc-oci-runtime.sh.in
+defaults_DATA = data/vm.json data/hypervisor.args data/kernel-cmdline
 
 AM_CFLAGS = -std=gnu99 -fstack-protector -Wall -pedantic \
 	-Wstrict-prototypes -Wundef -fno-common \
@@ -160,6 +159,7 @@ EXTRA_DIST = \
 	commit_id \
 	versions.txt \
 	$(defaults_DATA) \
+	data/cc-oci-runtime.sh.in \
 	$(bats_test_sources)
 
 if CPPCHECK
