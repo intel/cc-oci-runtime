@@ -2,7 +2,9 @@ sudo: required
 dist: trusty
 
 language: c
-compiler: gcc
+compiler:
+  - gcc
+  - clang
 
 env:
   global:
