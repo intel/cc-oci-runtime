@@ -24,7 +24,7 @@ before_script:
 
 script:
 - ./autogen.sh --enable-cppcheck --enable-valgrind --disable-silent-rules
-- make
+- make -j5
 
 notifications:
   email:
@@ -39,5 +39,5 @@ addons:
       name: "01org/cc-oci-runtime"
       description: "Build submitted via Travis CI"
     build_command_prepend: "./autogen.sh --enable-cppcheck --enable-valgrind; make clean"
-    build_command: "make -j 4"
+    build_command: "make -j5"
     branch_pattern: coverity_scan
