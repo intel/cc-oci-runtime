@@ -172,7 +172,7 @@ endif
 
 if FUNCTIONAL_TEST
 CHECK_DEPS += functional-test
-functional-test:
+functional-test: cc-oci-runtime
 	@$(BATS_PATH) $(srcdir)/tests/functional/
 endif
 
