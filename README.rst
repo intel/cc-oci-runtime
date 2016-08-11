@@ -1,6 +1,10 @@
 .. image:: https://travis-ci.org/01org/cc-oci-runtime.svg?branch=master
    :target: https://travis-ci.org/01org/cc-oci-runtime
 
+.. image:: https://scan.coverity.com/projects/01org-cc-oci-runtime/badge.svg
+   :target: https://scan.coverity.com/projects/01org-cc-oci-runtime
+   :alt: Coverity Scan Build Status
+
 .. contents::
 .. sectnum::
 
