@@ -524,12 +524,12 @@ START_TEST(test_cc_oci_vm_args_get) {
 	g_strfreev (args);
 
 	/* recreate the args file */
-	ret = g_file_set_contents (args_file, "hello\# comment\n", -1, NULL);
+	ret = g_file_set_contents (args_file, "hello\\# comment\n", -1, NULL);
 	ck_assert (ret);
 
 	ck_assert (cc_oci_vm_args_get (&config, &args));
 
-	ck_assert (! g_strcmp0 (args[0], "hello\# comment"));
+	ck_assert (! g_strcmp0 (args[0], "hello\\# comment"));
 	ck_assert (! args[1]);
 	g_strfreev (args);
 

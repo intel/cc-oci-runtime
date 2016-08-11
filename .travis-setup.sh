@@ -32,7 +32,7 @@ gnome_dl=https://download.gnome.org/sources
 # Install required dependencies to build
 # glib, json-glib, check and cc-oci-runtime
 sudo apt-get -qq install valgrind lcov uuid-dev pkg-config \
-  zlib1g-dev libffi-dev gettext libpcre3-dev cppcheck check
+  zlib1g-dev libffi-dev gettext libpcre3-dev cppcheck
 
 mkdir cor-dependencies
 pushd cor-dependencies
@@ -58,6 +58,18 @@ pushd "json-glib-${json_glib_version}"
 make
 sudo make install
 popd
+
+# Build check
+# We need to build check as the check version in the OS used by travis isn't
+# -pedantic safe.
+curl -L -O "https://github.com/libcheck/check/releases/download/${check_version}/check-${check_version}.tar.gz"
+tar -xvf "check-${check_version}.tar.gz"
+pushd "check-${check_version}"
+./configure
+make
+sudo make install
+popd
+
 
 # Install bats
 git clone https://github.com/sstephenson/bats.git

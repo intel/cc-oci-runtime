@@ -125,7 +125,7 @@ enum oci_namespace {
 	OCI_NS_USER    = CLONE_NEWUSER,
 	OCI_NS_CGROUP  = CLONE_NEWCGROUP,
 
-	OCI_NS_INVALID = 0x0,
+	OCI_NS_INVALID = -1,
 };
 
 struct oci_cfg_platform {
