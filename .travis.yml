@@ -15,6 +15,9 @@ env:
     # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
     #   via the "travis encrypt" command using the project repo's public key
     - secure: "iw3DDm/YamMkn6cEMDG5d028kRuBbSOCZqJ13kI9yWbalk8sH14iG3mBQ1biOD6VJPlPZSMTYpYIX78Z9DQ0iDCWSsILeCLVjQVwjfhiQ/Ws7QVtFx7qlgxmXjlbVVPrzOTELgQkYNRz1VIzOAiNuXwhjZXVCd9ORjQMbHthODwJ/S6gweskyCX+7cVVaVAAX/O38zLGEzTceZPMLD0qTWDZO/FLGxQ0Z3IcNcZxa0uNWIhUFIcEYetcVcGggTRpaaQe69LYSYqtGBKPJksLNbbWAB3E13Z/pkvxl8OLAHm3GFI9WHORLSN/E/3012+aRQCVrpPoHh4AO11bt60cLohYLXt52XK034Gb2GkoUonu+/GtAT6tKgVjg0817whgROJChfblHg9rwS+dKzW/wtIO4CeXNq6ZWHEtOFjEuwzplYtpN/ShcxKVBpx9eraw2fJYYW0RBM3XhYbCvnT88Xo+7QlkPXYFBGuVDcXHcC26RCPOEolL2VL2elQPXpq8sRXh/y9DNhO2A1MEGF99RyQdQHb+F6boVkLQrKtehmCo30rVonNeiyqnr3zv50GEibD4/b2qYjizj5uU9CfG1hgrM0GQxitahhjZhX/7GM0j+So97Qg4bTnfNd9ZEuozcfFk+trmJPqWJe5YswL9RJCX8O4/eI/QnhIyWQsf0JU="
+    # The next declaration is the encrypted COVERITY_SCAN_NOTIFICATION_EMAIL, created
+    #   via the "travis encrypt" command using the project repo's public key
+    - secure: "qYWd0Njhqt3w4b3Dvj38pWzGEdHQaaodJDOy8QMxb+g3v3VIbn5WajEGd1t4J8S7+hPl+Hgo1bs96PoUDXAm29FAL7VAaqGkG2+RuWmGN3PZbdOmnDmamzuz4IN04VG6O3WQpdp6aZdS+BL8VnNllbxmyKS3rFOAB6I9YRj7XQAbLgwfWEnRwy+e4d9mvIxJ/aEMkhGX4qbquFvnqBXUu/YRq8DXi0Pqi/DPqGHmx+YNI0bmgRLGkoC/9W3YL9MMnc14lK9sCiJfio9onsm7uMtQlDbR5uAd25oM/TV1Pay53T63JTsZMbRKW6+7mWr7BLeWkUX98PmxlQD4cumcc3J8jIXp7lUZ9fRUDeQ6i+4uR4rf/mtVYg2AKKDNpvLqIgEH8T3dDHJdlBg8fzd3v1MhC21Y4Brri6fWtphkaHocNuWUUj8XZDr/f4LPSYRfulgT+Y/Xz79YzDN4jxXcrLhS9XVX4CEzQ5rHsCYzJHnTDK0+vQsJdcHHgxOmhgL1ScGEeSjjWucAEeWyvgiDTpYvUDwO91OTcpjhgzQXzCO/f9dIe/MwUmJThYUOd0jGbrpUdgS46mhzEnKercuMky+cHIMIIfkCQBR1oWxpxFUEGVQ4NHAjrqtW5SpzlUsO2xmn3rSDiM3UAmuWvOGCREq6YGQ0lzzS195iRgWjme4="
     # Only run for the default compiler to minimise the impact on the
     # projects Coverity Scan quota.
     - coverity_scan_run_condition='"$CC" = gcc'
