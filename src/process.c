@@ -724,7 +724,7 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 		g_debug ("reading netcfg from parent");
 
 		bytes = read (net_cfg_pipe[0], netcfg, len);
-		if (ret < 0) {
+		if (bytes < 0) {
 			goto child_failed;
 		}
 
