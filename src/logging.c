@@ -541,11 +541,17 @@ void cc_oci_setup_hypervisor_logs (struct cc_oci_config *config)
 			 * i.e: $hypervisor_log_dir/$containerId-hypervidor.stdout
 			 */
 			int std_file_fd = g_creat(std_file_path, CC_OCI_LOGFILE_MODE);
+
 			if (std_file_fd < 0) {
 				g_critical("failed to create file: %s", std_file_path);
-			/* redirecting stdout/stderr to a file */
-			} else if (dup2(std_file_fd, i->std_fd) < 0) {
-				g_critical("failed to dup %s", std_file_path);
+			} else {
+				/* redirecting stdout/stderr to a file */
+				if (dup2(std_file_fd, i->std_fd) < 0) {
+					g_critical("failed to dup %s", std_file_path);
+				} else {
+					/* Close unused file descriptor */
+					close(std_file_fd);
+				}
 			}
 		} else {
 			g_critical("failed to build path: %s", i->path);
