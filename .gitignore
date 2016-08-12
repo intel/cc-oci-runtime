@@ -25,6 +25,7 @@ CONTAINER-KERNEL
 cscope.files
 cscope.in.out
 cscope.po.out
+data/cc-oci-runtime.sh
 data/config.json
 data/hypervisor.args
 data/vm.json
