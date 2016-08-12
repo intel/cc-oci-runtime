@@ -362,6 +362,13 @@ written into the directory specified by "``--root``".  The default
 runtime state directory is ``/run/opencontainer/containers/`` if no
 "``--root``" argument is supplied.
 
+Additionally exist the possibility to log hypervisor's stderr and stdout into
+``$hypervisorLogDir/$containerId-hypervisor.stderr`` and
+``$hypervisorLogDir/$containerId-hypervisor.stdout`` respectively if the
+``--hypervisor-log-dir`` option is specified. Note that ``$hypervisorLogDir``
+and ``$containerId`` are variables provided by user through
+``--hypervisor-log-dir`` option and ``create`` command respectively.
+
 Note: Global logging is presently always enabled in the runtime,
 as ``containerd`` does not always invoke the runtime with the ``--log``
 argument, and enabling the global log in this case helps with debugging.
@@ -381,7 +388,7 @@ the OCI_ CLI and the runc_ CLI interfaces.
 
 Details of the runc_ command line options can be found in the `runc manpage`_.
 
-Note: The ``--global-log`` argument is unique to the runtime at present.
+Note: The ``--global-log`` and ``--hypervisor-log-dir`` arguments are unique to the runtime at present.
 
 Extensions
 ~~~~~~~~~~
@@ -429,6 +436,7 @@ Debugging
         --debug \
         --root /tmp/cor/ \
         --global-log /tmp/global.log \
+        --hypervisor-log-dir /tmp/ \
         start --console $(tty) $container $bundle_path
 
 - Consult the global Log (see Logging_).

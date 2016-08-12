@@ -71,6 +71,13 @@ static GOptionEntry options_global[] =
 		NULL
 	},
 	{
+		"hypervisor-log-dir", 0, G_OPTION_FLAG_NONE,
+		G_OPTION_ARG_STRING,
+		&cc_log_options.hypervisor_log_dir,
+		"specify directory path to output hypervisor log",
+		NULL
+	},
+	{
 		"log", 0, G_OPTION_FLAG_NONE,
 		G_OPTION_ARG_STRING,
 		&cc_log_options.filename,
