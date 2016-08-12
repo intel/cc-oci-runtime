@@ -74,14 +74,13 @@ Suite* make_runtime_suite(void) {
 	return s;
 }
 
-gboolean enable_debug = true;
-
 int main(void) {
 	int number_failed;
 	Suite* s;
 	SRunner* sr;
 	struct cc_log_options options = { 0 };
 
+	options.enable_debug = true;
 	options.use_json = false;
 
 	/* use underscore rather than dash as that's
