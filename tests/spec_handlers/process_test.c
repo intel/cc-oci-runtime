@@ -52,8 +52,6 @@ Suite* make_process_suite(void) {
 	return s;
 }
 
-gboolean enable_debug = true;
-
 int main(void) {
 	int number_failed;
 	Suite* s;
@@ -61,6 +59,7 @@ int main(void) {
 	struct cc_log_options options = { 0 };
 	gchar *cwd = g_get_current_dir();
 
+	options.enable_debug = true;
 	options.use_json = false;
 	options.filename = g_build_path ("/",
 			cwd,

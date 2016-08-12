@@ -56,8 +56,6 @@
 #define CC_OCI_ERROR(...) \
 	cc_oci_error (__FILE__, __LINE__, __func__, __VA_ARGS__)
 
-extern gboolean enable_debug;
-
 /*!
  * Last-ditch logging routine which sends an error
  * message to syslog.
@@ -330,7 +328,7 @@ cc_oci_log_handler (const gchar *log_domain,
 		return;
 	}
 
-	if (log_level == G_LOG_LEVEL_DEBUG && (!enable_debug) &&
+	if (log_level == G_LOG_LEVEL_DEBUG && (!options->enable_debug) &&
 			! options->global_logfile) {
 
 		/* By default, g_debug() messages are disabled. However,
@@ -403,7 +401,7 @@ cc_oci_log_handler (const gchar *log_domain,
 		fprintf (stderr, "%s\n", final);
 	}
 
-	if ((log_level == G_LOG_LEVEL_DEBUG) && (!enable_debug)) {
+	if ((log_level == G_LOG_LEVEL_DEBUG) && (!options->enable_debug)) {
 		/* Debug calls are always added to the global log, but
 		 * only added to the main log if debug is enabled.
 		 */

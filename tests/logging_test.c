@@ -31,8 +31,6 @@
 #include "logging.h"
 #include "oci.h"
 
-gboolean enable_debug = true;
-
 void
 cc_oci_error (const char *file,
 		int line_number,
@@ -51,6 +49,8 @@ START_TEST(test_cc_oci_log_init) {
 	JsonParser *parser = NULL;
 	JsonReader *reader = NULL;
 	const gchar *value;
+
+	options.enable_debug = true;
 
 	options.use_json = false;
 
@@ -113,14 +113,14 @@ START_TEST(test_cc_oci_log_init) {
 	/* Now, test g_debug() handling */
 
 	/* Disable g_debug () messages */
-	enable_debug = false;
+	options.enable_debug = false;
 
 	g_debug ("WILL NOT BE LOGGED");
 
 	ck_assert (! g_file_test (options.filename, G_FILE_TEST_EXISTS));
 
 	/* re-enable debug messages */
-	enable_debug = true;
+	options.enable_debug = true;
 
 	g_debug ("G_LOG_LEVEL_DEBUG: %s (int=%d)", "!de bug, da bug!", 13);
 
