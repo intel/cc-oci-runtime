@@ -140,15 +140,25 @@ Before we dive into using `Clear Containers`_ it is prudent to do a final sanity
   ::
 
     $ docker ps
+    CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
     $ docker network ls
+    NETWORK ID          NAME                DRIVER              SCOPE
+    028f36f79ca5        bridge              bridge              local
+    8a22faead310        host                host                local
+    960c24b9d9de        none                null                local
     $ docker pull busybox 
-
+    Using default tag: latest
+    latest: Pulling from library/busybox
+    8ddc19f16526: Pull complete 
+    Digest: sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6
+    Status: Downloaded newer image for busybox:latest
     $ docker run -it busybox sh
     [    0.063356] systemd[1]: Failed to initialise default hostname
     / # uname -a
      Linux f0098e68456f 4.5.0-49.container #1 SMP Mon Aug 8 20:46:42 UTC 2016 x86_64 GNU/Linux
     / # exit
 
+In the final step above it can be seen that we are running a Clear Container in a hypervisor, as the Linux kernel version 4.5.0-49.container is different from the kernel being used by the underlying host system.
 
 Conclusion
 ----------
