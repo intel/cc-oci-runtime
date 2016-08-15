@@ -168,9 +168,5 @@ You now have Docker_ installed with `Clear Containers`_ enabled as the default O
 
 .. _OCI: https://www.opencontainers.org/
 
-.. _QEMU: http://wiki.qemu.org/Main_Page
-
-.. _QEMU-lite: http://github.com/01org/qemu-lite
-
 .. _Nested Virtualization: https://en.wikipedia.org/wiki/Virtualization
 
