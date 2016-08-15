@@ -32,7 +32,7 @@ If your user does not already have ``sudo`` rights, you should add your user to 
 
   ::
 
-    usermod -G wheel -a <USERNAME>
+    # usermod -G wheel -a <USERNAME>
 
 This change will take effect once you have logged out as root and logged back in as <USERNAME>.
 
@@ -40,7 +40,7 @@ And you will also need to add your user or group to the ``/etc/sudoers`` file, f
 
   ::
 
-    visudo
+    # visudo
     #and add the line:
       %wheel  ALL=(ALL)    ALL
 
@@ -53,9 +53,9 @@ Before you try to install and run `Clear Containers`_ it is prudent to check tha
 
   ::
 
-    curl -O https://download.clearlinux.org/current/clear-linux-check-config.sh
-    chmod +x clear-linux-check-config.sh
-    ./clear-linux-check-config.sh container
+    $ curl -O https://download.clearlinux.org/current/clear-linux-check-config.sh
+    $ chmod +x clear-linux-check-config.sh
+    $ ./clear-linux-check-config.sh container
 
 This command will print a list of test results. All items should return a 'SUCCESS' status - but you can ignore the 'Nested KVM support' item if it fails - this just means you cannot run `Clear Containers`_ under another hypervisor such as KVM, but can still run `Clear Containers`_ directly on top of native `Clear Linux`_ or any other distribution.
 
@@ -68,13 +68,13 @@ To check which version of `Clear Linux`_ you are on, and what the latest availab
 
   ::
 
-    sudo swupd update -s
+    $ sudo swupd update -s
 
 To update your `Clear Linux`_ installation to the latest execute:
 
   ::
 
-    sudo swupd update
+    $ sudo swupd update
 
 Install Clear Containers bundle
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -82,7 +82,7 @@ Install Clear Containers bundle
 
   ::
 
-    sudo swupd bundle-add containers-basic
+    $ sudo swupd bundle-add containers-basic
 
 Add your user to the KVM and Docker groups
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -91,14 +91,14 @@ To enable your user to access both Docker and KVM you will need to add them to t
  
   ::
 
-    sudo usermod -G kvm,docker -a <USERNAME>
+    $ sudo usermod -G kvm,docker -a <USERNAME>
 
 Then run the following commands to add those group ids to your active login session:
 
   ::
 
-    newgrp kvm
-    newgrp docker
+    $ newgrp kvm
+    $ newgrp docker
 
 Docker on Clear Linux
 ~~~~~~~~~~~~~~~~~~~~~
@@ -115,18 +115,18 @@ After you install bundle ``containers-basic`` you'll need to start docker(s) ser
 
   ::
 
-    sudo systemctl start docker
-    sudo systemctl start docker-cor
+    $ sudo systemctl start docker
+    $ sudo systemctl start docker-cor
 
 To check which one of these are activated just run:
 
   ::
 
-    sudo systemctl status docker
+    $ sudo systemctl status docker
 
     or
 
-    sudo systemctl status docker-cor
+    $ sudo systemctl status docker-cor
 
 
 **Note:** In the next reboot the docker daemon will start automatically.
@@ -139,11 +139,11 @@ Before we dive into using `Clear Containers`_ it is prudent to do a final sanity
 
   ::
 
-    docker ps
-    docker network ls
-    docker pull busybox 
+    $ docker ps
+    $ docker network ls
+    $ docker pull busybox 
 
-    docker run -it busybox sh
+    $ docker run -it busybox sh
     [    0.063356] systemd[1]: Failed to initialise default hostname
     / # uname -a
      Linux f0098e68456f 4.5.0-49.container #1 SMP Mon Aug 8 20:46:42 UTC 2016 x86_64 GNU/Linux
