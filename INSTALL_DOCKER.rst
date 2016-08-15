@@ -62,7 +62,7 @@ This command will print a list of test results. All items should return a 'SUCCE
 Update your Clear Linux
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-The more recent your version of `Clear Linux`_ the better `Clear Containers`_ will perform, and the general recommendation is that you ensure that you are on the latest version of Clear Linux, or at least version 8620.
+The more recent your version of `Clear Linux`_ the better `Clear Containers`_ will perform, and the general recommendation is that you ensure that you are on the latest version of Clear Linux, or at least version 9890.
 
 To check which version of `Clear Linux`_ you are on, and what the latest available is, from within `Clear Linux`_ run:
 
