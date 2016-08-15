@@ -6,9 +6,6 @@
 
 Introduction
 ------------
-.. attention::
-   This document is a work in progress - the **Attention!** boxes note places where things may be updated as infrastructure develops.
-
 `Clear Containers`_ 2.0 provides an Open Containers Initiative (OCI_) compatible 'runtime' and is installable into Docker_ 1.12.0 and later, where OCI_ runtime support is available.
 
 You will need to have a `Clear Linux`_ installation before commencing this procedure, although `Clear Containers`_ do not depend on `Clear Linux`_ as a host and can be run on top of other distributions. See `Installing Clear Linux`_ for more details.
