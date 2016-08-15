@@ -68,7 +68,7 @@ To check which version of `Clear Linux`_ you are on, and what the latest availab
 
   ::
 
-    swupd update -s
+    sudo swupd update -s
 
 To update your `Clear Linux`_ installation to the latest execute:
 
