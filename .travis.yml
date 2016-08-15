@@ -29,6 +29,9 @@ script:
 - ./autogen.sh --enable-cppcheck --enable-valgrind --disable-silent-rules
 - make -j5 CFLAGS=-Werror check
 
+after_failure:
+- ./.travis-teardown.sh
+
 notifications:
   email:
     recipients:
