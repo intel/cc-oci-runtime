@@ -158,6 +158,7 @@ EXTRA_DIST = \
 	LICENSE \
 	CONTRIBUTING.md \
 	INSTALL_DOCKER.rst \
+	DESIGN.rst \
 	Doxyfile \
 	data/vm.json.in \
 	tests/data \
