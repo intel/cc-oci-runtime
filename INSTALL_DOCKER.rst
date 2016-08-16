@@ -93,12 +93,7 @@ To enable your user to access both Docker and KVM you will need to add them to t
 
     $ sudo usermod -G kvm,docker -a <USERNAME>
 
-Then run the following commands to add those group ids to your active login session:
-
-  ::
-
-    $ newgrp kvm
-    $ newgrp docker
+For these new group memberships to take effect, log out and log back in again as \<USERNAME\>.
 
 Docker on Clear Linux
 ~~~~~~~~~~~~~~~~~~~~~
