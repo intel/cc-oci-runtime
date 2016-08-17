@@ -26,7 +26,7 @@ Installation Steps
 Enable sudo
 ~~~~~~~~~~~
 
-You will need root privileges in order to run a number of the following commands. It is recommended you run these commands from a user account with ``sudo`` rights. 
+You will need ``root`` privileges in order to run a number of the following commands. It is recommended you run these commands from a user account with ``sudo`` rights. 
 
 If your user does not already have ``sudo`` rights, you should add your user to ``wheel`` group whilst logged in as ``root``:
 
@@ -34,7 +34,7 @@ If your user does not already have ``sudo`` rights, you should add your user to 
 
     # usermod -G wheel -a <USERNAME>
 
-This change will take effect once you have logged out as root and logged back in as <USERNAME>.
+This change will take effect once you have logged out as ``root`` and logged back in as <USERNAME>.
 
 And you will also need to add your user or group to the ``/etc/sudoers`` file, for example:
 
