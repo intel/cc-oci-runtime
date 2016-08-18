@@ -6,9 +6,6 @@
 
 Introduction
 ------------
-.. attention::
-   This document is a work in progress - the **Attention!** boxes note places where things may be updated as infrastructure develops.
-
 `Clear Containers`_ 2.0 provides an Open Containers Initiative (OCI_) compatible 'runtime' and is installable into Docker_ 1.12.0 and later, where OCI_ runtime support is available.
 
 You will need to have a `Clear Linux`_ installation before commencing this procedure, although `Clear Containers`_ do not depend on `Clear Linux`_ as a host and can be run on top of other distributions. See `Installing Clear Linux`_ for more details.
@@ -29,21 +26,21 @@ Installation Steps
 Enable sudo
 ~~~~~~~~~~~
 
-You will need root privileges in order to run a number of the following commands. It is recommended you run these commands from a user account with ``sudo`` rights. 
+You will need ``root`` privileges in order to run a number of the following commands. It is recommended you run these commands from a user account with ``sudo`` rights. 
 
 If your user does not already have ``sudo`` rights, you should add your user to ``wheel`` group whilst logged in as ``root``:
 
   ::
 
-    usermod -G wheel -a <USERNAME>
+    # usermod -G wheel -a <USERNAME>
 
-This change will take effect once you have logged out as root and logged back in as <USERNAME>.
+This change will take effect once you have logged out as ``root`` and logged back in as <USERNAME>.
 
 And you will also need to add your user or group to the ``/etc/sudoers`` file, for example:
 
   ::
 
-    visudo
+    # visudo
     #and add the line:
       %wheel  ALL=(ALL)    ALL
 
@@ -56,28 +53,28 @@ Before you try to install and run `Clear Containers`_ it is prudent to check tha
 
   ::
 
-    curl -O https://download.clearlinux.org/current/clear-linux-check-config.sh
-    chmod +x clear-linux-check-config.sh
-    ./clear-linux-check-config.sh container
+    $ curl -O https://download.clearlinux.org/current/clear-linux-check-config.sh
+    $ chmod +x clear-linux-check-config.sh
+    $ ./clear-linux-check-config.sh container
 
 This command will print a list of test results. All items should return a 'SUCCESS' status - but you can ignore the 'Nested KVM support' item if it fails - this just means you cannot run `Clear Containers`_ under another hypervisor such as KVM, but can still run `Clear Containers`_ directly on top of native `Clear Linux`_ or any other distribution.
 
 Update your Clear Linux
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-The more recent your version of `Clear Linux`_ the better `Clear Containers`_ will perform, and the general recommendation is that you ensure that you are on the latest version of Clear Linux, or at least version 8620.
+The more recent your version of `Clear Linux`_ the better `Clear Containers`_ will perform, and the general recommendation is that you ensure that you are on the latest version of Clear Linux, or at least version 9890.
 
 To check which version of `Clear Linux`_ you are on, and what the latest available is, from within `Clear Linux`_ run:
 
   ::
 
-    swupd update -s
+    $ sudo swupd update -s
 
 To update your `Clear Linux`_ installation to the latest execute:
 
   ::
 
-    sudo swupd update
+    $ sudo swupd update
 
 Install Clear Containers bundle
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -85,7 +82,7 @@ Install Clear Containers bundle
 
   ::
 
-    sudo swupd bundle-add containers-basic
+    $ sudo swupd bundle-add containers-basic
 
 Add your user to the KVM and Docker groups
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -94,14 +91,9 @@ To enable your user to access both Docker and KVM you will need to add them to t
  
   ::
 
-    sudo usermod -G kvm,docker -a <USERNAME>
+    $ sudo usermod -G kvm,docker -a <USERNAME>
 
-Then run the following commands to add those group ids to your active login session:
-
-  ::
-
-    newgrp kvm
-    newgrp docker
+For these new group memberships to take effect, log out and log back in again as \<USERNAME\>.
 
 Docker on Clear Linux
 ~~~~~~~~~~~~~~~~~~~~~
@@ -118,18 +110,18 @@ After you install bundle ``containers-basic`` you'll need to start docker(s) ser
 
   ::
 
-    sudo systemctl start docker
-    sudo systemctl start docker-cor
+    $ sudo systemctl start docker
+    $ sudo systemctl start docker-cor
 
 To check which one of these are activated just run:
 
   ::
 
-    sudo systemctl status docker
+    $ sudo systemctl status docker
 
     or
 
-    sudo systemctl status docker-cor
+    $ sudo systemctl status docker-cor
 
 
 **Note:** In the next reboot the docker daemon will start automatically.
@@ -142,16 +134,26 @@ Before we dive into using `Clear Containers`_ it is prudent to do a final sanity
 
   ::
 
-    docker ps
-    docker network ls
-    docker pull busybox 
-
-    docker run -it busybox sh
+    $ docker ps
+    CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
+    $ docker network ls
+    NETWORK ID          NAME                DRIVER              SCOPE
+    028f36f79ca5        bridge              bridge              local
+    8a22faead310        host                host                local
+    960c24b9d9de        none                null                local
+    $ docker pull busybox 
+    Using default tag: latest
+    latest: Pulling from library/busybox
+    8ddc19f16526: Pull complete 
+    Digest: sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6
+    Status: Downloaded newer image for busybox:latest
+    $ docker run -it busybox sh
     [    0.063356] systemd[1]: Failed to initialise default hostname
     / # uname -a
      Linux f0098e68456f 4.5.0-49.container #1 SMP Mon Aug 8 20:46:42 UTC 2016 x86_64 GNU/Linux
     / # exit
 
+In the final step above it can be seen that we are running a Clear Container in a hypervisor, as the Linux kernel version 4.5.0-49.container is different from the kernel being used by the underlying host system.
 
 Conclusion
 ----------
@@ -167,10 +169,6 @@ You now have Docker_ installed with `Clear Containers`_ enabled as the default O
 .. _Installing Clear Linux: https://clearlinux.org/documentation/gs_getting_started.html
 
 .. _OCI: https://www.opencontainers.org/
-
-.. _QEMU: http://wiki.qemu.org/Main_Page
-
-.. _QEMU-lite: http://github.com/01org/qemu-lite
 
 .. _Nested Virtualization: https://en.wikipedia.org/wiki/Virtualization
 
