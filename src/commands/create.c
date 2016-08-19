@@ -63,8 +63,6 @@ handler_create (const struct subcommand *sub,
 		struct cc_oci_config *config,
 		int argc, char *argv[])
 {
-	gboolean  ret;
-
 	g_assert (sub);
 	g_assert (config);
 
@@ -72,14 +70,7 @@ handler_create (const struct subcommand *sub,
 		return false;
 	}
 
-	ret = cc_oci_create (config);
-
-	if (ret) {
-		g_print ("container %s created\n",
-				config->optarg_container_id);
-	}
-
-	return ret;
+	return cc_oci_create (config);
 }
 
 struct subcommand command_create =
