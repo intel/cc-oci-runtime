@@ -358,21 +358,12 @@ since it is always written to in ASCII format and includes Process ID
 details. Also note that all instances of the runtime will append to
 the global log.
 
-The global log file is named ``cc-oci-runtime.log``, and will be
-written into the directory specified by "``--root``".  The default
-runtime state directory is ``/run/opencontainer/containers/`` if no
-"``--root``" argument is supplied.
-
 Additionally exist the possibility to log hypervisor's stderr and stdout into
 ``$hypervisorLogDir/$containerId-hypervisor.stderr`` and
 ``$hypervisorLogDir/$containerId-hypervisor.stdout`` respectively if the
 ``--hypervisor-log-dir`` option is specified. Note that ``$hypervisorLogDir``
 and ``$containerId`` are variables provided by user through
 ``--hypervisor-log-dir`` option and ``create`` command respectively.
-
-Note: Global logging is presently always enabled in the runtime,
-as ``containerd`` does not always invoke the runtime with the ``--log``
-argument, and enabling the global log in this case helps with debugging.
 
 Command-line Interface
 ----------------------
