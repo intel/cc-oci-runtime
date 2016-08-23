@@ -119,6 +119,7 @@ cc_oci_netlink_run(const gchar *cmd_line) {
 	gint exit_status = -1;
 	gboolean ret = false;
 	gchar iproute2_cmd[1024];
+	GError *error = NULL;
 
 	if (cmd_line == NULL){
 		g_critical("invalid netlink command");
@@ -132,10 +133,14 @@ cc_oci_netlink_run(const gchar *cmd_line) {
 				NULL,
 				NULL,
 				&exit_status,
-				NULL);
+				&error);
 
 	if (!ret) {
-		g_critical("failed to spawn [%s]", iproute2_cmd);
+		g_critical("failed to spawn [%s]: %s",
+				iproute2_cmd, error->message);
+		if (error) {
+			g_error_free(error);
+		}
 		return false;
 	}
 
