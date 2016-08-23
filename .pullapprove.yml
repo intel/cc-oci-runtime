@@ -1,0 +1,15 @@
+approve_by_comment: true
+approve_regex: ^(LGTM|lgtm|+1|Approve)
+reset_on_push: true
+reset_on_reopened: true
+author_approval: ignored
+reviewers:
+  teams:
+    - clear-containers-intel
+  name: default
+  required: 2
+  conditions:
+    branches:
+      - master 
+signed_off_by:
+  required: true
