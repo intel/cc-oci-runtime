@@ -75,7 +75,7 @@ cc_oci_expand_net_cmdline(struct cc_oci_config *config) {
 	return g_strdup("");
 }
 
-#define QEMU_FMT_NETDEV "tap,ifname=%s,script=no,downscript=no,id=%s"
+#define QEMU_FMT_NETDEV "tap,ifname=%s,script=no,downscript=no,id=%s,vhost=on"
 
 static gchar *
 cc_oci_expand_netdev_cmdline(struct cc_oci_config *config) {
