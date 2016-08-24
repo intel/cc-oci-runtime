@@ -1,5 +1,5 @@
 approve_by_comment: true
-approve_regex: '^(LGTM|lgtm|Approve|:\+1:)'
+approve_regex: '^(LGTM|lgtm|Approve|\+1|:\+1:)'
 reset_on_push: true
 reset_on_reopened: true
 author_approval: ignored
