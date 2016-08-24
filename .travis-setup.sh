@@ -44,7 +44,7 @@ curl -L -O "$gnome_dl/glib/${glib_major}.${glib_minor}/glib-${glib_version}.tar.
 tar -xvf "glib-${glib_version}.tar.xz"
 pushd "glib-${glib_version}"
 ./configure --disable-silent-rules
-make
+make -j5
 sudo make install
 popd
 
@@ -55,7 +55,7 @@ curl -L -O "$gnome_dl/json-glib/${json_major}.${json_minor}/json-glib-${json_gli
 tar -xvf "json-glib-${json_glib_version}.tar.xz"
 pushd "json-glib-${json_glib_version}"
 ./configure --disable-silent-rules
-make
+make -j5
 sudo make install
 popd
 
@@ -66,7 +66,7 @@ curl -L -O "https://github.com/libcheck/check/releases/download/${check_version}
 tar -xvf "check-${check_version}.tar.gz"
 pushd "check-${check_version}"
 ./configure
-make
+make -j5
 sudo make install
 popd
 
