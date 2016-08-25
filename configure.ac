@@ -123,6 +123,18 @@ AS_IF([test $FUNCTIONAL_TEST = 1],
    AC_SUBST(BATS_PATH)]
 )
 
+#path to install systemd files used to boot by cc-image
+AC_ARG_WITH([cc-image-systemdsystemunitdir],
+	AS_HELP_STRING([--with-cc-image-systemdsystemunitdir=DIR],[path to systemd service directory for cc-image]),
+	[
+		CC_IMAGE_SYSTEMDSYSTEMUNIT_PATH=${withval}
+		AC_SUBST(CC_IMAGE_SYSTEMDSYSTEMUNIT_PATH)
+	],
+	[CC_IMAGE_SYSTEMDSYSTEMUNIT_PATH=no]
+)
+AM_CONDITIONAL([CC_IMAGE_SYSTEMDSYSTEMUNIT],[test x"$CC_IMAGE_SYSTEMDSYSTEMUNIT_PATH" != xno])
+
+		AC_SUBST([CC_IMAGE_SYSTEMDSYSTEMUNIT], [1])
 #Check for qemu
 DEFAULT_QEMU_PATH=/usr/bin/qemu-system-x86_64
 
@@ -246,11 +258,12 @@ cc-oci-runtime - $VERSION
 
  • General:
 
-       QEMU             : $ac_cv_path_QEMU
-       QEMU pc-lite     : $has_pc_lite
-       Container kernel : $CONTAINER_KERNEL
-       Container image  : $CONTAINERS_IMG
-       Debug build      : $enable_debug
+       QEMU                     : $ac_cv_path_QEMU
+       QEMU pc-lite             : $has_pc_lite
+       Container kernel         : $CONTAINER_KERNEL
+       Container image          : $CONTAINERS_IMG
+       Container image services : $CC_IMAGE_SYSTEMDSYSTEMUNIT_PATH
+       Debug build              : $enable_debug
 
  • Tests:
 

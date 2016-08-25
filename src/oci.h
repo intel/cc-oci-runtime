@@ -90,10 +90,8 @@
 
 /** Name of file containing environment variables that will be set
  * inside the VM.
- *
- * Note: name is historical.
  */
-#define CC_OCI_ENV_FILE		"/.dockerenv"
+#define CC_OCI_ENV_FILE		"/.containerenv"
 
 /** Shell to use for \ref CC_OCI_WORKLOAD_FILE. */
 #define CC_OCI_WORKLOAD_SHELL		"/bin/sh"
