@@ -157,7 +157,6 @@ bats_test_sources = \
 EXTRA_DIST = \
 	LICENSE \
 	CONTRIBUTING.md \
-	INSTALL_DOCKER.rst \
 	DESIGN.rst \
 	Doxyfile \
 	data/vm.json.in \
