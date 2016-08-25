@@ -29,6 +29,14 @@ Henceforth, the tool will simply be referred to as "the runtime".
 See the canonical `cc-oci-runtime home page`_ for the latest
 information.
 
+Quick Start
+-----------
+
+If you are eager to install and start using Clear Containers, please
+refer to the installation instructions on the wiki:
+
+- https://github.com/01org/cc-oci-runtime/wiki/installation
+
 Requirements
 ------------
 
