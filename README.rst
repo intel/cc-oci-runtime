@@ -89,15 +89,6 @@ yet available.
 
 See https://github.com/01org/cc-oci-runtime/issues/18
 
-Hostname
-~~~~~~~~
-
-The hostname specified in the OCI_ configuration file is not currently
-applied to the Clear Container, in part due to the fact that
-`Networking`_ is not yet available.
-
-See https://github.com/01org/cc-oci-runtime/issues/19
-
 Running a workload as a non-``root`` user/group
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
