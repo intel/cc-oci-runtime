@@ -476,13 +476,40 @@ cc_oci_vm_netcfg_to_strv (struct cc_oci_config *config)
 	if (config->net.gateway)     count++;
 	if (config->net.dns_ip1)     count++;
 	if (config->net.dns_ip2)     count++;
-	if (config->net.mac_address) count++;
-	if (config->net.ipv6_address)  count++;
-	if (config->net.ip_address)  count++;
-	if (config->net.subnet_mask) count++;
-	if (config->net.ifname)      count++;
-	if (config->net.bridge)      count++;
-	if (config->net.tap_device)  count++;
+
+	if (config->net.interfaces != NULL) {
+		guint i;
+
+		for (i=0; i < g_slist_length(config->net.interfaces); i++) {
+			struct cc_oci_net_if_cfg *if_cfg;
+			guint j;
+
+			if_cfg = (struct cc_oci_net_if_cfg *)
+				g_slist_nth_data(config->net.interfaces, i);
+
+			if (if_cfg->ifname)      count++;
+			if (if_cfg->bridge)      count++;
+			if (if_cfg->tap_device)  count++;
+			if (if_cfg->mac_address) count++;
+
+			for (j=0; j < g_slist_length(if_cfg->ipv4_addrs); j++) {
+				struct cc_oci_net_ipv4_cfg *ipv4_cfg;
+				ipv4_cfg = (struct cc_oci_net_ipv4_cfg *)
+					g_slist_nth_data(if_cfg->ipv4_addrs, j);
+				if (ipv4_cfg->ip_address)    count++;
+				if (ipv4_cfg->subnet_mask)  count++;
+			}
+
+			for (j=0; j < g_slist_length(if_cfg->ipv6_addrs); j++) {
+				struct cc_oci_net_ipv6_cfg *ipv6_cfg;
+				ipv6_cfg = (struct cc_oci_net_ipv6_cfg *)
+					g_slist_nth_data(if_cfg->ipv6_addrs, j);
+
+				if (ipv6_cfg->ipv6_address)    count++;
+				if (ipv6_cfg->ipv6_prefix)    count++;
+			}
+		}
+	}
 
 	if (! count) {
 		return NULL;
@@ -514,39 +541,77 @@ cc_oci_vm_netcfg_to_strv (struct cc_oci_config *config)
 				config->net.dns_ip2);
 	}
 
-	if (config->net.mac_address) {
-		cfg[--count] = g_strdup_printf ("@MAC_ADDRESS@=%s",
-				config->net.mac_address);
-	}
+	if (config->net.interfaces != NULL) {
+		guint i;
 
-	if (config->net.ipv6_address) {
-		cfg[--count] = g_strdup_printf ("@IPV6_ADDRESS@=%s",
-				config->net.ipv6_address);
-	}
+		for (i=0; i < g_slist_length(config->net.interfaces); i++) {
+			struct cc_oci_net_if_cfg *if_cfg;
+			guint j;
 
-	if (config->net.ip_address) {
-		cfg[--count] = g_strdup_printf ("@IP_ADDRESS@=%s",
-				config->net.ip_address);
-	}
+			if_cfg = (struct cc_oci_net_if_cfg *)
+				g_slist_nth_data(config->net.interfaces, i);
 
-	if (config->net.subnet_mask) {
-		cfg[--count] = g_strdup_printf ("@SUBNET_MASK@=%s",
-				config->net.subnet_mask);
-	}
+			for (j=0; j < g_slist_length(if_cfg->ipv4_addrs); j++) {
+				struct cc_oci_net_ipv4_cfg *ipv4_cfg;
 
-	if (config->net.ifname) {
-		cfg[--count] = g_strdup_printf ("@IFNAME@=%s",
-				config->net.ifname);
-	}
+				ipv4_cfg = (struct cc_oci_net_ipv4_cfg *)
+					g_slist_nth_data(if_cfg->ipv4_addrs, j);
 
-	if (config->net.bridge) {
-		cfg[--count] = g_strdup_printf ("@BRIDGE@=%s",
-				config->net.bridge);
-	}
+				if (ipv4_cfg->subnet_mask) {
+					cfg[--count] = g_strdup_printf ("@SUBNET_MASK@=%s",
+						ipv4_cfg->subnet_mask);
+				}
 
-	if (config->net.tap_device) {
-		cfg[--count] = g_strdup_printf ("@TAP_DEVICE@=%s",
-				config->net.tap_device);
+				/* Should come last as it is a delimiter */
+				if (ipv4_cfg->ip_address) {
+					cfg[--count] = g_strdup_printf ("@IP_ADDRESS@=%s",
+						ipv4_cfg->ip_address);
+				}
+			}
+
+			for (j=0; j < g_slist_length(if_cfg->ipv6_addrs); j++) {
+				struct cc_oci_net_ipv6_cfg *ipv6_cfg;
+
+				ipv6_cfg = (struct cc_oci_net_ipv6_cfg *)
+					g_slist_nth_data(if_cfg->ipv6_addrs, j);
+
+				if (ipv6_cfg->ipv6_prefix) {
+					cfg[--count] = g_strdup_printf ("@IPV6_PREFIX@=%s",
+						ipv6_cfg->ipv6_prefix);
+				}
+
+				/* Should come last as it is a delimiter */
+				if (ipv6_cfg->ipv6_address) {
+					cfg[--count] = g_strdup_printf ("@IPV6_ADDRESS@=%s",
+						ipv6_cfg->ipv6_address);
+				}
+			}
+
+			if (if_cfg->ifname) {
+				cfg[--count] = g_strdup_printf ("@IFNAME@=%s",
+					if_cfg->ifname);
+			}
+
+			if (if_cfg->bridge) {
+				cfg[--count] = g_strdup_printf ("@BRIDGE@=%s",
+					if_cfg->bridge);
+			}
+
+			if (if_cfg->mac_address) {
+				cfg[--count] = g_strdup_printf ("@MAC_ADDRESS@=%s",
+					if_cfg->mac_address);
+			}
+
+			/* Note: Has to be the last field as it also acts as an
+			 * interface delimiter
+			 * TODO: Add a explicit interface delimiter
+			 */
+			if (if_cfg->tap_device) {
+				cfg[--count] = g_strdup_printf ("@TAP_DEVICE@=%s",
+					if_cfg->tap_device);
+			}
+
+		}
 	}
 
 	return cfg;
@@ -568,6 +633,10 @@ cc_oci_vm_netcfg_from_str (struct cc_oci_config *config,
 {
 	gchar  **lines = NULL;
 	gchar  **line;
+	struct cc_oci_net_if_cfg *if_cfg = NULL;
+	struct cc_oci_net_ipv4_cfg *ipv4_cfg = NULL;
+	struct cc_oci_net_ipv6_cfg *ipv6_cfg = NULL;
+	guint num_interfaces = 0;
 
 	if (! (config && netcfg)) {
 		return false;
@@ -594,20 +663,65 @@ cc_oci_vm_netcfg_from_str (struct cc_oci_config *config,
 			config->net.dns_ip1 = g_strdup (fields[1]);
 		} else if (! g_strcmp0 (fields[0], "@DNS_IP2@")) {
 			config->net.dns_ip2 = g_strdup (fields[1]);
-		} else if (! g_strcmp0 (fields[0], "@MAC_ADDRESS@")) {
-			config->net.mac_address = g_strdup (fields[1]);
-		} else if (! g_strcmp0 (fields[0], "@IPV6_ADDRESS@")) {
-			config->net.ipv6_address = g_strdup (fields[1]);
-		} else if (! g_strcmp0 (fields[0], "@IP_ADDRESS@")) {
-			config->net.ip_address = g_strdup (fields[1]);
-		} else if (! g_strcmp0 (fields[0], "@SUBNET_MASK@")) {
-			config->net.subnet_mask = g_strdup (fields[1]);
-		} else if (! g_strcmp0 (fields[0], "@IFNAME@")) {
-			config->net.ifname = g_strdup (fields[1]);
-		} else if (! g_strcmp0 (fields[0], "@BRIDGE@")) {
-			config->net.bridge = g_strdup (fields[1]);
 		} else if (! g_strcmp0 (fields[0], "@TAP_DEVICE@")) {
-			config->net.tap_device = g_strdup (fields[1]);
+			/*TODO: Add a interface delimiter
+			 * Currently TAP_DEVICE indicates a new interface */
+			if_cfg = g_malloc0(sizeof(struct cc_oci_net_if_cfg));
+			config->net.interfaces =
+				g_slist_append(config->net.interfaces, if_cfg);
+			num_interfaces++;
+			g_debug("new interface allocated [%d] %s", 
+				num_interfaces, fields[1]);
+
+			if_cfg->tap_device = g_strdup (fields[1]);
+		} else {
+			if (!if_cfg) {
+				g_critical("NULL pointer processing %d %s %s",
+					num_interfaces, fields[0], fields[1]);
+				continue;
+			}
+			if (! g_strcmp0 (fields[0], "@MAC_ADDRESS@")) {
+				if_cfg->mac_address = g_strdup (fields[1]);
+			} else if (! g_strcmp0 (fields[0], "@IFNAME@")) {
+				if_cfg->ifname = g_strdup (fields[1]);
+			} else if (! g_strcmp0 (fields[0], "@BRIDGE@")) {
+				if_cfg->bridge = g_strdup (fields[1]);
+			} else if (! g_strcmp0 (fields[0], "@IPV6_ADDRESS@")) {
+				ipv6_cfg = g_malloc0(sizeof(*ipv6_cfg));
+				ipv6_cfg->ipv6_address = g_strdup (fields[1]);
+				if_cfg->ipv6_addrs =
+					g_slist_append(if_cfg->ipv6_addrs, ipv6_cfg);
+				g_debug("new IPv6 address allocated %s %s",
+					if_cfg->ifname, ipv6_cfg->ipv6_address);
+			} else if (! g_strcmp0 (fields[0], "@IPV6_PREFIX@")) {
+				if (ipv6_cfg == NULL) {
+					g_critical("NULL pointer processing %d %s %s",
+						num_interfaces, fields[0], fields[1]);
+					continue;
+				}
+				ipv6_cfg->ipv6_prefix = g_strdup (fields[1]);
+				g_debug("new prefix allocated %s %s",
+					if_cfg->ifname, ipv6_cfg->ipv6_prefix);
+				ipv6_cfg = NULL;
+			} else if (! g_strcmp0 (fields[0], "@IP_ADDRESS@")) {
+				/* Currently IP_ADDRESS indicates a new IP */
+				ipv4_cfg = g_malloc0(sizeof(*ipv4_cfg));
+				ipv4_cfg->ip_address = g_strdup (fields[1]);
+				if_cfg->ipv4_addrs =
+					g_slist_append(if_cfg->ipv4_addrs, ipv4_cfg);
+				g_debug("new IPv4 address allocated %s %s",
+					if_cfg->ifname, ipv4_cfg->ip_address);
+			} else if (! g_strcmp0 (fields[0], "@SUBNET_MASK@")) {
+				if (ipv4_cfg == NULL) {
+					g_critical("NULL pointer processing %d %s %s",
+						num_interfaces, fields[0], fields[1]);
+					continue;
+				}
+				ipv4_cfg->subnet_mask = g_strdup (fields[1]);
+				g_debug("new subnet allocated %s %s",
+					if_cfg->ifname, ipv4_cfg->subnet_mask);
+				ipv4_cfg = NULL;
+			}
 		}
 
 		g_strfreev (fields);

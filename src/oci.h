@@ -274,19 +274,18 @@ struct cc_oci_net_cfg {
 	/** DNS IP (xxx.xxx.xxx.xxx). */
 	gchar  *dns_ip2;
 
-	/* TODO: Need to support multiple networks
-	 * The parameters below are per network
-	 * interface and we will multiple
-	 */
+	/** Network interfaces. */
+	GSList  *interfaces;
+
+	/** TODO: Add support for routes */
+};
+
+
+/** cc-specific network interface configuration data. */
+struct cc_oci_net_if_cfg {
 
 	/** MAC address with colon separators (xx:xx:xx:xx:xx:xx). */
 	gchar  *mac_address;
-
-	/** IPv4 address (xxx.xxx.xxx.xxx). */
-	gchar  *ip_address;
-
-	/** IPv4 subnet mask (xxx.xxx.xxx.xxx). */
-	gchar  *subnet_mask;
 
 	/** Name of network interface (veth) within the namespace
 	 * This should also be the name of the interface within the VM */
@@ -298,10 +297,30 @@ struct cc_oci_net_cfg {
 	/** Name of the QEMU tap device */
 	gchar  *tap_device;
 
-	/** IPv6 address */
-	gchar  *ipv6_address;
+	/** List of IPv4 addresses on the interface */
+	GSList  *ipv4_addrs;
+
+	/** List of IPv6 addresses on the interface */
+	GSList  *ipv6_addrs;
 
 	/** TODO: Add support for routes */
+};
+
+/** cc-specific IPv4 configuration data. */
+struct cc_oci_net_ipv4_cfg {
+	/** IPv4 address (xxx.xxx.xxx.xxx). */
+	gchar  *ip_address;
+
+	/** IPv4 subnet mask (xxx.xxx.xxx.xxx). */
+	gchar  *subnet_mask;
+};
+
+/** cc-specific IPv6 configuration data. */
+struct cc_oci_net_ipv6_cfg {
+	/** IPv6 address (x:y::a:z). */
+	gchar  *ipv6_address;
+	/** IPv6 prefix */
+	gchar  *ipv6_prefix;
 };
 
 /**
@@ -486,5 +505,7 @@ gboolean cc_oci_kill (struct cc_oci_config *config,
 
 gboolean cc_oci_config_update (struct cc_oci_config *config,
 		struct oci_state *state);
+gboolean
+cc_oci_create_container_networking_workload (struct cc_oci_config *config);
 
 #endif /* _CC_OCI_H */

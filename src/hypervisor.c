@@ -52,53 +52,84 @@ cc_oci_expand_net_cmdline(struct cc_oci_config *config) {
          * <device>:<autoconf>:<dns0-ip>:<dns1-ip>
 	 */
 
-	/* FIXME. Sending multiple ip= does not seem to work
-	 * Hence support one or the other for now
-	 * Explore dracut or systemd based network init
+	/* TODO: Use cloud-init based network init
+	 * For now, just pick the first interface
 	 */
+	struct cc_oci_net_if_cfg *if_cfg = NULL;
+	struct cc_oci_net_ipv4_cfg *ipv4_cfg = NULL;
 
-	if ( config->net.ip_address != NULL ) {
-		return ( g_strdup_printf("ip=%s::%s:%s:%s:%s:off::",
-			config->net.ip_address,
-			config->net.gateway,
-			config->net.subnet_mask,
-			config->net.hostname,
-			config->net.ifname) );
+	if_cfg = (struct cc_oci_net_if_cfg *)
+		g_slist_nth_data(config->net.interfaces, 0);
+
+	if (if_cfg == NULL) {
+		goto out;
 	}
 
-	if ( config->net.ipv6_address != NULL ) {
-		return ( g_strdup_printf("ip=[%s]:::::%s:off::",
-			config->net.ipv6_address,
-			config->net.ifname) );
+	ipv4_cfg = (struct cc_oci_net_ipv4_cfg *)
+		g_slist_nth_data(if_cfg->ipv4_addrs, 0);
+
+	if (ipv4_cfg == NULL){
+		goto out;
 	}
 
+	return ( g_strdup_printf("ip=%s::%s:%s:%s:%s:off::",
+		ipv4_cfg->ip_address,
+		config->net.gateway,
+		ipv4_cfg->subnet_mask,
+		config->net.hostname,
+		if_cfg->ifname));
+
+out:
 	return g_strdup("");
 }
 
 #define QEMU_FMT_NETDEV "tap,ifname=%s,script=no,downscript=no,id=%s,vhost=on"
 
 static gchar *
-cc_oci_expand_netdev_cmdline(struct cc_oci_config *config) {
+cc_oci_expand_netdev_cmdline(struct cc_oci_config *config, guint index) {
+	struct cc_oci_net_if_cfg *if_cfg = NULL;
+
+	if_cfg = (struct cc_oci_net_if_cfg *)
+		g_slist_nth_data(config->net.interfaces, index);
+
+	if (if_cfg == NULL) {
+		goto out;
+	}
+
 
 	return g_strdup_printf(QEMU_FMT_NETDEV,
-		config->net.tap_device,
-		config->net.tap_device);
+		if_cfg->tap_device,
+		if_cfg->tap_device);
+
+out:
+	return g_strdup("");
 }
 
-#define QEMU_FMT_DEVICE "driver=virtio-net,netdev=%s"
+#define QEMU_FMT_DEVICE "driver=virtio-net-pci,netdev=%s"
 #define QEMU_FMT_DEVICE_MAC QEMU_FMT_DEVICE ",mac=%s"
 
 static gchar *
-cc_oci_expand_net_device_cmdline(struct cc_oci_config *config) {
+cc_oci_expand_net_device_cmdline(struct cc_oci_config *config, guint index) {
+	struct cc_oci_net_if_cfg *if_cfg = NULL;
 
-	if ( config->net.mac_address == NULL ) {
+	if_cfg = (struct cc_oci_net_if_cfg *)
+		g_slist_nth_data(config->net.interfaces, index);
+
+	if (if_cfg == NULL) {
+		goto out;
+	}
+
+	if ( if_cfg->mac_address == NULL ) {
 		return g_strdup_printf(QEMU_FMT_DEVICE,
-			config->net.tap_device);
+			if_cfg->tap_device);
 	} else {
 		return g_strdup_printf(QEMU_FMT_DEVICE_MAC,
-			config->net.tap_device,
-			config->net.mac_address);
+			if_cfg->tap_device,
+			if_cfg->mac_address);
 	}
+
+out:
+	return g_strdup("");
 }
 
 
@@ -271,9 +302,9 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 
 	kernel_net_params = cc_oci_expand_net_cmdline(config);
 
-	if ( config->net.tap_device == NULL ) {
+	if ( config->net.interfaces == NULL ) {
 		/* Support --net=none */
-		/* Hacky, no clean way to add/remove args today
+		/* FIXME, no clean way to append args today
 		 * For multiple network we need to have a way to append
 		 * args to the hypervisor command line vs substitution
 		 */
@@ -284,8 +315,11 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 	} else {
 		netdev_option = g_strdup("-netdev");
 		net_device_option = g_strdup("-device");
-		netdev_params = cc_oci_expand_netdev_cmdline(config);
-		net_device_params = cc_oci_expand_net_device_cmdline(config);
+		/* Support a single interface till we have the capability
+		 * to append more arguments
+		 */
+		netdev_params = cc_oci_expand_netdev_cmdline(config, 0);
+		net_device_params = cc_oci_expand_net_device_cmdline(config, 0);
 	}
 
 	/* Note: @NETDEV@: For multiple network we need to have a way to append
