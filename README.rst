@@ -45,7 +45,7 @@ Supported Application Versions
 
 The runtime has been tested with the following application versions:
 
-- Docker_ version 1.12.0.
+- Docker_ version 1.12.1.
 - Containerd_ version 0.2.2.
 
 Limitations
