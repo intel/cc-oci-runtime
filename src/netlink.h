@@ -18,20 +18,32 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef _CC_OCI_NETWORKING_H
-#define _CC_OCI_NETWORKING_H
+#ifndef _CC_OCI_NETLINK_H
+#define _CC_OCI_NETLINK_H
 
-#include "netlink.h"
+struct netlink_handle {
+	guint seq;
+	struct mnl_socket *nl;
+};
 
-void cc_oci_net_interface_free (struct cc_oci_net_if_cfg *if_cfg);
+struct netlink_handle * netlink_init(void);
 
-gboolean cc_oci_network_create(const struct cc_oci_config *const config,
-		      struct netlink_handle *hndl);
+void netlink_close(struct netlink_handle *const hndl);
 
-gchar * cc_net_get_ip_address(const gint family, const void *const sin_addr);
+gboolean netlink_link_enable(struct netlink_handle *const hndl,
+				const gchar *const interface, gboolean enable);
 
+gboolean netlink_link_add_bridge(struct netlink_handle *const hndl,
+				 const gchar *const name);
 
-gboolean cc_oci_network_discover(struct cc_oci_config *const config,
-			struct netlink_handle *hndl);
+gboolean netlink_link_set_master(struct netlink_handle *const hndl,
+				 guint dev, guint master);
 
-#endif /* _CC_OCI_NETWORKING_H */
+gboolean netlink_link_set_addr(struct netlink_handle *const hndl,
+			       const gchar *const interface, gulong size, 
+			       const guchar *const hwaddr);
+
+gchar * netlink_get_default_gw(struct netlink_handle *const hndl,
+				guchar family);
+
+#endif /* _CC_OCI_NETLINK_H */

@@ -102,6 +102,7 @@ AS_IF([test "$have_required_glib" != "yes"], AC_MSG_ERROR([ERROR: need glib ${gl
 PKG_CHECK_MODULES([GIO], [gio-unix-2.0])
 PKG_CHECK_MODULES([JSON_GLIB], [json-glib-1.0])
 PKG_CHECK_MODULES([UUID], [uuid])
+PKG_CHECK_MODULES([LIBMNL], [libmnl])
 
 AS_IF([test $BUILD_TESTS = 1],
 [PKG_CHECK_MODULES([CHECK], [check])]
