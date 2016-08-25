@@ -29,6 +29,14 @@ Henceforth, the tool will simply be referred to as "the runtime".
 See the canonical `cc-oci-runtime home page`_ for the latest
 information.
 
+Quick Start
+-----------
+
+If you are eager to install and start using Clear Containers, please
+refer to the installation instructions on the wiki:
+
+- https://github.com/01org/cc-oci-runtime/wiki/installation
+
 Requirements
 ------------
 
@@ -45,7 +53,7 @@ Supported Application Versions
 
 The runtime has been tested with the following application versions:
 
-- Docker_ version 1.12.0.
+- Docker_ version 1.12.1.
 - Containerd_ version 0.2.2.
 
 Limitations
@@ -88,15 +96,6 @@ is not fully implemented, in part due to the fact that `Networking`_ is not
 yet available.
 
 See https://github.com/01org/cc-oci-runtime/issues/18
-
-Hostname
-~~~~~~~~
-
-The hostname specified in the OCI_ configuration file is not currently
-applied to the Clear Container, in part due to the fact that
-`Networking`_ is not yet available.
-
-See https://github.com/01org/cc-oci-runtime/issues/19
 
 Running a workload as a non-``root`` user/group
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
