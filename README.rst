@@ -59,68 +59,9 @@ The runtime has been tested with the following application versions:
 Limitations
 -----------
 
-Since this is early code and is tracking both Docker_ and an unratified
-specification, there are still a few feature gaps.
-
-The remainder of this section documents those gaps, all of which
-are being worked on.
-
-Networking
-~~~~~~~~~~
-
-Basic Networking within the Clear Container is available:
-
-* Run a Clear Container using the default docker bridge network::
-
-  $ sudo docker run -it --net=bridge $image
-
-  or simply::
-
-  $ sudo docker run -it $image
-
-* Run a Clear Container with networking disabled (only localhost is available)::
-
-  $ sudo docker run -it --net=none $image
-
 See:
 
-- https://github.com/01org/cc-oci-runtime/issues/38
-- https://github.com/01org/cc-oci-runtime/issues/81
-- https://github.com/01org/cc-oci-runtime/issues/82
-
-``exec``
-~~~~~~~~
-
-The ``exec`` command that allows a new process to run inside a container
-is not fully implemented, in part due to the fact that `Networking`_ is not
-yet available.
-
-See https://github.com/01org/cc-oci-runtime/issues/18
-
-Running a workload as a non-``root`` user/group
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The runtime currently ignores the request to run the workload as a
-non-root user and/or group, defaulting to running as the "``root``" user
-(inside the Clear Container).
-
-See https://github.com/01org/cc-oci-runtime/issues/20
-
-Annotations
-~~~~~~~~~~~
-
-OCI_ Annotations are not currently exposed inside the Clear Container.
-
-See https://github.com/01org/cc-oci-runtime/issues/21
-
-No checkpoint and restore commands
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Although the runtime provides stub implementations of these commands,
-this is currently purely to satisfy Docker_ - the commands do *NOT*
-save/restore the state of the Clear Container.
-
-See https://github.com/01org/cc-oci-runtime/issues/22
+- https://github.com/01org/cc-oci-runtime/wiki/Limitations
 
 Running under ``docker``
 ------------------------
