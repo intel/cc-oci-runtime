@@ -41,6 +41,7 @@ Requirements
 ------------
 
 - A Qemu_ hypervisor that supports the ``pc-lite`` machine type (see qemu-lite_).
+- CONFIG_VHOST_NET enabled in the host kernel
 
 Platform Support
 ----------------

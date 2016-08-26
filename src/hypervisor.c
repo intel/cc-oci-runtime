@@ -85,7 +85,7 @@ cc_oci_expand_netdev_cmdline(struct cc_oci_config *config) {
 		config->net.tap_device);
 }
 
-#define QEMU_FMT_DEVICE "driver=virtio-net,netdev=%s"
+#define QEMU_FMT_DEVICE "driver=virtio-net-pci,netdev=%s"
 #define QEMU_FMT_DEVICE_MAC QEMU_FMT_DEVICE ",mac=%s"
 
 static gchar *
