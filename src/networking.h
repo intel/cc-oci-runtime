@@ -23,5 +23,6 @@
 
 gboolean cc_oci_network_create(const struct cc_oci_config *const config);
 gboolean cc_oci_network_discover(struct cc_oci_config *const config);
+void cc_oci_net_interface_free (struct cc_oci_net_if_cfg *if_cfg);
 
 #endif /* _CC_OCI_NETWORKING_H */
