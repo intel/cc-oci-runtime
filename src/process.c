@@ -452,290 +452,6 @@ cc_oci_vm_netcfg_get (struct cc_oci_config *config,
 }
 
 /*!
- * Obtain the network configuration by querying the network namespace,
- * returning the data in "name=value" format in a
- * dynamically-allocated string vector.
- *
- * \param config \ref cc_oci_config.
- *
- * \return \c string vector on success, , else \c NULL.
- */
-static gchar **
-cc_oci_vm_netcfg_to_strv (struct cc_oci_config *config,
-			  struct netlink_handle *hndl)
-{
-	gchar  **cfg = NULL;
-	gsize    count = 0;
-
-	if (! config) {
-		return NULL;
-	}
-
-	if (! cc_oci_vm_netcfg_get (config, hndl)) {
-		return NULL;
-	}
-
-	if (config->net.hostname)    count++;
-	if (config->net.gateway)     count++;
-	if (config->net.dns_ip1)     count++;
-	if (config->net.dns_ip2)     count++;
-
-	if (config->net.interfaces != NULL) {
-		guint i;
-
-		for (i=0; i < g_slist_length(config->net.interfaces); i++) {
-			struct cc_oci_net_if_cfg *if_cfg;
-			guint j;
-
-			if_cfg = (struct cc_oci_net_if_cfg *)
-				g_slist_nth_data(config->net.interfaces, i);
-
-			if (if_cfg->ifname)      count++;
-			if (if_cfg->bridge)      count++;
-			if (if_cfg->tap_device)  count++;
-			if (if_cfg->mac_address) count++;
-
-			for (j=0; j < g_slist_length(if_cfg->ipv4_addrs); j++) {
-				struct cc_oci_net_ipv4_cfg *ipv4_cfg;
-				ipv4_cfg = (struct cc_oci_net_ipv4_cfg *)
-					g_slist_nth_data(if_cfg->ipv4_addrs, j);
-				if (ipv4_cfg->ip_address)    count++;
-				if (ipv4_cfg->subnet_mask)  count++;
-			}
-
-			for (j=0; j < g_slist_length(if_cfg->ipv6_addrs); j++) {
-				struct cc_oci_net_ipv6_cfg *ipv6_cfg;
-				ipv6_cfg = (struct cc_oci_net_ipv6_cfg *)
-					g_slist_nth_data(if_cfg->ipv6_addrs, j);
-
-				if (ipv6_cfg->ipv6_address)    count++;
-				if (ipv6_cfg->ipv6_prefix)    count++;
-			}
-		}
-	}
-
-	if (! count) {
-		return NULL;
-	}
-
-	/* +1 for NULL terminator */
-	cfg = g_new0 (gchar *, 1+count);
-	if (! cfg) {
-		return NULL;
-	}
-
-	if (config->net.hostname) {
-		cfg[--count] = g_strdup_printf ("@HOSTNAME@=%s",
-				config->net.hostname);
-	}
-
-	if (config->net.gateway) {
-		cfg[--count] = g_strdup_printf ("@GATEWAY@=%s",
-				config->net.gateway);
-	}
-
-	if (config->net.dns_ip1) {
-		cfg[--count] = g_strdup_printf ("@DNS_IP1@=%s",
-				config->net.dns_ip1);
-	}
-
-	if (config->net.dns_ip2) {
-		cfg[--count] = g_strdup_printf ("@DNS_IP2@=%s",
-				config->net.dns_ip2);
-	}
-
-	if (config->net.interfaces != NULL) {
-		guint i;
-
-		for (i=0; i < g_slist_length(config->net.interfaces); i++) {
-			struct cc_oci_net_if_cfg *if_cfg;
-			guint j;
-
-			if_cfg = (struct cc_oci_net_if_cfg *)
-				g_slist_nth_data(config->net.interfaces, i);
-
-			for (j=0; j < g_slist_length(if_cfg->ipv4_addrs); j++) {
-				struct cc_oci_net_ipv4_cfg *ipv4_cfg;
-
-				ipv4_cfg = (struct cc_oci_net_ipv4_cfg *)
-					g_slist_nth_data(if_cfg->ipv4_addrs, j);
-
-				if (ipv4_cfg->subnet_mask) {
-					cfg[--count] = g_strdup_printf ("@SUBNET_MASK@=%s",
-						ipv4_cfg->subnet_mask);
-				}
-
-				/* Should come last as it is a delimiter */
-				if (ipv4_cfg->ip_address) {
-					cfg[--count] = g_strdup_printf ("@IP_ADDRESS@=%s",
-						ipv4_cfg->ip_address);
-				}
-			}
-
-			for (j=0; j < g_slist_length(if_cfg->ipv6_addrs); j++) {
-				struct cc_oci_net_ipv6_cfg *ipv6_cfg;
-
-				ipv6_cfg = (struct cc_oci_net_ipv6_cfg *)
-					g_slist_nth_data(if_cfg->ipv6_addrs, j);
-
-				if (ipv6_cfg->ipv6_prefix) {
-					cfg[--count] = g_strdup_printf ("@IPV6_PREFIX@=%s",
-						ipv6_cfg->ipv6_prefix);
-				}
-
-				/* Should come last as it is a delimiter */
-				if (ipv6_cfg->ipv6_address) {
-					cfg[--count] = g_strdup_printf ("@IPV6_ADDRESS@=%s",
-						ipv6_cfg->ipv6_address);
-				}
-			}
-
-			if (if_cfg->ifname) {
-				cfg[--count] = g_strdup_printf ("@IFNAME@=%s",
-					if_cfg->ifname);
-			}
-
-			if (if_cfg->bridge) {
-				cfg[--count] = g_strdup_printf ("@BRIDGE@=%s",
-					if_cfg->bridge);
-			}
-
-			if (if_cfg->mac_address) {
-				cfg[--count] = g_strdup_printf ("@MAC_ADDRESS@=%s",
-					if_cfg->mac_address);
-			}
-
-			/* Note: Has to be the last field as it also acts as an
-			 * interface delimiter
-			 * TODO: Add a explicit interface delimiter
-			 */
-			if (if_cfg->tap_device) {
-				cfg[--count] = g_strdup_printf ("@TAP_DEVICE@=%s",
-					if_cfg->tap_device);
-			}
-
-		}
-	}
-
-	return cfg;
-}
-
-/*!
- * Add the network configuration (via \p netcfg) to the specified
- * config.
- *
- * \param config \ref cc_oci_config.
- * \param netcfg Newline-separated "name=value" format
- *   network configuration.
- *
- * \return \c true on success, else \c false.
- */
-static gboolean
-cc_oci_vm_netcfg_from_str (struct cc_oci_config *config,
-		const gchar *netcfg)
-{
-	gchar  **lines = NULL;
-	gchar  **line;
-	struct cc_oci_net_if_cfg *if_cfg = NULL;
-	struct cc_oci_net_ipv4_cfg *ipv4_cfg = NULL;
-	struct cc_oci_net_ipv6_cfg *ipv6_cfg = NULL;
-	guint num_interfaces = 0;
-
-	if (! (config && netcfg)) {
-		return false;
-	}
-
-	lines = g_strsplit (netcfg, "\n", -1);
-	if (! lines) {
-		return false;
-	}
-
-	for (line = lines; line && *line; line++) {
-		gchar **fields;
-
-		fields = g_strsplit (*line, "=", 2);
-		if (! fields) {
-			break;
-		}
-
-		if (! g_strcmp0 (fields[0], "@HOSTNAME@")) {
-			config->net.hostname = g_strdup (fields[1]);
-		} else if (! g_strcmp0 (fields[0], "@GATEWAY@")) {
-			config->net.gateway = g_strdup (fields[1]);
-		} else if (! g_strcmp0 (fields[0], "@DNS_IP1@")) {
-			config->net.dns_ip1 = g_strdup (fields[1]);
-		} else if (! g_strcmp0 (fields[0], "@DNS_IP2@")) {
-			config->net.dns_ip2 = g_strdup (fields[1]);
-		} else if (! g_strcmp0 (fields[0], "@TAP_DEVICE@")) {
-			/*TODO: Add a interface delimiter
-			 * Currently TAP_DEVICE indicates a new interface */
-			if_cfg = g_malloc0(sizeof(struct cc_oci_net_if_cfg));
-			config->net.interfaces =
-				g_slist_append(config->net.interfaces, if_cfg);
-			num_interfaces++;
-			g_debug("new interface allocated [%d] %s", 
-				num_interfaces, fields[1]);
-
-			if_cfg->tap_device = g_strdup (fields[1]);
-		} else {
-			if (!if_cfg) {
-				g_critical("NULL pointer processing %d %s %s",
-					num_interfaces, fields[0], fields[1]);
-				continue;
-			}
-			if (! g_strcmp0 (fields[0], "@MAC_ADDRESS@")) {
-				if_cfg->mac_address = g_strdup (fields[1]);
-			} else if (! g_strcmp0 (fields[0], "@IFNAME@")) {
-				if_cfg->ifname = g_strdup (fields[1]);
-			} else if (! g_strcmp0 (fields[0], "@BRIDGE@")) {
-				if_cfg->bridge = g_strdup (fields[1]);
-			} else if (! g_strcmp0 (fields[0], "@IPV6_ADDRESS@")) {
-				ipv6_cfg = g_malloc0(sizeof(*ipv6_cfg));
-				ipv6_cfg->ipv6_address = g_strdup (fields[1]);
-				if_cfg->ipv6_addrs =
-					g_slist_append(if_cfg->ipv6_addrs, ipv6_cfg);
-				g_debug("new IPv6 address allocated %s %s",
-					if_cfg->ifname, ipv6_cfg->ipv6_address);
-			} else if (! g_strcmp0 (fields[0], "@IPV6_PREFIX@")) {
-				if (ipv6_cfg == NULL) {
-					g_critical("NULL pointer processing %d %s %s",
-						num_interfaces, fields[0], fields[1]);
-					continue;
-				}
-				ipv6_cfg->ipv6_prefix = g_strdup (fields[1]);
-				g_debug("new prefix allocated %s %s",
-					if_cfg->ifname, ipv6_cfg->ipv6_prefix);
-				ipv6_cfg = NULL;
-			} else if (! g_strcmp0 (fields[0], "@IP_ADDRESS@")) {
-				/* Currently IP_ADDRESS indicates a new IP */
-				ipv4_cfg = g_malloc0(sizeof(*ipv4_cfg));
-				ipv4_cfg->ip_address = g_strdup (fields[1]);
-				if_cfg->ipv4_addrs =
-					g_slist_append(if_cfg->ipv4_addrs, ipv4_cfg);
-				g_debug("new IPv4 address allocated %s %s",
-					if_cfg->ifname, ipv4_cfg->ip_address);
-			} else if (! g_strcmp0 (fields[0], "@SUBNET_MASK@")) {
-				if (ipv4_cfg == NULL) {
-					g_critical("NULL pointer processing %d %s %s",
-						num_interfaces, fields[0], fields[1]);
-					continue;
-				}
-				ipv4_cfg->subnet_mask = g_strdup (fields[1]);
-				g_debug("new subnet allocated %s %s",
-					if_cfg->ifname, ipv4_cfg->subnet_mask);
-				ipv4_cfg = NULL;
-			}
-		}
-
-		g_strfreev (fields);
-	}
-
-	g_strfreev (lines);
-
-	return true;
-}
-
-/*!
  * Start the hypervisor (in a paused state) as a child process.
  *
  * Due to the way networking is handled in Docker, the logic here
@@ -758,8 +474,7 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 	int                child_err_pipe[2] = {-1, -1};
 	gchar            **args = NULL;
 	gchar            **p;
-	gchar            **netcfgv = NULL;
-	g_autofree gchar  *final = NULL;
+	gchar		  *hook_status = NULL;
 	g_autofree gchar  *timestamp = NULL;
 	struct netlink_handle *hndl = NULL;
 
@@ -812,7 +527,7 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 	}
 
 	if (! pid) {
-		g_autofree gchar  *netcfg = NULL;
+		g_autofree gchar  *hook_status = NULL;
 
 		/* child */
 		pid = config->state.workload_pid = getpid ();
@@ -820,44 +535,54 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 		close (net_cfg_pipe[1]);
 		close (child_err_pipe[0]);
 
-		/* block waiting for parent to send network config.
+		/* block waiting for parent to notify the status of
+		 * the hook invocations.
 		 *
 		 * This arrives in 2 parts: first, a size_t representing
 		 * the size of the ASCII name=value data that follows.
 		 */
-
-		/* determine how many bytes to allocate for the network
-		 * config.
-		 */
-		g_debug ("child reading netcfg length");
 
 		bytes = read (net_cfg_pipe[0], &len, sizeof (len));
 		if (bytes < 0) {
 			goto child_failed;
 		}
 
-		g_debug ("allocating %lu bytes for netcfg",
+		g_debug ("allocating %lu bytes for hook status",
 				(unsigned long int)len);
 
-		netcfg = g_new0 (gchar, 1+len);
-		if (! netcfg) {
-			goto child_failed;
-		}
+		hook_status = g_new0 (gchar, 1+len);
+		g_debug ("reading hook_status from parent");
 
-		g_debug ("reading netcfg from parent");
-
-		bytes = read (net_cfg_pipe[0], netcfg, len);
+		bytes = read (net_cfg_pipe[0], hook_status, len);
 		if (bytes < 0) {
 			goto child_failed;
 		}
-
 		close (net_cfg_pipe[0]);
 
-		g_debug ("adding netcfg to config");
+		g_debug ("hook_status from parent [%s]", hook_status);
 
-		if (! cc_oci_vm_netcfg_from_str (config, netcfg)) {
+		if (g_strcmp0(hook_status, "SUCCESS") != 0) {
+			g_critical("hooks failed, child exiting");
 			goto child_failed;
 		}
+
+		hndl = netlink_init();
+		if (hndl == NULL) {
+			g_critical("failed to setup netlink socket");
+			goto child_failed;
+		}
+
+		if (! cc_oci_vm_netcfg_get (config, hndl)) {
+			g_critical("failed to discover network configuration");
+			goto child_failed;
+		}
+
+
+		if (! cc_oci_network_create(config, hndl)) {
+			g_critical ("failed to create network");
+			goto child_failed;
+		}
+		g_debug ("network configuration complete");
 
 
 		g_debug ("building hypervisor command-line");
@@ -921,66 +646,34 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 	ret = cc_run_hooks (config->oci.hooks.prestart,
 			config->state.state_file_path,
 			true);
+
 	if (! ret) {
 		g_critical ("failed to run prestart hooks");
+		hook_status = "FAIL";
+	} else {
+		hook_status = "SUCCESS";
 	}
 
-	hndl = netlink_init();
-	if (hndl == NULL) {
-		g_critical("failed to setup netlink socket");
-		goto out;
-	}
 
-	netcfgv = cc_oci_vm_netcfg_to_strv (config, hndl);
-	if (! netcfgv) {
-		g_critical ("failed to obtain network config");
-		ret = false;
-		goto out;
-
-	}
-
-	if (! cc_oci_network_create(config, hndl)) {
-		g_critical ("failed to create network");
-		ret = false;
-		goto out;
-	}
-
-	/* flatten config into a bytestream to send to the child */
-	final = g_strjoinv ("\n", netcfgv);
-	if (! final) {
-		ret = false;
-		goto out;
-	}
-
-	len = strlen (final);
-
-	g_strfreev (netcfgv);
-
-	g_debug ("sending netcfg (%lu bytes) to child",
+	len = strlen (hook_status);
+	g_debug ("sending hook status (%lu bytes) to child",
 			(unsigned long int)len);
 
-	/* Send netcfg to child.
-	 *
-	 * First, send the length of the network
-	 * config data that will follow.
-	 */
 	bytes = write (net_cfg_pipe[1], &len, sizeof (len));
 	if (bytes < 0) {
-		g_critical ("failed to send netcfg length"
+		g_critical ("failed to send hook status "
 				" to child: %s",
 				strerror (errno));
 		goto out;
 	}
 
-	/* now, send the network config data */
-	bytes = write (net_cfg_pipe[1], final, len);
+	bytes = write (net_cfg_pipe[1], hook_status, len);
 	if (bytes < 0) {
-		g_critical ("failed to send netcfg"
+		g_critical ("failed to send hook status"
 				" to child: %s",
 				strerror (errno));
 		goto out;
 	}
-
 	g_debug ("checking child setup (blocking)");
 
 	/* block reading child error state */
@@ -992,7 +685,6 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 		ret = false;
 		goto out;
 	}
-
 	g_debug ("child setup successful");
 
 	/* wait for child to receive the expected SIGTRAP caused
