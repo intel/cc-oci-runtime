@@ -134,7 +134,8 @@ AC_ARG_WITH([qemu-path],
         QEMU=$with_qemu_path
         QEMUout=`$QEMU -machine help | grep -o pc-lite | tail -1`
         AS_IF([test "x$QEMUout" != "xpc-lite"],
-             AC_MSG_WARN([$QEMU does not support pc-lite machine])
+             AC_MSG_WARN([$QEMU does not support pc-lite machine]),
+                         [has_pc_lite=yes]
         )
     ],
     [with_qemu_path=no]
