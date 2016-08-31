@@ -142,12 +142,6 @@ AC_ARG_WITH([qemu-path],
     [with_qemu_path=no]
 )
 
-# Check for netlink from iproute2
-#AC_CHECK_HEADERS(libnetlink.h,  dummy=yes,
-#    AC_MSG_ERROR(libnetlink header file from iproute2 is required))
-#AC_SEARCH_LIBS(rtnl_close, netlink, dummy=yes,
-#    AC_MSG_ERROR(netlink library support from iproute2 is required))
-
 AC_CACHE_CHECK(
     [for qemu that supports pc-lite machine], [ac_cv_path_QEMU],
     [
