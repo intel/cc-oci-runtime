@@ -149,13 +149,16 @@ cc_oci_runtime_CFLAGS = \
 	$(UUID_CFLAGS)
 
 bats_test_sources = \
+	tests/functional/common.bash.in \
+	tests/functional/data/config-minimal-cc-oci.json.in \
+	tests/functional/help.bats \
+	tests/functional/kill.bats \
+	tests/functional/pause.bats \
 	tests/functional/README \
 	tests/functional/README.rst \
-	tests/functional/common.bash.in \
-	tests/functional/help.bats \
 	tests/functional/start.bats \
-	tests/functional/version.bats \
-	tests/functional/data/config-minimal-cc-oci.json.in
+	tests/functional/state.bats \
+	tests/functional/version.bats
 
 EXTRA_DIST = \
 	LICENSE \
