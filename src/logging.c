@@ -547,11 +547,12 @@ void cc_oci_setup_hypervisor_logs (struct cc_oci_config *config)
 		}
 
 		/* redirecting stdout/stderr to a file */
-		if (dup2(std_file_fd, i->std_fd) >= 0) {
-			close (std_file_fd);   /* Close unused file descriptor */
-		} else {
+		if (dup2(std_file_fd, i->std_fd) < 0) {
 			g_critical("failed to dup %s : %s", std_file_path, strerror(errno));
 		}
+
+		/* Close unused file descriptor */
+		close (std_file_fd);
 	}
 }
 
