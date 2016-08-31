@@ -21,6 +21,7 @@
 #include <string.h>
 #include <errno.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 
 #include "mount.h"
 #include "common.h"
@@ -134,6 +135,7 @@ cc_oci_perform_mount (const struct cc_oci_mount *m, gboolean dry_run)
 		"and flags 0x%lx%s%s";
 
 	int ret;
+	struct stat st;
 
 	if (! m) {
 		return false;
@@ -151,6 +153,22 @@ cc_oci_perform_mount (const struct cc_oci_mount *m, gboolean dry_run)
 
 	if (dry_run) {
 		return true;
+	}
+
+	if (stat (m->mnt.mnt_fsname, &st) < 0) {
+		g_critical ("Unable to handle mount file:"
+				"getting file status  %s (%s)",
+				m->mnt.mnt_fsname, strerror (errno));
+		return false;
+	}
+
+	if (S_ISREG(st.st_mode)) {
+		if(creat (m->dest, st.st_mode) < 0 ) {
+			g_critical ("Unable to handle mount file:"
+					"creating file %s (%s)",
+					m->dest, strerror (errno));
+			return false;
+		}
 	}
 
 	ret = mount (m->mnt.mnt_fsname,
