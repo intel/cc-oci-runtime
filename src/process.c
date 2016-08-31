@@ -58,6 +58,7 @@
 #include "networking.h"
 #include "common.h"
 #include "logging.h"
+#include "netlink.h"
 
 static GMainLoop* main_loop = NULL;
 static GMainLoop* hook_loop = NULL;
@@ -434,14 +435,15 @@ exit:
  * \return \c true on success, else \c false.
  */
 static gboolean
-cc_oci_vm_netcfg_get (struct cc_oci_config *config)
+cc_oci_vm_netcfg_get (struct cc_oci_config *config,
+		      struct netlink_handle *hndl)
 {
 	if (!config) {
 		return false;
 	}
 
 	/* TODO: We need to support multiple networks */
-	if (!cc_oci_network_discover (config)) {
+	if (!cc_oci_network_discover (config, hndl)) {
 		g_critical("Network discovery failed");
 		return false;
 	}
@@ -459,7 +461,8 @@ cc_oci_vm_netcfg_get (struct cc_oci_config *config)
  * \return \c string vector on success, , else \c NULL.
  */
 static gchar **
-cc_oci_vm_netcfg_to_strv (struct cc_oci_config *config)
+cc_oci_vm_netcfg_to_strv (struct cc_oci_config *config,
+			  struct netlink_handle *hndl)
 {
 	gchar  **cfg = NULL;
 	gsize    count = 0;
@@ -468,7 +471,7 @@ cc_oci_vm_netcfg_to_strv (struct cc_oci_config *config)
 		return NULL;
 	}
 
-	if (! cc_oci_vm_netcfg_get (config)) {
+	if (! cc_oci_vm_netcfg_get (config, hndl)) {
 		return NULL;
 	}
 
@@ -758,6 +761,7 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 	gchar            **netcfgv = NULL;
 	g_autofree gchar  *final = NULL;
 	g_autofree gchar  *timestamp = NULL;
+	struct netlink_handle *hndl = NULL;
 
 	timestamp = cc_oci_get_iso8601_timestamp ();
 	if (! timestamp) {
@@ -921,7 +925,13 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 		g_critical ("failed to run prestart hooks");
 	}
 
-	netcfgv = cc_oci_vm_netcfg_to_strv (config);
+	hndl = netlink_init();
+	if (hndl == NULL) {
+		g_critical("failed to setup netlink socket");
+		goto out;
+	}
+
+	netcfgv = cc_oci_vm_netcfg_to_strv (config, hndl);
 	if (! netcfgv) {
 		g_critical ("failed to obtain network config");
 		ret = false;
@@ -929,8 +939,9 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 
 	}
 
-	if (! cc_oci_network_create(config)) {
+	if (! cc_oci_network_create(config, hndl)) {
 		g_critical ("failed to create network");
+		ret = false;
 		goto out;
 	}
 
@@ -1031,7 +1042,7 @@ out:
 	if (child_err_pipe[0] != -1) close (child_err_pipe[0]);
 	if (child_err_pipe[1] != -1) close (child_err_pipe[1]);
 
-	/* TODO: Free the network configuration buffers */
+	netlink_close(hndl);
 
 	if (args) {
 		g_strfreev (args);

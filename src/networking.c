@@ -63,27 +63,20 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <linux/if.h>
 #include <linux/if_tun.h>
 #include <ifaddrs.h>
 #include <arpa/inet.h>
 #include <net/if_arp.h>
+#include <net/if.h>
 
 #include <glib.h>
 #include <glib/gprintf.h>
 
 #include "oci.h"
 #include "util.h"
+#include "netlink.h"
 
 #define TUNDEV "/dev/net/tun"
-
-/* Using unqualified path to enable it to be picked
- * up from the users environment. May be overridden
- * at build time with fully qualified path
- */
-#ifndef CC_OCI_IPROUTE2_BIN
-#define CC_OCI_IPROUTE2_BIN "ip"
-#endif
 
 /*!
  * Free the specified \ref cc_oci_net_ipv4_cfg
@@ -157,7 +150,7 @@ cc_oci_net_interface_free (struct cc_oci_net_if_cfg *if_cfg)
  * \return \c true on success, else \c false.
  */
 static gboolean
-cc_oci_tap_create(const gchar *tap) {
+cc_oci_tap_create(const gchar *const tap) {
 	struct ifreq ifr;
 	int fd = -1;
 	gboolean ret = false;
@@ -198,54 +191,6 @@ out:
 	return ret;
 }
 
-
-/*!
- * Temporary function to invoke netlink commands
- * using the iproute2 binary. This will be replaced
- * by a netlink based implementation
- *
- * \param cmd_line \c iproute2 command to invoke
- *
- * \return \c true on success, else \c false.
- */
-static gboolean
-cc_oci_netlink_run(const gchar *cmd_line) {
-	gint exit_status = -1;
-	gboolean ret = false;
-	gchar iproute2_cmd[1024];
-	GError *error = NULL;
-
-	if (cmd_line == NULL){
-		g_critical("invalid netlink command");
-		return false;
-	}
-
-	g_snprintf(iproute2_cmd, sizeof(iproute2_cmd),
-		"%s %s", CC_OCI_IPROUTE2_BIN, cmd_line);
-
-	ret = g_spawn_command_line_sync(iproute2_cmd,
-				NULL,
-				NULL,
-				&exit_status,
-				&error);
-
-	if (!ret) {
-		g_critical("failed to spawn [%s]: %s",
-				iproute2_cmd, error->message);
-		if (error) {
-			g_error_free(error);
-		}
-		return false;
-	}
-
-	if (exit_status) {
-		g_critical("netlink failure [%s] [%d]", iproute2_cmd, exit_status);
-		return false;
-	}
-
-	return true;
-}
-
 /*!
  * Request to create the networking framework
  * that will be used to connect the specified
@@ -264,9 +209,9 @@ cc_oci_netlink_run(const gchar *cmd_line) {
  * \return \c true on success, else \c false.
  */
 gboolean
-cc_oci_network_create(const struct cc_oci_config *const config) {
+cc_oci_network_create(const struct cc_oci_config *const config,
+		      struct netlink_handle *const hndl) {
 	struct cc_oci_net_if_cfg *if_cfg = NULL;
-	gchar cmd_line[1024];
 	guint index = 0;
 
 	if (config == NULL) {
@@ -274,62 +219,55 @@ cc_oci_network_create(const struct cc_oci_config *const config) {
 	}
 
 	for (index=0; index<g_slist_length(config->net.interfaces); index++) {
+		/* Each container has its own name space. Hence we use the
+		 * same mac address prefix for tap interfaces on the host
+		 * side. This method scales to support upto 2^16 networks
+		 */
+		guint8 mac[6] = {0x02, 0x00, 0xCA, 0xFE,
+				(guint8)(index >> 8), (guint8)index};
+		guint tap_index, veth_index, bridge_index;
+		tap_index = veth_index = bridge_index = 0;
+
 		if_cfg = (struct cc_oci_net_if_cfg *)
 			g_slist_nth_data(config->net.interfaces, index);
 
 		if (!cc_oci_tap_create(if_cfg->tap_device)) {
-			return false;
+			goto out;
 		}
 
-		#define NETLINK_CREATE_BRIDGE "link add name %s type bridge"
-		g_snprintf(cmd_line, sizeof(cmd_line), NETLINK_CREATE_BRIDGE,
-			if_cfg->bridge);
-		if (!cc_oci_netlink_run(cmd_line)) {
-			return false;
+		if (!netlink_link_add_bridge(hndl, if_cfg->bridge)) {
+			goto out;
 		}
 
-		#define NETLINK_SET_MAC	"link set dev %s address 02:00:CA:FE:00:%.2x"
-		/* TODO: Derive non conflicting mac from interface */
-		g_snprintf(cmd_line, sizeof(cmd_line), NETLINK_SET_MAC,
-			   if_cfg->ifname, index);
-		if (!cc_oci_netlink_run(cmd_line)) {
-			return false;
+		if (!netlink_link_set_addr(hndl, if_cfg->ifname,
+					   sizeof(mac), mac)) {
+			goto out;
 		}
 
-		#define NETLINK_ADD_LINK_BR "link set dev %s master %s"
-		g_snprintf(cmd_line, sizeof(cmd_line), NETLINK_ADD_LINK_BR,
-			   if_cfg->ifname, if_cfg->bridge);
-		if (!cc_oci_netlink_run(cmd_line)) {
-			return false;
-		}
+		bridge_index = if_nametoindex(if_cfg->bridge);
+		tap_index = if_nametoindex(if_cfg->tap_device);
+		veth_index = if_nametoindex(if_cfg->ifname);
 
-		g_snprintf(cmd_line, sizeof(cmd_line), NETLINK_ADD_LINK_BR,
-			if_cfg->tap_device, if_cfg->bridge);
-		if (!cc_oci_netlink_run(cmd_line)) {
-			return false;
+		if (!netlink_link_set_master(hndl, tap_index, bridge_index)) {
+			goto out;
 		}
-
-		#define NETLINK_LINK_EN	"link set dev %s up"
-		g_snprintf(cmd_line, sizeof(cmd_line), NETLINK_LINK_EN,
-			   if_cfg->tap_device);
-		if (!cc_oci_netlink_run(cmd_line)) {
-			return false;
+		if (!netlink_link_set_master(hndl, veth_index, bridge_index)) {
+			goto out;
 		}
-
-		g_snprintf(cmd_line, sizeof(cmd_line), NETLINK_LINK_EN,
-			if_cfg->ifname);
-		if (!cc_oci_netlink_run(cmd_line)) {
-			return false;
+		if (!netlink_link_enable(hndl, if_cfg->tap_device, true)) {
+			goto out;
 		}
-
-		g_snprintf(cmd_line, sizeof(cmd_line), NETLINK_LINK_EN,
-			if_cfg->bridge);
-		if (!cc_oci_netlink_run(cmd_line)) {
-			return false;
+		if (!netlink_link_enable(hndl, if_cfg->ifname, true)) {
+			goto out;
+		}
+		if (!netlink_link_enable(hndl, if_cfg->bridge, true)) {
+			goto out;
 		}
 	}
 
 	return true;
+out:
+	return false;
 }
 
 /*!
@@ -340,8 +278,8 @@ cc_oci_network_create(const struct cc_oci_config *const config) {
  *
  * \return \c string containing IP address, else \c ""
  */
-static gchar *
-get_address(const gint family, const void *const sin_addr)
+gchar *
+cc_net_get_ip_address(const gint family, const void *const sin_addr)
 {
 	gchar addrBuf[INET6_ADDRSTRLEN];
 
@@ -369,9 +307,9 @@ get_address(const gint family, const void *const sin_addr)
  * \return \c prefix length if valid else \c 0
  */
 static guint
-prefix(guchar *val, guint size)
+prefix(guint8 *val, guint size)
 {
-        guchar *addr = val;
+        guint8 *addr = val;
         guint byte, bit, plen = 0;
 
         for (byte = 0; byte < size; byte++, plen += 8) {
@@ -416,7 +354,7 @@ prefix(guchar *val, guint size)
 static gchar *
 subnet_to_prefix(const gint family, const void *const sin_addr) {
 	guint pfix = 0;
-	guchar *addr = (guchar *)sin_addr;
+	guint8 *addr = (guint8 *)sin_addr;
 
 	if (!addr) {
 		return g_strdup_printf("%d", pfix);
@@ -446,7 +384,7 @@ get_mac_address(const gchar *const ifname)
 	struct ifreq ifr;
 	int fd = -1;
 	gchar *macaddr;
-	gchar *data;
+	guint8 *data;
 
 	if (ifname == NULL) {
 		g_critical("NULL interface name");
@@ -476,101 +414,15 @@ get_mac_address(const gchar *const ifname)
 		goto out;
 	}
 
-	data = ifr.ifr_hwaddr.sa_data;
+	data = (guint8 *)ifr.ifr_hwaddr.sa_data;
 	macaddr = g_strdup_printf("%.2x:%.2x:%.2x:%.2x:%.2x:%.2x",
-				(unsigned char)data[0],
-				(unsigned char)data[1],
-				(unsigned char)data[2],
-				(unsigned char)data[3],
-				(unsigned char)data[4],
-				(unsigned char)data[5]);
+				(guint8)data[0], (guint8)data[1],
+				(guint8)data[2], (guint8)data[3],
+				(guint8)data[4], (guint8)data[5]);
 
 out:
 	close(fd);
 	return macaddr;
-}
-
-
-
-/*!
- * Obtain the default gateway in a interface
- * Temporary: Will be replaced by netlink based implementation
- *
- * \param ifname \c interface name
- *
- * \return \c string containing default gw on that interface, else NULL \c ""
- */
-static gchar *
-get_default_gw(const gchar *const ifname)
-{
-	gint exit_status = -1;
-	gboolean ret;
-	gchar iproute2_cmd[1024];
-	gchar *output = NULL;
-	gchar **output_tokens = NULL;
-	gint token_count;
-	gchar *gw = NULL;
-	struct sockaddr_in sa;
-
-	if (ifname == NULL) {
-		g_critical("NULL interface name");
-		return false;
-	}
-
-#define NETLINK_GET_DEFAULT_GW CC_OCI_IPROUTE2_BIN " -4 route list type unicast dev %s exact 0/0"
-
-	g_snprintf(iproute2_cmd, sizeof(iproute2_cmd),
-		NETLINK_GET_DEFAULT_GW, ifname);
-
-	ret = g_spawn_command_line_sync(iproute2_cmd,
-				&output,
-				NULL,
-				&exit_status,
-				NULL);
-
-	if (!ret) {
-		g_critical("failed to spawn [%s]", iproute2_cmd);
-		goto out;
-	}
-
-	if (exit_status) {
-		g_critical("netlink failure [%s] [%d]", iproute2_cmd, exit_status);
-		goto out;
-	}
-
-	if (output == NULL) {
-		goto out;
-	}
-
-	output_tokens = g_strsplit(output, " ", -1);
-
-	for (token_count=0; output_tokens && output_tokens[token_count];) {
-	     token_count++;
-	}
-
-	if (token_count < 3) {
-		g_debug("unable to discover gateway on [%s] [%s]", ifname, output);
-		goto out;
-	}
-
-	if (inet_pton(AF_INET, output_tokens[2], &(sa.sin_addr)) != 1) {
-		g_critical("invalid gateway [%s] [%s]", output, output_tokens[2]);
-		goto out;
-	}
-
-	gw = g_strdup(output_tokens[2]);
-	g_debug("default gw [%s]", gw);
-
-out:
-	if (output_tokens != NULL) {
-		g_strfreev(output_tokens);
-	}
-
-	if (output != NULL) {
-		g_free(output);
-	}
-
-	return gw;
 }
 
 /*!
@@ -602,7 +454,8 @@ compare_interface(gconstpointer a,
  * \return \c true on success, else \c false.
  */
 gboolean
-cc_oci_network_discover(struct cc_oci_config *const config)
+cc_oci_network_discover(struct cc_oci_config *const config,
+			struct netlink_handle *hndl)
 {
 	struct ifaddrs *ifa = NULL;
 	struct ifaddrs *ifaddrs = NULL;
@@ -667,14 +520,11 @@ cc_oci_network_discover(struct cc_oci_config *const config)
 			if_cfg->ipv4_addrs = g_slist_append(
 				if_cfg->ipv4_addrs, ipv4_cfg);
 
-			ipv4_cfg->ip_address = get_address(family,
+			ipv4_cfg->ip_address = cc_net_get_ip_address(family,
 				&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr);
-			ipv4_cfg->subnet_mask = get_address(family,
+			ipv4_cfg->subnet_mask = cc_net_get_ip_address(family,
 				&((struct sockaddr_in *)ifa->ifa_netmask)->sin_addr);
 
-			if (net->gateway == NULL) {
-				net->gateway = get_default_gw(ifname);
-			}
 
 		} else if (family == AF_INET6) {
 			struct cc_oci_net_ipv6_cfg *ipv6_cfg;
@@ -682,7 +532,7 @@ cc_oci_network_discover(struct cc_oci_config *const config)
 			if_cfg->ipv6_addrs = g_slist_append(
 				if_cfg->ipv6_addrs, ipv6_cfg);
 
-			ipv6_cfg->ipv6_address = get_address(family,
+			ipv6_cfg->ipv6_address = cc_net_get_ip_address(family,
 				&((struct sockaddr_in6 *)ifa->ifa_addr)->sin6_addr);
 			ipv6_cfg->ipv6_prefix = subnet_to_prefix(family,
 				&((struct sockaddr_in6 *)ifa->ifa_netmask)->sin6_addr);
@@ -697,6 +547,7 @@ cc_oci_network_discover(struct cc_oci_config *const config)
 		net->hostname = g_strdup("");
 	}
 
+	net->gateway = netlink_get_default_gw(hndl, AF_INET);
 	if (net->gateway == NULL) {
 		net->gateway = g_strdup("");
 	}

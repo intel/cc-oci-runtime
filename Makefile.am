@@ -87,6 +87,7 @@ common_sources = \
 	src/mount.c src/mount.h \
 	src/network.c src/network.h \
 	src/networking.c src/networking.h \
+	src/netlink.c src/netlink.h \
 	src/state.c src/state.h \
 	src/events.c src/events.h \
 	src/runtime.c src/runtime.h \
@@ -136,6 +137,7 @@ cc_oci_runtime_LDADD = \
 	$(GLIB_LIBS) \
 	$(GIO_LIBS) \
 	$(JSON_GLIB_LIBS) \
+	$(LIBMNL_LIBS) \
 	$(UUID_LIBS)
 
 cc_oci_runtime_CFLAGS = \
@@ -143,6 +145,7 @@ cc_oci_runtime_CFLAGS = \
 	$(GLIB_CFLAGS) \
 	$(GIO_CFLAGS) \
 	$(JSON_GLIB_CFLAGS) \
+	$(LIBMNL_CFLAGS) \
 	$(UUID_CFLAGS)
 
 bats_test_sources = \
@@ -206,6 +209,7 @@ libtest_la_CFLAGS = \
 	$(GLIB_CFLAGS) \
 	$(GIO_CFLAGS) \
 	$(JSON_GLIB_CFLAGS) \
+	$(LIBMNL_CFLAGS) \
 	$(UUID_CFLAGS) \
 	-DUNIT_TESTING
 
@@ -228,6 +232,7 @@ TEST_COMMON_LDADD = \
 	$(JSON_GLIB_LIBS) \
 	$(GLIB_LIBS) \
 	$(CHECK_LIBS) \
+	$(LIBMNL_LIBS) \
 	$(UUID_LIBS)
 
 TEST_COMMON_SOURCES = \
