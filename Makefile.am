@@ -171,7 +171,8 @@ EXTRA_DIST = \
 	versions.txt \
 	$(defaults_DATA) \
 	data/cc-oci-runtime.sh.in \
-	$(bats_test_sources)
+	$(bats_test_sources) \
+	tests/integration
 
 if CPPCHECK
 CHECK_DEPS += cppcheck
