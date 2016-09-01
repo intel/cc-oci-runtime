@@ -388,7 +388,7 @@ START_TEST(test_cc_oci_expand_cmdline) {
 	ck_assert (! g_remove (config.vm->kernel_path));
 	ck_assert (! g_remove (config.oci.root.path));
 
-	if (! isatty (STDIN_FILENO)) {
+	if (! config.oci.process.terminal) {
 		ck_assert (! g_remove (cc_stdin));
 		ck_assert (! g_remove (cc_stdout));
 	}
@@ -621,7 +621,7 @@ START_TEST(test_cc_oci_vm_args_get) {
 	ck_assert (! g_remove (config.vm->kernel_path));
 	ck_assert (! g_remove (config.oci.root.path));
 
-	if (! isatty (STDIN_FILENO)) {
+	if (! config.oci.process.terminal) {
 		ck_assert (! g_remove (cc_stdin));
 		ck_assert (! g_remove (cc_stdout));
 	}

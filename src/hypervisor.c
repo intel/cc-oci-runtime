@@ -235,7 +235,7 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 		 *
 		 * Eventually move to using "stdio,id=charconsole0,signal=off"
 		 */
-		if (! isatty (STDIN_FILENO)) {
+		if (! config->oci.process.terminal ) {
 
 			config->console = g_build_path ("/",
 					config->bundle_path,
