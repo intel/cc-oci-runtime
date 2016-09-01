@@ -206,7 +206,7 @@ AC_ARG_WITH([cc-kernel],
         [clear container kernel path])
     ],
     [
-        CONTAINER_KERNEL=$(realpath $with_cc_kernel)
+        CONTAINER_KERNEL=$with_cc_kernel
         AC_SUBST([CONTAINER_KERNEL])
     ],
     [
@@ -221,7 +221,7 @@ AC_ARG_WITH([cc-image],
         [clear container image path])
     ],
     [
-        CONTAINERS_IMG=$(realpath $with_cc_image)
+        CONTAINERS_IMG=$with_cc_image
         AC_SUBST([CONTAINERS_IMG])
     ],
     [
