@@ -62,6 +62,18 @@ AM_CPPFLAGS = -I $(top_srcdir)/src -DG_LOG_DOMAIN=\"$(PACKAGE_NAME)\" \
 defaultsdir = $(datadir)/defaults/$(PACKAGE_NAME)
 defaults_DATA = data/vm.json data/hypervisor.args data/kernel-cmdline
 
+cc_image_systemd_files = \
+	data/container.target \
+	data/opt-rootfs.mount \
+	data/opt-rootfs-proc.mount \
+	data/opt-rootfs-sys.mount \
+	data/container-workload.service
+
+if CC_IMAGE_SYSTEMDSYSTEMUNIT
+ccimage_systemdfilesdir= @CC_IMAGE_SYSTEMDSYSTEMUNIT_PATH@
+ccimage_systemdfiles_DATA = $(cc_image_systemd_files)
+endif
+
 AM_CFLAGS = -std=gnu99 -fstack-protector -Wall -pedantic \
 	-Wstrict-prototypes -Wundef -fno-common \
 	-Werror-implicit-function-declaration \
@@ -170,6 +182,7 @@ EXTRA_DIST = \
 	commit_id \
 	versions.txt \
 	$(defaults_DATA) \
+	$(cc_image_systemd_files) \
 	data/cc-oci-runtime.sh.in \
 	$(bats_test_sources)
 

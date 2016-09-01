@@ -846,7 +846,7 @@ START_TEST(test_cc_oci_create_container_workload) {
 
 	execfile = g_build_path ("/", tmpdir, ".containerexec", NULL);
 	ck_assert (execfile);
-	envfile = g_build_path ("/", tmpdir, ".dockerenv", NULL);
+	envfile = g_build_path ("/", tmpdir, ".containerenv", NULL);
 	ck_assert (envfile);
 
 	ck_assert (cc_oci_create_container_workload (&config));
