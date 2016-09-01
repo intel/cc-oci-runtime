@@ -163,12 +163,16 @@ cc_oci_perform_mount (const struct cc_oci_mount *m, gboolean dry_run)
 	}
 
 	if (S_ISREG(st.st_mode)) {
-		if(creat (m->dest, st.st_mode) < 0 ) {
+		int fd;
+		fd = creat (m->dest, st.st_mode);
+		if( fd < 0 ) {
 			g_critical ("Unable to handle mount file:"
 					"creating file %s (%s)",
 					m->dest, strerror (errno));
 			return false;
 		}
+		close(fd);
+
 	}
 
 	ret = mount (m->mnt.mnt_fsname,
