@@ -363,8 +363,13 @@ subnet_to_prefix(const gint family, const void *const sin_addr) {
 	switch(family) {
 	case AF_INET6:
 		pfix = prefix(addr, 16);
+		break;
 	case AF_INET:
 		pfix = prefix(addr, 4);
+		break;
+	default:
+		g_warning("invalid prefix family %d", family);
+		pfix = 0;
 	}
 
 	return g_strdup_printf("%d", pfix);
