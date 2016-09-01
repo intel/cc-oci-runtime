@@ -5,3 +5,4 @@ After=opt-rootfs.mount
 What=sys
 Where=/opt/rootfs/sys
 Type=sysfs
+Options=nosuid,noexec,nodev,ro
