@@ -184,7 +184,8 @@ EXTRA_DIST = \
 	$(defaults_DATA) \
 	$(cc_image_systemd_files) \
 	data/cc-oci-runtime.sh.in \
-	$(bats_test_sources)
+	$(bats_test_sources) \
+	tests/integration
 
 if CPPCHECK
 CHECK_DEPS += cppcheck
