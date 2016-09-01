@@ -4,4 +4,4 @@ After=opt-rootfs.mount
 [Mount]
 What=sys
 Where=/opt/rootfs/sys
-Type=proc
+Type=sysfs
