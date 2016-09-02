@@ -259,11 +259,11 @@ cc_oci_output_watcher(GIOChannel* channel, GIOCondition cond,
 
 	g_io_channel_read_line(channel, &string, &size, NULL, NULL);
 	if (STDOUT_FILENO == stream) {
-		g_message("%s", string);
+		g_message("%s", string ? string : "");
 	} else {
-		g_warning("%s", string);
+		g_warning("%s", string ? string : "");
 	}
-	g_free(string);
+	g_free_if_set (string);
 
 	return true;
 }
