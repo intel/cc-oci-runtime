@@ -2,6 +2,7 @@
 Description=Container Workload
 After=opt-rootfs-resolv.service
 After=opt-rootfs-proc.mount
+After=opt-rootfs-sys.mount
 
 [Service]
 RootDirectory=/opt/rootfs
