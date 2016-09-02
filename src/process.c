@@ -296,6 +296,10 @@ cc_run_hook(struct oci_cfg_hook* hook, const gchar* state,
 	size_t i;
 	GSpawnFlags flags = 0x0;
 
+	if (! (hook && state && state_length)) {
+		return false;
+	}
+
 	if (! hook_loop) {
 		/* all the hooks share the same loop */
 		return false;
