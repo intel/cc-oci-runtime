@@ -1045,12 +1045,9 @@ cc_oci_start (struct cc_oci_config *config,
 	 * A simple way to determine if we're being called
 	 * under containerd is to check if stdin is closed.
 	 *
-	 * FIXME: a better way is to check if config->process.terminal
-	 * is set.
-	 *
 	 * Do not wait when console is empty.
 	 */
-	if ((isatty (STDIN_FILENO) && ! config->detached_mode) &&
+	if ((config->oci.process.terminal && ! config->detached_mode) &&
 	    !config->use_socket_console) {
 		wait = true;
 	}
