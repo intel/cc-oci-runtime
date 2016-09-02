@@ -25,14 +25,22 @@ AUTOMAKE_OPTIONS = parallel-tests
 
 CHECK_DEPS =
 
+# Has a value if building in a git tree
 GIT_COMMIT := $(shell git rev-parse HEAD 2>/dev/null)
+
+# Has a value if building in a git-archive(1)-generated tree
+# (see .gitattributes).
+GENERATED_COMMIT = $(shell cat commit_id.fmt 2>/dev/null \| grep \'^[a-f0-9][a-f0-9]*\$\')
 
 commit_id:
 	$(AM_V_GEN)if [ "x$(GIT_COMMIT)" != "x" ]; then \
-		echo "Writing commit id"; \
-		echo $(GIT_COMMIT) > commit_id; \
+		echo "Determining commit id from git"; \
+		echo "$(GIT_COMMIT)" > commit_id; \
+	elif [ "x$(GENERATED_COMMIT)" != "x" ]; then \
+		echo "Determining commit id from generated value"; \
+		echo "$(GENERATED_COMMIT)" > commit_id; \
 	else \
-		echo "WARNING: cannot commit id"; \
+		echo "WARNING: cannot determine actual commit id"; \
 		echo "0" > commit_id; \
 	fi
 
