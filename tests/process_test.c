@@ -29,6 +29,11 @@
 #include "../src/process.h"
 
 gboolean cc_oci_cmd_is_shell (const char *cmd);
+gboolean cc_run_hook (struct oci_cfg_hook* hook,
+		const gchar* state,
+		gsize state_length);
+
+extern GMainLoop *hook_loop;
 
 START_TEST(test_cc_oci_cmd_is_shell) {
 
@@ -73,10 +78,117 @@ START_TEST(test_cc_oci_cmd_is_shell) {
 
 } END_TEST
 
+START_TEST(test_cc_run_hook) {
+
+    /* XXX: FIXME: */
+    g_message ("%s: FIXME:", __func__);
+    g_message ("%s: "
+            "FIXME: cc_run_hook() tests disabled due to possible glib threading bug identified by helgrind",
+            __func__);
+    g_message ("%s: "
+            "FIXME: (see https://github.com/01org/cc-oci-runtime/issues/214).",
+            __func__);
+    g_message ("%s: FIXME:", __func__);
+
+#if 0
+	struct oci_cfg_hook *hook = NULL;
+	g_autofree gchar *cmd = NULL;
+
+	/* XXX: note that the command the tests run must read from
+	 * stdin!
+	 *
+	 * dd was chosen since not only does it read from stdin, but
+	 * also accepts arguments that can be tested, and those
+	 * arguments can be repeated without generating an error.
+	 */
+	cmd = g_find_program_in_path ("dd");
+	ck_assert (cmd);
+
+	/*******************************/
+
+	hook_loop = g_main_loop_new (NULL, 0);
+	ck_assert (hook_loop);
+
+	hook = g_new0 (struct oci_cfg_hook, 1);
+	ck_assert (hook);
+
+	g_strlcpy (hook->path, "dd", sizeof (hook->path));
+
+	/* fails since full path not specified */
+	ck_assert (! cc_run_hook (hook, "", 1));
+
+	g_main_loop_unref (hook_loop);
+	cc_oci_hook_free (hook);
+
+	/*******************************/
+	/* full path specified, no args */
+
+	hook_loop = g_main_loop_new (NULL, 0);
+	ck_assert (hook_loop);
+
+	hook = g_new0 (struct oci_cfg_hook, 1);
+	ck_assert (hook);
+
+	g_strlcpy (hook->path, cmd, sizeof (hook->path));
+
+	ck_assert (cc_run_hook (hook, "", 1));
+
+	g_main_loop_unref (hook_loop);
+	cc_oci_hook_free (hook);
+
+	/*******************************/
+	/* full path, 1 arg */
+
+	hook_loop = g_main_loop_new (NULL, 0);
+	ck_assert (hook_loop);
+
+	hook = g_new0 (struct oci_cfg_hook, 1);
+	ck_assert (hook);
+
+	g_strlcpy (hook->path, cmd, sizeof (hook->path));
+
+	hook->args = g_new0 (gchar *, 2);
+	ck_assert (hook->args);
+	hook->args[0] = g_strdup ("bs=1");
+
+	ck_assert (cc_run_hook (hook, "", 1));
+
+	g_main_loop_unref (hook_loop);
+	cc_oci_hook_free (hook);
+
+	/*******************************/
+	/* full path, 3 args */
+
+	hook_loop = g_main_loop_new (NULL, 0);
+	ck_assert (hook_loop);
+
+	hook = g_new0 (struct oci_cfg_hook, 1);
+	ck_assert (hook);
+
+	g_strlcpy (hook->path, cmd, sizeof (hook->path));
+
+	hook->args = g_new0 (gchar *, 4);
+	ck_assert (hook->args);
+	hook->args[0] = g_strdup ("bs=1");
+	hook->args[1] = g_strdup ("bs=1");
+	hook->args[2] = g_strdup ("bs=1");
+
+	ck_assert (cc_run_hook (hook, "", 1));
+
+	g_main_loop_unref (hook_loop);
+	cc_oci_hook_free (hook);
+
+	/*******************************/
+
+#endif
+
+} END_TEST
+
 Suite* make_process_suite(void) {
 	Suite* s = suite_create(__FILE__);
 
 	ADD_TEST(test_cc_oci_cmd_is_shell, s);
+	ADD_TEST(test_cc_run_hook, s);
 
 	return s;
 }

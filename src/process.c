@@ -61,7 +61,7 @@
 #include "netlink.h"
 
 static GMainLoop* main_loop = NULL;
-static GMainLoop* hook_loop = NULL;
+private GMainLoop* hook_loop = NULL;
 
 /** List of shells that are recognised by "exec", ordered by likelihood. */
 static const gchar *recognised_shells[] =
@@ -277,7 +277,7 @@ cc_oci_output_watcher(GIOChannel* channel, GIOCondition cond,
  *
  * \return \c true on success, else \c false.
  * */
-static gboolean
+private gboolean
 cc_run_hook(struct oci_cfg_hook* hook, const gchar* state,
              gsize state_length) {
 	GError* error = NULL;
