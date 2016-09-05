@@ -538,6 +538,27 @@ cc_oci_fd_set_cloexec (int fd)
 	return true;
 }
 
+/**
+ * Determine if networking setup should occur.
+ *
+ * \return \c true if networking should be enabled, else \c false.
+ */
+gboolean
+cc_oci_enable_networking (void)
+{
+	/* networking can only be setup when running as root
+	 * (since it requires creating network interfaces).
+	 */
+	gboolean enable = ! geteuid ();
+
+	if (! enable) {
+		g_debug ("networking will not be enabled "
+				"(insufficient privileges)");
+	}
+
+	return enable;
+}
+
 #ifdef DEBUG
 static gboolean
 cc_oci_node_dump_aux(GNode* node, gpointer data) {
