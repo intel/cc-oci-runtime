@@ -61,7 +61,7 @@
 #include "netlink.h"
 
 static GMainLoop* main_loop = NULL;
-static GMainLoop* hook_loop = NULL;
+private GMainLoop* hook_loop = NULL;
 
 /** List of shells that are recognised by "exec", ordered by likelihood. */
 static const gchar *recognised_shells[] =
@@ -259,11 +259,11 @@ cc_oci_output_watcher(GIOChannel* channel, GIOCondition cond,
 
 	g_io_channel_read_line(channel, &string, &size, NULL, NULL);
 	if (STDOUT_FILENO == stream) {
-		g_message("%s", string);
+		g_message("%s", string ? string : "");
 	} else {
-		g_warning("%s", string);
+		g_warning("%s", string ? string : "");
 	}
-	g_free(string);
+	g_free_if_set (string);
 
 	return true;
 }
@@ -277,7 +277,7 @@ cc_oci_output_watcher(GIOChannel* channel, GIOCondition cond,
  *
  * \return \c true on success, else \c false.
  * */
-static gboolean
+private gboolean
 cc_run_hook(struct oci_cfg_hook* hook, const gchar* state,
              gsize state_length) {
 	GError* error = NULL;
@@ -295,6 +295,10 @@ cc_run_hook(struct oci_cfg_hook* hook, const gchar* state,
 	gchar* container_state = NULL;
 	size_t i;
 	GSpawnFlags flags = 0x0;
+
+	if (! (hook && state && state_length)) {
+		return false;
+	}
 
 	if (! hook_loop) {
 		/* all the hooks share the same loop */
@@ -324,7 +328,6 @@ cc_run_hook(struct oci_cfg_hook* hook, const gchar* state,
 
 	flags |= G_SPAWN_DO_NOT_REAP_CHILD;
 	flags |= G_SPAWN_CLOEXEC_PIPES;
-	flags |= G_SPAWN_FILE_AND_ARGV_ZERO;
 
 	g_debug ("running hook command:");
 	for (gchar** p = args; p && *p; p++) {
