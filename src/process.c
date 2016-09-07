@@ -305,12 +305,32 @@ cc_run_hook(struct oci_cfg_hook* hook, const gchar* state,
 		return false;
 	}
 
+	flags |= G_SPAWN_DO_NOT_REAP_CHILD;
+	flags |= G_SPAWN_CLOEXEC_PIPES;
+
+	/* This flag is required to support exec'ing a command that
+	 * operates differently depending on its name (argv[0).
+	 *
+	 * Docker currently uses this, for example, to handle network
+	 * setup where it sets:
+	 *
+	 * path: "/path/to/dockerd"
+	 * args: [ "libnetwork-setkey", "$hash_1", "$hash2" ]
+	 */
+	flags |= G_SPAWN_FILE_AND_ARGV_ZERO;
+
 	if (hook->args) {
-		/* command name + args */
+		/* command name + args
+		 * (where args[0] might not match hook->path).
+		 */
 		args_len = 1 + g_strv_length(hook->args);
 	} else  {
-		/* command name only */
-		args_len = 1;
+		/* command name + command name.
+		 *
+		 * Note: The double command name is required since we
+		 * must use G_SPAWN_FILE_AND_ARGV_ZERO.
+		 */
+		args_len = 2;
 	}
 
 	/* +1 for for NULL terminator */
@@ -324,13 +344,25 @@ cc_run_hook(struct oci_cfg_hook* hook, const gchar* state,
 		for (i=0; i<args_len; ++i) {
 			args[i+1] = hook->args[i];
 		}
+	} else {
+
+		/* args[1] is the start of the array passed to the
+		 * program specified by args[0] so should contain the
+		 * program name (since this will become argv[0] for the
+		 * exec'd process).
+		 */
+		args[1] = hook->path;
 	}
 
-	flags |= G_SPAWN_DO_NOT_REAP_CHILD;
-	flags |= G_SPAWN_CLOEXEC_PIPES;
+	g_debug ("running hook command '%s' as:", args[0]);
 
-	g_debug ("running hook command:");
-	for (gchar** p = args; p && *p; p++) {
+	/* +1 to ignore the original (hook->path) name since:
+	 *
+	 * 1) It's just been displayed above.
+	 * 2) Although the command to exec is args[0],
+	 *    it will be known as args[1].
+	 */
+	for (gchar** p = args+1; p && *p; p++) {
 		g_debug ("arg: '%s'", *p);
 	}
 

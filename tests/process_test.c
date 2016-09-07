@@ -137,7 +137,7 @@ START_TEST(test_cc_run_hook) {
 	cc_oci_hook_free (hook);
 
 	/*******************************/
-	/* full path, 1 arg */
+	/* full path specified, cmd arg */
 
 	hook_loop = g_main_loop_new (NULL, 0);
 	ck_assert (hook_loop);
@@ -149,7 +149,7 @@ START_TEST(test_cc_run_hook) {
 
 	hook->args = g_new0 (gchar *, 2);
 	ck_assert (hook->args);
-	hook->args[0] = g_strdup ("bs=1");
+	hook->args[0] = g_strdup (cmd);
 
 	ck_assert (cc_run_hook (hook, "", 1));
 
@@ -157,7 +157,28 @@ START_TEST(test_cc_run_hook) {
 	cc_oci_hook_free (hook);
 
 	/*******************************/
-	/* full path, 3 args */
+	/* full path, cmd arg + 1 arg */
+
+	hook_loop = g_main_loop_new (NULL, 0);
+	ck_assert (hook_loop);
+
+	hook = g_new0 (struct oci_cfg_hook, 1);
+	ck_assert (hook);
+
+	g_strlcpy (hook->path, cmd, sizeof (hook->path));
+
+	hook->args = g_new0 (gchar *, 3);
+	ck_assert (hook->args);
+	hook->args[0] = g_strdup (cmd);
+	hook->args[1] = g_strdup ("bs=1");
+
+	ck_assert (cc_run_hook (hook, "", 1));
+
+	g_main_loop_unref (hook_loop);
+	cc_oci_hook_free (hook);
+
+	/*******************************/
+	/* full path, cmd arg + 2 args */
 
 	hook_loop = g_main_loop_new (NULL, 0);
 	ck_assert (hook_loop);
@@ -169,9 +190,32 @@ START_TEST(test_cc_run_hook) {
 
 	hook->args = g_new0 (gchar *, 4);
 	ck_assert (hook->args);
-	hook->args[0] = g_strdup ("bs=1");
+	hook->args[0] = g_strdup (cmd);
 	hook->args[1] = g_strdup ("bs=1");
 	hook->args[2] = g_strdup ("bs=1");
+
+	ck_assert (cc_run_hook (hook, "", 1));
+
+	g_main_loop_unref (hook_loop);
+	cc_oci_hook_free (hook);
+
+	/*******************************/
+	/* full path, cmd arg + 3 args */
+
+	hook_loop = g_main_loop_new (NULL, 0);
+	ck_assert (hook_loop);
+
+	hook = g_new0 (struct oci_cfg_hook, 1);
+	ck_assert (hook);
+
+	g_strlcpy (hook->path, cmd, sizeof (hook->path));
+
+	hook->args = g_new0 (gchar *, 5);
+	ck_assert (hook->args);
+	hook->args[0] = g_strdup (cmd);
+	hook->args[1] = g_strdup ("bs=1");
+	hook->args[2] = g_strdup ("bs=1");
+	hook->args[3] = g_strdup ("bs=1");
 
 	ck_assert (cc_run_hook (hook, "", 1));
 
