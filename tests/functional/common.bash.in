@@ -39,8 +39,9 @@ COR_LOG_FILE="/run/opencontainer/containers/cc-oci-runtime.log"
 # If there is a missing component, the tests is skipped
 function check_ccontainers() {
 
-	out=$(@QEMU_PATH@ -machine help | grep -o pc-lite | tail -1)
-	[ "$out" = "pc-lite" ] || skip "@QEMU_PATH@ does not have pc-lite support"
+	local out=$(@QEMU_PATH@ -machine help | grep -o pc-lite | tail -1)
+	[ "$out" = "pc-lite" ] || \
+        skip "@QEMU_PATH@ does not have pc-lite support"
 
 	if [ ! -d "$BUNDLE_DIR" ]
 	then
@@ -81,17 +82,17 @@ function check_ccontainers() {
 # return true if containter have the <status>, false if
 #        the status is not the expected after timeout
 function testcontainer() {
-	container_id="$1"
-	status="$2"
-	timeout_cmd=${3:-5}
-	i=0
-	got=0
-	cmd="$COR list --format table"
+	local container_id="$1"
+	local status="$2"
+	local timeout_cmd=${3:-5}
+	local i=0
+	local got=0
+	local cmd="$COR list --format table"
 	[ "$timeout_cmd"  -eq "$timeout_cmd" ] || \
 	{ log_msg "timeout is not a number"; exit 1; }
 	while [ "$i" -lt "$timeout_cmd" ]
 	do
-		output=$(run_cmd "$cmd")
+		local output=$(run_cmd "$cmd")
 		[[ ${output} =~ ID\ +PID\ +STATUS\ +BUNDLE\ +CREATED+ ]]
 		if [[ "${output}" == *"$container_id"*[0-9]*"$status"*"$BUNDLE_DIR"* ]]
 		then
@@ -125,7 +126,8 @@ function check_root() {
 function workload_cmd() {
 	#Copy new, no modified config.json
 	/bin/cp "$CONFIG" "${BUNDLE_DIR}/config.json"
-	cmd="\"$1\""
+	local cmd="\"$1\""
+	local opt
 	shift
 	for opt in "$@"
 	do
@@ -141,9 +143,9 @@ function workload_cmd() {
 # @param expected_exit_code expected exit code
 # @param timeout time to wait before kill command
 function run_cmd(){
-	cmd="$1"
-	expected_exit_code="${2:-0}"
-	timeout_cmd="$3"
+	local cmd="$1"
+	local expected_exit_code="${2:-0}"
+	local timeout_cmd="$3"
 
 	#Remove -e from bats enviroment
 	set +e
@@ -154,7 +156,7 @@ function run_cmd(){
 	fi
 	log_msg "Running: $cmd"
 	eval "$cmd" 2>&1
-	exit_code="$?"
+	local exit_code="$?"
 	log_msg "exit code: $exit_code"
 	log_msg "expected exit code: $expected_exit_code"
 
@@ -173,7 +175,7 @@ function run_cmd(){
 
 function log_msg()
 {
-	msg="$*"
+	local msg="$*"
 	echo "$msg" >&2
 }
 
