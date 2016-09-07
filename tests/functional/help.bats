@@ -21,18 +21,21 @@
 #Based on runc commands
 load common
 
-
 @test "cor -h" {
   run $COR -h
   [ "$status" -eq 0 ]
   [[ ${lines[0]} =~ Usage:+ ]]
   [[ ${lines[1]} == *cc-oci-runtime* ]]
+}
 
+@test "cor --help" {
   run $COR --help
   [ "$status" -eq 0 ]
   [[ ${lines[0]} =~ Usage:+ ]]
   [[ ${lines[1]} == *cc-oci-runtime* ]]
+}
 
+@test "cor help" {
   run $COR help
   [ "$status" -eq 0 ]
   [[ ${lines[0]} =~ Usage:+ ]]
@@ -40,108 +43,121 @@ load common
 }
 
 @test "cor exec -h" {
-  run "$COR" exec -h
+  run $COR exec -h
   [ "$status" -eq 0 ]
   [[ ${lines[0]} =~ Usage:+ ]]
+}
 
-  run "$COR" exec --help
+@test "cor exec --help" {
+  run $COR exec --help
   [ "$status" -eq 0 ]
   [[ ${lines[0]} =~ Usage:+ ]]
 }
 
 @test "cor kill -h" {
-  run "$COR" kill -h
+  run $COR kill -h
   [ "$status" -eq 0 ]
   [[ ${lines[0]} =~ Usage:+ ]]
+}
 
-  run "$COR" kill --help
+@test "@cor kill --help" {
+  run $COR kill --help
   [ "$status" -eq 0 ]
   [[ ${lines[0]} =~ Usage:+ ]]
 }
 
 @test "cor list -h" {
-
-  run "$COR" list -h
+  run $COR list -h
   [ "$status" -eq 0 ]
   [[ ${lines[0]} =~ Usage:+ ]]
+}
 
-  run "$COR" list --help
+@test "cor list --help" {
+  run $COR list --help
   [ "$status" -eq 0 ]
   [[ ${lines[0]} =~ Usage:+ ]]
 }
 
 @test "cor pause -h" {
-
-  run "$COR" pause -h
+  run $COR pause -h
   [ "$status" -eq 0 ]
   [[ ${lines[0]} =~ Usage:+ ]]
+}
 
-  run "$COR" pause --help
+@test "cor pause --help" {
+  run $COR pause --help
   [ "$status" -eq 0 ]
   [[ ${lines[0]} =~ Usage:+ ]]
 }
 
 @test "cor resume -h" {
-
-  run "$COR" resume -h
+  run $COR resume -h
   [ "$status" -eq 0 ]
   [[ ${lines[0]} =~ Usage:+ ]]
+}
 
-  run "$COR" resume --help
+@test "cor resume --help" {
+  run $COR resume --help
   [ "$status" -eq 0 ]
   [[ ${lines[0]} =~ Usage:+ ]]
 }
 
 @test "cor start -h" {
-
-  run "$COR" start -h
+  run $COR start -h
   [ "$status" -eq 0 ]
   [[ ${lines[0]} =~ Usage:+ ]]
+}
 
-  run "$COR" start --help
+@test "cor start --help" {
+  run $COR start --help
   [ "$status" -eq 0 ]
   [[ ${lines[0]} =~ Usage:+ ]]
 }
 
 @test "cor state -h" {
-
-  run "$COR" state -h
+  run $COR state -h
   [ "$status" -eq 0 ]
   [[ ${lines[0]} =~ Usage:+ ]]
+}
 
-  run "$COR" state --help
+@test "cor state --help" {
+  run $COR state --help
   [ "$status" -eq 0 ]
   [[ ${lines[0]} =~ Usage:+ ]]
 }
 
 @test "cor delete -h" {
-
-  run "$COR" delete -h
+  run $COR delete -h
   [ "$status" -eq 0 ]
   [[ ${lines[0]} =~ Usage:+ ]]
+}
 
-  run "$COR" delete --help
+@test "cor delete --help" {
+  run $COR delete --help
   [ "$status" -eq 0 ]
   [[ ${lines[0]} =~ Usage:+ ]]
 }
 
 @test "cor stop -h" {
-
-  run "$COR" stop -h
+  run $COR stop -h
   [ "$status" -eq 0 ]
   [[ ${lines[0]} =~ Usage:+ ]]
+}
 
-  run "$COR" stop --help
+@test "cor stop --help" {
+  run $COR stop --help
   [ "$status" -eq 0 ]
   [[ ${lines[0]} =~ Usage:+ ]]
 }
 
 @test "cor foo -h" {
-  run "$COR" foo -h
+  run $COR foo -h
   [ "$status" -ne 0 ]
   [[ "${output}" == *"no such command: foo"* ]]
+}
 
-  run "$COR" foo --help
+@test "cor foo --help" {
+  run $COR foo --help
   [ "$status" -ne 0 ]
   [[ "${output}" == *"no such command: foo"* ]]
 }
