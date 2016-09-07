@@ -80,17 +80,6 @@ START_TEST(test_cc_oci_cmd_is_shell) {
 
 START_TEST(test_cc_run_hook) {
 
-    /* XXX: FIXME: */
-    g_message ("%s: FIXME:", __func__);
-    g_message ("%s: "
-            "FIXME: cc_run_hook() tests disabled due to possible glib threading bug identified by helgrind",
-            __func__);
-    g_message ("%s: "
-            "FIXME: (see https://github.com/01org/cc-oci-runtime/issues/214).",
-            __func__);
-    g_message ("%s: FIXME:", __func__);
-
-#if 0
 	struct oci_cfg_hook *hook = NULL;
 	g_autofree gchar *cmd = NULL;
 
@@ -179,8 +168,6 @@ START_TEST(test_cc_run_hook) {
 	cc_oci_hook_free (hook);
 
 	/*******************************/
-
-#endif
 
 } END_TEST
 
