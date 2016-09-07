@@ -20,7 +20,35 @@
 
 #Based on runc tests/integration/helpers.bash
 
-COR="${BATS_TEST_DIRNAME}/../../cc-oci-runtime"
+COR_BINARY="${BATS_TEST_DIRNAME}/../../cc-oci-runtime"
+
+# Make temporal tests directory
+function mktemp_tests_dir(){
+       mktemp -d --tmpdir="$BATS_TMPDIR" --suffix=-cor-test
+}
+
+# used to hold global log and hypervisor output files
+COR_GLOBAL_DIR=$(mktemp_tests_dir)
+
+# always run in debug mode to make problem diagnosis easier
+COR_ARGS="--debug"
+
+if [ $(id -u) -eq 0 ]
+then
+    # running as root
+    COR_LOG_FILE="/run/opencontainer/containers/cc-oci-runtime.log"
+    mkdir -p $(dirname "$COR_LOG_FILE") || true
+else
+    # non-priv user
+    COR_LOG_FILE="$COR_GLOBAL_DIR/cc-oci-runtime.log"
+fi
+
+COR_HYPERVISOR_LOG_DIR="$COR_GLOBAL_DIR"
+
+COR_ARGS="$COR_ARGS --global-log \"$COR_LOG_FILE\""
+COR_ARGS="$COR_ARGS --hypervisor-log-dir \"$COR_HYPERVISOR_LOG_DIR\""
+
+COR="$COR_BINARY $COR_ARGS"
 
 # Test data dir.
 TEST_DATA_DIR="$(readlink -e "${BATS_TEST_DIRNAME}")/data"
@@ -33,7 +61,6 @@ ROOTFS_DIR="@BUNDLE_TEST_PATH@"
 CONTAINERS_IMG="@CONTAINERS_IMG@"
 CONTAINER_KERNEL="@CONTAINER_KERNEL@"
 HYPERVISOR_PATH="@QEMU_PATH@"
-COR_LOG_FILE="/run/opencontainer/containers/cc-oci-runtime.log"
 
 # Verify components needed by Clear Containers
 # If there is a missing component, the tests is skipped
@@ -179,11 +206,6 @@ function log_msg()
 	echo "$msg" >&2
 }
 
-# Make temporal tests directory
-function mktemp_tests_dir(){
-       mktemp -d --tmpdir="$BATS_TMPDIR" --suffix=-cor-test
-}
-
 # Common setup for all the tests
 function setup_common(){
 	#Do all testing without root and with debug info
@@ -203,9 +225,11 @@ function cleanup_common(){
     if [ "$BATS_ERROR_STATUS" -eq 1 ]
     then
         # XXX: retain logs if tests fail
-        echo "Test logs: $COR_ROOT_DIR" >&2
+        echo >&2 "Test logs: $COR_ROOT_DIR"
+        echo >&2 "runtime global log file: $COR_LOG_FILE"
+        echo >&2 "hypervisor log dir: $COR_HYPERVISOR_LOG_DIR"
         return
     fi
 
-    rm -rf "$COR_ROOT_DIR"
+    rm -rf "$COR_ROOT_DIR" "$COR_GLOBAL_DIR"
 }
