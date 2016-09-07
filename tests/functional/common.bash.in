@@ -233,3 +233,11 @@ function cleanup_common(){
 
     rm -rf "$COR_ROOT_DIR" "$COR_GLOBAL_DIR"
 }
+
+if [ ! -e "$COR_BINARY" ]
+then
+	cat <<EOT >&2
+ERROR: you need run 'make' before running the functional tests.
+EOT
+    exit 1
+fi
