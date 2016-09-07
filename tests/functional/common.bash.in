@@ -20,7 +20,35 @@
 
 #Based on runc tests/integration/helpers.bash
 
-COR="${BATS_TEST_DIRNAME}/../../cc-oci-runtime"
+COR_BINARY="${BATS_TEST_DIRNAME}/../../cc-oci-runtime"
+
+# Make temporal tests directory
+function mktemp_tests_dir(){
+       mktemp -d --tmpdir="$BATS_TMPDIR" --suffix=-cor-test
+}
+
+# used to hold global log and hypervisor output files
+COR_GLOBAL_DIR=$(mktemp_tests_dir)
+
+# always run in debug mode to make problem diagnosis easier
+COR_ARGS="--debug"
+
+if [ $(id -u) -eq 0 ]
+then
+    # running as root
+    COR_LOG_FILE="/run/opencontainer/containers/cc-oci-runtime.log"
+    mkdir -p $(dirname "$COR_LOG_FILE") || true
+else
+    # non-priv user
+    COR_LOG_FILE="$COR_GLOBAL_DIR/cc-oci-runtime.log"
+fi
+
+COR_HYPERVISOR_LOG_DIR="$COR_GLOBAL_DIR"
+
+COR_ARGS="$COR_ARGS --global-log \"$COR_LOG_FILE\""
+COR_ARGS="$COR_ARGS --hypervisor-log-dir \"$COR_HYPERVISOR_LOG_DIR\""
+
+COR="$COR_BINARY $COR_ARGS"
 
 # Test data dir.
 TEST_DATA_DIR="$(readlink -e "${BATS_TEST_DIRNAME}")/data"
@@ -33,31 +61,31 @@ ROOTFS_DIR="@BUNDLE_TEST_PATH@"
 CONTAINERS_IMG="@CONTAINERS_IMG@"
 CONTAINER_KERNEL="@CONTAINER_KERNEL@"
 HYPERVISOR_PATH="@QEMU_PATH@"
-COR_LOG_FILE="/run/opencontainer/containers/cc-oci-runtime.log"
 
 # Verify components needed by Clear Containers
 # If there is a missing component, the tests is skipped
 function check_ccontainers() {
 
-	out=$(@QEMU_PATH@ -machine help | grep -o pc-lite | tail -1)
-	[ "$out" = "pc-lite" ] || skip "@QEMU_PATH@ does not have pc-lite support"
+	local out=$(@QEMU_PATH@ -machine help | grep -o pc-lite | tail -1)
+	[ "$out" = "pc-lite" ] || \
+        skip "@QEMU_PATH@ does not have pc-lite support"
 
 	if [ ! -d "$BUNDLE_DIR" ]
 	then
-		skip "bundle directory does not exits,\
+		skip "bundle directory does not exist,\
  provide a valid bundle in $BUNDLE_DIR"
 	elif [ ! -d "$ROOTFS_DIR" ]
 	then
-		skip "$ROOTFS_DIR directory does not exit,\
+		skip "$ROOTFS_DIR directory does not exist,\
  provide a rootfs"
 	elif [ ! -f "$CONTAINERS_IMG" ]
 	then
-		skip "Clear Container image $CONTAINERS_IMG  does\
- not exits, provide an image"
+		skip "Clear Container image $CONTAINERS_IMG does\
+ not exist, provide an image"
 	elif [ ! -f "$CONTAINER_KERNEL" ]
 	then
 		skip "Clear Container kernel $CONTAINER_KERNEL does\
- not exits, provide a kernel"
+ not exist, provide a kernel"
 	elif [ ! -x "$HYPERVISOR_PATH" ]
 	then
 		 skip "execute permission is not granted: $HYPERVISOR_PATH"
@@ -74,24 +102,24 @@ function check_ccontainers() {
 	cd "$BATS_TEST_DIRNAME"
 }
 
-#Verifiy a container state
+# Verify a container state
 # @param <container-id>
 # @param <status>  container status to check (e.g. running)
 # @param <timeout> timeout to check container status
 # return true if containter have the <status>, false if
 #        the status is not the expected after timeout
 function testcontainer() {
-	container_id="$1"
-	status="$2"
-	timeout_cmd=${3:-5}
-	i=0
-	got=0
-	cmd="$COR list --format table"
+	local container_id="$1"
+	local status="$2"
+	local timeout_cmd=${3:-5}
+	local i=0
+	local got=0
+	local cmd="$COR list --format table"
 	[ "$timeout_cmd"  -eq "$timeout_cmd" ] || \
 	{ log_msg "timeout is not a number"; exit 1; }
 	while [ "$i" -lt "$timeout_cmd" ]
 	do
-		output=$(run_cmd "$cmd")
+		local output=$(run_cmd "$cmd")
 		[[ ${output} =~ ID\ +PID\ +STATUS\ +BUNDLE\ +CREATED+ ]]
 		if [[ "${output}" == *"$container_id"*[0-9]*"$status"*"$BUNDLE_DIR"* ]]
 		then
@@ -125,7 +153,8 @@ function check_root() {
 function workload_cmd() {
 	#Copy new, no modified config.json
 	/bin/cp "$CONFIG" "${BUNDLE_DIR}/config.json"
-	cmd="\"$1\""
+	local cmd="\"$1\""
+	local opt
 	shift
 	for opt in "$@"
 	do
@@ -141,9 +170,9 @@ function workload_cmd() {
 # @param expected_exit_code expected exit code
 # @param timeout time to wait before kill command
 function run_cmd(){
-	cmd="$1"
-	expected_exit_code="${2:-0}"
-	timeout_cmd="$3"
+	local cmd="$1"
+	local expected_exit_code="${2:-0}"
+	local timeout_cmd="$3"
 
 	#Remove -e from bats enviroment
 	set +e
@@ -154,7 +183,7 @@ function run_cmd(){
 	fi
 	log_msg "Running: $cmd"
 	eval "$cmd" 2>&1
-	exit_code="$?"
+	local exit_code="$?"
 	log_msg "exit code: $exit_code"
 	log_msg "expected exit code: $expected_exit_code"
 
@@ -173,13 +202,8 @@ function run_cmd(){
 
 function log_msg()
 {
-	msg="$*"
+	local msg="$*"
 	echo "$msg" >&2
-}
-
-# Make temporal tests directory
-function mktemp_tests_dir(){
-       mktemp -d --tmpdir="$BATS_TMPDIR" --suffix=-cor-test
 }
 
 # Common setup for all the tests
@@ -201,9 +225,19 @@ function cleanup_common(){
     if [ "$BATS_ERROR_STATUS" -eq 1 ]
     then
         # XXX: retain logs if tests fail
-        echo "Test logs: $COR_ROOT_DIR" >&2
+        echo >&2 "Test logs: $COR_ROOT_DIR"
+        echo >&2 "runtime global log file: $COR_LOG_FILE"
+        echo >&2 "hypervisor log dir: $COR_HYPERVISOR_LOG_DIR"
         return
     fi
 
-    rm -rf "$COR_ROOT_DIR"
+    rm -rf "$COR_ROOT_DIR" "$COR_GLOBAL_DIR"
 }
+
+if [ ! -e "$COR_BINARY" ]
+then
+	cat <<EOT >&2
+ERROR: you need run 'make' before running the functional tests.
+EOT
+    exit 1
+fi
