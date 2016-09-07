@@ -44,20 +44,20 @@ function check_ccontainers() {
 
 	if [ ! -d "$BUNDLE_DIR" ]
 	then
-		skip "bundle directory does not exits,\
+		skip "bundle directory does not exist,\
  provide a valid bundle in $BUNDLE_DIR"
 	elif [ ! -d "$ROOTFS_DIR" ]
 	then
-		skip "$ROOTFS_DIR directory does not exit,\
+		skip "$ROOTFS_DIR directory does not exist,\
  provide a rootfs"
 	elif [ ! -f "$CONTAINERS_IMG" ]
 	then
-		skip "Clear Container image $CONTAINERS_IMG  does\
- not exits, provide an image"
+		skip "Clear Container image $CONTAINERS_IMG does\
+ not exist, provide an image"
 	elif [ ! -f "$CONTAINER_KERNEL" ]
 	then
 		skip "Clear Container kernel $CONTAINER_KERNEL does\
- not exits, provide a kernel"
+ not exist, provide a kernel"
 	elif [ ! -x "$HYPERVISOR_PATH" ]
 	then
 		 skip "execute permission is not granted: $HYPERVISOR_PATH"
@@ -74,7 +74,7 @@ function check_ccontainers() {
 	cd "$BATS_TEST_DIRNAME"
 }
 
-#Verifiy a container state
+# Verify a container state
 # @param <container-id>
 # @param <status>  container status to check (e.g. running)
 # @param <timeout> timeout to check container status
