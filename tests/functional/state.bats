@@ -33,9 +33,9 @@ function teardown() {
 
 
 
-# Run and vefiy state output
+# Run and verify state output
 # @param <container-id>
-# @param <status> container state to vefiry (running, created ...)
+# @param <status> container state to verify (running, created ...)
 function check_state() {
 	container_id_state="$1"
 	status="$2"
