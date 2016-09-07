@@ -511,6 +511,12 @@ START_TEST(test_cc_oci_resolve_path) {
 
 } END_TEST
 
+START_TEST(test_cc_oci_enable_networking) {
+	gboolean expected = ! geteuid ();
+	ck_assert (cc_oci_enable_networking () == expected);
+
+} END_TEST
+
 Suite* make_util_suite(void) {
 	Suite* s = suite_create(__FILE__);
 
@@ -524,6 +530,7 @@ Suite* make_util_suite(void) {
 	ADD_TEST(test_cc_oci_get_signum, s);
 	ADD_TEST(test_cc_oci_node_dump, s);
 	ADD_TEST(test_cc_oci_resolve_path, s);
+	ADD_TEST(test_cc_oci_enable_networking, s);
 
 	return s;
 }

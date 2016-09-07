@@ -480,6 +480,9 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 	gchar		  *hook_status = NULL;
 	g_autofree gchar  *timestamp = NULL;
 	struct netlink_handle *hndl = NULL;
+	gboolean           setup_networking;
+
+	setup_networking = cc_oci_enable_networking ();
 
 	timestamp = cc_oci_get_iso8601_timestamp ();
 	if (! timestamp) {
@@ -569,24 +572,25 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 			goto child_failed;
 		}
 
-		hndl = netlink_init();
-		if (hndl == NULL) {
-			g_critical("failed to setup netlink socket");
-			goto child_failed;
+		if (setup_networking) {
+			hndl = netlink_init();
+			if (hndl == NULL) {
+				g_critical("failed to setup netlink socket");
+				goto child_failed;
+			}
+
+			if (! cc_oci_vm_netcfg_get (config, hndl)) {
+				g_critical("failed to discover network configuration");
+				goto child_failed;
+			}
+
+			if (! cc_oci_network_create(config, hndl)) {
+				g_critical ("failed to create network");
+				goto child_failed;
+			}
+			g_debug ("network configuration complete");
+
 		}
-
-		if (! cc_oci_vm_netcfg_get (config, hndl)) {
-			g_critical("failed to discover network configuration");
-			goto child_failed;
-		}
-
-
-		if (! cc_oci_network_create(config, hndl)) {
-			g_critical ("failed to create network");
-			goto child_failed;
-		}
-		g_debug ("network configuration complete");
-
 
 		g_debug ("building hypervisor command-line");
 
@@ -737,7 +741,9 @@ out:
 	if (child_err_pipe[0] != -1) close (child_err_pipe[0]);
 	if (child_err_pipe[1] != -1) close (child_err_pipe[1]);
 
-	netlink_close(hndl);
+	if (setup_networking) {
+		netlink_close (hndl);
+	}
 
 	if (args) {
 		g_strfreev (args);
