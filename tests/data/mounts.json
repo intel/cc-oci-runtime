@@ -32,6 +32,28 @@
 				"nodev",
 				"ro"
 			]
+		},
+		{
+			"destination": "/tmp/321/tmp",
+			"type": "type",
+			"source": "/dev/tty",
+			"options": [
+				"nosuid",
+				"noexec",
+				"nodev",
+				"ro"
+			]
+		},
+		{
+			"destination": "tmp/321/tmp",
+			"type": "type",
+			"source": "/dev/tty",
+			"options": [
+				"nosuid",
+				"noexec",
+				"nodev",
+				"ro"
+			]
 		}
 	]
 }
