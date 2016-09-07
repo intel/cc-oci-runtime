@@ -23,7 +23,7 @@ before_script:
 - ./.travis-setup.sh
 
 script:
-- ./autogen.sh --enable-cppcheck --enable-valgrind --disable-silent-rules
+- ./autogen.sh --enable-cppcheck --enable-valgrind --disable-valgrind-helgrind --disable-valgrind-drd --disable-silent-rules
 - make -j5 CFLAGS=-Werror check
 
 after_failure:
@@ -41,7 +41,7 @@ addons:
     project:
       name: "01org/cc-oci-runtime"
       description: "Build submitted via Travis CI"
-    build_command_prepend: "./autogen.sh --enable-cppcheck --enable-valgrind; make clean"
+    build_command_prepend: "./autogen.sh --enable-cppcheck --enable-valgrind --disable-valgrind-helgrind --disable-valgrind-drd; make clean"
     build_command: "make -j5"
     branch_pattern: coverity_scan
     # It should be possible to specify the Coverity notification email
