@@ -21,6 +21,14 @@
 #Based on runc commands
 load common
 
+function setup() {
+  setup_common
+}
+
+function teardown() {
+  cleanup_common
+}
+
 @test "cor -h" {
   run $COR -h
   [ "$status" -eq 0 ]

@@ -20,6 +20,14 @@
 
 load common
 
+function setup() {
+    setup_common
+}
+
+function teardown() {
+    cleanup_common
+}
+
 @test "cor -v" {
     run $COR -v
     [ "$status" -eq 0 ]
