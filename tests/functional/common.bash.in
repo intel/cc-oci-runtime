@@ -235,10 +235,22 @@ function setup_common(){
 function cleanup_common(){
     if [ "$BATS_ERROR_STATUS" -eq 1 ]
     then
-        # XXX: retain logs if tests fail
         echo >&2 "Test logs: $COR_ROOT_DIR"
-        echo >&2 "runtime global log file: $COR_LOG_FILE"
-        echo >&2 "hypervisor log dir: $COR_HYPERVISOR_LOG_DIR"
+        echo >&2 "Global log file: $COR_LOG_FILE"
+        echo >&2 "Hypervisor log dir: $COR_HYPERVISOR_LOG_DIR"
+        echo >&2 "bats status: $status"
+        echo >&2 "bats output (lines array contains ${#lines[*]} lines):"
+
+        local i=0
+        local line
+
+	for line in ${lines[@]}
+	do
+		echo >&2 "lines[$i]: '$line'"
+		i=$((i+1))
+	done
+
+        # XXX: retain logs if tests fail
         return
     fi
 
