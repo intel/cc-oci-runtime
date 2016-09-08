@@ -20,25 +20,33 @@
 
 load common
 
+function setup() {
+	setup_common
+}
+
+function teardown() {
+	cleanup_common
+}
+
 @test "cor -v" {
-    run $COR -v
-    [ "$status" -eq 0 ]
-    [[ "${lines[0]}" =~ cc-oci-runtime\ version:\ [0-9.]+ ]]
-    [[ "${lines[1]}" =~ spec\ version:\ [0-9.]+ ]]
+	run $COR -v
+	[ "$status" -eq 0 ]
+	[[ "${lines[0]}" =~ cc-oci-runtime\ version:\ [0-9.]+ ]]
+	[[ "${lines[1]}" =~ spec\ version:\ [0-9.]+ ]]
 }
 
 @test "cor --version" {
-    run $COR --version
-    [ "$status" -eq 0 ]
-    [[ "${lines[0]}" =~ cc-oci-runtime\ version:\ [0-9.]+ ]]
-    [[ "${lines[1]}" =~ spec\ version:\ [0-9.]+ ]]
-    [[ "${lines[2]}" =~ commit:\ [0-9a-f]+ ]]
+	run $COR --version
+	[ "$status" -eq 0 ]
+	[[ "${lines[0]}" =~ cc-oci-runtime\ version:\ [0-9.]+ ]]
+	[[ "${lines[1]}" =~ spec\ version:\ [0-9.]+ ]]
+	[[ "${lines[2]}" =~ commit:\ [0-9a-f]+ ]]
 }
 
 @test "cor version" {
-    run $COR version
-    [ "$status" -eq 0 ]
-    [[ "${lines[0]}" =~ cc-oci-runtime\ version:\ [0-9.]+ ]]
-    [[ "${lines[1]}" =~ spec\ version:\ [0-9.]+ ]]
-    [[ "${lines[2]}" =~ commit:\ [0-9a-f]+ ]]
+	run $COR version
+	[ "$status" -eq 0 ]
+	[[ "${lines[0]}" =~ cc-oci-runtime\ version:\ [0-9.]+ ]]
+	[[ "${lines[1]}" =~ spec\ version:\ [0-9.]+ ]]
+	[[ "${lines[2]}" =~ commit:\ [0-9a-f]+ ]]
 }

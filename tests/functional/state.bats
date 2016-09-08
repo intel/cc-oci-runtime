@@ -31,8 +31,6 @@ function teardown() {
 	cleanup_common
 }
 
-
-
 # Run and verify state output
 # @param <container-id>
 # @param <status> container state to verify (running, created ...)
@@ -61,7 +59,6 @@ function check_state() {
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
 	testcontainer "$container_id" "created"
 	check_state "$container_id" "created"
-
 
 	cmd="$COR start $container_id"
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"

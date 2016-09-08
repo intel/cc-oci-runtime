@@ -35,13 +35,13 @@ function teardown() {
 
 @test "start without container id" {
 	run $COR start
-        [ "$status" -ne 0 ]
+	[ "$status" -ne 0 ]
 	[[ "${output}" == "Usage: start <container-id>" ]]
 }
 
 @test "start with invalid container id" {
 	run $COR start FOO
-        [ "$status" -ne 0 ]
+	[ "$status" -ne 0 ]
 	[[ "${output}" =~ "failed to parse json file:" ]]
 }
 
@@ -83,26 +83,26 @@ function teardown() {
 }
 
 @test "run without params" {
-       run $COR run
-        [ "$status" -ne 0 ]
-       [[ "${output}" == "Usage: run <container-id>" ]]
+	run $COR run
+	[ "$status" -ne 0 ]
+	[[ "${output}" == "Usage: run <container-id>" ]]
 }
 
 @test "run detach then attach" {
-       workload_cmd "sh"
+	workload_cmd "sh"
 
-       cmd="$COR run --console --bundle $BUNDLE_DIR $container_id"
-       run_cmd "$cmd" "0" "$COR_TIMEOUT"
-       testcontainer "$container_id" "running"
+	cmd="$COR run --console --bundle $BUNDLE_DIR $container_id"
+	run_cmd "$cmd" "0" "$COR_TIMEOUT"
+	testcontainer "$container_id" "running"
 
-       cmd="$COR attach $container_id"
-       echo "exit" |  run_cmd "$cmd" "0" "$COR_TIMEOUT"
+	cmd="$COR attach $container_id"
+	echo "exit" |  run_cmd "$cmd" "0" "$COR_TIMEOUT"
 }
 
 @test "run detach pid file" {
-       workload_cmd "true"
+	workload_cmd "true"
 
-       cmd="$COR run --pid-file ${COR_ROOT_DIR}/pid --console --bundle $BUNDLE_DIR $container_id"
-       run_cmd "$cmd" "0" "$COR_TIMEOUT"
-       [ -f "${COR_ROOT_DIR}/pid" ]
+	cmd="$COR run --pid-file ${COR_ROOT_DIR}/pid --console --bundle $BUNDLE_DIR $container_id"
+	run_cmd "$cmd" "0" "$COR_TIMEOUT"
+	[ -f "${COR_ROOT_DIR}/pid" ]
 }

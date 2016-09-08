@@ -35,13 +35,13 @@ function teardown() {
 
 @test "kill without container id" {
 	run $COR kill
-        [ "$status" -ne 0 ]
+	[ "$status" -ne 0 ]
 	[[ "${output}" == "Usage: kill <container-id> [<signal>]" ]]
 }
 
 @test "kill with invalid container id" {
 	run $COR kill FOO
-        [ "$status" -ne 0 ]
+	[ "$status" -ne 0 ]
 	[[ "${output}" =~ "failed to parse json file:" ]]
 }
 
