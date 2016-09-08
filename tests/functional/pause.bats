@@ -36,26 +36,26 @@ function teardown() {
 @test "pause without container id" {
 	run $COR pause
 	echo $output
-        [ "$status" -ne 0 ]
+	[ "$status" -ne 0 ]
 	[[ "${output}" == "Usage: pause <container-id>" ]]
 }
 
 @test "pause with invalid container id" {
 	run $COR pause FOO
-        [ "$status" -ne 0 ]
+	[ "$status" -ne 0 ]
 	[[ "${output}" =~ "failed to parse json file:" ]]
 }
 
 @test "resume without container id" {
 	run $COR resume
 	echo $output
-        [ "$status" -ne 0 ]
+	[ "$status" -ne 0 ]
 	[[ "${output}" == "Usage: resume <container-id>" ]]
 }
 
 @test "resume with invalid container id" {
 	run $COR resume FOO
-        [ "$status" -ne 0 ]
+	[ "$status" -ne 0 ]
 	[[ "${output}" =~ "failed to parse json file:" ]]
 }
 
