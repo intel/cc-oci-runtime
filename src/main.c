@@ -350,6 +350,7 @@ handle_arguments (int argc, char **argv)
 	priv_level = cc_oci_get_priv_level (argc, argv, sub, &config);
 	if (priv_level == 1 && getuid ()) {
 		g_critical ("must run as root");
+		ret = false;
 		goto out;
 	}
 
