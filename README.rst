@@ -131,7 +131,7 @@ or ``containerd``::
 
 Or, to simulate how ``containerd`` calls the runtime::
 
-    $ sudo ./cc-oci-runtime --log "$logfile" --log-format json create --bundle "$bundle_dir" --console $(tty) -d --pid-file "$pidfile" "$name"
+    $ sudo ./cc-oci-runtime --log "$logfile" --log-format json create --bundle "$bundle_dir" --console $(tty) --pid-file "$pidfile" "$name"
     $ sudo ./cc-oci-runtime --log "$logfile" --log-format json start "$name"
 
 Running as a non-privileged user
