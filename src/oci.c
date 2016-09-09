@@ -30,6 +30,9 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <sys/types.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <pwd.h>
 
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -523,6 +526,98 @@ fail1:
 }
 
 /*!
+ * Get the home directory for the workload user
+ *
+ * \param config \ref cc_oci_config.
+ * \param passwd_path Path to the local passwd file
+ *
+ * \return Newly-allocated path string on success, else \c NULL.
+ */
+
+private gchar*
+get_user_home_dir(struct cc_oci_config *config, gchar *passwd_path) {
+	gchar          *user_home = NULL;
+	FILE           *pw_file = NULL;
+	struct passwd  *pw_entry;
+
+	if (! (config && passwd_path)) {
+		return NULL;
+	}
+
+	pw_file = g_fopen (passwd_path, "r");
+	if ( pw_file == NULL) {
+		g_warning("Could not open password file: %s\n", passwd_path);
+		return NULL;
+	}
+
+	while ((pw_entry = fgetpwent(pw_file)) != NULL) {
+		if (pw_entry->pw_uid == config->oci.process.user.uid) {
+			user_home = g_strdup(pw_entry->pw_dir);
+			break;
+		}
+	}
+
+	fclose(pw_file);
+	return user_home;
+}
+
+/*!
+ * Set the HOME environment variable
+ *
+ * \param config \ref cc_oci_config.
+ *
+ * returns early if HOME is present in the environment configuration in \p config
+ */
+private void
+set_env_home(struct cc_oci_config *config)
+{
+	g_autofree gchar *user_home_dir = NULL;
+	g_autofree gchar *passwd_path = NULL;
+
+	if (! (config && config->oci.process.env)) {
+		return;
+	}
+
+	/* Check if HOME is set in the environment config */
+	for (gchar **var = config->oci.process.env; *var != NULL; var++) {
+		if (g_str_has_prefix (*var, "HOME=")) {
+			g_debug("Home is already set in the configuration\n");
+			return;
+		}
+	}
+
+	guint env_len = 1 + g_strv_length(config->oci.process.env);
+	gchar **new_env = g_new0(gchar*, env_len + 1);
+
+	passwd_path = g_strdup_printf ("%s/%s", config->oci.root.path, PASSWD_PATH);
+	user_home_dir = get_user_home_dir(config, passwd_path);
+
+	if (! user_home_dir) {
+		// Fallback to stateless path 
+		g_free(passwd_path);
+		passwd_path = g_strdup_printf ("%s/%s", config->oci.root.path,
+						STATELESS_PASSWD_PATH);
+		user_home_dir = get_user_home_dir(config, passwd_path);
+
+		// If we are not able to retrieve the home dir, set the default as "/"
+		if (! user_home_dir) {
+			user_home_dir = g_strdup("/");
+			g_debug("No HOME found in environment, so setting HOME %s for user %d",
+				user_home_dir, config->oci.process.user.uid);
+		}
+	}
+	new_env[0] = g_strdup_printf("HOME=%s", user_home_dir);
+
+	for (int i = 0; i < env_len-1; i++) {
+		new_env[i+1] = g_strdup(config->oci.process.env[i]);
+	}
+
+	g_strfreev(config->oci.process.env);
+	config->oci.process.env = new_env;
+}
+
+
+/*!
  * Create the containers Clear Linux workload file
  * (\ref CC_OCI_WORKLOAD_FILE).
  *
@@ -564,6 +659,8 @@ cc_oci_create_container_workload (struct cc_oci_config *config)
 		if (! envpath) {
 			return false;
 		}
+
+		set_env_home(config);
 
 		env = g_strjoinv ("\n", config->oci.process.env);
 		ret = g_file_set_contents (envpath, env, -1, &err);
