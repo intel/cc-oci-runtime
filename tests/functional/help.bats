@@ -68,7 +68,7 @@ function teardown() {
 	[[ ${lines[0]} =~ Usage:+ ]]
 }
 
-@test "@cor kill --help" {
+@test "cor kill --help" {
 	run $COR kill --help
 	[ "$status" -eq 0 ]
 	[[ ${lines[0]} =~ Usage:+ ]]
