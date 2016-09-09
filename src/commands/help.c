@@ -25,7 +25,7 @@ usage (void)
 {
 	struct subcommand **sub;
 	g_print ("Usage:\n");
-	g_print ("%s [options] [command] [options]\n",
+	g_print ("%s [global options] [command] [command options]\n",
 			PACKAGE_NAME);
 	g_print ("\n");
 	g_print ("Supported commands:\n");
