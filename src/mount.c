@@ -23,6 +23,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include <glib/gstdio.h>
+
 #include "mount.h"
 #include "common.h"
 
@@ -99,6 +101,7 @@ cc_oci_mount_free (struct cc_oci_mount *m)
 	g_free_if_set (m->mnt.mnt_dir);
 	g_free_if_set (m->mnt.mnt_type);
 	g_free_if_set (m->mnt.mnt_opts);
+	g_free_if_set (m->directory_created);
 
 	g_free (m);
 }
@@ -216,6 +219,8 @@ cc_oci_handle_mounts (struct cc_oci_config *config)
 	gboolean   ret;
 	struct stat st;
 	gchar* dirname_dest = NULL;
+	gchar* dirname_parent_dest = NULL;
+	gchar* c = NULL;
 
 	if (! config) {
 		return false;
@@ -246,6 +251,29 @@ cc_oci_handle_mounts (struct cc_oci_config *config)
 		if (! dirname_dest) {
 			dirname_dest = g_strdup(m->dest);
 		}
+
+		dirname_parent_dest = g_strdup(dirname_dest);
+		if (dirname_parent_dest && ! g_file_test(dirname_parent_dest, G_FILE_TEST_IS_DIR)) {
+			/* looking for first parent directory that must be created to mount dest */
+			do {
+				c = g_strrstr(dirname_parent_dest, "/");
+				if (c) {
+					*c = '\0';
+				} else {
+					/* no more path separators '/' */
+					break;
+				}
+			} while(! g_file_test(dirname_parent_dest, G_FILE_TEST_IS_DIR));
+
+			if (c) {
+				/* revert last change */
+				*c = '/';
+				m->directory_created = dirname_parent_dest;
+				dirname_parent_dest = NULL;
+			}
+		}
+
+		g_free_if_set(dirname_parent_dest);
 
 		ret = g_mkdir_with_parents (dirname_dest, CC_OCI_DIR_MODE);
 		if (ret < 0) {
@@ -301,6 +329,7 @@ cc_oci_handle_unmounts (const struct cc_oci_config *config)
 		return false;
 	}
 
+	/* umount files and directories */
 	for (l = config->oci.mounts; l && l->data; l = g_slist_next (l)) {
 		struct cc_oci_mount *m = (struct cc_oci_mount *)l->data;
 
@@ -310,7 +339,24 @@ cc_oci_handle_unmounts (const struct cc_oci_config *config)
 		}
 
 		if (! cc_oci_perform_unmount (m)) {
+			g_critical("failed to umount %s", m->dest);
 			return false;
+		}
+	}
+
+	/* delete directories created by cc_oci_handle_mounts */
+	for (l = config->oci.mounts; l && l->data; l = g_slist_next (l)) {
+		struct cc_oci_mount *m = (struct cc_oci_mount *)l->data;
+
+		if (m->ignore_mount) {
+			/* was never mounted */
+			continue;
+		}
+
+		if (m->directory_created) {
+			if (! cc_oci_rm_rf(m->directory_created)) {
+				g_critical("failed to delete %s", m->directory_created);
+			}
 		}
 	}
 
@@ -332,6 +378,7 @@ JsonArray *
 cc_oci_mounts_to_json (const struct cc_oci_config *config)
 {
 	JsonArray *array = NULL;
+	JsonObject *mount = NULL;
 	GSList *l;
 
 	array  = json_array_new ();
@@ -343,8 +390,17 @@ cc_oci_mounts_to_json (const struct cc_oci_config *config)
 			/* was never mounted */
 			continue;
 		}
+		mount = json_object_new ();
 
-		json_array_add_string_element (array, m->dest);
+		json_object_set_string_member (mount, "destination",
+			m->dest);
+
+		if (m->directory_created) {
+			json_object_set_string_member (mount, "directory_created",
+				m->directory_created);
+		}
+
+		json_array_add_object_element (array, mount);
 	}
 
 	return array;

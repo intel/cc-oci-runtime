@@ -420,6 +420,13 @@ struct cc_oci_mount {
 
 	/** \c true if mount should not be honoured. */
 	gboolean       ignore_mount;
+
+	/** Full path to first parent directory created to mount dest
+	 * this path will be deleted after umount dest in order to
+	 * left the rootfs in its original state.
+	 * NULL if no directory was created to mount dest
+	 */
+	gchar          *directory_created;
 };
 
 /** The main object holding all configuration data.

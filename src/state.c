@@ -253,14 +253,27 @@ handle_state_created_section(GNode* node, struct handler_data* data) {
  */
 static void
 handle_state_mounts_section(GNode* node, struct handler_data* data) {
+	struct cc_oci_mount* m;
 
-	if (node && node->data) {
-		struct cc_oci_mount* m = g_new0 (struct cc_oci_mount, 1);
-		g_strlcpy (m->dest, (char*)node->data, sizeof (m->dest));
+	if (! (node && node->data)) {
+		return;
+	}
+	if (! (node->children && node->children->data)) {
+		g_critical("%s missing value", (char*)node->data);
+		return;
+	}
+
+	if (! g_strcmp0(node->data, "destination")) {
+		m = g_new0 (struct cc_oci_mount, 1);
+		g_strlcpy (m->dest, (char*)node->children->data, sizeof (m->dest));
 		m->ignore_mount = false;
-
-		data->state->mounts =
-		    g_slist_append(data->state->mounts, m);
+		data->state->mounts = g_slist_append(data->state->mounts, m);
+	} else if (! g_strcmp0(node->data, "directory_created")) {
+		GSList *l = g_slist_last(data->state->mounts);
+		if (l) {
+			m = (struct cc_oci_mount*)l->data;
+			m->directory_created = g_strdup((char*)node->children->data);
+		}
 	}
 }
 
