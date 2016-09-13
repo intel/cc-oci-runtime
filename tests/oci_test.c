@@ -38,6 +38,8 @@
 
 gboolean cc_oci_vm_running (const struct oci_state *state);
 gboolean cc_oci_create_container_workload (struct cc_oci_config *config);
+gchar* get_user_home_dir(struct cc_oci_config *config, gchar *password_path);
+void set_env_home(struct cc_oci_config *config);
 
 // TODO: add a 2nd VM state file
 START_TEST(test_cc_oci_list) {
@@ -877,6 +879,7 @@ START_TEST(test_cc_oci_create_container_workload) {
 	fields = g_strsplit (env_contents, "\n", -1);
 	ck_assert (fields);
 
+	ck_assert (g_strv_contains ((const gchar * const *)fields, "HOME=/"));
 	ck_assert (g_strv_contains ((const gchar * const *)fields, "foo=bar"));
 	ck_assert (g_strv_contains ((const gchar * const *)fields, "hello=world"));
 	ck_assert (g_strv_contains ((const gchar * const *)fields, "a=b"));
@@ -891,6 +894,94 @@ START_TEST(test_cc_oci_create_container_workload) {
 	cc_oci_config_free (&config);
 
 } END_TEST
+
+START_TEST(test_get_user_home_dir) {
+	struct cc_oci_config config = { { 0 } };
+	gchar *user_home;
+
+	config.oci.process.env = g_new0 (gchar *, 4);
+	config.oci.process.env[0] = g_strdup ("foo=bar");
+	config.oci.process.env[1] = g_strdup ("hello=world");
+	config.oci.process.env[2] = g_strdup ("a=b");
+
+	config.oci.process.user.uid = 0;
+	user_home = get_user_home_dir(&config, TEST_DATA_DIR "/passwd");
+	ck_assert (! g_strcmp0 (user_home, "/root"));
+	g_free(user_home);
+
+	config.oci.process.user.uid = 1;
+	user_home = get_user_home_dir(&config, TEST_DATA_DIR "/passwd");
+	ck_assert (! g_strcmp0 (user_home, "/usr/sbin"));
+	g_free(user_home);
+
+	cc_oci_config_free (&config);
+
+} END_TEST
+
+
+START_TEST(test_set_env_home) {
+	gboolean ret;
+	g_autofree gchar *tmpdir = NULL;
+	g_autofree gchar *passwd_path = NULL;
+	g_autofree gchar *tmp_etc_dir = NULL;
+
+	struct cc_oci_config config = { { 0 } };
+	gchar *pw_contents = "sync:x:4:65534:sync:/bin:/bin/sync\ntestuser:x:12:12:testuser:/home/testuser:/bin/bash";
+
+	tmpdir = g_dir_make_tmp (NULL, NULL);
+	ck_assert (tmpdir);
+	tmp_etc_dir = g_build_path ("/", tmpdir, "etc", NULL);
+	ck_assert (! g_mkdir (tmp_etc_dir, 0750));
+
+	g_strlcpy (config.oci.root.path,
+			tmpdir,
+			sizeof (config.oci.root.path));
+
+	passwd_path = g_strdup_printf("%s/%s", config.oci.root.path, "etc/passwd");
+	ret = g_file_set_contents (passwd_path, pw_contents, -1, NULL);
+        ck_assert (ret);
+
+	config.oci.process.env = g_new0 (gchar *, 4);
+	config.oci.process.env[0] = g_strdup ("foo=bar");
+	config.oci.process.env[1] = g_strdup ("hello=world");
+	config.oci.process.env[2] = g_strdup ("a=b");
+
+	config.oci.process.user.uid = 12;
+	set_env_home(&config);
+
+	ck_assert (g_strv_contains ((const gchar * const *)config.oci.process.env, "HOME=/home/testuser"));
+	ck_assert (g_strv_contains ((const gchar * const *)config.oci.process.env, "foo=bar"));
+	ck_assert (g_strv_contains ((const gchar * const *)config.oci.process.env, "hello=world"));
+	ck_assert (g_strv_contains ((const gchar * const *)config.oci.process.env, "a=b"));
+
+	/* Check that HOME env var is not changed if already present in the config */
+	config.oci.process.user.uid = 4;
+	set_env_home(&config);
+
+	ck_assert (g_strv_contains ((const gchar * const *)config.oci.process.env, "HOME=/home/testuser"));
+	cc_oci_config_free (&config);
+
+	/* Check if default is set if home dir could not be retrieved */
+	g_strlcpy (config.oci.root.path,
+                        tmpdir,
+                        sizeof (config.oci.root.path));
+
+	config.oci.process.env = g_new0 (gchar *, 2);
+	config.oci.process.env[0] = g_strdup ("foo=bar");
+	config.oci.process.user.uid = 100;
+	set_env_home(&config);
+
+	ck_assert (g_strv_contains ((const gchar * const *)config.oci.process.env, "HOME=/"));
+	ck_assert (g_strv_contains ((const gchar * const *)config.oci.process.env, "foo=bar"));
+
+	/* clean up */
+	ck_assert (! g_remove (passwd_path));
+	ck_assert (! g_remove (tmp_etc_dir));
+	ck_assert (! g_remove (tmpdir));
+	cc_oci_config_free (&config);
+
+} END_TEST
+
 
 START_TEST(test_cc_oci_kill) {
 	struct cc_oci_config config_tmp = { { 0 } };
@@ -989,6 +1080,8 @@ Suite* make_oci_suite(void) {
 	ADD_TEST (test_cc_oci_vm_running, s);
 	ADD_TEST (test_cc_oci_create_container_workload, s);
 	ADD_TEST (test_cc_oci_kill, s);
+	ADD_TEST (test_get_user_home_dir, s);
+	ADD_TEST (test_set_env_home, s);
 
 	return s;
 }
