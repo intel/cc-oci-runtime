@@ -43,6 +43,9 @@ AM_PROG_CC_C_O
 AC_PROG_INSTALL
 AC_PROG_MKDIR_P
 
+# We need go!
+AC_CHECK_PROG(GO,[go],[go],[no])
+test "$GO" == "no" && AC_MSG_ERROR([go is required to build cc-oci-runtime])
 
 # Checks for header files.
 AC_CHECK_HEADERS([fcntl.h mntent.h stdlib.h string.h sys/mount.h unistd.h uuid/uuid.h gio/gio.h gio/gunixsocketaddress.h])

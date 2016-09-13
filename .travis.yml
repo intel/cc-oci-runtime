@@ -8,10 +8,12 @@ compiler:
 
 env:
   global:
-    - PATH=/usr/local/bin:$PATH
     - LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
     - PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
     - ACLOCAL_FLAGS="-I /usr/local/share/aclocal $ACLOCAL_FLAG"
+    - GOROOT=$PWD/go
+    - GOPATH=$PWD/gopath
+    - PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/bin:$PATH
     # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
     #   via the "travis encrypt" command using the project repo's public key
     - secure: "iw3DDm/YamMkn6cEMDG5d028kRuBbSOCZqJ13kI9yWbalk8sH14iG3mBQ1biOD6VJPlPZSMTYpYIX78Z9DQ0iDCWSsILeCLVjQVwjfhiQ/Ws7QVtFx7qlgxmXjlbVVPrzOTELgQkYNRz1VIzOAiNuXwhjZXVCd9ORjQMbHthODwJ/S6gweskyCX+7cVVaVAAX/O38zLGEzTceZPMLD0qTWDZO/FLGxQ0Z3IcNcZxa0uNWIhUFIcEYetcVcGggTRpaaQe69LYSYqtGBKPJksLNbbWAB3E13Z/pkvxl8OLAHm3GFI9WHORLSN/E/3012+aRQCVrpPoHh4AO11bt60cLohYLXt52XK034Gb2GkoUonu+/GtAT6tKgVjg0817whgROJChfblHg9rwS+dKzW/wtIO4CeXNq6ZWHEtOFjEuwzplYtpN/ShcxKVBpx9eraw2fJYYW0RBM3XhYbCvnT88Xo+7QlkPXYFBGuVDcXHcC26RCPOEolL2VL2elQPXpq8sRXh/y9DNhO2A1MEGF99RyQdQHb+F6boVkLQrKtehmCo30rVonNeiyqnr3zv50GEibD4/b2qYjizj5uU9CfG1hgrM0GQxitahhjZhX/7GM0j+So97Qg4bTnfNd9ZEuozcfFk+trmJPqWJe5YswL9RJCX8O4/eI/QnhIyWQsf0JU="

@@ -199,6 +199,23 @@ cc_oci_runtime_CFLAGS = \
 	$(LIBMNL_CFLAGS) \
 	$(UUID_CFLAGS)
 
+libexec_SCRIPTS = cc-proxy
+
+AM_V_GO    = $(am__v_GO_@AM_V@)
+am__v_GO_  = $(am__v_GO_@AM_DEFAULT_V@)
+am__v_GO_0 = @echo "  GOBUILD " $@;
+am__v_GO_1 =
+
+cc-proxy: $(cc_proxy_sources)
+	$(AM_V_GO)go build -o $@ $(srcdir)/proxy
+
+cc_proxy_sources =			\
+	proxy/api/api.go		\
+	proxy/protocol.go		\
+	proxy/proxy.go			\
+	proxy/socket_activation.go	\
+	proxy/vm.go
+
 bats_test_sources = \
 	tests/functional/common.bash.in \
 	data/run-bats.sh.in \
@@ -224,6 +241,7 @@ EXTRA_DIST = \
 	versions.txt \
 	$(defaults_DATA) \
 	$(cc_image_systemd_files) \
+	$(cc_proxy_sources) \
 	data/cc-oci-runtime.sh.in \
 	$(bats_test_sources) \
 	tests/integration \
