@@ -25,14 +25,29 @@ setup() {
 	source test.common
 	cleanDockerPs
 	runtimeDocker
+	volName='volume1'
 }
 
-@test "Volume inspect container" {
-	$DOCKER_EXE volume create --name container1
-	$DOCKER_EXE volume ls | grep "container1"
-	$DOCKER_EXE volume inspect --format '{{ .Mountpoint }}' container1
+@test "Volume - create" {
+	$DOCKER_EXE volume create --name "$volName"
+	$DOCKER_EXE volume ls | grep "$volName"
 }
 
-teardown() {
-	$DOCKER_EXE volume rm container1
+@test "Volume - inspect" {
+	$DOCKER_EXE volume inspect --format '{{ .Mountpoint }}' "$volName"
+}
+
+@test "Volume - use volume in a container" {
+	volPath=$($DOCKER_EXE volume inspect --format '{{ .Mountpoint }}' "$volName")
+	testFile='hello_world'
+	containerPath='/attached_vol'
+	touch "$volPath/$testFile"
+	$DOCKER_EXE run -i -v "$volName":"$containerPath" busybox ls "$containerPath" | grep "$testFile"
+	RC=$?
+	$DOCKER_EXE rm $($DOCKER_EXE ps -qa)
+	[ $RC -eq 0 ]
+}
+
+@test "Delete the volume" {
+	$DOCKER_EXE volume rm "$volName"
 }
