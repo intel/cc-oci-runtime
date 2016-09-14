@@ -47,6 +47,8 @@ Makefile
 Makefile.in
 missing
 __pycache__/
+/proxy/cc-proxy.service
+/proxy/cc-proxy.socket
 QEMU-LITE
 stamp-h1
 *_test

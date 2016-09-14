@@ -65,6 +65,8 @@ GENERATED_FILES = \
 $(GENERATED_FILES): %: %.in Makefile
 	$(AM_V_GEN)$(SED) \
 		-e 's|[@]bindir[@]|$(bindir)|g' \
+		-e 's|[@]libexecdir[@]|$(libexecdir)|' \
+		-e "s|[@]localstatedir[@]|$(localstatedir)|" \
 		-e 's|[@]BUNDLE_TEST_PATH[@]|$(BUNDLE_TEST_PATH)|g' \
 		-e 's|[@]CMDLINE[@]|$(CMDLINE)|g' \
 		-e 's|[@]CONTAINER_KERNEL[@]|$(CONTAINER_KERNEL)|g' \
@@ -206,6 +208,22 @@ am__v_GO_  = $(am__v_GO_@AM_DEFAULT_V@)
 am__v_GO_0 = @echo "  GOBUILD " $@;
 am__v_GO_1 =
 
+systemdservice_in_files =		\
+	proxy/cc-proxy.service.in	\
+	proxy/cc-proxy.socket.in
+
+systemdservice_files = 		\
+	proxy/cc-proxy.service	\
+	proxy/cc-proxy.socket
+
+CLEANFILES += $(systemdservice_files)
+
+if HAVE_SYSTEMD
+GENERATED_FILES += $(systemdservice_files)
+systemdservicedir   = $(systemdsystemunitdir)
+systemdservice_DATA = $(systemdservice_files)
+endif
+
 cc-proxy: $(cc_proxy_sources)
 	$(AM_V_GO)go build -o $@ $(srcdir)/proxy
 
@@ -242,6 +260,7 @@ EXTRA_DIST = \
 	$(defaults_DATA) \
 	$(cc_image_systemd_files) \
 	$(cc_proxy_sources) \
+	$(systemdservice_in_files) \
 	data/cc-oci-runtime.sh.in \
 	$(bats_test_sources) \
 	tests/integration \
