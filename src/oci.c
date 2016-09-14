@@ -1205,6 +1205,16 @@ cc_oci_run (struct cc_oci_config *config)
 		return false;
 	}
 
+	/* Update the config object based on the state.
+	 *
+	 * This is required since the child process that becomes the
+	 * hypervisor has now updated the on-disk state file. But the
+	 * parents state object does not reflect the on-disk state.
+	 */
+	if (! cc_oci_config_update (config, state)) {
+		return false;
+	}
+
 	if (! cc_oci_start (config, state)) {
 		return false;
 	}
