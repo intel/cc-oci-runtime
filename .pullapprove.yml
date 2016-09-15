@@ -1,6 +1,6 @@
 approve_by_comment: true
-approve_regex: '^(LGTM|lgtm|Approved|\+1|:\+1:|qa-passed)'
-reject_regex: '^(Rejected|-1|:-1:|qa-failed)'
+approve_regex: '^(LGTM|lgtm|Approved|\+1|:\+1:)'
+reject_regex: '^(Rejected|-1|:-1:)'
 reset_on_push: true
 reset_on_reopened: true
 author_approval: ignored
@@ -10,15 +10,6 @@ reviewers:
     teams:
       - clear-containers-intel
     required: 2
-    conditions:
-      branches:
-        - master
-  -
-    name: qa
-    members:
-      - chavafg
-      - gabyct
-    required: 1
     conditions:
       branches:
         - master
