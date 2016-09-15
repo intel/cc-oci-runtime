@@ -86,12 +86,21 @@ AS_IF([test x"$enable_cppcheck" = "xyes"],
     [AC_SUBST([CPPCHECK], [0])])
 AM_CONDITIONAL([CPPCHECK], [test x$enable_cppcheck = x"yes"])
 
+# Runtime functional tests
 AC_ARG_ENABLE(functional-tests, AS_HELP_STRING([--disable-functional-tests], [disable functional tests @<:@default=no@:>@]),
           [], [disable_functional_tests=no])
 AS_IF([test x"$disable_functional_tests" = "xno"],
     [AC_SUBST([FUNCTIONAL_TESTS], [1])],
     [AC_SUBST([FUNCTIONAL_TESTS], [0])])
 AM_CONDITIONAL([FUNCTIONAL_TESTS], [test x$disable_functional_tests = x"no"])
+
+# Docker integration tests
+AC_ARG_ENABLE(docker-tests, AS_HELP_STRING([--disable-docker-tests], [disable docker tests @<:@default=no@:>@]),
+          [], [disable_docker_tests=no])
+AS_IF([test x"$disable_docker_tests" = "xno"],
+    [AC_SUBST([DOCKER_TESTS], [1])],
+    [AC_SUBST([DOCKER_TESTS], [0])])
+AM_CONDITIONAL([DOCKER_TESTS], [test x$disable_docker_tests = x"no"])
 
 # Checks for libraries.
 source $srcdir/versions.txt
@@ -248,6 +257,8 @@ dnl === Summary ===============================================================
 AS_IF([test x"$disable_tests" = xno], [enable_tests=yes], [enable_tests=no])
 AS_IF([test x"$disable_functional_tests" = xno],
       [enable_functional_tests=yes], [enable_functional_tests=no])
+AS_IF([test x"$disable_docker_tests" = xno],
+      [enable_docker_tests=yes], [enable_docker_tests=no])
 
 AC_MSG_RESULT([
 cc-oci-runtime - $VERSION
@@ -265,6 +276,7 @@ cc-oci-runtime - $VERSION
 
        Unit tests       : $enable_tests
        Functional tests : $enable_functional_tests
+       Docker tests     : $enable_docker_tests
        Cppcheck         : $enable_cppcheck
        Valgrind         : $VALGRIND_ENABLED
        Code coverage    : $CODE_COVERAGE_ENABLED

@@ -209,6 +209,12 @@ functional-tests: cc-oci-runtime
 	@$(BATS_PATH) $(srcdir)/tests/functional/
 endif
 
+if DOCKER_TESTS
+CHECK_DEPS += docker-tests
+docker-tests: cc-oci-runtime
+	@$(BATS_PATH) $(srcdir)/tests/integration/docker
+endif
+
 #### tests ####
 if BUILD_TESTS
 
