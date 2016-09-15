@@ -22,7 +22,7 @@
 #Based on docker commands
 
 setup() {
-	source test.common
+	load common
 	cleanDockerPs
 	runtimeDocker
 	volName='volume1'
