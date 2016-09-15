@@ -87,11 +87,11 @@ AS_IF([test x"$enable_cppcheck" = "xyes"],
 AM_CONDITIONAL([CPPCHECK], [test x$enable_cppcheck = x"yes"])
 
 AC_ARG_ENABLE(functional-tests, AS_HELP_STRING([--disable-functional-tests], [disable functional tests @<:@default=no@:>@]),
-          [], [disable_functional_test=no])
-AS_IF([test x"$disable_functional_test" = "xno"],
-    [AC_SUBST([FUNCTIONAL_TEST], [1])],
-    [AC_SUBST([FUNCTIONAL_TEST], [0])])
-AM_CONDITIONAL([FUNCTIONAL_TEST], [test x$disable_functional_test = x"no"])
+          [], [disable_functional_tests=no])
+AS_IF([test x"$disable_functional_tests" = "xno"],
+    [AC_SUBST([FUNCTIONAL_TESTS], [1])],
+    [AC_SUBST([FUNCTIONAL_TESTS], [0])])
+AM_CONDITIONAL([FUNCTIONAL_TESTS], [test x$disable_functional_tests = x"no"])
 
 # Checks for libraries.
 source $srcdir/versions.txt
@@ -116,7 +116,7 @@ AS_IF([test $CPPCHECK = 1],
    AC_SUBST(CPPCHECK_PATH)]
 )
 
-AS_IF([test $FUNCTIONAL_TEST = 1],
+AS_IF([test $FUNCTIONAL_TESTS = 1],
    [AC_PATH_PROG([BATS_PATH], [bats], [no], [$PATH:/sbin:/usr/sbin])
    if test x"$BATS_PATH" == x"no" ; then
        AC_MSG_ERROR([Please install bats (Bash Automated Testing System).)])
@@ -246,7 +246,7 @@ AC_OUTPUT
 dnl === Summary ===============================================================
 
 AS_IF([test x"$disable_tests" = xno], [enable_tests=yes], [enable_tests=no])
-AS_IF([test x"$disable_functional_test" = xno],
+AS_IF([test x"$disable_functional_tests" = xno],
       [enable_functional_tests=yes], [enable_functional_tests=no])
 
 AC_MSG_RESULT([

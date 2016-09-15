@@ -203,9 +203,9 @@ cppcheck:
 		--error-exitcode=1 -I$(srcdir)/src $(srcdir)/src
 endif
 
-if FUNCTIONAL_TEST
-CHECK_DEPS += functional-test
-functional-test: cc-oci-runtime
+if FUNCTIONAL_TESTS
+CHECK_DEPS += functional-tests
+functional-tests: cc-oci-runtime
 	@$(BATS_PATH) $(srcdir)/tests/functional/
 endif
 
