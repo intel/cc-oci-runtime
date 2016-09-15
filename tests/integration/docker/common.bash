@@ -37,8 +37,8 @@ function startDockerService(){
 
 #Checking that default runtime is cor
 function runtimeDocker(){
-    "$DOCKER_EXE" info | grep "Default Runtime: cor"
-    if [ "$?" != 0 ]; then
-        Skip "Tests need to run with cc-oci-runtime"
+    default_runtime=`$DOCKER_EXE info 2>/dev/null | grep "^Default Runtime" | cut -d: -f2 | tr -d '[[:space:]]'`
+    if [ "$default_runtime" != "cor" ]; then
+        skip "Tests need to run with cor as default runtime"
     fi
 }
