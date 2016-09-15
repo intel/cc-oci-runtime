@@ -97,6 +97,22 @@ START_TEST(test_cc_oci_state_file_read) {
 	ck_assert (state);
 	cc_oci_state_free (state);
 
+	/* Mounts are optional */
+	state = cc_oci_state_file_read(TEST_DATA_DIR
+	                "/state-no-mounts.json");
+	ck_assert (state);
+	cc_oci_state_free (state);
+
+	state = cc_oci_state_file_read(TEST_DATA_DIR
+	                "/state-mounts-no-mount-destination.json");
+	ck_assert (state);
+	cc_oci_state_free (state);
+
+	state = cc_oci_state_file_read(TEST_DATA_DIR
+	                "/state-mounts-no-mount-directory_created.json");
+	ck_assert (state);
+	cc_oci_state_free (state);
+
 	state = cc_oci_state_file_read(TEST_DATA_DIR "/state.json");
 	ck_assert(state);
 	ck_assert(state->oci_version);
@@ -131,6 +147,7 @@ START_TEST(test_cc_oci_state_file_create) {
 	struct cc_oci_config config = { { 0 } };
 	const gchar *timestamp = "foo";
         struct oci_cfg_annotation* a = NULL;
+	struct cc_oci_mount *m = NULL;
 	g_autofree gchar *tmpdir = g_dir_make_tmp (NULL, NULL);
 	gboolean ret;
 
@@ -203,6 +220,12 @@ START_TEST(test_cc_oci_state_file_create) {
 	config.vm->kernel_params = g_strdup ("kernel params");
 
 	/* All required elements now set */
+	m = g_new0(struct cc_oci_mount, 1);
+	g_snprintf(m->dest, sizeof(m->dest), "/tmp/tmp/tmp");
+	m->directory_created = g_strdup("/tmp/tmp/");
+	m->ignore_mount = true;
+	config.oci.mounts = g_slist_append(config.oci.mounts, m);
+
 	ck_assert (cc_oci_state_file_create (&config, timestamp));
 
 	ret = g_file_test (config.state.state_file_path,
