@@ -143,11 +143,12 @@ START_TEST(test_cc_oci_ns_setup) {
 		/* setns(2) error */
 		saved = errno;
 
-		/* Normally EINVAL is returned, but if run under
-		 * valgrind, the error could be ENOSYS since valgrind
-		 * doesn't implement this syscall seemingly.
+		/* - Normally EINVAL is returned.
+		 * - If run under valgrind ENOSYS is returned
+		 *   (since valgrind doesn't support this syscall yet seemingly).
+		 * - If run inside a docker container, EPERM is returned.
 		 */
-		ck_assert (saved == EINVAL || saved == ENOSYS);
+		ck_assert (saved == EINVAL || saved == ENOSYS || saved == EPERM);
 
 		ck_assert (! g_remove (ns->path));
 		g_free (ns->path);
