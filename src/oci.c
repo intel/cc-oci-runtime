@@ -1331,12 +1331,11 @@ gboolean
 cc_oci_stop (struct cc_oci_config *config,
 		struct oci_state *state)
 {
-	gboolean  ret;
-
 	g_assert (config);
 	g_assert (state);
 
 	if (cc_oci_vm_running (state)) {
+		gboolean ret;
 		ret = cc_oci_vm_shutdown (state->comms_path, state->pid);
 		if (! ret) {
 			return false;
@@ -1353,8 +1352,6 @@ cc_oci_stop (struct cc_oci_config *config,
 				state->id, state->pid);
 	}
 
-	ret = cc_oci_cleanup (config);
-
 	/* The post-stop hooks are called after the container process is
 	 * stopped. Cleanup or debugging could be performed in such a
 	 * hook. If a hook returns a non-zero exit code, then an error
@@ -1363,7 +1360,7 @@ cc_oci_stop (struct cc_oci_config *config,
 	cc_run_hooks (config->oci.hooks.poststop,
 	              config->state.state_file_path, false);
 
-	return ret;
+	return cc_oci_cleanup (config);
 }
 
 /*!
