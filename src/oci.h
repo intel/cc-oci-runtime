@@ -104,6 +104,12 @@
 */
 #define CC_OCI_VM_CONFIG "vm.json"
 
+/* Path to the passwd formatted file. */
+#define PASSWD_PATH "/etc/passwd"
+
+/* Path to the stateless passwd file. */ 
+#define STATELESS_PASSWD_PATH "/usr/share/defaults/etc/passwd"
+
 /** Status of an OCI container. */
 enum oci_status {
 	OCI_STATUS_CREATED = 0,
