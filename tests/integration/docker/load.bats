@@ -33,8 +33,5 @@ setup() {
 	$DOCKER_EXE save mynewimage> /tmp/mynewimage.tar
 	$DOCKER_EXE load < /tmp/mynewimage.tar
 	$DOCKER_EXE images | grep "mynewimage"
-}
-
-teardown() {
 	$DOCKER_EXE rmi mynewimage
 }
