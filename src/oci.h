@@ -62,6 +62,11 @@
 /** Name of hypervisor socket used as a console device. */
 #define CC_OCI_CONSOLE_SOCKET		"console.sock"
 
+/** Name of control socket used to communicate guest agent. */
+#define CC_OCI_AGENT_CTL_SOCKET		"ga-ctl.sock"
+/** Name of hypervisor socket used as a console device. */
+#define CC_OCI_AGENT_TTY_SOCKET		"ga-tty.sock"
+
 /** File generated below \ref CC_OCI_RUNTIME_DIR_PREFIX at runtime that
  * contains metadata about the running instance.
  */

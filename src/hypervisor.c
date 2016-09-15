@@ -153,6 +153,8 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 	gchar            *bytes = NULL;
 	gchar            *console_device = NULL;
 	g_autofree gchar *procsock_device = NULL;
+	g_autofree gchar *agent_ctl_socket = NULL;
+	g_autofree gchar *agent_tty_socket = NULL;
 
 	gboolean          ret = false;
 	gint              count;
@@ -300,6 +302,16 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 
 	procsock_device = g_strdup_printf ("socket,id=procsock,path=%s,server,nowait", config->state.procsock_path);
 
+	agent_ctl_socket = g_build_path ("/", config->state.runtime_path,
+					CC_OCI_AGENT_CTL_SOCKET, NULL);
+
+	g_debug("guest agent ctl socket: %s", agent_ctl_socket);
+
+	agent_tty_socket = g_build_path("/", config->state.runtime_path,
+					CC_OCI_AGENT_TTY_SOCKET, NULL);
+
+	g_debug("guest agent tty socket: %s", agent_tty_socket);
+
 	kernel_net_params = cc_oci_expand_net_cmdline(config);
 
 	if ( config->net.interfaces == NULL ) {
@@ -344,6 +356,8 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 		{ "@NETDEV_PARAMS@"     , netdev_params              },
 		{ "@NETDEVICE@"         , net_device_option          },
 		{ "@NETDEVICE_PARAMS@"  , net_device_params          },
+		{ "@AGENT_CTL_SOCKET@"  , agent_ctl_socket           },
+		{ "@AGENT_TTY_SOCKET@"  , agent_tty_socket           },
 		{ NULL }
 	};
 
