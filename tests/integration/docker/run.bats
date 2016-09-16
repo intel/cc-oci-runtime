@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/usr/bin/env bats
+# *-*- Mode: sh; sh-basic-offset: 8; indent-tabs-mode: nil -*-*
 
 #  This file is part of cc-oci-runtime.
 #
@@ -18,27 +19,15 @@
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-DOCKER_EXE="docker"
-DOCKER_SERVICE="docker-cor"
+#Based on docker commands
 
-#Cleaning test environment
-function cleanDockerPs(){
-	"$DOCKER_EXE" ps -q | xargs -r "$DOCKER_EXE" kill
-	"$DOCKER_EXE" ps -aq | xargs -r "$DOCKER_EXE" rm -f
+setup() {
+	load common
+	runtimeDocker
 }
 
-#Restarting test environment
-function startDockerService(){
-	systemctl status "$DOCKER_SERVICE" | grep 'running'
-	if [ "$?" -eq 0 ]; then
-		systemctl restart "$DOCKER_SERVICE"
-	fi
-}
-
-#Checking that default runtime is cor
-function runtimeDocker(){
-    "$DOCKER_EXE" info | grep "Default Runtime: cor"
-    if [ "$?" != 0 ]; then
-        Skip "Tests need to run with cc-oci-runtime"
-    fi
+@test "Run shell echo" {
+	run $DOCKER_EXE run busybox sh -c "echo Passed"
+	[ "${status}" -eq 0 ]
+	[ "${output}" == $'Passed\r' ]
 }

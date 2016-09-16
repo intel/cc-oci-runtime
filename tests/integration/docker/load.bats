@@ -3,7 +3,7 @@
 
 #  This file is part of cc-oci-runtime.
 #
-#  Copyright (C) 2016 Intel Corporation 
+#  Copyright (C) 2016 Intel Corporation
 #
 #  This program is free software; you can redistribute it and/or
 #  modify it under the terms of the GNU General Public License
@@ -22,7 +22,7 @@
 #Based on docker commands
 
 setup() {
-	source test.common
+	load common
 	cleanDockerPs
 	runtimeDocker
 }
@@ -33,8 +33,5 @@ setup() {
 	$DOCKER_EXE save mynewimage> /tmp/mynewimage.tar
 	$DOCKER_EXE load < /tmp/mynewimage.tar
 	$DOCKER_EXE images | grep "mynewimage"
-}
-
-teardown() {
 	$DOCKER_EXE rmi mynewimage
 }

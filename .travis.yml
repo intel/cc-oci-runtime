@@ -23,7 +23,7 @@ before_script:
 - ./.travis-setup.sh
 
 script:
-- ./autogen.sh --enable-cppcheck --enable-valgrind --disable-valgrind-helgrind --disable-valgrind-drd --disable-silent-rules
+- ./autogen.sh --enable-cppcheck --enable-valgrind --disable-valgrind-helgrind --disable-valgrind-drd --disable-silent-rules --disable-docker-tests
 - make -j5 CFLAGS=-Werror check
 
 after_failure:

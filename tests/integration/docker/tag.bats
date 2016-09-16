@@ -22,7 +22,7 @@
 #Based on docker commands
 
 setup() {
-	source test.common
+	load common
 	cleanDockerPs
 	runtimeDocker
 }
@@ -31,8 +31,5 @@ setup() {
 	$DOCKER_EXE run -i busybox true
 	$DOCKER_EXE tag busybox container1
 	$DOCKER_EXE images | grep "container1"
-}
-
-teardown () {
 	$DOCKER_EXE rmi container1
 }
