@@ -51,7 +51,7 @@
 
 /** \file
  *
- * Networking routines, used to setup networking (currently docker specific)
+ * Networking routines, used to setup networking (currently docker specific).
  *
  */
 
@@ -79,9 +79,9 @@
 #define TUNDEV "/dev/net/tun"
 
 /*!
- * Free the specified \ref cc_oci_net_ipv4_cfg
+ * Free the specified \ref cc_oci_net_ipv4_cfg.
  *
- * \param if_cfg \ref cc_oci_net_ipv4_cfg
+ * \param ipv4_cfg \ref cc_oci_net_ipv4_cfg.
  */
 static void
 cc_oci_net_ipv4_free (struct cc_oci_net_ipv4_cfg *ipv4_cfg)
@@ -96,9 +96,9 @@ cc_oci_net_ipv4_free (struct cc_oci_net_ipv4_cfg *ipv4_cfg)
 }
 
 /*!
- * Free the specified \ref cc_oci_net_ipv6_cfg
+ * Free the specified \ref cc_oci_net_ipv6_cfg.
  *
- * \param if_cfg \ref cc_oci_net_ipv6_cfg
+ * \param ipv6_cfg \ref cc_oci_net_ipv6_cfg.
  */
 static void
 cc_oci_net_ipv6_free (struct cc_oci_net_ipv6_cfg *ipv6_cfg)
@@ -112,7 +112,7 @@ cc_oci_net_ipv6_free (struct cc_oci_net_ipv6_cfg *ipv6_cfg)
 }
 
 /*!
- * Free the specified \ref cc_oci_net_if_cfg
+ * Free the specified \ref cc_oci_net_if_cfg.
  *
  * \param if_cfg \ref cc_oci_net_if_cfg
  */
@@ -205,6 +205,7 @@ out:
  * plugin, this setup will not be required
  *
  * \param config \ref cc_oci_config.
+ * \param hndl handle returned from a call to \ref netlink_init().
  *
  * \return \c true on success, else \c false.
  */
@@ -455,6 +456,7 @@ compare_interface(gconstpointer a,
  * these parameters are sent to the runtime
  *
  * \param[in,out] config \ref cc_oci_config.
+ * \param hndl handle returned from a call to \ref netlink_init().
  *
  * \return \c true on success, else \c false.
  */

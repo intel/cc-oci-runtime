@@ -20,7 +20,7 @@
 
 /** \file
  *
- * Networking netlink routines, used to setup networking
+ * Networking netlink routines, used to setup networking.
  *
  */
 
@@ -42,10 +42,11 @@
 
 /*!
  * Setup the netlink socket to use with netlink
- * transactions. This handle should be used for all
- * netlink transactions for a given thread.
+ * transactions.
+ * This handle should be used for all netlink transactions
+ * for a given thread.
  *
- * The handle is not thread safe
+ * \warning The handle is not thread safe.
  *
  * \return \c handle to netlink on success, else \c NULL.
  */
@@ -76,7 +77,7 @@ out:
 /*!
  * Close the netlink connection
  *
- * \param \c handle returned from a call to netlink_init
+ * \param hndl handle returned from a call to \ref netlink_init().
  */
 void
 netlink_close(struct netlink_handle *const hndl) {
@@ -90,15 +91,16 @@ netlink_close(struct netlink_handle *const hndl) {
 }
 
 /*!
- * Execute a netlink transaction and check the result
+ * Execute a netlink transaction and check the result.
+ *
  * This method can be used for any transaction where
  * only the success or failure of the transaction needs
- * to be known (i.e. no data is send back)
+ * to be known (i.e. no data is send back).
  *
- * \param handle returned from a call to netlink_init
- * \param nlh pre created netlink message
+ * \param hndl handle returned from a call to \ref netlink_init().
+ * \param nlh pre created netlink message.
  *
- * \return \c true on success else \c false
+ * \return \c true on success, else \c false.
  */
 static gboolean
 netlink_execute(struct netlink_handle *const hndl,
@@ -152,13 +154,13 @@ out:
 
 /*!
  * Netlink command equivalent to
- * ip link set dev <interface> <up|down> 
+ * "ip link set dev \<interface\> \<up|down\>".
  *
- * \param handle returned from a call to netlink_init
- * \param interface device name to enable\disable
- * \param enable if true device will enabled, else disabled
+ * \param hndl handle returned from a call to \ref netlink_init().
+ * \param interface device name to enable/disable.
+ * \param enable if \c true device will enabled, else disabled.
  *
- * \return \c true on success else \c false
+ * \return \c true on success, else \c false.
  */
 gboolean
 netlink_link_enable(struct netlink_handle *const hndl,
@@ -198,12 +200,12 @@ netlink_link_enable(struct netlink_handle *const hndl,
 
 /*!
  * Netlink command equivalent to
- * ip link add name ${bridge name} type bridge
+ * "ip link add name ${bridge name} type bridge".
  *
- * \param handle returned from a call to netlink_init
- * \param name of the bridge to create
+ * \param hndl handle returned from a call to \ref netlink_init().
+ * \param name of the bridge to create.
  *
- * \return \c true on success else \c false
+ * \return \c true on success, else \c false.
  */
 gboolean
 netlink_link_add_bridge(struct netlink_handle *const hndl,
@@ -236,13 +238,13 @@ netlink_link_add_bridge(struct netlink_handle *const hndl,
 
 /*!
  * Netlink command equivalent to
- * ip link set dev ${interface name} master ${bridge name}
+ * "ip link set dev ${interface name} master ${bridge name}".
  *
- * \param handle returned from a call to netlink_init
- * \param dev index of the device to add to the bridge
- * \param master index of the bridge
+ * \param hndl handle returned from a call to \ref netlink_init().
+ * \param dev index of the device to add to the bridge.
+ * \param master index of the bridge.
  *
- * \return \c true on success else \c false
+ * \return \c true on success, else \c false.
  */
 gboolean
 netlink_link_set_master(struct netlink_handle *const hndl,
@@ -272,14 +274,14 @@ netlink_link_set_master(struct netlink_handle *const hndl,
 
 /*!
  * Netlink command equivalent to
- * ip link set dev ${interface name} address ${address}
+ * "ip link set dev ${interface name} address ${address}".
  *
- * \param handle returned from a call to netlink_init
- * \param name of the device
- * \param size size of the address in bytes
- * \param hwaddr link layer address of the device
+ * \param hndl handle returned from a call to \ref netlink_init().
+ * \param interface name of the device.
+ * \param size size of the address in bytes.
+ * \param hwaddr link layer address of the device.
  *
- * \return \c true on success else \c false
+ * \return \c true on success, else \c false.
  */
 gboolean
 netlink_link_set_addr(struct netlink_handle *const hndl,
@@ -320,12 +322,12 @@ netlink_link_set_addr(struct netlink_handle *const hndl,
 
 /*!
  * Callback handler that parses the netlink message
- * and populate the fields obtained from the message
+ * and populate the fields obtained from the message.
  *
- * \param attr the netlink attribute to parse
- * \param data [in, out] table of parsed netlink attributes
+ * \param attr the netlink attribute to parse.
+ * \param data [in, out] table of parsed netlink attributes.
  *
- * \return \c MNL_CB_OK on success \c MNL_CB_ERROR on error
+ * \return \c MNL_CB_OK on success, \c MNL_CB_ERROR on error.
  */
 static gint
 data_ipv4_attr_cb(const struct nlattr *attr, void *data)
@@ -373,13 +375,14 @@ data_ipv4_attr_cb(const struct nlattr *attr, void *data)
 
 /*!
  * Callback handler that scans the route table to
- * detect if default gateway is present
+ * detect if default gateway is present.
  *
- * \param nlh netlink response buffer
- * \param data [in, out] is the data sent to the callback handler from caller
- *        data points to the string value of the default gw or "" if none
+ * \param nlh netlink response buffer.
+ * \param data [in, out] is the data sent to the callback handler
+ *   from caller data points to the string value of the default
+ *   gateway, or "" if none.
  *
- * \return \c MNL_CB_OK on success
+ * \return \c MNL_CB_OK on success.
  */
 static gint
 process_ipv4_gw(const struct nlmsghdr *nlh, void *data)
@@ -421,12 +424,13 @@ process_ipv4_gw(const struct nlmsghdr *nlh, void *data)
 
 /*!
  * Obtains the default gateway for the specified inet
- * family by scanning the route table
+ * family by scanning the route table.
  *
- * \param handle returned from a call to netlink_init
- * \param family INET family
+ * \param hndl handle returned from a call to \ref netlink_init().
+ * \param family INET family.
  *
- * \return \c string value of the gateway \c "" if there is no default gw.
+ * \return \c string value of the gateway,
+ * or \c "" if there is no default gateway.
  */
 gchar *
 netlink_get_default_gw(struct netlink_handle *const hndl,

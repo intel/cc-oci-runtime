@@ -124,6 +124,8 @@ out:
  *
  * \param config \ref cc_oci_config.
  *
+ * \return \c true on success, else \c false.
+ *
  * \todo Show the namespace path. For unshare, the strategy should be to
  * call cc_oci_resolve_path (), passing it the value of.
  * "/proc/self/ns/%s". The complication is that %s does *NOT* match the
