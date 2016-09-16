@@ -466,6 +466,7 @@ exit:
  * Obtain the network configuration by querying the network namespace.
  *
  * \param[in,out] config \ref cc_oci_config.
+ * \param hndl handle returned from a call to \ref netlink_init().
  *
  * \return \c true on success, else \c false.
  */
