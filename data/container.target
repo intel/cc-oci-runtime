@@ -10,3 +10,4 @@ Wants=systemd-networkd.service
 Wants=systemd-resolved.service
 Wants=opt-rootfs.mount
 Wants=opt-rootfs-proc.mount
+Wants=hyperstart.service
