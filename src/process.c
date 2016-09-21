@@ -503,17 +503,16 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 	gboolean           ret = false;
 	GPid               pid;
 	int                status = 0;
-	size_t             len = 0;
 	ssize_t            bytes;
 	char               buffer[2];
-	int                net_cfg_pipe[2] = {-1, -1};
+	int                hook_status_pipe[2] = {-1, -1};
 	int                child_err_pipe[2] = {-1, -1};
 	gchar            **args = NULL;
 	gchar            **p;
-	gchar		  *hook_status = NULL;
 	g_autofree gchar  *timestamp = NULL;
 	struct netlink_handle *hndl = NULL;
 	gboolean           setup_networking;
+	gboolean           hook_status = false;
 
 	setup_networking = cc_oci_enable_networking ();
 
@@ -534,15 +533,15 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 
 	/* Set up 2 comms channels to the child:
 	 *
-	 * - one to send the child the network configuration (*).
+	 * - one to send the child the status of the pre-start hooks.
 	 *
 	 * - the other to allow detection of successful child setup: if
 	 *   the child closes the pipe, it was successful, but if it
 	 *   writes data to the pipe, setup failed.
 	 */
 
-	if (pipe (net_cfg_pipe) < 0) {
-		g_critical ("failed to create network config pipe: %s",
+	if (pipe (hook_status_pipe) < 0) {
+		g_critical ("failed to create hook status pipe: %s",
 				strerror (errno));
 		goto out;
 	}
@@ -566,41 +565,27 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 	}
 
 	if (! pid) {
-		g_autofree gchar  *hook_status = NULL;
-
 		/* child */
 		pid = config->state.workload_pid = getpid ();
 
-		close (net_cfg_pipe[1]);
+		close (hook_status_pipe[1]);
 		close (child_err_pipe[0]);
 
-		/* block waiting for parent to notify the status of
-		 * the hook invocations.
-		 *
-		 * This arrives in 2 parts: first, a size_t representing
-		 * the size of the ASCII name=value data that follows.
-		 */
+		g_debug ("reading hook status from parent");
 
-		bytes = read (net_cfg_pipe[0], &len, sizeof (len));
+		bytes = read (hook_status_pipe[0], &hook_status, sizeof (hook_status));
 		if (bytes < 0) {
+			g_critical ("failed to read hook status from parent: %s", strerror (errno));
 			goto child_failed;
 		}
 
-		g_debug ("allocating %lu bytes for hook status",
-				(unsigned long int)len);
+		close (hook_status_pipe[0]);
 
-		hook_status = g_new0 (gchar, 1+len);
-		g_debug ("reading hook_status from parent");
+		g_debug ("hook status from parent: %d (%s)",
+                hook_status,
+                hook_status ? "success" : "failure");
 
-		bytes = read (net_cfg_pipe[0], hook_status, len);
-		if (bytes < 0) {
-			goto child_failed;
-		}
-		close (net_cfg_pipe[0]);
-
-		g_debug ("hook_status from parent [%s]", hook_status);
-
-		if (g_strcmp0(hook_status, "SUCCESS") != 0) {
+		if (! hook_status) {
 			g_critical("hooks failed, child exiting");
 			goto child_failed;
 		}
@@ -666,8 +651,8 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 
 	g_debug ("child pid is %u", (unsigned)pid);
 
-	close (net_cfg_pipe[0]);
-	net_cfg_pipe[0] = -1;
+	close (hook_status_pipe[0]);
+	hook_status_pipe[0] = -1;
 
 	close (child_err_pipe[1]);
 	child_err_pipe[1] = -1;
@@ -683,37 +668,22 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 	 * including the exit code and the stderr is returned to
 	 * the caller and the container is torn down.
 	 */
-	ret = cc_run_hooks (config->oci.hooks.prestart,
+	hook_status = cc_run_hooks (config->oci.hooks.prestart,
 			config->state.state_file_path,
 			true);
 
-	if (! ret) {
+	if (! hook_status) {
 		g_critical ("failed to run prestart hooks");
-		hook_status = "FAIL";
-	} else {
-		hook_status = "SUCCESS";
 	}
 
-
-	len = strlen (hook_status);
-	g_debug ("sending hook status (%lu bytes) to child",
-			(unsigned long int)len);
-
-	bytes = write (net_cfg_pipe[1], &len, sizeof (len));
-	if (bytes < 0) {
-		g_critical ("failed to send hook status "
-				" to child: %s",
-				strerror (errno));
-		goto out;
-	}
-
-	bytes = write (net_cfg_pipe[1], hook_status, len);
+	bytes = write (hook_status_pipe[1], &hook_status, sizeof (hook_status));
 	if (bytes < 0) {
 		g_critical ("failed to send hook status"
 				" to child: %s",
 				strerror (errno));
 		goto out;
 	}
+
 	g_debug ("checking child setup (blocking)");
 
 	/* block reading child error state */
@@ -769,8 +739,8 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 	}
 
 out:
-	if (net_cfg_pipe[0] != -1) close (net_cfg_pipe[0]);
-	if (net_cfg_pipe[1] != -1) close (net_cfg_pipe[1]);
+	if (hook_status_pipe[0] != -1) close (hook_status_pipe[0]);
+	if (hook_status_pipe[1] != -1) close (hook_status_pipe[1]);
 	if (child_err_pipe[0] != -1) close (child_err_pipe[0]);
 	if (child_err_pipe[1] != -1) close (child_err_pipe[1]);
 
@@ -785,6 +755,9 @@ out:
 	return ret;
 
 child_failed:
+	/* Any data written by the child to this pipe signifies failure,
+	 * so send a very short message ("E", denoting Error).
+	 */
 	(void)write (child_err_pipe[1], "E", 1);
 	exit (EXIT_FAILURE);
 }
