@@ -27,7 +27,7 @@ AM_INIT_AUTOMAKE([foreign -Wall -Werror -Wno-portability silent-rules subdir-obj
 AM_SILENT_RULES([yes])
 AC_CONFIG_SRCDIR([src/main.c])
 AC_CONFIG_HEADERS([config.h])
-AC_CONFIG_FILES([Makefile data/vm.json data/config.json data/hypervisor.args tests/functional/common.bash tests/functional/data/config-minimal-cc-oci.json])
+AC_CONFIG_FILES([Makefile data/vm.json data/config.json data/hypervisor.args tests/functional/common.bash])
 AC_LANG(C)
 
 LT_INIT
@@ -203,20 +203,6 @@ AC_ARG_WITH([tests-bundle-path],
     ],
     [
         AC_SUBST([BUNDLE_TEST_PATH], [$DEFAULT_BUNDLE_TEST_DIR])
-    ]
-)
-
-DEFAULT_ROOTFS_PATH=$BUNDLE_TEST_PATH/rootfs
-AC_ARG_WITH([tests-rootfs-path],
-    [AS_HELP_STRING([--with-tests-rootfs-path=[[ROOTFS-PATH]]],
-        [path to rootfs for functional tests])
-    ],
-    [
-        ROOTFS_PATH=$(cd "$with_tests_rootfs_path"; pwd -P)
-        AC_SUBST([ROOTFS_PATH])
-    ],
-    [
-        AC_SUBST([ROOTFS_PATH], [$DEFAULT_ROOTFS_PATH])
     ]
 )
 

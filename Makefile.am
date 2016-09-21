@@ -52,15 +52,25 @@ DEFAULTSDIR = $(datadir)/defaults/$(PACKAGE_NAME)
 src/commands/cc_oci_runtime-version.$(OBJEXT): \
 	 commit_id
 
-data/cc-oci-runtime.sh: data/cc-oci-runtime.sh.in
+GENERATED_FILES = \
+	data/cc-oci-runtime.sh \
+	tests/functional/data/config-minimal-cc-oci.json
+
+$(GENERATED_FILES): %: %.in
 	$(AM_V_GEN)$(SED) \
-		-e 's|[@]PACKAGE_NAME[@]|$(PACKAGE_NAME)|g' \
 		-e 's|[@]bindir[@]|$(bindir)|g' \
-		-e 's|[@]SYSCONFDIR[@]|$(SYSCONFDIR)|g' \
+		-e 's|[@]BUNDLE_TEST_PATH[@]|$(BUNDLE_TEST_PATH)|g' \
+		-e 's|[@]CMDLINE[@]|$(CMDLINE)|g' \
+		-e 's|[@]CONTAINER_KERNEL[@]|$(CONTAINER_KERNEL)|g' \
+		-e 's|[@]CONTAINERS_IMG[@]|$(CONTAINERS_IMG)|g' \
 		-e 's|[@]DEFAULTSDIR[@]|$(DEFAULTSDIR)|g' \
+		-e 's|[@]PACKAGE_NAME[@]|$(PACKAGE_NAME)|g' \
+		-e 's|[@]QEMU_PATH[@]|$(QEMU_PATH)|g' \
+		-e 's|[@]ROOTFS_PATH[@]|$(BUNDLE_TEST_PATH)/rootfs|g' \
+		-e 's|[@]SYSCONFDIR[@]|$(SYSCONFDIR)|g' \
 		"$<" > "$@"
 
-CLEANFILES += data/cc-oci-runtime.sh
+CLEANFILES += $(GENERATED_FILES)
 
 AM_CPPFLAGS = -I $(top_srcdir)/src -DG_LOG_DOMAIN=\"$(PACKAGE_NAME)\" \
 	-DSYSCONFDIR=\"$(SYSCONFDIR)\" \
