@@ -43,9 +43,9 @@ HYPERVISOR_PATH="@QEMU_PATH@"
 # If there is a missing component, the tests is skipped
 function check_ccontainers() {
 
-	local out=$(@QEMU_PATH@ -machine help | grep -o pc-lite | tail -1)
+	local out=$($HYPERVISOR_PATH -machine help | grep -o pc-lite | tail -1)
 	[ "$out" = "pc-lite" ] || \
-		skip "@QEMU_PATH@ does not have pc-lite support"
+		skip "$HYPERVISOR_PATH does not have pc-lite support"
 
 	if [ ! -d "$BUNDLE_DIR" ]
 	then
