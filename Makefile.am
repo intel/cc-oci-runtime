@@ -186,6 +186,7 @@ EXTRA_DIST = \
 	DESIGN.rst \
 	Doxyfile \
 	data/vm.json.in \
+	data/make-bundle-dir.sh \
 	tests/data \
 	commit_id \
 	versions.txt \
