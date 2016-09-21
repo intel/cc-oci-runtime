@@ -54,6 +54,7 @@ src/commands/cc_oci_runtime-version.$(OBJEXT): \
 
 GENERATED_FILES = \
 	data/cc-oci-runtime.sh \
+	tests/functional/common.bash \
 	tests/functional/data/config-minimal-cc-oci.json
 
 $(GENERATED_FILES): %: %.in
@@ -216,7 +217,7 @@ endif
 
 if FUNCTIONAL_TESTS
 CHECK_DEPS += functional-tests
-functional-tests: cc-oci-runtime
+functional-tests: cc-oci-runtime $(GENERATED_FILES)
 	@$(BATS_PATH) $(srcdir)/tests/functional/
 endif
 
