@@ -192,19 +192,48 @@ AC_SUBST([QEMU_PATH], [$ac_cv_path_QEMU])
 AC_SUBST([CMDLINE], [$(cat $srcdir/data/kernel-cmdline)])
 
 #bundle path for functional-test
-DEFAULT_BUNDLE_TEST_DIR=$(cd "$srcdir/tests/functional/bundle" 2>/dev/null; pwd -P)
 AC_ARG_WITH([tests-bundle-path],
     [AS_HELP_STRING([--with-tests-bundle-path=[[BUNDLE-PATH]]],
             [path to OCI bundle to execute functional tests])
-    ],
-    [
-        BUNDLE_TEST_PATH=$(cd "$with_tests_bundle_path"; pwd -P)
-        AC_SUBST([BUNDLE_TEST_PATH])
-    ],
-    [
-        AC_SUBST([BUNDLE_TEST_PATH], [$DEFAULT_BUNDLE_TEST_DIR])
     ]
 )
+
+AC_ARG_ENABLE([auto-bundle-creation],
+    AS_HELP_STRING([--disable-auto-bundle-creation], [do not
+        automatically create a bundle directory
+        if --with-tests-bundle-path= is not specified.]),
+        [auto_bundle_creation=no],
+        [auto_bundle_creation=yes])
+
+AC_ARG_WITH([auto-bundle-creation-path],
+    [AS_HELP_STRING([--with-auto-bundle-creation-path=[[BUNDLE-PATH]]],
+            [path to create an OCI bundle in])
+    ],
+    [
+        auto_bundle_creation_path="$with_auto_bundle_creation_path"
+    ],
+    [
+        # default value
+        auto_bundle_creation_path="$srcdir/tests/functional/bundle"
+    ]
+)
+
+# Determine if automatic bundle creation should be enabled.
+AS_IF([test x"$auto_bundle_creation" = x"yes" dnl
+    -a x"$with_tests_bundle_path" = x"" dnl
+    -a x"$disable_tests" = x"no" dnl
+    -a x"$disable_functional_tests" = x"no"],
+    [enable_auto_bundle_creation=yes])
+
+AM_CONDITIONAL([AUTO_BUNDLE_CREATION],
+               [test x"$enable_auto_bundle_creation" = x"yes"])
+
+# Determine the bundle path.
+AS_IF([test x"$with_tests_bundle_path" != x""],
+      [AC_SUBST([BUNDLE_TEST_PATH], [$with_tests_bundle_path])],
+      [test x"$auto_bundle_creation_path" != x""],
+      [AC_SUBST([BUNDLE_TEST_PATH], [$auto_bundle_creation_path])],
+      [])
 
 #Kernel path for Clear Containers
 DEFAULT_KERNEL_PATH=$localstatedir/lib/$PACKAGE_NAME/data/kernel/vmlinux.container
@@ -260,10 +289,12 @@ cc-oci-runtime - $VERSION
 
  • Tests:
 
-       Unit tests       : $enable_tests
-       Functional tests : $enable_functional_tests
-       Docker tests     : $enable_docker_tests
-       Cppcheck         : $enable_cppcheck
-       Valgrind         : $VALGRIND_ENABLED
-       Code coverage    : $CODE_COVERAGE_ENABLED
+       Unit tests               : $enable_tests
+       Functional tests         : $enable_functional_tests
+       Docker tests             : $enable_docker_tests
+       Cppcheck                 : $enable_cppcheck
+       Valgrind                 : $VALGRIND_ENABLED
+       Code coverage            : $CODE_COVERAGE_ENABLED
+       Bundle path              : $BUNDLE_TEST_PATH
+       Create + delete bundle   : $auto_bundle_creation
 ])
