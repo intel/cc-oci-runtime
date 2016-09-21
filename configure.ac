@@ -195,7 +195,7 @@ AC_SUBST([CMDLINE], [$(cat $srcdir/data/kernel-cmdline)])
 DEFAULT_BUNDLE_TEST_DIR=$(cd "$srcdir/tests/functional/bundle" 2>/dev/null; pwd -P)
 AC_ARG_WITH([tests-bundle-path],
     [AS_HELP_STRING([--with-tests-bundle-path=[[BUNDLE-PATH]]],
-            [path to oci bundle to execute functional tests])
+            [path to OCI bundle to execute functional tests])
     ],
     [
         BUNDLE_TEST_PATH=$(cd "$with_tests_bundle_path"; pwd -P)
