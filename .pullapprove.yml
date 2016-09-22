@@ -4,6 +4,14 @@ requirements:
   signed_off_by:
     required: true
 
+# Disallow approval of PRs still under development
+always_pending:
+  title_regex: 'WIP'
+  labels:
+    - do-not-merge
+    - wip
+  explanation: 'Work in progress - do not merge'
+
 group_defaults:
   approve_by_comment:
     enabled: true
