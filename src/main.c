@@ -410,9 +410,6 @@ main (int argc, char **argv)
 {
 	gboolean ret;
 
-	// FIXME: --debug currently forcibly enabled
-	cc_log_options.enable_debug = true;
-
 	ret = handle_arguments (argc, argv);
 
 	cleanup (&cc_log_options);
