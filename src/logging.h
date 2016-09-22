@@ -32,17 +32,17 @@ struct cc_log_options
 	/* if \c true, enable debug logging, else disable it */
 	gboolean enable_debug;
 
-    /* Full path to logfile to use. */
-    char     *filename;
+	/* Full path to logfile to use. */
+	char     *filename;
 
-    /* Full path to global logfile to append to. */
-    char     *global_logfile;
+	/* Full path to global logfile to append to. */
+	char     *global_logfile;
 
-    /* Full path to hypervisor log dir. */
-    char     *hypervisor_log_dir;
+	/* Full path to hypervisor log dir. */
+	char     *hypervisor_log_dir;
 
-    /* If \c true, log in JSON, else ASCII. */
-    gboolean  use_json;
+	/* If \c true, log in JSON, else ASCII. */
+	gboolean  use_json;
 };
 
 gboolean cc_oci_log_init (const struct cc_log_options *options);

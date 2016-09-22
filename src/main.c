@@ -109,11 +109,11 @@ static GOptionEntry options_global[] =
 		NULL
 	},
 	{
-                "help", 'h', G_OPTION_FLAG_NONE,
-                G_OPTION_ARG_NONE, &show_help,
-                "Show help options",
-                NULL
-        },
+		"help", 'h', G_OPTION_FLAG_NONE,
+		G_OPTION_ARG_NONE, &show_help,
+		"Show help options",
+		NULL
+	},
 	/* terminator */
 	{NULL}
 };
