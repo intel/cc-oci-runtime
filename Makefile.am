@@ -24,6 +24,7 @@ ACLOCAL_AMFLAGS = -I m4
 AUTOMAKE_OPTIONS = parallel-tests
 
 CHECK_DEPS =
+FUNCTIONAL_TESTS_DEPS =
 
 # Has a value if building in a git tree
 GIT_COMMIT := $(shell git rev-parse HEAD 2>/dev/null)
@@ -52,15 +53,40 @@ DEFAULTSDIR = $(datadir)/defaults/$(PACKAGE_NAME)
 src/commands/cc_oci_runtime-version.$(OBJEXT): \
 	 commit_id
 
-data/cc-oci-runtime.sh: data/cc-oci-runtime.sh.in
+GENERATED_FILES = \
+	data/cc-oci-runtime.sh \
+	tests/functional/common.bash \
+	tests/functional/data/config-minimal-cc-oci.json
+
+$(GENERATED_FILES): %: %.in
 	$(AM_V_GEN)$(SED) \
-		-e 's|[@]PACKAGE_NAME[@]|$(PACKAGE_NAME)|g' \
 		-e 's|[@]bindir[@]|$(bindir)|g' \
-		-e 's|[@]SYSCONFDIR[@]|$(SYSCONFDIR)|g' \
+		-e 's|[@]BUNDLE_TEST_PATH[@]|$(BUNDLE_TEST_PATH)|g' \
+		-e 's|[@]CMDLINE[@]|$(CMDLINE)|g' \
+		-e 's|[@]CONTAINER_KERNEL[@]|$(CONTAINER_KERNEL)|g' \
+		-e 's|[@]CONTAINERS_IMG[@]|$(CONTAINERS_IMG)|g' \
 		-e 's|[@]DEFAULTSDIR[@]|$(DEFAULTSDIR)|g' \
+		-e 's|[@]PACKAGE_NAME[@]|$(PACKAGE_NAME)|g' \
+		-e 's|[@]QEMU_PATH[@]|$(QEMU_PATH)|g' \
+		-e 's|[@]ROOTFS_PATH[@]|$(BUNDLE_TEST_PATH)/rootfs|g' \
+		-e 's|[@]SYSCONFDIR[@]|$(SYSCONFDIR)|g' \
 		"$<" > "$@"
 
-CLEANFILES += data/cc-oci-runtime.sh
+if FUNCTIONAL_TESTS
+if AUTO_BUNDLE_CREATION
+
+FUNCTIONAL_TESTS_DEPS += $(BUNDLE_TEST_PATH)
+
+# XXX: don't fail if the bundle cannot be generated - docker might not
+# be running for example. Those tests that need a bundle will detect
+# that it doesn't exist and they will be skipped.
+$(BUNDLE_TEST_PATH):
+	$(AM_V_GEN)data/make-bundle-dir.sh $@ || true
+
+endif
+endif
+
+CLEANFILES += $(GENERATED_FILES)
 
 AM_CPPFLAGS = -I $(top_srcdir)/src -DG_LOG_DOMAIN=\"$(PACKAGE_NAME)\" \
 	-DSYSCONFDIR=\"$(SYSCONFDIR)\" \
@@ -186,6 +212,7 @@ EXTRA_DIST = \
 	DESIGN.rst \
 	Doxyfile \
 	data/vm.json.in \
+	data/make-bundle-dir.sh \
 	tests/data \
 	commit_id \
 	versions.txt \
@@ -205,8 +232,12 @@ endif
 
 if FUNCTIONAL_TESTS
 CHECK_DEPS += functional-tests
-functional-tests: cc-oci-runtime
-	@$(BATS_PATH) $(srcdir)/tests/functional/
+FUNCTIONAL_TESTS_DEPS += cc-oci-runtime $(GENERATED_FILES)
+
+functional-tests: $(FUNCTIONAL_TESTS_DEPS)
+		$(AM_V_GEN)test -n "$(BUNDLE_TEST_PATH)" && \
+			echo "Using bundle '$(BUNDLE_TEST_PATH)'" || true
+		@$(BATS_PATH) $(srcdir)/tests/functional/
 endif
 
 if DOCKER_TESTS
@@ -550,3 +581,9 @@ check: $(CHECK_DEPS)
 
 clean-local:
 	rm -f commit_id
+if FUNCTIONAL_TESTS
+if AUTO_BUNDLE_CREATION
+	$(AM_V_GEN)echo "Deleting generated bundle '$(BUNDLE_TEST_PATH)'"
+	$(AM_V_GEN)rm -rf "$(BUNDLE_TEST_PATH)"
+endif
+endif

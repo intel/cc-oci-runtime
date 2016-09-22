@@ -34,7 +34,7 @@ CONFIG="${TEST_DATA_DIR}/config-minimal-cc-oci.json"
 HYPERVISOR_ARGS="${BATS_TEST_DIRNAME}/../../data/hypervisor.args"
 
 BUNDLE_DIR="@BUNDLE_TEST_PATH@"
-ROOTFS_DIR="@BUNDLE_TEST_PATH@"
+[ -n "$BUNDLE_DIR" ] && ROOTFS_DIR="$BUNDLE_DIR/rootfs"
 CONTAINERS_IMG="@CONTAINERS_IMG@"
 CONTAINER_KERNEL="@CONTAINER_KERNEL@"
 HYPERVISOR_PATH="@QEMU_PATH@"
@@ -43,9 +43,9 @@ HYPERVISOR_PATH="@QEMU_PATH@"
 # If there is a missing component, the tests is skipped
 function check_ccontainers() {
 
-	local out=$(@QEMU_PATH@ -machine help | grep -o pc-lite | tail -1)
+	local out=$($HYPERVISOR_PATH -machine help | grep -o pc-lite | tail -1)
 	[ "$out" = "pc-lite" ] || \
-		skip "@QEMU_PATH@ does not have pc-lite support"
+		skip "$HYPERVISOR_PATH does not have pc-lite support"
 
 	if [ ! -d "$BUNDLE_DIR" ]
 	then
@@ -240,6 +240,8 @@ function cleanup_common(){
 		echo >&2 "Hypervisor log dir: $COR_HYPERVISOR_LOG_DIR"
 		echo >&2 "bats status: $status"
 		echo >&2 "bats output (lines array contains ${#lines[*]} lines):"
+		echo >&2 "BUNDLE_DIR: $BUNDLE_DIR"
+		echo >&2 "ROOTFS_DIR: $ROOTFS_DIR"
 
 		local i=0
 		local line
