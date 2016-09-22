@@ -1,0 +1,7 @@
+{
+	"github.com/hyperhq/runv": {
+		"url": "https://github.com/hyperhq/runv.git",
+		"version": "28d48ac6",
+		"license": "Apache v2.0"
+	}
+}
