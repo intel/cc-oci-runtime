@@ -367,7 +367,7 @@ Debugging
 
 - Run with the "``--debug``" global option.
 
-- If you want to debug as a non-root user, specify the "``--root``"
+- If you want to debug as a non-``root`` user, specify the "``--root``"
   global option. For example::
 
     $ gdb --args ./cc-oci-runtime \
