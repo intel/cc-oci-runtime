@@ -57,6 +57,11 @@ The runtime has been tested with the following application versions:
 - Docker_ version 1.12.1.
 - Containerd_ version 0.2.2.
 
+Design
+------
+
+See `the design document <https://github.com/01org/cc-oci-runtime/blob/master/DESIGN.rst>`_.
+
 Limitations
 -----------
 
