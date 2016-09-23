@@ -25,7 +25,7 @@
 
 runtime="@bindir@/@PACKAGE_NAME@"
 
-global_log="/run/opencontainer/containers/@PACKAGE_NAME@.log"
+global_log="/run/@PACKAGE_NAME@/@PACKAGE_NAME@.log"
 
 # Set as required
 runtime_args=""
