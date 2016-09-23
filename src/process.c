@@ -513,6 +513,7 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 	struct netlink_handle *hndl = NULL;
 	gboolean           setup_networking;
 	gboolean           hook_status = false;
+	GPtrArray         *additional_args = NULL;
 
 	setup_networking = cc_oci_enable_networking ();
 
@@ -520,6 +521,8 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 	if (! timestamp) {
 		goto out;
 	}
+
+        additional_args = g_ptr_array_new ();
 
 	config->state.status = OCI_STATUS_CREATED;
 
@@ -618,7 +621,8 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 		// - oci_state()
 		// - cc_oci_update_options()
 
-		ret = cc_oci_vm_args_get (config, &args);
+		cc_oci_populate_extra_args(config, &additional_args);
+		ret = cc_oci_vm_args_get (config, &args, additional_args);
 		if (! (ret && args)) {
 			goto child_failed;
 		}
@@ -750,6 +754,9 @@ out:
 
 	if (args) {
 		g_strfreev (args);
+	}
+	if (additional_args) {
+		g_ptr_array_free(additional_args, TRUE);
 	}
 
 	return ret;

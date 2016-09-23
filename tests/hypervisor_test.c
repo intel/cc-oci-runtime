@@ -32,8 +32,7 @@
 
 gchar *
 cc_oci_vm_args_file_path (const struct cc_oci_config *config);
-gboolean cc_oci_expand_cmdline (struct cc_oci_config *config,
-		gchar **args);
+gboolean cc_oci_expand_cmdline (struct cc_oci_config *config, gchar **args);
 
 extern gchar *sysconfdir;
 extern gchar *defaultsdir;
@@ -413,6 +412,7 @@ START_TEST(test_cc_oci_vm_args_get) {
 	gchar *invalid_dir = "/this/directory/must/not/exist";
 	g_autofree gchar *cc_stdin = NULL;
 	g_autofree gchar *cc_stdout = NULL;
+	GPtrArray *extra_args = NULL;
 
 	tmpdir = g_dir_make_tmp (NULL, NULL);
 	ck_assert (tmpdir);
@@ -431,13 +431,13 @@ START_TEST(test_cc_oci_vm_args_get) {
 			"hypervisor.args", NULL);
 	ck_assert (args_file);
 
-	ck_assert (! cc_oci_vm_args_get (NULL, NULL));
+	ck_assert (! cc_oci_vm_args_get (NULL, NULL, NULL));
 
-	ck_assert (! cc_oci_vm_args_get (NULL, &args));
-	ck_assert (! cc_oci_vm_args_get (&config, NULL));
+	ck_assert (! cc_oci_vm_args_get (NULL, &args, NULL));
+	ck_assert (! cc_oci_vm_args_get (&config, NULL, NULL));
 
 	/* no bundle_path */
-	ck_assert (! cc_oci_vm_args_get (&config, &args));
+	ck_assert (! cc_oci_vm_args_get (&config, &args, NULL));
 
 	config.bundle_path = g_strdup (tmpdir);
 
@@ -447,7 +447,7 @@ START_TEST(test_cc_oci_vm_args_get) {
 			"cc-std.out", NULL);
 
 	/* no config.vm */
-	ck_assert (! cc_oci_vm_args_get (&config, &args));
+	ck_assert (! cc_oci_vm_args_get (&config, &args, NULL));
 
 	config.vm = g_new0 (struct cc_oci_vm_cfg, 1);
 	ck_assert (config.vm);
@@ -494,20 +494,20 @@ START_TEST(test_cc_oci_vm_args_get) {
 
 	/* bundle path is now set, but no args file exists there.
 	 */
-	ck_assert (! cc_oci_vm_args_get (&config, &args));
+	ck_assert (! cc_oci_vm_args_get (&config, &args, NULL));
 
 	/* create an empty bundle_path file */
 	ret = g_file_set_contents (args_file, "", -1, NULL);
 	ck_assert (ret);
 
 	/* an empty string cannot be split into lines */
-	ck_assert (! cc_oci_vm_args_get (&config, &args));
+	ck_assert (! cc_oci_vm_args_get (&config, &args, NULL));
 
 	/* recreate the args file */
 	ret = g_file_set_contents (args_file, "hello # comment\n", -1, NULL);
 	ck_assert (ret);
 
-	ck_assert (cc_oci_vm_args_get (&config, &args));
+	ck_assert (cc_oci_vm_args_get (&config, &args, NULL));
 
 	ck_assert (! g_strcmp0 (args[0], "hello"));
 	ck_assert (! args[1]);
@@ -517,7 +517,7 @@ START_TEST(test_cc_oci_vm_args_get) {
 	ret = g_file_set_contents (args_file, "hello# comment\n", -1, NULL);
 	ck_assert (ret);
 
-	ck_assert (cc_oci_vm_args_get (&config, &args));
+	ck_assert (cc_oci_vm_args_get (&config, &args, NULL));
 
 	ck_assert (! g_strcmp0 (args[0], "hello# comment"));
 	ck_assert (! args[1]);
@@ -527,7 +527,7 @@ START_TEST(test_cc_oci_vm_args_get) {
 	ret = g_file_set_contents (args_file, "hello\\# comment\n", -1, NULL);
 	ck_assert (ret);
 
-	ck_assert (cc_oci_vm_args_get (&config, &args));
+	ck_assert (cc_oci_vm_args_get (&config, &args, NULL));
 
 	ck_assert (! g_strcmp0 (args[0], "hello\\# comment"));
 	ck_assert (! args[1]);
@@ -537,7 +537,7 @@ START_TEST(test_cc_oci_vm_args_get) {
 	ret = g_file_set_contents (args_file, "hello\t # comment\n", -1, NULL);
 	ck_assert (ret);
 
-	ck_assert (cc_oci_vm_args_get (&config, &args));
+	ck_assert (cc_oci_vm_args_get (&config, &args, NULL));
 
 	ck_assert (! g_strcmp0 (args[0], "hello"));
 	ck_assert (! args[1]);
@@ -547,7 +547,7 @@ START_TEST(test_cc_oci_vm_args_get) {
 	ret = g_file_set_contents (args_file, "hello#comment\n", -1, NULL);
 	ck_assert (ret);
 
-	ck_assert (cc_oci_vm_args_get (&config, &args));
+	ck_assert (cc_oci_vm_args_get (&config, &args, NULL));
 
 	ck_assert (! g_strcmp0 (args[0], "hello#comment"));
 	ck_assert (! args[1]);
@@ -557,7 +557,7 @@ START_TEST(test_cc_oci_vm_args_get) {
 	ret = g_file_set_contents (args_file, "# comment\n", -1, NULL);
 	ck_assert (ret);
 
-	ck_assert (cc_oci_vm_args_get (&config, &args));
+	ck_assert (cc_oci_vm_args_get (&config, &args, NULL));
 
 	ck_assert(! args[0]);
 	g_strfreev (args);
@@ -566,7 +566,7 @@ START_TEST(test_cc_oci_vm_args_get) {
 	ret = g_file_set_contents (args_file, "# comment", -1, NULL);
 	ck_assert (ret);
 
-	ck_assert (cc_oci_vm_args_get (&config, &args));
+	ck_assert (cc_oci_vm_args_get (&config, &args, NULL));
 
 	ck_assert(! args[0]);
 	g_strfreev (args);
@@ -575,11 +575,28 @@ START_TEST(test_cc_oci_vm_args_get) {
 	ret = g_file_set_contents (args_file, "foo", -1, NULL);
 	ck_assert (ret);
 
-	ck_assert (cc_oci_vm_args_get (&config, &args));
+	ck_assert (cc_oci_vm_args_get (&config, &args, NULL));
 
 	ck_assert (! g_strcmp0 (args[0], "foo"));
 	ck_assert (! args[1]);
 	g_strfreev (args);
+
+	/* recreate the args file */
+        ret = g_file_set_contents (args_file,
+                        "hello\nworld\nfoo\nbar",
+                        -1, NULL);
+        ck_assert (ret);
+
+        extra_args = g_ptr_array_new ();
+        ck_assert (cc_oci_vm_args_get (&config, &args, extra_args));
+
+        ck_assert (! g_strcmp0 (args[0], "hello"));
+        ck_assert (! g_strcmp0 (args[1], "world"));
+        ck_assert (! g_strcmp0 (args[2], "foo"));
+        ck_assert (! g_strcmp0 (args[3], "bar"));
+        ck_assert (! args[4]);
+        g_strfreev (args);
+        g_ptr_array_free(extra_args, TRUE);
 
 	/* recreate the args file */
 	ret = g_file_set_contents (args_file,
@@ -587,14 +604,20 @@ START_TEST(test_cc_oci_vm_args_get) {
 			-1, NULL);
 	ck_assert (ret);
 
-	ck_assert (cc_oci_vm_args_get (&config, &args));
+	extra_args = g_ptr_array_new ();
+	g_ptr_array_add(extra_args, "-device testdevice");
+	g_ptr_array_add(extra_args, "-device testdevice2");
+	ck_assert (cc_oci_vm_args_get (&config, &args, extra_args));
 
 	ck_assert (! g_strcmp0 (args[0], "hello"));
 	ck_assert (! g_strcmp0 (args[1], "world"));
 	ck_assert (! g_strcmp0 (args[2], "foo"));
 	ck_assert (! g_strcmp0 (args[3], "bar"));
-	ck_assert (! args[4]);
+	ck_assert (! g_strcmp0 (args[4], "-device testdevice"));
+	ck_assert (! g_strcmp0 (args[5], "-device testdevice2"));
+	ck_assert (! args[6]);
 	g_strfreev (args);
+	g_ptr_array_free(extra_args, TRUE);
 
 	/* recreate the args file with expandable lines */
 	ret = g_file_set_contents (args_file,
@@ -610,7 +633,7 @@ START_TEST(test_cc_oci_vm_args_get) {
 			-1, NULL);
 	ck_assert (ret);
 
-	ck_assert (cc_oci_vm_args_get (&config, &args));
+	ck_assert (cc_oci_vm_args_get (&config, &args, NULL));
 	ck_assert (check_full_expansion (&config, (const gchar **)args,
 				image_size));
 	g_strfreev (args);
@@ -625,7 +648,6 @@ START_TEST(test_cc_oci_vm_args_get) {
 		ck_assert (! g_remove (cc_stdin));
 		ck_assert (! g_remove (cc_stdout));
 	}
-
 	ck_assert (! g_remove (tmpdir));
 
 	g_free (args_file);

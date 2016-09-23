@@ -465,18 +465,21 @@ out:
  *
  * \param config \ref cc_oci_config.
  * \param[out] args Command-line to expand.
+ * \param hypervisor_extra_args Additional args to be appended
  *
  * \return \c true on success, else \c false.
  */
 gboolean
 cc_oci_vm_args_get (struct cc_oci_config *config,
-		gchar ***args)
+		gchar ***args,
+		GPtrArray *hypervisor_extra_args)
 {
 	gboolean  ret;
 	gchar    *args_file = NULL;
 	guint     line_count = 0;
 	gchar   **arg;
 	gchar   **new_args;
+	guint       extra_args_len = 0;
 
 	if (! (config && args)) {
 		return false;
@@ -505,7 +508,11 @@ cc_oci_vm_args_get (struct cc_oci_config *config,
 		}
 	}
 
-	new_args = g_malloc0(sizeof(gchar*) * (line_count+1));
+	if (hypervisor_extra_args) {
+		extra_args_len = hypervisor_extra_args->len;
+	}
+
+	new_args = g_malloc0(sizeof(gchar*) * (line_count + extra_args_len + 1));
 
 	/* copy non-empty lines */
 	for (arg = *args, line_count = 0; arg && *arg; arg++) {
@@ -521,6 +528,12 @@ cc_oci_vm_args_get (struct cc_oci_config *config,
 		}
 	}
 
+	 /*  append additional args array */
+        for (int i = 0; i < extra_args_len; i++) {
+                gchar* arg = g_ptr_array_index(hypervisor_extra_args, i);
+                new_args[line_count++] = g_strdup(arg);
+        }
+
 	/* only free pointer to gchar* */
 	g_free(*args);
 
@@ -531,4 +544,27 @@ cc_oci_vm_args_get (struct cc_oci_config *config,
 out:
 	g_free_if_set (args_file);
 	return ret;
+}
+
+/*!
+ * Populate array that will be appended to hypervisor command line.
+ *
+ * \param config \ref cc_oci_config.
+ * \param additional_args Array to append
+ */
+void
+cc_oci_populate_extra_args(struct cc_oci_config *config ,
+		GPtrArray **additional_args)
+{
+	if (! (config && additional_args && *additional_args)) {
+		return;
+	}
+
+	/* Add args to be appended here.
+	 * Note: The array does not free any dynamically allocated strings
+	 * that it stores pointers to
+	 */
+	//g_ptr_array_add(*additional_args, "-device testdevice");
+
+	return;
 }
