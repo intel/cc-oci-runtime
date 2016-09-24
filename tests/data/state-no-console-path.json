@@ -3,7 +3,7 @@
   "id" : "foo",
   "pid" : 9127,
   "bundlePath" : "/tmp/bundle/",
-  "commsPath" : "/run/opencontainer/containers/foo/hypervisor.sock",
+  "commsPath" : "/run/cc-oci-runtimefoo/hypervisor.sock",
   "status" : "running",
   "created" : "2016-05-18T17:02:55.250085Z",
   "console" : {

@@ -44,7 +44,7 @@ START_TEST(test_cc_oci_runtime_path_get) {
 	ck_assert (cc_oci_runtime_path_get (&config));
 
 	expected = g_strdup_printf ("%s/%s",
-			"/run/opencontainer/containers",
+			"/run/cc-oci-runtime",
 			config.optarg_container_id);
 
 	ck_assert (! g_strcmp0 (config.state.runtime_path, expected));

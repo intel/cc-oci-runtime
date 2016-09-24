@@ -2,5 +2,5 @@
   "ociVersion" : "0.4.0",
   "pid" : 9127,
   "bundlePath" : "/tmp/bundle/",
-  "commsPath" : "/run/opencontainer/containers/foo/hypervisor.sock"
+  "commsPath" : "/run/cc-oci-runtimefoo/hypervisor.sock"
 }

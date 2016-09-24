@@ -194,10 +194,12 @@ function setup_common(){
 
 	COR_HYPERVISOR_LOG_DIR="$COR_GLOBAL_DIR"
 
+	COR_LOGFILE_NAME="@PACKAGE_NAME@.log"
+
 	if [ $(id -u) -eq 0 ]
 	then
 		# running as root
-		COR_LOG_FILE="/run/opencontainer/containers/cc-oci-runtime.log"
+		COR_LOG_FILE="/run/@PACKAGE_NAME@/$COR_LOGFILE_NAME"
 
 		# The global log needs to be recreated for each test
 		# run.
@@ -206,7 +208,7 @@ function setup_common(){
 		mkdir -p $(dirname "$COR_LOG_FILE") || true
 	else
 		# non-priv user
-		COR_LOG_FILE="$COR_GLOBAL_DIR/cc-oci-runtime.log"
+		COR_LOG_FILE="$COR_GLOBAL_DIR/$COR_LOGFILE_NAME"
 	fi
 
 	COR_ARGS=""
