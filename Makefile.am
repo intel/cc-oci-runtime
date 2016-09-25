@@ -58,7 +58,7 @@ GENERATED_FILES = \
 	tests/functional/common.bash \
 	tests/functional/data/config-minimal-cc-oci.json
 
-$(GENERATED_FILES): %: %.in
+$(GENERATED_FILES): %: %.in Makefile
 	$(AM_V_GEN)$(SED) \
 		-e 's|[@]bindir[@]|$(bindir)|g' \
 		-e 's|[@]BUNDLE_TEST_PATH[@]|$(BUNDLE_TEST_PATH)|g' \
