@@ -16,7 +16,9 @@ package main
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
+	"math"
 	"net"
 
 	hyper "github.com/hyperhq/runv/hyperstart/api/json"
@@ -104,6 +106,50 @@ func (vm *vm) readMessage() (*hyper.DecodedMessage, error) {
 	}, nil
 }
 
+func (vm *vm) writeMessage(m *hyper.DecodedMessage) (err error) {
+	length := len(m.Message) + 8
+	// XXX: Support sending messages by chunks to support messages over
+	// 10240 bytes. That limit is from hyperstart src/init.c,
+	// hyper_channel_ops, rbuf_size.
+	if length > 10240 {
+		return fmt.Errorf("message too long %d", length)
+	}
+	msg := make([]byte, length)
+	binary.BigEndian.PutUint32(msg[:], uint32(m.Code))
+	binary.BigEndian.PutUint32(msg[4:], uint32(length))
+	copy(msg[8:], m.Message)
+
+	_, err = vm.ctl.Write(msg)
+	if err != nil {
+		return err
+	}
+
+	// Consume the ack (NEXT) messages until we've acked the full message
+	// we've just written
+	acked := 0
+	for acked < length {
+		next, err := vm.readMessage()
+		if err != nil {
+			return nil
+		}
+		if next.Code != hyper.INIT_NEXT {
+			return errors.New("didn't receive NEXT from hyperstart")
+		}
+		if len(next.Message) != 4 {
+			return errors.New("wrong size for NEXT message")
+		}
+		acked += int(binary.BigEndian.Uint32(next.Message[0:4]))
+	}
+
+	// Somehow hyperstart acked more than it should?
+	if acked != length {
+		fmt.Fprintf(os.Stderr,
+			"wrong acked size by NEXT message (expected %d, got %d)\n", length, acked)
+	}
+
+	return nil
+}
+
 func (vm *vm) waitForReady() error {
 	vm.ctlMutex.Lock()
 	defer vm.ctlMutex.Unlock()
@@ -123,9 +169,90 @@ func (vm *vm) Connect() error {
 		return err
 	}
 	if err := vm.waitForReady(); err != nil {
-		vm.closePipes()
+		vm.closeSockets()
 		return err
 	}
+	return nil
+}
+
+func cmdFromSring(cmd string) (uint32, error) {
+	// Commands not supported by proxy:
+	//   hyper.INIT_STOPPOD_DEPRECATED
+	//   hyper.INIT_WRITEFILE
+	//   hyper.INIT_READFILE
+	switch cmd {
+	case "version":
+		return hyper.INIT_VERSION, nil
+	case "startpod":
+		return hyper.INIT_STARTPOD, nil
+	case "getpod":
+		return hyper.INIT_GETPOD, nil
+	case "destroypod":
+		return hyper.INIT_DESTROYPOD, nil
+	case "restartcontainer":
+		return hyper.INIT_RESTARTCONTAINER, nil
+	case "execcmd":
+		return hyper.INIT_EXECCMD, nil
+	case "finishcmd":
+		return hyper.INIT_FINISHCMD, nil
+	case "ready":
+		return hyper.INIT_READY, nil
+	case "ack":
+		return hyper.INIT_ACK, nil
+	case "error":
+		return hyper.INIT_ERROR, nil
+	case "winsize":
+		return hyper.INIT_WINSIZE, nil
+	case "ping":
+		return hyper.INIT_PING, nil
+	case "finishpod":
+		return hyper.INIT_FINISHPOD, nil
+	case "next":
+		return hyper.INIT_NEXT, nil
+	case "newcontainer":
+		return hyper.INIT_NEWCONTAINER, nil
+	case "killcontainer":
+		return hyper.INIT_KILLCONTAINER, nil
+	case "onlinecpumem":
+		return hyper.INIT_ONLINECPUMEM, nil
+	case "setupinterface":
+		return hyper.INIT_SETUPINTERFACE, nil
+	case "setuproute":
+		return hyper.INIT_SETUPROUTE, nil
+	default:
+		return math.MaxUint32, fmt.Errorf("unknown command '%s'", cmd)
+	}
+}
+
+func (vm *vm) SendMessage(name string, data []byte) error {
+	vm.ctlMutex.Lock()
+	defer vm.ctlMutex.Unlock()
+
+	cmd, err := cmdFromSring(name)
+	if err != nil {
+		return err
+	}
+
+	// Write message
+	msg := &hyper.DecodedMessage{
+		Code:    cmd,
+		Message: data,
+	}
+	if err := vm.writeMessage(msg); err != nil {
+		return err
+	}
+
+	// Wait for answer
+	resp, err := vm.readMessage()
+	if err != nil {
+		return err
+	}
+	if resp.Code == hyper.INIT_ERROR {
+		return errors.New("hyperstart returned an error")
+	} else if resp.Code != hyper.INIT_ACK {
+		return fmt.Errorf("unexpected message from hyperstart '%d'", msg.Code)
+	}
+
 	return nil
 }
 

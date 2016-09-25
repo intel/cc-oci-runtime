@@ -16,6 +16,10 @@
 // connecting to the proxy AF_UNIX socket.
 package api
 
+import (
+	"encoding/json"
+)
+
 // The hello payload is issued first after connecting to the proxy socket.
 // It is used to let the proxy know about a new container on the system along
 // with the paths go hyperstart's command and I/O channels (AF_UNIX sockets).
@@ -32,4 +36,17 @@ type Hello struct {
 	ContainerId string `json:"containerId"`
 	CtlSerial   string `json:"ctlSerial"`
 	IoSerial    string `json:"ioSerial"`
+}
+
+// The hyper payload will forward an hyperstart command to hyperstart.
+//
+//  {
+//    "id": "hyper",
+//    "data": {
+//      "hyperName": "ping"
+//    }
+//  }
+type Hyper struct {
+	HyperName string          `json:"hyperName"`
+	Data      json.RawMessage `json:"data,omitempty"`
 }
