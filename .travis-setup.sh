@@ -40,12 +40,19 @@ function compile {
 	tarball="$2"
 	directory="$3"
 
-	tar -xvf ${tarball}
-	pushd ${directory}
-	./configure --disable-silent-rules
-	make -j5
-	sudo make install
-	popd
+	fail=0
+	{
+		tar -xvf ${tarball}
+		pushd ${directory}
+		./configure --disable-silent-rules || fail=1
+		make -j5 || fail=1
+		sudo make install || fail=1
+		popd
+	} >>$name-build.log 2>&1
+
+	if [ $fail -eq 1 ]; then
+		cat $name-build.log
+	fi
 }
 
 mkdir cor-dependencies
