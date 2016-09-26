@@ -286,7 +286,7 @@ Currently, the runtime will expand the following `special tags` found in
 - ``@KERNEL_PARAMS@`` - kernel parameters (from ``config.json``).
 - ``@KERNEL@`` - path to kernel (from ``config.json``).
 - ``@NAME@`` - VM name.
-- ``@PROCESS_SOCKET@`` - required to detect efficiently when hypervisor is shut down.
+- ``@PROCESS_SOCKET@`` - required to detect when hypervisor has started running, and when it has shut down.
 - ``@SIZE@`` - size of @IMAGE@ which is auto-calculated.
 - ``@UUID@`` - VM uuid.
 - ``@WORKLOAD_DIR@`` - path to workload chroot directory that will be mounted (via 9p) inside the VM.
