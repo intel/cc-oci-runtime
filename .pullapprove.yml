@@ -1,17 +1,26 @@
-approve_by_comment: true
-approve_regex: '^(LGTM|lgtm|Approved|\+1|:\+1:)'
-reject_regex: '^(Rejected|-1|:-1:)'
-reset_on_push: true
-reset_on_reopened: true
-author_approval: ignored
-reviewers:
-  -
-    name: default
+version: 2
+
+requirements:
+  signed_off_by:
+    required: true
+
+group_defaults:
+  approve_by_comment:
+    enabled: true
+    approve_regex: '^(LGTM|lgtm|Approved|\+1|:\+1:)'
+    reject_regex: '^(Rejected|-1|:-1:)'
+  reset_on_push:
+    enabled: true
+  reset_on_reopened:
+    enabled: true
+  author_approval:
+    ignored: true
+  conditions:
+    branches:
+      - master
+
+groups:
+  default:
+    required: 2
     teams:
       - clear-containers-intel
-    required: 2
-    conditions:
-      branches:
-        - master
-signed_off_by:
-  required: true
