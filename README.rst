@@ -290,6 +290,8 @@ Currently, the runtime will expand the following `special tags` found in
 - ``@SIZE@`` - size of @IMAGE@ which is auto-calculated.
 - ``@UUID@`` - VM uuid.
 - ``@WORKLOAD_DIR@`` - path to workload chroot directory that will be mounted (via 9p) inside the VM.
+- ``@AGENT_CTL_SOCKET@`` - path to the guest agent control socket ( control serial port for hyperstart)
+- ``@AGENT_TTY_SOCKET@`` - path to the guest agent multiplex tty I/O socket ( tty serial port for hyperstart)
 
 Logging
 -------
