@@ -197,7 +197,8 @@ function verify_runtime_dirs()
 
 # Verify a container state
 # @param <container-id>
-# @param <status>  container status to check (e.g. running)
+# @param <status>  container status to check (created, running,
+#   paused, stopped or killed).
 # @param <timeout> timeout to check container status
 # return true if containter have the <status>, false if
 #        the status is not the expected after timeout
@@ -210,11 +211,22 @@ function testcontainer() {
 	local cmd="$COR list --format table"
 	[ "$timeout_cmd"  -eq "$timeout_cmd" ] || \
 	{ log_msg "timeout is not a number"; exit 1; }
+
+	# The status passed to this function needs to be "simplified"
+	# in the case of "killed" to match the acceptable OCI states
+	# when checking the state the runtime assigns to the container.
+	if [ "$status" = "killed" ]
+	then
+		check_status="stopped"
+	else
+		check_status="$status"
+	fi
+
 	while [ "$i" -lt "$timeout_cmd" ]
 	do
 		local output=$(run_cmd "$cmd")
 		[[ ${output} =~ ID\ +PID\ +STATUS\ +BUNDLE\ +CREATED+ ]]
-		if [[ "${output}" == *"$container_id"*[0-9]*"$status"*"$BUNDLE_DIR"* ]]
+		if [[ "${output}" == *"$container_id"*[0-9]*"${check_status}"*"$BUNDLE_DIR"* ]]
 		then
 			got=1
 			#Wait at least one second, for vm bootime
@@ -229,6 +241,9 @@ function testcontainer() {
 	done
 	[ "$got" -eq 1 ] || { log_msg "FAILED"; exit 1; }
 	log_msg "SUCCESS"
+
+	# Pass full status to the verify function
+	verify_runtime_dirs "$container_id" "$status"
 }
 
 # Check if test is running as root, if not
@@ -301,6 +316,9 @@ function log_msg()
 
 # Common setup for all the tests
 function setup_common(){
+	# save IFS to work around bats bug where IFS is corrupted.
+	[ -z "$OLD_IFS" ] && OLD_IFS=$IFS
+
 	# container-specific directory
 	COR_ROOT_DIR=$(mktemp_tests_dir)
 
