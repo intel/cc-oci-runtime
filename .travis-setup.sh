@@ -35,6 +35,26 @@ sudo apt-get -qq install valgrind lcov uuid-dev pkg-config \
   zlib1g-dev libffi-dev gettext libpcre3-dev cppcheck \
   libmnl-dev
 
+function compile {
+	name="$1"
+	tarball="$2"
+	directory="$3"
+
+	fail=0
+	{
+		tar -xvf ${tarball}
+		pushd ${directory}
+		./configure --disable-silent-rules || fail=1
+		make -j5 || fail=1
+		sudo make install || fail=1
+		popd
+	} >>$name-build.log 2>&1
+
+	if [ $fail -eq 1 ]; then
+		cat $name-build.log
+	fi
+}
+
 mkdir cor-dependencies
 pushd cor-dependencies
 
@@ -42,35 +62,19 @@ pushd cor-dependencies
 glib_major=`echo $glib_version | cut -d. -f1`
 glib_minor=`echo $glib_version | cut -d. -f2`
 curl -L -O "$gnome_dl/glib/${glib_major}.${glib_minor}/glib-${glib_version}.tar.xz"
-tar -xvf "glib-${glib_version}.tar.xz"
-pushd "glib-${glib_version}"
-./configure --disable-silent-rules
-make -j5
-sudo make install
-popd
+compile glib glib-${glib_version}.tar.xz glib-${glib_version}
 
 # Build json-glib
 json_major=`echo $json_glib_version | cut -d. -f1`
 json_minor=`echo $json_glib_version | cut -d. -f2`
 curl -L -O "$gnome_dl/json-glib/${json_major}.${json_minor}/json-glib-${json_glib_version}.tar.xz"
-tar -xvf "json-glib-${json_glib_version}.tar.xz"
-pushd "json-glib-${json_glib_version}"
-./configure --disable-silent-rules
-make -j5
-sudo make install
-popd
+compile json-glib json-glib-${json_glib_version}.tar.xz json-glib-${json_glib_version}
 
 # Build check
 # We need to build check as the check version in the OS used by travis isn't
 # -pedantic safe.
 curl -L -O "https://github.com/libcheck/check/releases/download/${check_version}/check-${check_version}.tar.gz"
-tar -xvf "check-${check_version}.tar.gz"
-pushd "check-${check_version}"
-./configure
-make -j5
-sudo make install
-popd
-
+compile check check-${check_version}.tar.gz check-${check_version}
 
 # Install bats
 git clone https://github.com/sstephenson/bats.git
