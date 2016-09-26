@@ -79,6 +79,122 @@ function check_ccontainers() {
 	cd "$BATS_TEST_DIRNAME"
 }
 
+# Verify the state of the runtime directories
+# @param <container-id>
+# @param <state> container state (created, running, paused,
+#   stopped or killed).
+function verify_runtime_dirs()
+{
+	local id="$1"
+	local state="$2"
+
+	local id_dir="$COR_ROOT_DIR/${id}"
+
+	local statefile="$id_dir/state.json"
+	local console_sock="$id_dir/console.sock"
+	local hypervisor_sock="$id_dir/hypervisor.sock"
+	local process_sock="$id_dir/process.sock"
+	local ga_ctl_sock="$id_dir/ga-ctl.sock"
+	local ga_tty_sock="$id_dir/ga-tty.sock"
+
+	local stdout="$COR_HYPERVISOR_LOG_DIR/${id}-hypervisor.stdout"
+	local stderr="$COR_HYPERVISOR_LOG_DIR/${id}-hypervisor.stderr"
+
+	# common tests
+
+	[ -f "$COR_LOG_FILE" ]
+	[ -r "$COR_LOG_FILE" ]
+	[ -s "$COR_LOG_FILE" ]
+
+	[ -d "$COR_HYPERVISOR_LOG_DIR" ]
+
+	if [ "$state" = "stopped" ]
+	then
+		[ -f "$stdout" ]
+		[ -r "$stdout" ]
+		[ ! -s "$stdout" ]
+
+		[ -f "$stderr" ]
+		[ -r "$stderr" ]
+		[ ! -s "$stderr" ]
+
+		# If a container is stopped, all container-specific
+		# state is removed.
+		[ ! -d "$id_dir" ]
+		[ ! -d "$COR_ROOT_DIR" ]
+
+		return 0
+	fi
+
+	[ -d "$COR_ROOT_DIR" ]
+	[ -d "$id_dir" ]
+
+	[ -f "$statefile" ]
+	[ -r "$statefile" ]
+	[ -s "$statefile" ]
+
+	[ -f "$stdout" ]
+	[ -r "$stdout" ]
+	[ ! -s "$stdout" ]
+
+	[ -f "$stderr" ]
+	[ -r "$stderr" ]
+
+	if [ "$state" = "killed" ]
+	then
+		# If the container was kiled, the hypervisor
+		# should have written an error to stderr.
+		#
+		# XXX: this presuposes that the kill signal was *NOT*
+		# SIGKILL since in that case, there is no guarantee of
+		# any output being logged.
+		[ -s "$stderr" ]
+	else
+		# no errors are expected under normal operation
+		[ ! -s "$stderr" ]
+	fi
+
+	run ls $id_dir
+	[ "$status" -eq 0 ]
+
+	# state-specific tests
+	if [ "$state" = "created" ]
+	then
+		# at create time, only state.json should exist
+		[ "$output" = "state.json" ]
+
+	elif [ "$state" = "running" \
+		-o "$state" = "paused" \
+		-o "$state" = "killed" ]
+	then
+		# Note that state is retained when the container
+		# is forcibly killed.
+
+		[ "${lines[0]}" = "console.sock" ]
+		[ "${lines[1]}" = "ga-ctl.sock" ]
+		[ "${lines[2]}" = "ga-tty.sock" ]
+		[ "${lines[3]}" = "hypervisor.sock" ]
+		[ "${lines[4]}" = "process.sock" ]
+		[ "${lines[5]}" = "state.json" ]
+		[ "${lines[6]}" = "" ]
+
+		if [ "$state" != "killed" ]
+		then
+			[ -S "$console_sock" ]
+			[ -S "$ga_ctl_sock" ]
+			[ -S "$ga_tty_sock" ]
+			[ -S "$hypervisor_sock" ]
+			[ -S "$process_sock" ]
+		fi
+
+	else
+		log_msg "Invalid state: '$state'"
+		exit 1
+	fi
+
+	return 0
+}
+
 # Verify a container state
 # @param <container-id>
 # @param <status>  container status to check (e.g. running)
