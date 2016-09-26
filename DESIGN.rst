@@ -61,18 +61,20 @@ The code is fully documented using special comments that are parseable
 by the excellent Doxygen_ tool. See README.rst for details of generating
 and viewing the extensive code documentation.
 
-General code layout and strategy
---------------------------------
+Code layout
+-----------
 
-- Code lives below the ``src/`` directory and test code lives below
-  ``tests/``.
+- Code lives below the ``src/`` directory.
+- Tests:
 
-- Most functions accept an ``cc_oci_config`` object. This is the
-  main object which encapsulates the contents of the `OCI
-  configuration file`_ along with runtime-specific data.
+  - Unit test code lives in the directory ``tests/``.
 
-Coding Style
-------------
+  - Functional tests live below the directory ``tests/functional/``.
+
+  - Integration tests live below the directory ``tests/integration/``.
+
+Coding style and strategy
+-------------------------
 
 - The style of the code is similar to that used by the `Linux kernel`_.
 - The code is written to be as clean and readable as possible.
@@ -90,6 +92,13 @@ Coding Style
   accompanying "``tests/${subsystem}_test.c``". This is a minimum -
   ideally all functions should have a unit test (to test a private
   function, replace "``static``" with "``private``").
+- Most unit tests functions accept an ``cc_oci_config`` object. This is
+  the main object which encapsulates the contents of the `OCI
+  configuration file`_ along with runtime-specific data.
+- Where possible, all command-line commands and options should be
+  accompanied by a functional test. See `How command-line commands are
+  implemented`_.
+- The BATS_ test framework is used for functional and integration tests.
 
 Files
 -----
@@ -193,6 +202,10 @@ For a simple example, see `src/commands/version.c`_ which is the
 implementation for::
 
   $ cc-oci-runtime version
+
+All command-line commands should have a corresponding functional test.
+For example, the ``version`` command has a BATS_ functional test at
+`tests/functional/version.bats`_.
 
 Starting the hypervisor
 -----------------------
@@ -341,4 +354,6 @@ Notes:
 .. _`src/oci.c`: https://github.com/01org/cc-oci-runtime/blob/master/src/oci.c
 .. _`src/spec_handlers/`: https://github.com/01org/cc-oci-runtime/blob/master/src/spec_handlers/
 .. _`src/spec_handlers/root.c`: https://github.com/01org/cc-oci-runtime/blob/master/src/spec_handlers/root.c
+.. _`tests/functional/version.bats`: https://github.com/01org/cc-oci-runtime/blob/master/tests/functional/version.bats
 .. _`Linux kernel`: https://www.kernel.org/
+.. _BATS: https://github.com/sstephenson/bats
