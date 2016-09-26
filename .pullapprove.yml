@@ -20,7 +20,7 @@ group_defaults:
       - master
 
 groups:
-  default:
+  code-reviewers:
     required: 2
     teams:
       - clear-containers-intel
