@@ -32,3 +32,12 @@ groups:
     required: 2
     teams:
       - clear-containers-intel
+  qa:
+    required: 1
+    users:
+      - chavafg
+      - gabyct
+    approve_by_comment:
+      enabled: true
+      approve_regex: '^qa-passed'
+      reject_regex: '^qa-failed'
