@@ -77,6 +77,10 @@ function teardown() {
 	cmd="$COR stop $container_id"
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
 
+	# restore original IFS to work around bats bug causing test
+	# failure.
+	[ -n "$OLD_IFS" -a "$IFS" != "$OLD_IFS" ] && IFS=$OLD_IFS
+
 	run $COR list
 	[ "$status" -eq 0 ]
 	[[ ${output} =~ ID\ +PID\ +STATUS\ +BUNDLE\ +CREATED+ ]]

@@ -58,7 +58,7 @@ function teardown() {
 
 	cmd="$COR kill $container_id"
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
-	testcontainer "$container_id" "stopped"
+	testcontainer "$container_id" "killed"
 }
 
 @test "start then kill (short symbolic signal)" {
@@ -78,7 +78,7 @@ function teardown() {
 
 	cmd="$COR kill $container_id TERM"
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
-	testcontainer "$container_id" "stopped"
+	testcontainer "$container_id" "killed"
 }
 
 @test "start then kill (full symbolic signal)" {
@@ -98,7 +98,7 @@ function teardown() {
 
 	cmd="$COR kill $container_id SIGTERM"
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
-	testcontainer "$container_id" "stopped"
+	testcontainer "$container_id" "killed"
 }
 
 @test "start then kill (numeric signal)" {
@@ -118,5 +118,5 @@ function teardown() {
 
 	cmd="$COR kill $container_id 15"
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
-	testcontainer "$container_id" "stopped"
+	testcontainer "$container_id" "killed"
 }

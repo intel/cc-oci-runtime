@@ -67,7 +67,7 @@ function check_state() {
 
 	cmd="$COR kill $container_id 15"
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
-	testcontainer "$container_id" "stopped"
+	testcontainer "$container_id" "killed"
 	check_state "$container_id" "stopped"
 }
 
