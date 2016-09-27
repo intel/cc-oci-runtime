@@ -23,6 +23,7 @@
 
 setup() {
 	load common
+	load volume
 	cleanDockerPs
 	runtimeDocker
 	volName='volume1'
@@ -42,10 +43,33 @@ setup() {
 	testFile='hello_world'
 	containerPath='/attached_vol'
 	touch "$volPath/$testFile"
-	$DOCKER_EXE run -i -v "$volName":"$containerPath" busybox ls "$containerPath" | grep "$testFile"
-	RC=$?
+	run bash -c "$DOCKER_EXE run -i -v $volName:$containerPath busybox ls $containerPath | grep $testFile"
 	$DOCKER_EXE rm $($DOCKER_EXE ps -qa)
-	[ $RC -eq 0 ]
+	[ $status -eq 0 ]
+}
+
+@test "Volume - bind-mount a directory" {
+	dir_path="$(pwd)/sharedSpace"
+	test_file="foo"
+	containerPath="/root/sharedSpace"
+	mkdir "$dir_path"
+	touch "$dir_path/$test_file"
+	run bash -c "$DOCKER_EXE run -i -v $dir_path:$containerPath busybox ls $containerPath | grep $test_file"
+	rm -r "$dir_path"
+	$DOCKER_EXE rm $($DOCKER_EXE ps -qa)
+	[ $status -eq 0 ]
+
+}
+
+@test "Volume - bind-mount a single file" {
+	test_file="$(pwd)/foo"
+	file_content="bar"
+	echo "$file_content" >  "$test_file"
+	containerPath="/root/foo"
+	run bash -c "$DOCKER_EXE run -i -v $test_file:$containerPath busybox cat $containerPath | grep $file_content"
+	rm "$test_file"
+	$DOCKER_EXE rm $($DOCKER_EXE ps -qa)
+	[ $status -eq 0 ]
 }
 
 @test "Delete the volume" {
