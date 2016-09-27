@@ -2,5 +2,5 @@
   "ociVersion" : "0.4.0",
   "id" : "foo",
   "pid" : 9127,
-  "commsPath" : "/run/cc-oci-runtimefoo/hypervisor.sock"
+  "commsPath" : "/run/cc-oci-runtime/foo/hypervisor.sock"
 }

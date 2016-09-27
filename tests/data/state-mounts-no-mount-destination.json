@@ -3,12 +3,12 @@
   "id" : "foo",
   "pid" : 9127,
   "bundlePath" : "/tmp/bundle/",
-  "commsPath" : "/run/cc-oci-runtimefoo/hypervisor.sock",
-  "processPath": "/run/cc-oci-runtimefoo/process.sock",
+  "commsPath" : "/run/cc-oci-runtime/foo/hypervisor.sock",
+  "processPath": "/run/cc-oci-runtime/foo/process.sock",
   "status" : "running",
   "created" : "2016-05-18T17:02:55.250085Z",
   "console" : {
-      "path" : "/run/cc-oci-runtimetest/console.sock",
+      "path" : "/run/cc-oci-runtime/test/console.sock",
       "socket" : true
   },
   "mounts" : [
