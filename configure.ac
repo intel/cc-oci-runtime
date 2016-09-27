@@ -214,9 +214,12 @@ AC_ARG_WITH([auto-bundle-creation-path],
     ],
     [
         # default value
-        auto_bundle_creation_path="$srcdir/tests/functional/bundle"
+        auto_bundle_creation_path="tests/functional/bundle"
     ]
 )
+
+AS_IF([echo "$auto_bundle_creation_path"|grep -qv ^/],
+      [auto_bundle_creation_path="$(pwd)/$auto_bundle_creation_path"])
 
 # Determine if automatic bundle creation should be enabled.
 AS_IF([test x"$auto_bundle_creation" = x"yes" dnl
