@@ -183,32 +183,51 @@ get_hypertart_msg(char *json, int hyper_cmd_type, size_t *len) {
  }
 
 /*!
- * Send hyperstart control message
+ * Send "hyper" payload to cc-proxy. This will be forwarded to hyperstart.
  *
- * \param fd File descriptor to send the message to
+ * \param fd File descriptor to send the message to(should be proxy ctl socket fd)
  * \param Hyperstart cmd id
  * \param json Json payload
  */
 void
-send_hyper_message(int fd, int hyper_cmd_type, char *json) {
-	char *hyperst_msg = NULL;
+send_proxy_hyper_message(int fd, int hyper_cmd_type, char *json) {
+	char *proxy_hyper_msg = NULL;
 	size_t len, offset = 0;
-	int ret;
+	ssize_t ret;
+	char *proxy_command_id = "hyper";
 
-	hyperst_msg = get_hypertart_msg(json, hyper_cmd_type, &len);
+	/* cc-proxy has the following format for "hyper" payload:
+	 * {
+	 *    "id": "hyper",
+	 *    "data": {
+	 *        "hyperName": "ping",
+	 *        "data": "json payload",
+	 *    }
+	 * }
+	*/
+
+	ret = asprintf(&proxy_hyper_msg,
+			"{\"id\":\"%s\",\"data\":{\"hyperName\":\"%d\",\"data\":\"%s\"",
+			proxy_command_id, hyper_cmd_type, json);
+
+	if (ret == -1) {
+		abort();
+	}
+
+	len = strlen(proxy_hyper_msg + 1);
 
 	while (offset < len) {
-		ret = write(fd, hyperst_msg + offset, len-offset);
+		ret = write(fd, proxy_hyper_msg + offset, len-offset);
 		if (ret == EINTR) {
 			continue;
 		}
 		if (ret <= 0 ) {
-			free(hyperst_msg);
+			free(proxy_hyper_msg);
 			return;
 		}
-		offset += ret;
+		offset += (size_t)ret;
 	}
-	free(hyperst_msg);
+	free(proxy_hyper_msg);
 }
 
 /*!
@@ -240,16 +259,24 @@ handle_signals(char *container_id, int outfd) {
 			}
 			ret = asprintf(&buf, "{\"container_id\":\"%s\", \"row\":\"%d\", \"col\":\"%d\"}",
                                                         container_id, ws.ws_row, ws.ws_col);
+		#ifdef DEBUG
+			//TODO: Add cmd line option for debug and file to log to
+			printf("handled SIGWINCH for container %s (row=%d, col=%d)\n",
+				container_id, ws.ws_row, ws.ws_col);
+		#endif
 		} else {
 			cmd_type = KILLCONTAINER;
 			ret = asprintf(&buf, "{\"container_id\":\"%s\", \"signal\":\"%d\"}",
                                                         container_id, sig);
+		#ifdef DEBUG
+			printf("Killed container %s with signal %d\n", container_id, sig);
+		#endif
 		}
 		if (ret == -1) {
 			abort();
 		}
 
-		send_hyper_message(outfd, cmd_type, buf);
+		send_proxy_hyper_message(outfd, cmd_type, buf);
 		free(buf);
         }
 }
