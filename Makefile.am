@@ -242,6 +242,10 @@ CHECK_DEPS += check-proxy
 check-proxy:
 	go test -timeout 2s $(srcdir)/proxy
 
+libexec_PROGRAMS = cc-shim
+
+cc_shim_SOURCES = shim/shim.c
+
 bats_test_sources = \
 	tests/functional/common.bash.in \
 	data/run-bats.sh.in \
