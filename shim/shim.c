@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -25,12 +26,23 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <signal.h>
+#include <termios.h>
+#include <sys/ioctl.h>
+#include <stdint.h>
+#include <inttypes.h>
 
 /* The shim would be handling fixed number of predefined fds.
  * This would be signal fd, stdin fd, proxy socket fd and an I/O
  * fd passed by the runtime
  */
 #define MAX_POLL_FDS 4
+
+/* These are the command ids used by hyperstart control message format.
+ * cc-shim sends WINSIZE command on receving a SIGWINCH signal and 
+ * a KILLCONTAINER command on receiving any other signal
+ */
+#define WINSIZE 11
+#define KILLCONTAINER 18
 
 /* globals */
 /* Pipe used for capturing signal occurence */
@@ -116,6 +128,130 @@ set_fd_nonblocking(int fd)
 	if (fcntl(fd, F_SETFL, flags) == -1) {
 		err_exit("Error setting fd as nonblocking: %s\n", strerror(errno));
 	}
+}
+
+/*!
+ * Store integer as big endian in buffer
+ *
+ * \param buf Buffer to store the value in
+ * \param val Integer to be converted to big endian
+ */
+void
+set_big_endian_32(uint8_t *buf, uint32_t val)
+{
+        buf[0] = (uint8_t)(val >> 24);
+        buf[1] = (uint8_t)(val >> 16);
+        buf[2] = (uint8_t)(val >> 8);
+        buf[3] = (uint8_t)val;
+}
+
+/*!
+ * Convert the value stored in buffer to little endian
+ *
+ * \param buf Buffer storing the big endian value
+ */
+uint32_t get_big_endian_32(char *buf) {
+	return (uint32_t)(buf[0] >> 24 | buf[1] >> 16 | buf[2] >> 8 | buf[3]);
+}
+
+/*!
+ * Construct message in the hyperstart control format
+ * Hyperstart control message format:
+ *
+ * | ctrl id | length  | payload (length-8)      |
+ * | . . . . | . . . . | . . . . . . . . . . . . |
+ * 0         4         8                         length
+ *
+ * \param json Json Payload
+ * \param hyper_cmd_type Hyperstart control id
+ * \param len Length of the message
+ */  
+char*
+get_hypertart_msg(char *json, int hyper_cmd_type, size_t *len) {
+	char *hyperstart_msg = NULL;
+
+	*len = strlen(json) + 8 + 1;
+	hyperstart_msg = malloc(sizeof(char) * *len);
+	if (! hyperstart_msg) {
+		abort();
+	}
+	set_big_endian_32((uint8_t*)hyperstart_msg, (uint32_t)hyper_cmd_type);
+	set_big_endian_32((uint8_t*)hyperstart_msg+4, (uint32_t)(strlen(json) + 8));
+	strcpy(hyperstart_msg+8, json);
+
+	return hyperstart_msg;
+ }
+
+/*!
+ * Send hyperstart control message
+ *
+ * \param fd File descriptor to send the message to
+ * \param Hyperstart cmd id
+ * \param json Json payload
+ */
+void
+send_hyper_message(int fd, int hyper_cmd_type, char *json) {
+	char *hyperst_msg = NULL;
+	size_t len, offset = 0;
+	int ret;
+
+	hyperst_msg = get_hypertart_msg(json, hyper_cmd_type, &len);
+
+	while (offset < len) {
+		ret = write(fd, hyperst_msg + offset, len-offset);
+		if (ret == EINTR) {
+			continue;
+		}
+		if (ret <= 0 ) {
+			free(hyperst_msg);
+			return;
+		}
+		offset += ret;
+	}
+	free(hyperst_msg);
+}
+
+/*!
+ * Read signals received and send message in the hyperstart protocol
+ * format to outfd
+ *
+ * \param container_id Container id
+ * \param outfd File descriptor to send the message to
+ */
+void
+handle_signals(char *container_id, int outfd) {
+	int            sig;
+	char          *buf;
+	int            ret;
+	int            cmd_type;
+	struct winsize ws;
+
+	if (! container_id || outfd < 0) {
+		return;
+	}
+
+	while (read(signal_pipe_fd[0], &sig, sizeof(sig)) != -1) {
+		if (sig == SIGWINCH ) {
+			cmd_type = WINSIZE;
+			if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) == -1) {
+				fprintf(stderr, "Error getting the current window size: %s\n",
+					strerror(errno));
+				continue;
+			}
+			ret = asprintf(&buf, "{\"container_id\":\"%s\", \"row\":\"%d\", \"col\":\"%d\"}",
+                                                        container_id, ws.ws_row, ws.ws_col);
+		} else {
+			cmd_type = KILLCONTAINER;
+			ret = asprintf(&buf, "{\"container_id\":\"%s\", \"signal\":\"%d\"}",
+                                                        container_id, sig);
+		}
+		if (ret == -1) {
+			abort();
+		}
+
+		send_hyper_message(outfd, cmd_type, buf);
+		free(buf);
+        }
 }
 
 /*!
@@ -216,7 +352,8 @@ main(int argc, char **argv)
 
 		/* check if signal was received first */
 		if (poll_fds[0].revents != 0) {
-			//TODO: Handle signal
+			// TODO:  send to proxy socket fd instead
+			handle_signals(container_id, (int)STDOUT_FILENO);
 		}
 
 		// check stdin fd
