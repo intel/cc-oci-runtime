@@ -38,6 +38,16 @@ type Hello struct {
 	IoSerial    string `json:"ioSerial"`
 }
 
+// The bye payload does the opposite of what hello does, indicating to the
+// proxy it should release resources created by hello. This command has no
+// parameter.
+//
+//  {
+//    "id": "bye"
+//  }
+type Bye struct {
+}
+
 // The hyper payload will forward an hyperstart command to hyperstart.
 //
 //  {

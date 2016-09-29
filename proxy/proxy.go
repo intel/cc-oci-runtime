@@ -84,6 +84,26 @@ func helloHandler(data []byte, userData interface{}) (map[string]interface{}, er
 	return nil, nil
 }
 
+// "bye"
+func byeHandler(data []byte, userData interface{}) (map[string]interface{}, error) {
+	client := userData.(*client)
+	proxy := client.proxy
+	vm := client.vm
+
+	if vm == nil {
+		return nil, errors.New("client not attached to a vm")
+	}
+
+	proxy.Lock()
+	delete(proxy.vms, vm.containerId)
+	proxy.Unlock()
+
+	client.vm = nil
+	vm.Close()
+
+	return nil, nil
+}
+
 // "hyper"
 func hyperHandler(data []byte, userData interface{}) (map[string]interface{}, error) {
 	client := userData.(*client)
@@ -131,6 +151,7 @@ func (proxy *proxy) Serve() {
 	// Define the client (runtime/shim) <-> proxy protocol
 	proto := NewProtocol()
 	proto.Handle("hello", helloHandler)
+	proto.Handle("bye", byeHandler)
 	proto.Handle("hyper", hyperHandler)
 
 	for {
