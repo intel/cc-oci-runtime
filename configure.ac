@@ -87,12 +87,21 @@ AS_IF([test x"$enable_cppcheck" = "xyes"],
 AM_CONDITIONAL([CPPCHECK], [test x$enable_cppcheck = x"yes"])
 
 # Runtime functional tests
-AC_ARG_ENABLE(functional-tests, AS_HELP_STRING([--disable-functional-tests], [disable functional tests @<:@default=no@:>@]),
-          [], [disable_functional_tests=no])
-AS_IF([test x"$disable_functional_tests" = "xno"],
+
+AC_ARG_ENABLE(functional-tests,
+              AS_HELP_STRING([--disable-functional-tests],
+                             [disable functional tests @<:@default=no@:>@]))
+
+# If "--[enable|disable]-functional-tests" isn't specified, the variable will not
+# have a value (meaning *DO* run the tests).
+AS_IF([test x"$enable_functional_tests" = x"yes" -o x"$enable_functional_tests" = x""],
+    [run_functional_tests=yes],
+    [run_functional_tests=no])
+
+AS_IF([test x"$run_functional_tests" = x"yes"],
     [AC_SUBST([FUNCTIONAL_TESTS], [1])],
     [AC_SUBST([FUNCTIONAL_TESTS], [0])])
-AM_CONDITIONAL([FUNCTIONAL_TESTS], [test x$disable_functional_tests = x"no"])
+AM_CONDITIONAL([FUNCTIONAL_TESTS], [test x"$run_functional_tests" = x"yes"])
 
 # Docker integration tests
 AC_ARG_ENABLE(docker-tests, AS_HELP_STRING([--disable-docker-tests], [disable docker tests @<:@default=no@:>@]),
@@ -225,7 +234,7 @@ AS_IF([echo "$auto_bundle_creation_path"|grep -qv ^/],
 AS_IF([test x"$auto_bundle_creation" = x"yes" dnl
     -a x"$with_tests_bundle_path" = x"" dnl
     -a x"$disable_tests" = x"no" dnl
-    -a x"$disable_functional_tests" = x"no"],
+    -a x"$run_functional_tests" = x"yes"],
     [enable_auto_bundle_creation=yes])
 
 AM_CONDITIONAL([AUTO_BUNDLE_CREATION],
@@ -273,8 +282,7 @@ AC_OUTPUT
 dnl === Summary ===============================================================
 
 AS_IF([test x"$disable_tests" = xno], [enable_tests=yes], [enable_tests=no])
-AS_IF([test x"$disable_functional_tests" = xno],
-      [enable_functional_tests=yes], [enable_functional_tests=no])
+
 AS_IF([test x"$disable_docker_tests" = xno],
       [enable_docker_tests=yes], [enable_docker_tests=no])
 
@@ -293,7 +301,7 @@ cc-oci-runtime - $VERSION
  • Tests:
 
        Unit tests               : $enable_tests
-       Functional tests         : $enable_functional_tests
+       Functional tests         : $run_functional_tests
        Docker tests             : $enable_docker_tests
        Cppcheck                 : $enable_cppcheck
        Valgrind                 : $VALGRIND_ENABLED
