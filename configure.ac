@@ -104,12 +104,17 @@ AS_IF([test x"$run_functional_tests" = x"yes"],
 AM_CONDITIONAL([FUNCTIONAL_TESTS], [test x"$run_functional_tests" = x"yes"])
 
 # Docker integration tests
-AC_ARG_ENABLE(docker-tests, AS_HELP_STRING([--disable-docker-tests], [disable docker tests @<:@default=no@:>@]),
-          [], [disable_docker_tests=no])
-AS_IF([test x"$disable_docker_tests" = "xno"],
+AC_ARG_ENABLE(docker-tests, AS_HELP_STRING([--disable-docker-tests],
+              [disable docker tests @<:@default=no@:>@]))
+
+AS_IF([test x"$enable_docker_tests" = x"yes" -o x"$enable_docker_tests" = x""],
+    [run_docker_tests=yes],
+    [run_docker_tests=no])
+
+AS_IF([test x"$run_docker_tests" = x"yes"],
     [AC_SUBST([DOCKER_TESTS], [1])],
     [AC_SUBST([DOCKER_TESTS], [0])])
-AM_CONDITIONAL([DOCKER_TESTS], [test x$disable_docker_tests = x"no"])
+AM_CONDITIONAL([DOCKER_TESTS], [test x"$run_docker_tests" = x"yes"])
 
 # Checks for libraries.
 source $srcdir/versions.txt
@@ -302,7 +307,7 @@ cc-oci-runtime - $VERSION
 
        Unit tests               : $enable_tests
        Functional tests         : $run_functional_tests
-       Docker tests             : $enable_docker_tests
+       Docker tests             : $run_docker_tests
        Cppcheck                 : $enable_cppcheck
        Valgrind                 : $VALGRIND_ENABLED
        Code coverage            : $CODE_COVERAGE_ENABLED
