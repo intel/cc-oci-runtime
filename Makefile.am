@@ -56,7 +56,10 @@ src/commands/cc_oci_runtime-version.$(OBJEXT): \
 GENERATED_FILES = \
 	data/cc-oci-runtime.sh \
 	tests/functional/common.bash \
-	tests/functional/data/config-minimal-cc-oci.json
+	tests/functional/data/config-minimal-cc-oci.json \
+	tests/metrics/density/docker_cpu_usage.sh \
+	tests/metrics/density/docker_memory_usage.sh \
+	tests/metrics/workload_time/cor_create_time.sh
 
 $(GENERATED_FILES): %: %.in Makefile
 	$(AM_V_GEN)$(SED) \
@@ -220,7 +223,10 @@ EXTRA_DIST = \
 	$(cc_image_systemd_files) \
 	data/cc-oci-runtime.sh.in \
 	$(bats_test_sources) \
-	tests/integration
+	tests/integration \
+	tests/metrics/density/docker_cpu_usage.sh.in \
+	tests/metrics/density/docker_memory_usage.sh.in \
+	tests/metrics/workload_time/cor_create_time.sh.in
 
 if CPPCHECK
 CHECK_DEPS += cppcheck
