@@ -128,17 +128,35 @@ func NewProxy() *proxy {
 	}
 }
 
+// This variable is populated at link time with the value of:
+//   ${locatestatedir}/run/cc-oci-runtime/proxy
+var socketPath string
+
 func (proxy *proxy) Init() error {
+	var l net.Listener
+	var err error
+
 	fds := listenFds()
 
-	if len(fds) != 1 {
-		return fmt.Errorf("couldn't find activated socket (%d)", len(fds))
-	}
-
-	fd := fds[0]
-	l, err := net.FileListener(fd)
-	if err != nil {
-		return fmt.Errorf("couldn't listen on socket: %v", err)
+	if len(fds) > 1 {
+		return fmt.Errorf("too many activated sockets (%d)", len(fds))
+	} else if len(fds) == 1 {
+		fd := fds[0]
+		l, err = net.FileListener(fd)
+		if err != nil {
+			return fmt.Errorf("couldn't listen on socket: %v", err)
+		}
+	} else {
+		if err = os.Remove(socketPath); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("couldn't remove exiting socket: %v\n", err)
+		}
+		l, err = net.ListenUnix("unix", &net.UnixAddr{socketPath, "unix"})
+		if err != nil {
+			return fmt.Errorf("couldn't create AF_UNIX socket: %v", err)
+		}
+		if err = os.Chmod(socketPath, 0666|os.ModeSocket); err != nil {
+			return fmt.Errorf("couldn't set mode on socket: %v", err)
+		}
 	}
 
 	proxy.listener = l

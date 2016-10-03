@@ -224,8 +224,9 @@ systemdservicedir   = $(systemdsystemunitdir)
 systemdservice_DATA = $(systemdservice_files)
 endif
 
+proxy_ldflags = "-X main.socketPath=$(localstatedir)/run/cc-oci-runtime/proxy.sock"
 cc-proxy: $(cc_proxy_sources)
-	$(AM_V_GO)go build -o $@ $(srcdir)/proxy
+	$(AM_V_GO)go build -o $@ -ldflags=$(proxy_ldflags) $(srcdir)/proxy
 
 cc_proxy_sources =			\
 	proxy/api/api.go		\
