@@ -23,7 +23,6 @@
 
 setup() {
 	load common
-	load volume
 	cleanDockerPs
 	runtimeDocker
 	volName='volume1'
