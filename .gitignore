@@ -20,7 +20,7 @@ cc-oci-runtime-*.tar.xz
 /cc-proxy
 commit_id
 compile
-config.*
+/config.*
 configure
 CONTAINER-KERNEL
 cscope.files
