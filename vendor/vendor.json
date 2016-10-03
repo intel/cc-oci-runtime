@@ -8,5 +8,10 @@
 		"url": "https://github.com/pmezard/go-difflib.git",
 		"version": "792786c7",
 		"license": "BSD"
+	},
+	"github.com/davecgh/go-spew": {
+		"url": "https://github.com/davecgh/go-spew.git",
+		"version": "6d212800",
+		"license": "ISC"
 	}
 }
