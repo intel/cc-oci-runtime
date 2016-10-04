@@ -244,7 +244,9 @@ check-proxy:
 
 libexec_PROGRAMS = cc-shim
 
-cc_shim_SOURCES = shim/shim.c
+cc_shim_SOURCES = \
+	shim/shim.c \
+	shim/shim.h
 
 bats_test_sources = \
 	tests/functional/common.bash.in \

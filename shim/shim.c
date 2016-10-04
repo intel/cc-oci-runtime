@@ -31,18 +31,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 
-/* The shim would be handling fixed number of predefined fds.
- * This would be signal fd, stdin fd, proxy socket fd and an I/O
- * fd passed by the runtime
- */
-#define MAX_POLL_FDS 4
-
-/* These are the command ids used by hyperstart control message format.
- * cc-shim sends WINSIZE command on receving a SIGWINCH signal and 
- * a KILLCONTAINER command on receiving any other signal
- */
-#define WINSIZE 11
-#define KILLCONTAINER 18
+#include "shim.h"
 
 /* globals */
 /* Pipe used for capturing signal occurence */
