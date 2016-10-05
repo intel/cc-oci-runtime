@@ -30,12 +30,16 @@
 #include <sys/ioctl.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <getopt.h>
 
 #include "shim.h"
 
 /* globals */
+
 /* Pipe used for capturing signal occurence */
 int signal_pipe_fd[2];
+
+static char *program_name;
 
 /*!
  * Add file descriptor to the array of polled descriptors
@@ -88,6 +92,7 @@ err_exit(const char *format, ...)
 	if ( !format) {
 		return;
 	}
+	fprintf(stderr, "%s: ", program_name);
 	va_start(args, format);
 	vfprintf(stderr, format, args);
 	va_end(args);
@@ -296,25 +301,70 @@ handle_data(int infd, int outfd)
 	}
 }
 
+/*!
+ * Print program usage
+ */
+void
+print_usage(void) {
+	printf("%s: Usage\n", program_name);
+        printf("  -c,  --container-id   Container id\n");
+        printf("  -p,  --proxy-sock-fd  File descriptor of the socket connected to cc-proxy\n");
+        printf("  -h,  --help           Display this help message\n");
+}
+
 int
 main(int argc, char **argv)
 {
-	int proxy_sockfd;
-	struct sockaddr_un proxy_address;
-	char* container_id;
-	char* proxy_sock_path;
-	struct pollfd poll_fds[MAX_POLL_FDS];
-	nfds_t nfds = 0;
-	int ret;
-	struct sigaction sa;
+	int                proxy_sockfd;
+	struct             sockaddr_un proxy_address;
+	char              *container_id = NULL;
+	char              *proxy_sock_path;
+	struct pollfd      poll_fds[MAX_POLL_FDS] = {{-1}};
+	nfds_t             nfds = 0;
+	int                ret;
+	struct sigaction   sa;
+	int                c;
+	int                proxy_sock_fd = -1;
+	char              *endptr;
 
-	if (argc != 3) {
-		printf("Usage: cc-shim container_id proxy_socket_path");
-		exit(EXIT_FAILURE);
+	program_name = argv[0];
+
+	struct option prog_opts[] = {
+		{"container-id", required_argument, 0, 'c'},
+		{"proxy-sock-fd", required_argument, 0, 'p'},
+		{"help", no_argument, 0, 'h'},
+		{ 0, 0, 0, 0},
+	};
+
+	while ((c = getopt_long(argc, argv, "c:p:h", prog_opts, NULL))!= -1) {
+		switch (c) {
+			case 'c':
+				container_id = strdup(optarg);
+				break;
+			case 'p':
+				errno = 0;
+				ret = (int)strtol(optarg, &endptr, 10);
+				if ( errno || *endptr || ret < 0) {
+					err_exit("Invalid value for proxy socket fd\n");
+				}
+				proxy_sock_fd = ret;
+				break;
+			case 'h':
+				print_usage();
+				exit(EXIT_SUCCESS);
+			default:
+				print_usage();
+				exit(EXIT_FAILURE);
+		}
 	}
 
-	container_id = argv[1];
-	proxy_sock_path = argv[2];
+	if ( !container_id) {
+		err_exit("Missing container id\n");
+	}
+
+	if (proxy_sock_fd == -1) {
+		err_exit("Missing proxy socket file descriptor\n");
+	}
 
 	/* Using self pipe trick to handle signals in the main loop, other strategy
 	 * would be to clock signals and use signalfd()/ to handle signals synchronously
@@ -384,5 +434,7 @@ main(int argc, char **argv)
 		}
 #endif
 	}
+
+	free(container_id);
 	return 0;
 }
