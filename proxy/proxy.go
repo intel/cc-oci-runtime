@@ -16,7 +16,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -48,16 +47,17 @@ type client struct {
 }
 
 // "hello"
-func helloHandler(data []byte, userData interface{}) (map[string]interface{}, error) {
+func helloHandler(data []byte, userData interface{}, response *HandlerResponse) {
 	client := userData.(*client)
 	hello := api.Hello{}
 
 	if err := json.Unmarshal(data, &hello); err != nil {
-		return nil, err
+		response.SetError(err)
+		return
 	}
 
 	if hello.ContainerId == "" || hello.CtlSerial == "" || hello.IoSerial == "" {
-		return nil, errors.New("malformed hello command")
+		response.SetErrorMsg("malformed hello command")
 	}
 
 	proxy := client.proxy
@@ -65,8 +65,9 @@ func helloHandler(data []byte, userData interface{}) (map[string]interface{}, er
 	if _, ok := proxy.vms[hello.ContainerId]; ok {
 
 		proxy.Unlock()
-		return nil, fmt.Errorf("%s: container already registered",
+		response.SetErrorf("%s: container already registered",
 			hello.ContainerId)
+		return
 	}
 	vm := NewVM(hello.ContainerId, hello.CtlSerial, hello.IoSerial)
 	proxy.vms[hello.ContainerId] = vm
@@ -76,22 +77,22 @@ func helloHandler(data []byte, userData interface{}) (map[string]interface{}, er
 		proxy.Lock()
 		delete(proxy.vms, hello.ContainerId)
 		proxy.Unlock()
-		return nil, err
+		response.SetError(err)
+		return
 	}
 
 	client.vm = vm
-
-	return nil, nil
 }
 
 // "bye"
-func byeHandler(data []byte, userData interface{}) (map[string]interface{}, error) {
+func byeHandler(data []byte, userData interface{}, response *HandlerResponse) {
 	client := userData.(*client)
 	proxy := client.proxy
 	vm := client.vm
 
 	if vm == nil {
-		return nil, errors.New("client not attached to a vm")
+		response.SetErrorMsg("client not attached to a vm")
+		return
 	}
 
 	proxy.Lock()
@@ -100,26 +101,26 @@ func byeHandler(data []byte, userData interface{}) (map[string]interface{}, erro
 
 	client.vm = nil
 	vm.Close()
-
-	return nil, nil
 }
 
 // "hyper"
-func hyperHandler(data []byte, userData interface{}) (map[string]interface{}, error) {
+func hyperHandler(data []byte, userData interface{}, response *HandlerResponse) {
 	client := userData.(*client)
 	hyper := api.Hyper{}
 	vm := client.vm
 
 	if err := json.Unmarshal(data, &hyper); err != nil {
-		return nil, err
+		response.SetError(err)
+		return
 	}
 
 	if vm == nil {
-		return nil, errors.New("client not attached to a vm")
+		response.SetErrorMsg("client not attached to a vm")
+		return
 	}
 
 	err := vm.SendMessage(hyper.HyperName, hyper.Data)
-	return nil, err
+	response.SetError(err)
 }
 
 func NewProxy() *proxy {

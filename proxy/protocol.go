@@ -16,6 +16,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -33,7 +34,36 @@ type Response struct {
 }
 
 // XXX: could do with its own package to remove that ugly namespacing
-type ProtocolHandler func([]byte, interface{}) (map[string]interface{}, error)
+type ProtocolHandler func([]byte, interface{}, *HandlerResponse)
+
+// Encapsulates the different parts of what a handler can return.
+type HandlerResponse struct {
+	err     error
+	results map[string]interface{}
+}
+
+func (r *HandlerResponse) SetError(err error) {
+	r.err = err
+}
+
+func (r *HandlerResponse) SetErrorMsg(msg string) {
+	r.err = errors.New(msg)
+}
+
+func (r *HandlerResponse) SetErrorf(format string, a ...interface{}) {
+	r.SetError(fmt.Errorf(format, a...))
+}
+
+func (r *HandlerResponse) SetResults(results map[string]interface{}) {
+	r.results = results
+}
+
+func (r *HandlerResponse) AddResult(key string, value interface{}) {
+	if r.results == nil {
+		r.results = make(map[string]interface{})
+	}
+	r.results[key] = value
+}
 
 type Protocol struct {
 	handlers map[string]ProtocolHandler
@@ -74,16 +104,18 @@ func (proto *Protocol) handleRequest(ctx *clientCtx, req *Request) *Response {
 		}
 	}
 
-	if respMap, err := handler(req.Data, ctx.userData); err != nil {
+	var r HandlerResponse
+	handler(req.Data, ctx.userData, &r)
+	if r.err != nil {
 		return &Response{
 			Success: false,
-			Error:   err.Error(),
-			Data:    respMap,
+			Error:   r.err.Error(),
+			Data:    r.results,
 		}
 	} else {
 		return &Response{
 			Success: true,
-			Data:    respMap,
+			Data:    r.results,
 		}
 	}
 }

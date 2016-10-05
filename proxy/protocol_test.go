@@ -16,7 +16,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"flag"
 	"io"
 	"net"
@@ -95,13 +94,11 @@ type myUserData struct {
 
 var testUserData myUserData
 
-func userDataHandler(data []byte, userData interface{}) (map[string]interface{}, error) {
+func userDataHandler(data []byte, userData interface{}, response *HandlerResponse) {
 	p := userData.(*myUserData)
 	assert.Equal(p.t, p, &testUserData)
 
 	p.wg.Done()
-
-	return nil, nil
 }
 
 func TestUserData(t *testing.T) {
@@ -121,37 +118,31 @@ func TestUserData(t *testing.T) {
 }
 
 // Tests various behaviours of the protocol main loop and handler dispatching
-func simpleHandler(data []byte, userData interface{}) (map[string]interface{}, error) {
-	return nil, nil
+func simpleHandler(data []byte, userData interface{}, response *HandlerResponse) {
 }
 
 type Echo struct {
 	Arg string
 }
 
-func echoHandler(data []byte, userData interface{}) (map[string]interface{}, error) {
+func echoHandler(data []byte, userData interface{}, response *HandlerResponse) {
 	echo := Echo{}
 	json.Unmarshal(data, &echo)
 
-	return map[string]interface{}{
-		"result": echo.Arg,
-	}, nil
+	response.AddResult("result", echo.Arg)
 }
 
-func returnDataHandler(data []byte, userData interface{}) (map[string]interface{}, error) {
-	return map[string]interface{}{
-		"foo": "bar",
-	}, nil
+func returnDataHandler(data []byte, userData interface{}, response *HandlerResponse) {
+	response.AddResult("foo", "bar")
 }
 
-func returnErrorHandler(data []byte, userData interface{}) (map[string]interface{}, error) {
-	return nil, errors.New("This is an error")
+func returnErrorHandler(data []byte, userData interface{}, response *HandlerResponse) {
+	response.SetErrorMsg("This is an error")
 }
 
-func returnDataErrorHandler(data []byte, userData interface{}) (map[string]interface{}, error) {
-	return map[string]interface{}{
-		"foo": "bar",
-	}, errors.New("This is an error")
+func returnDataErrorHandler(data []byte, userData interface{}, response *HandlerResponse) {
+	response.AddResult("foo", "bar")
+	response.SetErrorMsg("This is an error")
 }
 
 func TestProtocol(t *testing.T) {
