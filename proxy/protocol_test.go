@@ -21,7 +21,6 @@ import (
 	"net"
 	"os"
 	"sync"
-	"syscall"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -34,34 +33,16 @@ type mockServer struct {
 	serverConn, clientConn net.Conn
 }
 
-func Socketpair(t *testing.T) (*net.UnixConn, *net.UnixConn) {
-	fds, err := syscall.Socketpair(syscall.AF_UNIX, syscall.SOCK_STREAM, 0)
-	assert.Nil(t, err)
-
-	// First end
-	f0 := os.NewFile(uintptr(fds[0]), "")
-	c0, err := net.FileConn(f0)
-	assert.Nil(t, err)
-
-	// Second end
-	f1 := os.NewFile(uintptr(fds[1]), "")
-	c1, err := net.FileConn(f1)
-	assert.Nil(t, err)
-
-	// os.NewFile() dups the fd and we're reponsible for closing it
-	f0.Close()
-	f1.Close()
-
-	return c0.(*net.UnixConn), c1.(*net.UnixConn)
-}
-
 func NewMockServer(t *testing.T, proto *Protocol) *mockServer {
+	var err error
+
 	server := &mockServer{
 		t:     t,
 		proto: proto,
 	}
 
-	server.serverConn, server.clientConn = Socketpair(t)
+	server.serverConn, server.clientConn, err = Socketpair()
+	assert.Nil(t, err)
 
 	return server
 }

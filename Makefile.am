@@ -234,6 +234,7 @@ cc_proxy_sources =			\
 	proxy/protocol.go		\
 	proxy/proxy.go			\
 	proxy/socket_activation.go	\
+	proxy/syscall.go		\
 	proxy/vm.go
 
 CHECK_DEPS += check-proxy
