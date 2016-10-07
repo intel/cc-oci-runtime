@@ -103,6 +103,50 @@ func byeHandler(data []byte, userData interface{}, response *HandlerResponse) {
 	vm.Close()
 }
 
+// "allocateIO"
+func allocateIoHandler(data []byte, userData interface{}, response *HandlerResponse) {
+	client := userData.(*client)
+	vm := client.vm
+
+	allocateIo := api.AllocateIo{}
+	if err := json.Unmarshal(data, &allocateIo); err != nil {
+		response.SetError(err)
+		return
+	}
+
+	if allocateIo.NStreams < 1 || allocateIo.NStreams > 2 {
+		response.SetErrorf("asking for unexpected number of streams (%d)",
+			allocateIo.NStreams)
+	}
+
+	if vm == nil {
+		response.SetErrorMsg("client not attached to a vm")
+		return
+	}
+
+	// We'll send c0 to the client, keep c1
+	c0, c1, err := Socketpair()
+	if err != nil {
+		response.SetError(err)
+		return
+	}
+
+	f0, err := c0.File()
+	if err != nil {
+		response.SetError(err)
+		return
+	}
+
+	ioBase := vm.AllocateIo(allocateIo.NStreams, c1)
+
+	response.AddResult("ioBase", ioBase)
+	response.SetFile(f0)
+
+	// File() dups the underlying fd, so it's safe to close c0 here (will
+	// keep the c0 <-> c1 connection alive).
+	c0.Close()
+}
+
 // "hyper"
 func hyperHandler(data []byte, userData interface{}, response *HandlerResponse) {
 	client := userData.(*client)
@@ -171,6 +215,7 @@ func (proxy *proxy) Serve() {
 	proto := NewProtocol()
 	proto.Handle("hello", helloHandler)
 	proto.Handle("bye", byeHandler)
+	proto.Handle("allocateIO", allocateIoHandler)
 	proto.Handle("hyper", hyperHandler)
 
 	for {

@@ -40,6 +40,7 @@ type ProtocolHandler func([]byte, interface{}, *HandlerResponse)
 type HandlerResponse struct {
 	err     error
 	results map[string]interface{}
+	file    *os.File
 }
 
 func (r *HandlerResponse) SetError(err error) {
@@ -63,6 +64,10 @@ func (r *HandlerResponse) AddResult(key string, value interface{}) {
 		r.results = make(map[string]interface{})
 	}
 	r.results[key] = value
+}
+
+func (r *HandlerResponse) SetFile(f *os.File) {
+	r.file = f
 }
 
 type Protocol struct {

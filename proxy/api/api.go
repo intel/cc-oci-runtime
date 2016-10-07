@@ -48,6 +48,57 @@ type Hello struct {
 type Bye struct {
 }
 
+// The allocateIO payload asks the proxy to allocate IO stream sequence numbers
+// for use with the execcmd hyperstart command.
+//
+// A stream sequence number is a globally unique number identifying a data
+// stream between hyperstart and clients. This is used to multiplex stdin,
+// stdout and stderr of several processes onto a single channel. Sequence
+// numbers are associated with a process running on the VM and used by the
+// proxy to route I/O data to and from the corresponding client.
+//
+// One can allocate up to two streams with allocateIO. stdin and stdout use the
+// same sequence number as they can be differentiated by the direction of the
+// data. If wanting stderr as its own stream, a second sequence number needs to
+// be allocated.
+//
+// The result of an allocateIO operation is encoded as an AllocateIoResult.
+//
+//  {
+//    "id": "allocateIO",
+//    "data": {
+//      "nStreams": 2
+//    }
+//  }
+type AllocateIo struct {
+	NStreams int `json:"nStreams"`
+}
+
+// allocateIOResult is the result from a successful allocateIO.
+//
+// The sequence numbers allocated are:
+//   ioBase, ioBase + 1, ..., ioBase + nStreams - 1
+//
+// Those sequence numbers should then be used by a client to populate an
+// "execcmd" hyperstart command.
+//
+// The AllocateIOResult response is followed by a file descriptor. This file
+// descriptor is sent through the out of band data mechanism of AF_UNIX sockets
+// along with a single byte, 'F'.
+//
+// The proxy will route the I/O streams with the sequence numbers allocated by
+// this operation between that file descriptor and hyperstart.
+//
+//  {
+//    "success": true,
+//    "data": {
+//      "ioBase": 1234
+//    }
+//  }
+type AllocateIoResult struct {
+	IoBase uint64 `json:"ioBase"`
+}
+
 // The hyper payload will forward an hyperstart command to hyperstart.
 //
 //  {
