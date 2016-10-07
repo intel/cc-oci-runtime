@@ -38,6 +38,20 @@ type Hello struct {
 	IoSerial    string `json:"ioSerial"`
 }
 
+// The attach payload can be used to associate clients to an already known VM.
+// attach cannot be issued if a hello for this container hasn't been issued
+// beforehand.
+//
+//  {
+//    "id": "attach",
+//    "data": {
+//      "containerId": "756535dc6e9ab9b560f84c8..."
+//    }
+//  }
+type Attach struct {
+	ContainerId string `json:"containerId"`
+}
+
 // The bye payload does the opposite of what hello does, indicating to the
 // proxy it should release resources created by hello. This command has no
 // parameter.

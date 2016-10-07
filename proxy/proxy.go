@@ -84,6 +84,29 @@ func helloHandler(data []byte, userData interface{}, response *HandlerResponse) 
 	client.vm = vm
 }
 
+// "attach"
+func attachHandler(data []byte, userData interface{}, response *HandlerResponse) {
+	client := userData.(*client)
+	proxy := client.proxy
+
+	attach := api.Attach{}
+	if err := json.Unmarshal(data, &attach); err != nil {
+		response.SetError(err)
+		return
+	}
+
+	proxy.Lock()
+	vm := proxy.vms[attach.ContainerId]
+	proxy.Unlock()
+
+	if vm == nil {
+		response.SetErrorf("unknown containerId: %s", attach.ContainerId)
+		return
+	}
+
+	client.vm = vm
+}
+
 // "bye"
 func byeHandler(data []byte, userData interface{}, response *HandlerResponse) {
 	client := userData.(*client)
@@ -214,6 +237,7 @@ func (proxy *proxy) Serve() {
 	// Define the client (runtime/shim) <-> proxy protocol
 	proto := NewProtocol()
 	proto.Handle("hello", helloHandler)
+	proto.Handle("attach", attachHandler)
 	proto.Handle("bye", byeHandler)
 	proto.Handle("allocateIO", allocateIoHandler)
 	proto.Handle("hyper", hyperHandler)
