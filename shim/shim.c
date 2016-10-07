@@ -31,7 +31,9 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <getopt.h>
+#include <stdbool.h>
 
+#include "log.h"
 #include "shim.h"
 
 /* globals */
@@ -309,6 +311,7 @@ print_usage(void) {
 	printf("%s: Usage\n", program_name);
         printf("  -c,  --container-id   Container id\n");
         printf("  -p,  --proxy-sock-fd  File descriptor of the socket connected to cc-proxy\n");
+        printf("  -d,  --debug          Enable debug output\n");
         printf("  -h,  --help           Display this help message\n");
 }
 
@@ -326,12 +329,14 @@ main(int argc, char **argv)
 	int                c;
 	int                proxy_sock_fd = -1;
 	char              *endptr;
+	bool               debug = false;
 
 	program_name = argv[0];
 
 	struct option prog_opts[] = {
 		{"container-id", required_argument, 0, 'c'},
 		{"proxy-sock-fd", required_argument, 0, 'p'},
+		{"debug", no_argument, 0, 'd'},
 		{"help", no_argument, 0, 'h'},
 		{ 0, 0, 0, 0},
 	};
@@ -349,6 +354,9 @@ main(int argc, char **argv)
 				}
 				proxy_sock_fd = ret;
 				break;
+			case 'd':
+				debug = true;
+				break;
 			case 'h':
 				print_usage();
 				exit(EXIT_SUCCESS);
@@ -365,6 +373,8 @@ main(int argc, char **argv)
 	if (proxy_sock_fd == -1) {
 		err_exit("Missing proxy socket file descriptor\n");
 	}
+
+	shim_log_init(debug);
 
 	/* Using self pipe trick to handle signals in the main loop, other strategy
 	 * would be to clock signals and use signalfd()/ to handle signals synchronously
