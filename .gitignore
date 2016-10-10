@@ -26,6 +26,7 @@ cscope.files
 cscope.in.out
 cscope.po.out
 data/cc-oci-runtime.sh
+data/run-bats.sh
 data/config.json
 data/hypervisor.args
 data/vm.json

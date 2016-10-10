@@ -55,6 +55,7 @@ src/commands/cc_oci_runtime-version.$(OBJEXT): \
 
 GENERATED_FILES = \
 	data/cc-oci-runtime.sh \
+	data/run-bats.sh \
 	tests/functional/common.bash \
 	tests/functional/data/config-minimal-cc-oci.json
 
@@ -68,6 +69,7 @@ $(GENERATED_FILES): %: %.in Makefile
 		-e 's|[@]DEFAULTSDIR[@]|$(DEFAULTSDIR)|g' \
 		-e 's|[@]PACKAGE_NAME[@]|$(PACKAGE_NAME)|g' \
 		-e 's|[@]QEMU_PATH[@]|$(QEMU_PATH)|g' \
+		-e 's|[@]BATS_PATH[@]|$(BATS_PATH)|g' \
 		-e 's|[@]ROOTFS_PATH[@]|$(BUNDLE_TEST_PATH)/rootfs|g' \
 		-e 's|[@]SYSCONFDIR[@]|$(SYSCONFDIR)|g' \
 		"$<" > "$@"
@@ -196,6 +198,7 @@ cc_oci_runtime_CFLAGS = \
 
 bats_test_sources = \
 	tests/functional/common.bash.in \
+	data/run-bats.sh.in \
 	tests/functional/data/config-minimal-cc-oci.json.in \
 	tests/functional/help.bats \
 	tests/functional/kill.bats \
@@ -237,7 +240,7 @@ FUNCTIONAL_TESTS_DEPS += cc-oci-runtime $(GENERATED_FILES)
 functional-tests: $(FUNCTIONAL_TESTS_DEPS)
 		$(AM_V_GEN)test -n "$(BUNDLE_TEST_PATH)" && \
 			echo "Using bundle '$(BUNDLE_TEST_PATH)'" || true
-		@$(BATS_PATH) $(srcdir)/tests/functional/
+		@bash $(srcdir)/data/run-bats.sh $(srcdir)/tests/functional/
 endif
 
 if DOCKER_TESTS
