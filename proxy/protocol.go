@@ -20,18 +20,9 @@ import (
 	"fmt"
 	"net"
 	"os"
+
+	"github.com/01org/cc-oci-runtime/proxy/api"
 )
-
-type Request struct {
-	Id   string          `json:"id"`
-	Data json.RawMessage `json:"data"`
-}
-
-type Response struct {
-	Success bool                   `json:"success"`
-	Error   string                 `json:"error,omitempty"`
-	Data    map[string]interface{} `json:"data,omitempty"`
-}
 
 // XXX: could do with its own package to remove that ugly namespacing
 type ProtocolHandler func([]byte, interface{}, *HandlerResponse)
@@ -93,9 +84,9 @@ type clientCtx struct {
 	userData interface{}
 }
 
-func (proto *Protocol) handleRequest(ctx *clientCtx, req *Request) *Response {
+func (proto *Protocol) handleRequest(ctx *clientCtx, req *api.Request) *api.Response {
 	if req.Id == "" {
-		return &Response{
+		return &api.Response{
 			Success: false,
 			Error:   "no 'id' field in request",
 		}
@@ -103,7 +94,7 @@ func (proto *Protocol) handleRequest(ctx *clientCtx, req *Request) *Response {
 
 	handler, ok := proto.handlers[req.Id]
 	if !ok {
-		return &Response{
+		return &api.Response{
 			Success: false,
 			Error:   fmt.Sprintf("no payload named '%s'", req.Id),
 		}
@@ -112,13 +103,13 @@ func (proto *Protocol) handleRequest(ctx *clientCtx, req *Request) *Response {
 	var r HandlerResponse
 	handler(req.Data, ctx.userData, &r)
 	if r.err != nil {
-		return &Response{
+		return &api.Response{
 			Success: false,
 			Error:   r.err.Error(),
 			Data:    r.results,
 		}
 	} else {
-		return &Response{
+		return &api.Response{
 			Success: true,
 			Data:    r.results,
 		}
@@ -135,7 +126,7 @@ func (proto *Protocol) Serve(conn net.Conn, userData interface{}) {
 
 	for {
 		// Parse a request.
-		var req Request
+		var req api.Request
 		err := ctx.decoder.Decode(&req)
 		if err != nil {
 			// EOF or the client isn't even sending proper JSON,
