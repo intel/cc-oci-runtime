@@ -69,9 +69,11 @@ Only run functional tests::
 
     $ make functional-test
 
-Run a specific tests::
+To Run a specific tests is needed to use run-bats.sh script 
+to run with network namespace unshared (done by docker); 
+otherwise cc-oci-runtime will set container network using host interaces::
 
-    $ bats tests/functional/test-name.bats
+    $ bash ./data/run-bats.sh tests/functional/test-name.bats
 
 Links
 -----
