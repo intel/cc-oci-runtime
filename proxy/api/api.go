@@ -118,7 +118,12 @@ type AllocateIoResult struct {
 //  {
 //    "id": "hyper",
 //    "data": {
-//      "hyperName": "ping"
+//      "hyperName": "startpod",
+//      "data": {
+//        "hostname": "clearlinux",
+//        "containers": [],
+//        "shareDir": "rootfs"
+//      }
 //    }
 //  }
 type Hyper struct {
