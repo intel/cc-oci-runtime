@@ -28,7 +28,7 @@ import (
 // Each Request has a corresponding Response message sent back from the proxy.
 type Request struct {
 	Id   string          `json:"id"`
-	Data json.RawMessage `json:"data"`
+	Data json.RawMessage `json:"data,omitempty"`
 }
 
 // A Response is a JSON message sent back from the proxy to a client after a
