@@ -115,11 +115,6 @@
 /** Architecture we expect \ref CC_OCI_CONFIG_FILE to specify. */
 #define CC_OCI_EXPECTED_ARCHITECTURE	"amd64"
 
-/** File that will be executed automatically on VM boot by
- * container-workload.service.
- */
-#define CC_OCI_WORKLOAD_FILE		"/.containerexec"
-
 /** Name of file containing environment variables that will be set
  * inside the VM.
  */

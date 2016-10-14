@@ -810,103 +810,6 @@ START_TEST(test_cc_oci_vm_running) {
 
 } END_TEST
 
-START_TEST(test_cc_oci_create_container_workload) {
-	gboolean ret;
-	g_autofree gchar *tmpdir = NULL;
-	struct cc_oci_config *config = NULL;
-	g_autofree gchar *execfile = NULL;
-	g_autofree gchar *envfile = NULL;
-	g_autofree gchar *exec_contents = NULL;
-	g_autofree gchar *env_contents = NULL;
-	gchar **fields;
-
-	config = cc_oci_config_create ();
-	ck_assert (config);
-
-	tmpdir = g_dir_make_tmp (NULL, NULL);
-	ck_assert (tmpdir);
-
-	ck_assert (! cc_oci_create_container_workload (NULL));
-	ck_assert (! cc_oci_create_container_workload (config));
-
-	g_strlcpy (config->oci.root.path,
-			tmpdir,
-			sizeof (config->oci.root.path));
-
-	g_strlcpy (config->oci.process.cwd,
-			"/guest/side/directory",
-			sizeof (config->oci.process.cwd));
-
-	config->oci.process.args = g_new0 (gchar *, 4);
-	config->oci.process.args[0] = g_strdup ("echo");
-	config->oci.process.args[1] = g_strdup ("hello");
-	config->oci.process.args[2] = g_strdup ("world");
-
-	config->oci.process.env = g_new0 (gchar *, 4);
-	config->oci.process.env[0] = g_strdup ("foo=bar");
-	config->oci.process.env[1] = g_strdup ("hello=world");
-	config->oci.process.env[2] = g_strdup ("a=b");
-
-	/* no vm config */
-	ck_assert (! cc_oci_create_container_workload (config));
-
-	config->vm = g_malloc0 (sizeof(struct cc_oci_vm_cfg));
-	ck_assert (config->vm);
-
-	g_strlcpy (config->vm->hypervisor_path, "hypervisor-path",
-			sizeof (config->vm->hypervisor_path));
-
-	g_strlcpy (config->vm->image_path, "image-path",
-			sizeof (config->vm->image_path));
-
-	g_strlcpy (config->vm->kernel_path, "kernel-path",
-			sizeof (config->vm->kernel_path));
-
-	g_strlcpy (config->vm->workload_path, "workload-path",
-			sizeof (config->vm->workload_path));
-
-	config->vm->kernel_params = g_strdup ("kernel params");
-
-	execfile = g_build_path ("/", tmpdir, ".containerexec", NULL);
-	ck_assert (execfile);
-	envfile = g_build_path ("/", tmpdir, ".containerenv", NULL);
-	ck_assert (envfile);
-
-	ck_assert (cc_oci_create_container_workload (config));
-
-	ret = g_file_get_contents (execfile, &exec_contents, NULL, NULL);
-	ck_assert (ret);
-
-	fields = g_strsplit (exec_contents, "\n", -1);
-	ck_assert (fields);
-
-	ck_assert (! g_strcmp0 (fields[0], "#!/bin/sh"));
-	ck_assert (! g_strcmp0 (fields[1], "cd '/guest/side/directory'"));
-	ck_assert (! g_strcmp0 (fields[2], "'echo' 'hello' 'world'"));
-	g_strfreev (fields);
-
-	ret = g_file_get_contents (envfile, &env_contents, NULL, NULL);
-	ck_assert (ret);
-
-	fields = g_strsplit (env_contents, "\n", -1);
-	ck_assert (fields);
-
-	ck_assert (g_strv_contains ((const gchar * const *)fields, "HOME=/"));
-	ck_assert (g_strv_contains ((const gchar * const *)fields, "foo=bar"));
-	ck_assert (g_strv_contains ((const gchar * const *)fields, "hello=world"));
-	ck_assert (g_strv_contains ((const gchar * const *)fields, "a=b"));
-	g_strfreev (fields);
-
-	ck_assert (g_file_test (execfile, G_FILE_TEST_IS_EXECUTABLE));
-
-	/* clean up */
-	ck_assert (! g_remove (execfile));
-	ck_assert (! g_remove (envfile));
-	ck_assert (! g_remove (tmpdir));
-	cc_oci_config_free (config);
-
-} END_TEST
-
 START_TEST(test_get_user_home_dir) {
 	struct cc_oci_config *config = NULL;
 	gchar *user_home;
@@ -1114,7 +1017,6 @@ Suite* make_oci_suite(void) {
 	ADD_TEST (test_cc_oci_config_update, s);
 	ADD_TEST (test_cc_oci_get_config_and_state, s);
 	ADD_TEST (test_cc_oci_vm_running, s);
-	ADD_TEST (test_cc_oci_create_container_workload, s);
 	ADD_TEST (test_cc_oci_kill, s);
 	ADD_TEST (test_get_user_home_dir, s);
 	ADD_TEST (test_set_env_home, s);
