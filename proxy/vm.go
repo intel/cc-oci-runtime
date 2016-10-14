@@ -94,11 +94,9 @@ func (vm *vm) openSockets() error {
 func (vm *vm) closeSockets() {
 	if vm.ctl != nil {
 		vm.ctl.Close()
-		vm.ctl = nil
 	}
 	if vm.io != nil {
 		vm.io.Close()
-		vm.io = nil
 	}
 }
 
@@ -275,6 +273,8 @@ func (vm *vm) Connect() error {
 	}
 	if err := vm.waitForReady(); err != nil {
 		vm.closeSockets()
+		vm.ctl = nil
+		vm.io = nil
 		return err
 	}
 
@@ -455,4 +455,6 @@ func (vm *vm) Close() {
 
 	// Wait for VM global goroutines
 	vm.wg.Wait()
+	vm.ctl = nil
+	vm.io = nil
 }
