@@ -240,7 +240,7 @@ cc_proxy_sources =			\
 CHECK_DEPS += check-proxy
 
 check-proxy:
-	go test $(srcdir)/proxy
+	go test -timeout 2s $(srcdir)/proxy
 
 bats_test_sources = \
 	tests/functional/common.bash.in \
