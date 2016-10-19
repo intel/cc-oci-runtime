@@ -84,7 +84,7 @@ type clientCtx struct {
 	userData interface{}
 }
 
-func (proto *Protocol) handleRequest(ctx *clientCtx, req *api.Request) *api.Response {
+func (proto *Protocol) handleRequest(ctx *clientCtx, req *api.Request, hr *HandlerResponse) *api.Response {
 	if req.Id == "" {
 		return &api.Response{
 			Success: false,
@@ -100,18 +100,17 @@ func (proto *Protocol) handleRequest(ctx *clientCtx, req *api.Request) *api.Resp
 		}
 	}
 
-	var r HandlerResponse
-	handler(req.Data, ctx.userData, &r)
-	if r.err != nil {
+	handler(req.Data, ctx.userData, hr)
+	if hr.err != nil {
 		return &api.Response{
 			Success: false,
-			Error:   r.err.Error(),
-			Data:    r.results,
+			Error:   hr.err.Error(),
+			Data:    hr.results,
 		}
 	} else {
 		return &api.Response{
 			Success: true,
-			Data:    r.results,
+			Data:    hr.results,
 		}
 	}
 }
@@ -126,7 +125,9 @@ func (proto *Protocol) Serve(conn net.Conn, userData interface{}) {
 
 	for {
 		// Parse a request.
-		var req api.Request
+		req := api.Request{}
+		hr := HandlerResponse{}
+
 		err := ctx.decoder.Decode(&req)
 		if err != nil {
 			// EOF or the client isn't even sending proper JSON,
@@ -136,7 +137,7 @@ func (proto *Protocol) Serve(conn net.Conn, userData interface{}) {
 		}
 
 		// Execute the corresponding handler
-		resp := proto.handleRequest(ctx, &req)
+		resp := proto.handleRequest(ctx, &req, &hr)
 
 		// Send the response back to the client.
 		if err = ctx.encoder.Encode(resp); err != nil {
@@ -146,5 +147,14 @@ func (proto *Protocol) Serve(conn net.Conn, userData interface{}) {
 			conn.Close()
 			return
 		}
+
+		// And send a fd if the handler associated a file with the response
+		if hr.file != nil {
+			if err = api.WriteFd(conn.(*net.UnixConn), int(hr.file.Fd())); err != nil {
+				fmt.Fprintf(os.Stderr, "error sending fd: %v\n", err)
+			}
+			hr.file.Close()
+		}
+
 	}
 }
