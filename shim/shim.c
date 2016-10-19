@@ -298,6 +298,19 @@ handle_data(int infd, int outfd)
 	}
 }
 
+long long
+parse_numeric_option(char *input) {
+	char       *endptr;
+	long long   num;
+
+	errno = 0;
+	num = strtoll(input, &endptr, 10);
+	if ( errno || *endptr ) {
+		return -1;
+	}
+	return num;
+}
+
 /*!
  * Print program usage
  */
@@ -306,6 +319,9 @@ print_usage(void) {
 	printf("%s: Usage\n", program_name);
         printf("  -c,  --container-id   Container id\n");
         printf("  -p,  --proxy-sock-fd  File descriptor of the socket connected to cc-proxy\n");
+        printf("  -o,  --proxy-io-fd    File descriptor of I/0 fd sent by the cc-proxy\n");
+        printf("  -s,  --seq-no         Sequence no for stdin and stdout\n");
+        printf("  -e,  --err-seq-no     Sequence no for stderr\n");
         printf("  -d,  --debug          Enable debug output\n");
         printf("  -h,  --help           Display this help message\n");
 }
@@ -323,6 +339,9 @@ main(int argc, char **argv)
 	struct sigaction   sa;
 	int                c;
 	int                proxy_sock_fd = -1;
+	int                proxy_io_fd = -1;
+	int64_t            io_seq_no = 0;
+	int64_t            err_seq_no = 0;
 	char              *endptr;
 	bool               debug = false;
 
@@ -331,23 +350,42 @@ main(int argc, char **argv)
 	struct option prog_opts[] = {
 		{"container-id", required_argument, 0, 'c'},
 		{"proxy-sock-fd", required_argument, 0, 'p'},
+		{"proxy-io-fd", required_argument, 0, 'o'},
+		{"seq-no", required_argument, 0, 's'},
+		{"err-seq-no", required_argument, 0, 'e'},
 		{"debug", no_argument, 0, 'd'},
 		{"help", no_argument, 0, 'h'},
 		{ 0, 0, 0, 0},
 	};
 
-	while ((c = getopt_long(argc, argv, "c:p:h", prog_opts, NULL))!= -1) {
+	while ((c = getopt_long(argc, argv, "c:p:o:s:e:dh", prog_opts, NULL))!= -1) {
 		switch (c) {
 			case 'c':
 				container_id = strdup(optarg);
 				break;
 			case 'p':
-				errno = 0;
-				ret = (int)strtol(optarg, &endptr, 10);
-				if ( errno || *endptr || ret < 0) {
+				proxy_sock_fd = (int)parse_numeric_option(optarg);
+				if (proxy_sock_fd < 0) {
 					err_exit("Invalid value for proxy socket fd\n");
 				}
-				proxy_sock_fd = ret;
+				break;
+			case 'o':
+				proxy_io_fd = (int)parse_numeric_option(optarg);
+				if (proxy_io_fd < 0) {
+					err_exit("Invalid value for proxy IO fd\n");
+				}
+				break;
+			case 's':
+				io_seq_no = (int64_t)parse_numeric_option(optarg);
+				if (io_seq_no < 0) {
+					err_exit("Invalid value for I/O seqence no\n");
+				}
+				break;
+			case 'e':
+				err_seq_no = (int64_t)parse_numeric_option(optarg);
+				if (err_seq_no < 0) {
+					err_exit("Invalid value for error sequence no\n");
+				}
 				break;
 			case 'd':
 				debug = true;
@@ -367,6 +405,14 @@ main(int argc, char **argv)
 
 	if (proxy_sock_fd == -1) {
 		err_exit("Missing proxy socket file descriptor\n");
+	}
+
+	if (proxy_io_fd == -1) {
+		err_exit("Missing proxy I/O file descriptor\n");
+	}
+
+	if (io_seq_no == 0) {
+		err_exit("Missing I/O sequence number\n");
 	}
 
 	shim_log_init(debug);
