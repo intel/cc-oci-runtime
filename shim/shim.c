@@ -249,24 +249,19 @@ handle_signals(char *container_id, int outfd) {
 		if (sig == SIGWINCH ) {
 			cmd_type = WINSIZE;
 			if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) == -1) {
-				fprintf(stderr, "Error getting the current window size: %s\n",
+				shim_warning("Error getting the current window size: %s\n",
 					strerror(errno));
 				continue;
 			}
 			ret = asprintf(&buf, "{\"container_id\":\"%s\", \"row\":\"%d\", \"col\":\"%d\"}",
                                                         container_id, ws.ws_row, ws.ws_col);
-		#ifdef DEBUG
-			//TODO: Add cmd line option for debug and file to log to
-			printf("handled SIGWINCH for container %s (row=%d, col=%d)\n",
+			shim_debug("handled SIGWINCH for container %s (row=%d, col=%d)\n",
 				container_id, ws.ws_row, ws.ws_col);
-		#endif
 		} else {
 			cmd_type = KILLCONTAINER;
 			ret = asprintf(&buf, "{\"container_id\":\"%s\", \"signal\":\"%d\"}",
                                                         container_id, sig);
-		#ifdef DEBUG
-			printf("Killed container %s with signal %d\n", container_id, sig);
-		#endif
+			shim_debug("Killed container %s with signal %d\n", container_id, sig);
 		}
 		if (ret == -1) {
 			abort();
@@ -297,7 +292,7 @@ handle_data(int infd, int outfd)
 	while ((nread = read(infd, buf, BUFSIZ))!= -1) {
 		ret = (int)write(outfd, buf, (size_t)nread);
 		if (ret == -1) {
-			fprintf(stderr, "Error writing from fd %d to fd %d: %s\n", infd, outfd, strerror(errno));
+			shim_warning("Error writing from fd %d to fd %d: %s\n", infd, outfd, strerror(errno));
 			return;
 		}
 	}
@@ -380,8 +375,7 @@ main(int argc, char **argv)
 	 * would be to clock signals and use signalfd()/ to handle signals synchronously
 	 */
 	if (pipe(signal_pipe_fd) == -1) {
-		printf("Error creating pipe\n");
-		exit(EXIT_FAILURE);
+		err_exit("Error creating pipe\n");
 	}
 
 	// Add read end of pipe to pollfd list and make it non-bocking
