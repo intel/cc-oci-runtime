@@ -20,6 +20,14 @@
  */
 #define MAX_POLL_FDS 4
 
+struct cc_shim {
+	char       *container_id;
+	int         proxy_sock_fd;
+	int         proxy_io_fd;
+	uint64_t    io_seq_no;
+	uint64_t    err_seq_no;
+};
+
 // Hyperstart control cmd ids : apiversion 4242
 enum {
 	GETVERSION,

@@ -329,7 +329,13 @@ print_usage(void) {
 int
 main(int argc, char **argv)
 {
-	int                proxy_sockfd;
+	struct cc_shim shim = {
+		.container_id   =  NULL,
+		.proxy_sock_fd  = -1,
+		.proxy_io_fd    = -1,
+		.io_seq_no      =  0,
+		.err_seq_no     =  0,
+	};
 	struct             sockaddr_un proxy_address;
 	char              *container_id = NULL;
 	char              *proxy_sock_path;
@@ -338,11 +344,6 @@ main(int argc, char **argv)
 	int                ret;
 	struct sigaction   sa;
 	int                c;
-	int                proxy_sock_fd = -1;
-	int                proxy_io_fd = -1;
-	int64_t            io_seq_no = 0;
-	int64_t            err_seq_no = 0;
-	char              *endptr;
 	bool               debug = false;
 
 	program_name = argv[0];
@@ -361,29 +362,29 @@ main(int argc, char **argv)
 	while ((c = getopt_long(argc, argv, "c:p:o:s:e:dh", prog_opts, NULL))!= -1) {
 		switch (c) {
 			case 'c':
-				container_id = strdup(optarg);
+				shim.container_id = strdup(optarg);
 				break;
 			case 'p':
-				proxy_sock_fd = (int)parse_numeric_option(optarg);
-				if (proxy_sock_fd < 0) {
+				shim.proxy_sock_fd = (int)parse_numeric_option(optarg);
+				if (shim.proxy_sock_fd < 0) {
 					err_exit("Invalid value for proxy socket fd\n");
 				}
 				break;
 			case 'o':
-				proxy_io_fd = (int)parse_numeric_option(optarg);
-				if (proxy_io_fd < 0) {
+				shim.proxy_io_fd = (int)parse_numeric_option(optarg);
+				if (shim.proxy_io_fd < 0) {
 					err_exit("Invalid value for proxy IO fd\n");
 				}
 				break;
 			case 's':
-				io_seq_no = (int64_t)parse_numeric_option(optarg);
-				if (io_seq_no < 0) {
+				shim.io_seq_no = (uint64_t)parse_numeric_option(optarg);
+				if (shim.io_seq_no < 0) {
 					err_exit("Invalid value for I/O seqence no\n");
 				}
 				break;
 			case 'e':
-				err_seq_no = (int64_t)parse_numeric_option(optarg);
-				if (err_seq_no < 0) {
+				shim.err_seq_no = (uint64_t)parse_numeric_option(optarg);
+				if (shim.err_seq_no < 0) {
 					err_exit("Invalid value for error sequence no\n");
 				}
 				break;
@@ -399,19 +400,19 @@ main(int argc, char **argv)
 		}
 	}
 
-	if ( !container_id) {
+	if ( !shim.container_id) {
 		err_exit("Missing container id\n");
 	}
 
-	if (proxy_sock_fd == -1) {
+	if ( shim.proxy_sock_fd == -1) {
 		err_exit("Missing proxy socket file descriptor\n");
 	}
 
-	if (proxy_io_fd == -1) {
+	if ( shim.proxy_io_fd == -1) {
 		err_exit("Missing proxy I/O file descriptor\n");
 	}
 
-	if (io_seq_no == 0) {
+	if (shim.io_seq_no == 0) {
 		err_exit("Missing I/O sequence number\n");
 	}
 
@@ -485,6 +486,6 @@ main(int argc, char **argv)
 #endif
 	}
 
-	free(container_id);
+	free(shim.container_id);
 	return 0;
 }
