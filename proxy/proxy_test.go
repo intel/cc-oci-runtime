@@ -15,8 +15,10 @@
 package main
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"os/exec"
@@ -44,7 +46,7 @@ type testRig struct {
 	// process
 	proxyFork bool
 
-	// proxy (the object we'll test)
+	// proxy, in process
 	Proxy     *Proxy
 	protocol  *Protocol
 	proxyConn net.Conn // socket used by proxy to communicate with Client
@@ -329,6 +331,126 @@ func TestHyperStartpod(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, startpod.Hostname, received.Hostname)
 	assert.Equal(t, startpod.ShareDir, received.ShareDir)
+
+	rig.Stop()
+}
+
+// header for hyperstart's I/O channel packets is 12 bytes
+const ioHeaderLength = 12
+
+// write a chunk of data to an I/O fd
+func writeIo(t *testing.T, writer io.Writer, seq uint64, data []byte) {
+	length := ioHeaderLength + len(data)
+	header := make([]byte, ioHeaderLength)
+
+	binary.BigEndian.PutUint64(header[:], uint64(seq))
+	binary.BigEndian.PutUint32(header[8:], uint32(length))
+	n, err := writer.Write(header)
+	assert.Nil(t, err)
+	assert.Equal(t, ioHeaderLength, n)
+
+	n, err = writer.Write(data)
+	assert.Nil(t, err)
+	assert.Equal(t, len(data), n)
+}
+
+// read a chunk of data from an I/O fd
+func readIo(t *testing.T, reader io.Reader) (seq uint64, data []byte) {
+	buf := make([]byte, ioHeaderLength)
+	n, err := reader.Read(buf)
+	assert.Nil(t, err)
+	assert.Equal(t, ioHeaderLength, n)
+
+	println("=====")
+	println(len(buf))
+
+	seq = binary.BigEndian.Uint64(buf[:8])
+	length := binary.BigEndian.Uint32(buf[8:12]) - ioHeaderLength
+	if length == 0 {
+		return
+	}
+
+	received := 0
+	need := int(length)
+	data = make([]byte, need)
+	for received < need {
+		n, err := reader.Read(data[received:need])
+		assert.Nil(t, err)
+
+		received += n
+	}
+
+	return
+}
+
+func TestAllocateIo(t *testing.T) {
+	proto := NewProtocol()
+	proto.Handle("hello", helloHandler)
+	proto.Handle("allocateIO", allocateIoHandler)
+
+	rig := newTestRig(t, proto)
+	//rig.SetFork(true)
+	rig.Start()
+
+	// Register new VM
+	ctlSocketPath, ioSocketPath := rig.Hyperstart.GetSocketPaths()
+	err := rig.Client.Hello(testContainerId, ctlSocketPath, ioSocketPath)
+	assert.Nil(t, err)
+
+	// Allocate 2 seq numbers and verify we can use the fd passed from
+	// allocate I/O to send and receive data.
+	ioBase, ioFile, err := rig.Client.AllocateIo(2)
+	assert.Nil(t, err)
+
+	// we always start our allocations from 1
+	assert.Equal(t, uint64(1), ioBase)
+
+	// make hyperstart send something on stdout/stderr and verify we
+	// receive it
+	streams := []struct {
+		seq  uint64
+		data string
+	}{
+		{ioBase, "stdout\n"},
+		{ioBase + 1, "stderr\n"},
+	}
+	buf := make([]byte, 32)
+	for _, stream := range streams {
+		rig.Hyperstart.SendIoString(stream.seq, stream.data)
+		n, err := ioFile.Read(buf)
+		assert.Nil(t, err)
+		// 12 is the length of the header on the hyperstart I/O channel
+		assert.True(t, n > 12)
+		assert.Equal(t, len(stream.data)+12, n)
+		assert.Equal(t, stream.data, string(buf[12:n]))
+	}
+
+	// same thing for stdin
+	const stdinData = "stdin\n"
+	writeIo(t, ioFile, ioBase, []byte(stdinData))
+
+	buf = make([]byte, 32)
+	n, seq := rig.Hyperstart.ReadIo(buf)
+	assert.Equal(t, ioBase, seq)
+	assert.True(t, n > 12)
+	assert.Equal(t, len(stdinData)+12, n)
+	assert.Equal(t, stdinData, string(buf[12:n]))
+
+	// Simulate the process exiting on the hyperstart end and check we
+	// receive the exit status
+	rig.Hyperstart.CloseIo(ioBase)
+	rig.Hyperstart.SendExitStatus(ioBase, 17)
+
+	// close
+	seq, data := readIo(t, ioFile)
+	assert.Equal(t, ioBase, seq)
+	assert.Equal(t, 0, len(data))
+
+	// exit status
+	seq, data = readIo(t, ioFile)
+	assert.Equal(t, ioBase, seq)
+	assert.Equal(t, 1, len(data))
+	assert.Equal(t, uint8(17), data[0])
 
 	rig.Stop()
 }
