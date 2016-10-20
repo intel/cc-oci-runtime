@@ -620,7 +620,6 @@ START_TEST(test_cc_oci_config_update) {
 	ck_assert (! config.oci.mounts);
 	ck_assert (! config.console);
 	ck_assert (! config.use_socket_console);
-	ck_assert (! config.oci.process.terminal);
 	ck_assert (! config.vm);
 
 	/**************************/
@@ -663,13 +662,6 @@ START_TEST(test_cc_oci_config_update) {
 	ck_assert (config.oci.mounts);
 	ck_assert (config.console);
 	ck_assert (config.use_socket_console);
-
-	if (isatty (STDIN_FILENO)) {
-		if (config.console && ! config.use_socket_console) {
-			ck_assert (config.oci.process.terminal);
-		}
-
-	}
 
 	ck_assert (config.vm);
 
