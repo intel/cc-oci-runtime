@@ -15,8 +15,18 @@
 package api
 
 import (
+	"encoding/binary"
 	"encoding/json"
+	"errors"
+	"io"
 )
+
+const headerLength = 8 // in bytes
+
+type header struct {
+	length uint32
+	flags  uint32
+}
 
 // A Request is a JSON message sent from a client to the proxy. This message
 // embed a payload identified by "id". A payload can have data associated with
@@ -40,4 +50,70 @@ type Response struct {
 	Success bool                   `json:"success"`
 	Error   string                 `json:"error,omitempty"`
 	Data    map[string]interface{} `json:"data,omitempty"`
+}
+
+// ReadMessage reads a message from reader. A message is either a Request or a
+// Response
+func ReadMessage(reader io.Reader, msg interface{}) error {
+	buf := make([]byte, headerLength)
+	n, err := reader.Read(buf)
+	if err != nil {
+		return err
+	}
+	if n != headerLength {
+		return errors.New("couldn't read the full header")
+	}
+
+	header := header{
+		length: binary.BigEndian.Uint32(buf[0:4]),
+		flags:  binary.BigEndian.Uint32(buf[4:8]),
+	}
+
+	received := 0
+	need := int(header.length)
+	data := make([]byte, need)
+	for received < need {
+		n, err := reader.Read(data[received:need])
+		if err != nil {
+			return err
+		}
+
+		received += n
+	}
+
+	err = json.Unmarshal(data, msg)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// WriteMessage writes a message into writer. A message is either a Request for
+// a Response
+func WriteMessage(writer io.Writer, msg interface{}) error {
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return err
+	}
+
+	buf := make([]byte, headerLength)
+	binary.BigEndian.PutUint32(buf[0:4], uint32(len(data)))
+	n, err := writer.Write(buf)
+	if err != nil {
+		return err
+	}
+	if n != headerLength {
+		return errors.New("couldn't write the full header")
+	}
+
+	n, err = writer.Write(data)
+	if err != nil {
+		return err
+	}
+	if n != len(data) {
+		return errors.New("couldn't write the full data")
+	}
+
+	return nil
 }

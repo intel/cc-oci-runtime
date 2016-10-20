@@ -15,7 +15,9 @@
 package main
 
 import (
+	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"flag"
 	"io"
 	"net"
@@ -67,6 +69,56 @@ func setupMockServer(t *testing.T, proto *Protocol) (client net.Conn, server *mo
 	return client, server
 }
 
+// Low level read/write (header + data)
+const headerLength = 8 // bytes
+
+func writeMessage(writer io.Writer, data []byte) error {
+	buf := make([]byte, headerLength)
+	binary.BigEndian.PutUint32(buf[0:4], uint32(len(data)))
+	n, err := writer.Write(buf)
+	if err != nil {
+		return err
+	}
+	if n != headerLength {
+		return errors.New("couldn't write the full header")
+	}
+
+	n, err = writer.Write(data)
+	if err != nil {
+		return err
+	}
+	if n != len(data) {
+		return errors.New("couldn't write the full data")
+	}
+
+	return nil
+}
+
+func readMessage(reader io.Reader) ([]byte, error) {
+	buf := make([]byte, headerLength)
+	n, err := reader.Read(buf)
+	if err != nil {
+		return nil, err
+	}
+	if n != headerLength {
+		return nil, errors.New("couldn't read the full header")
+	}
+
+	received := 0
+	need := int(binary.BigEndian.Uint32(buf[0:4]))
+	data := make([]byte, need)
+	for received < need {
+		n, err := reader.Read(data[received:need])
+		if err != nil {
+			return nil, err
+		}
+
+		received += n
+	}
+
+	return data, nil
+}
+
 // Test that we correctly give back the user data to handlers
 type myUserData struct {
 	t  *testing.T
@@ -92,7 +144,8 @@ func TestUserData(t *testing.T) {
 	go server.ServeWithUserData(&testUserData)
 
 	testUserData.wg.Add(1)
-	client.Write([]byte(`{ "id": "foo" }`))
+	err := writeMessage(client, []byte(`{ "id": "foo" }`))
+	assert.Nil(t, err)
 
 	// make sure the handler runs by waiting for it
 	testUserData.wg.Wait()
@@ -130,21 +183,21 @@ func TestProtocol(t *testing.T) {
 	tests := []struct {
 		input, output string
 	}{
-		{`{"id": "simple"}`, `{"success":true}` + "\n"},
+		{`{"id": "simple"}`, `{"success":true}`},
 		{`{"id": "notfound"}`,
-			`{"success":false,"error":"no payload named 'notfound'"}` + "\n"},
+			`{"success":false,"error":"no payload named 'notfound'"}`},
 		{`{"foo": "bar"}`,
-			`{"success":false,"error":"no 'id' field in request"}` + "\n"},
+			`{"success":false,"error":"no 'id' field in request"}`},
 		// Tests return values from handlers
 		{`{"id":"returnData", "data": {"arg": "bar"}}`,
-			`{"success":true,"data":{"foo":"bar"}}` + "\n"},
+			`{"success":true,"data":{"foo":"bar"}}`},
 		{`{"id":"returnError" }`,
-			`{"success":false,"error":"This is an error"}` + "\n"},
+			`{"success":false,"error":"This is an error"}`},
 		{`{"id":"returnDataError", "data": {"arg": "bar"}}`,
-			`{"success":false,"error":"This is an error","data":{"foo":"bar"}}` + "\n"},
+			`{"success":false,"error":"This is an error","data":{"foo":"bar"}}`},
 		// Tests we can unmarshal payload data
 		{`{"id":"echo", "data": {"arg": "ping"}}`,
-			`{"success":true,"data":{"result":"ping"}}` + "\n"},
+			`{"success":true,"data":{"result":"ping"}}`},
 	}
 
 	proto := NewProtocol()
@@ -156,17 +209,15 @@ func TestProtocol(t *testing.T) {
 
 	client, _ := setupMockServer(t, proto)
 
-	buf := make([]byte, 512)
 	for _, test := range tests {
 		// request
-		n, err := client.Write([]byte(test.input))
+		err := writeMessage(client, []byte(test.input))
 		assert.Nil(t, err)
-		assert.Equal(t, n, len(test.input))
 
 		// response
-		n, err = client.Read(buf)
+		buf, err := readMessage(client)
 		assert.Nil(t, err)
-		assert.Equal(t, test.output, string(buf[:n]))
+		assert.Equal(t, test.output, string(buf))
 	}
 }
 
@@ -179,9 +230,8 @@ func TestCloseOnError(t *testing.T) {
 
 	// request
 	const garbage string = "sekjewr"
-	n, err := client.Write([]byte(garbage))
+	err := writeMessage(client, []byte(garbage))
 	assert.Nil(t, err)
-	assert.Equal(t, n, len(garbage))
 
 	// response
 	buf := make([]byte, 512)

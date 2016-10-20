@@ -25,23 +25,33 @@ protocol on an `AF_UNIX` located at: `${localstatesdir}/run/cc-oci-runtime/proxy
 
 ## Protocol
 
-The proxy protocol is composed of JSON messages: requests and responses. Each
-of these message is on a separate line. The snippet below is showing two
-requests (`hello` and `hyper` commands) and their corresponding responses:
+The proxy protocol is composed of messages: requests and responses. These form
+a small RPC protocol, requests being similar to a function call and responses
+encoding the result of the call.
+
+Each message is composed of a header and some data:
 
 ```
-{ "id": "hello", "data": { "containerId": "foo", "ctlSerial": "/tmp/sh.hyper.channel.0.sock", "ioSerial": "/tmp/sh.hyper.channel.1.sock"  } }
-{"success":true}
-{"id": "hyper", "data": { "name": "ping" }}
-{"success":true}
+  ┌────────────────┬────────────────┬──────────────────────────────┐
+  │  Data Length   │    Reserved    │  Data (request or response)  │
+  │   (32 bits)    │    (32 bits)   │     (data length bytes)      │
+  └────────────────┴────────────────┴──────────────────────────────┘
 ```
 
-Requests have 2 fields: the payload `id` and and its `data`.
+- `Data Length` is in bytes and encoded in network order.
+- `Reserved` is reserved for future use.
+- `Data` is the JSON-encoded request or response data
+
+On top of of this request/response mechanism, the proxy defines `payloads`,
+which are effectively the various function calls defined in the API.
+
+Requests have 2 fields: the payload `id` (function name) and its `data`
+(function argument(s))
 
 ```
 type Request struct {
 	Id    string          `json:"id"`
-	Data *json.RawMessage `json:"data"`
+	Data *json.RawMessage `json:"data,omitempty"`
 }
 ```
 
@@ -59,6 +69,18 @@ Unsurprisingly, the response has the result of a command, with `success`
 indicating if the request has succeeded for not. If `success` is `true`, the
 response can carry additional return values in `data`. If success if `false`,
 `error` may contain an error string.
+
+As a concrete example, here is an exchange between a client and the proxy:
+
+```
+{ "id": "hello", "data": { "containerId": "foo", "ctlSerial": "/tmp/sh.hyper.channel.0.sock", "ioSerial": "/tmp/sh.hyper.channel.1.sock"  } }
+{"success":true}
+```
+
+- The client starts by calling the `hello` payload, registered the container
+  `foo` and asking the proxy to connect to hyperstart communication channels
+  given
+- The proxy answers the function call has succeeded
 
 ## Payloads
 

@@ -22,18 +22,14 @@ import (
 )
 
 type Client struct {
-	conn    *net.UnixConn
-	encoder *json.Encoder
-	decoder *json.Decoder
+	conn *net.UnixConn
 }
 
 // Creates a new client object to communicate with the proxy using the
 // connection conn
 func NewClient(conn *net.UnixConn) *Client {
 	return &Client{
-		conn:    conn,
-		encoder: json.NewEncoder(conn),
-		decoder: json.NewDecoder(conn),
+		conn: conn,
 	}
 }
 
@@ -52,12 +48,12 @@ func (client *Client) sendPayload(id string, payload interface{}) (*Response, er
 		}
 	}
 
-	if err := client.encoder.Encode(&req); err != nil {
+	if err := WriteMessage(client.conn, &req); err != nil {
 		return nil, err
 	}
 
 	resp := Response{}
-	if err := client.decoder.Decode(&resp); err != nil {
+	if err := ReadMessage(client.conn, &resp); err != nil {
 		return nil, err
 	}
 

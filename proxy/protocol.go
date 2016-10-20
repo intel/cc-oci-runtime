@@ -15,7 +15,6 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -78,9 +77,6 @@ func (proto *Protocol) Handle(cmd string, handler ProtocolHandler) {
 type clientCtx struct {
 	conn net.Conn
 
-	decoder *json.Decoder
-	encoder *json.Encoder
-
 	userData interface{}
 }
 
@@ -119,8 +115,6 @@ func (proto *Protocol) Serve(conn net.Conn, userData interface{}) {
 	ctx := &clientCtx{
 		conn:     conn,
 		userData: userData,
-		decoder:  json.NewDecoder(conn),
-		encoder:  json.NewEncoder(conn),
 	}
 
 	for {
@@ -128,7 +122,7 @@ func (proto *Protocol) Serve(conn net.Conn, userData interface{}) {
 		req := api.Request{}
 		hr := HandlerResponse{}
 
-		err := ctx.decoder.Decode(&req)
+		err := api.ReadMessage(conn, &req)
 		if err != nil {
 			// EOF or the client isn't even sending proper JSON,
 			// just kill the connection
@@ -140,7 +134,7 @@ func (proto *Protocol) Serve(conn net.Conn, userData interface{}) {
 		resp := proto.handleRequest(ctx, &req, &hr)
 
 		// Send the response back to the client.
-		if err = ctx.encoder.Encode(resp); err != nil {
+		if err = api.WriteMessage(conn, resp); err != nil {
 			// Something made us unable to write the response back
 			// to the client (could be a disconnection, ...).
 			fmt.Fprintf(os.Stderr, "couldn't encode response: %v\n", err)
