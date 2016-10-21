@@ -18,7 +18,7 @@ virtio-9p-pci,fsdev=workload9p,mount_tag=rootfs
 -fsdev
 local,id=workload9p,path=@WORKLOAD_DIR@,security_model=none
 -smp
-2,sockets=2,cores=1,threads=1
+2,sockets=1,cores=2,threads=1
 -cpu
 host
 -rtc
