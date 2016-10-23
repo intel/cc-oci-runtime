@@ -146,8 +146,35 @@ set_big_endian_32(uint8_t *buf, uint32_t val)
  *
  * \param buf Buffer storing the big endian value
  */
-uint32_t get_big_endian_32(char *buf) {
+uint32_t
+get_big_endian_32(char *buf) {
 	return (uint32_t)(buf[0] >> 24 | buf[1] >> 16 | buf[2] >> 8 | buf[3]);
+}
+
+/*!
+ * Store 64 bit value in network byte order in buffer
+ *
+ * \param buf Buffer to store the value in
+ * \param val 64 bit value to be converted to big endian
+ */
+void
+set_big_endian_64(uint8_t *buf, uint64_t val)
+{
+	set_big_endian_32(buf, val >> 32);
+	set_big_endian_32(buf + 4, (uint32_t)val);
+}
+
+/*!
+ * Convert 64 bit value stored in buffer to little endian
+ *
+ * \param buf Buffer storing the big endian value
+ */
+uint64_t
+get_big_endian_64(char *buf) {
+	uint64_t val;
+
+	val = (get_big_endian_32(buf) << 32) | get_big_endian_32(buf+4);
+	return val;
 }
 
 /*!
@@ -279,23 +306,144 @@ handle_signals(char *container_id, int outfd) {
  * \param outfd File descriptor to write to
  */
 void
-handle_data(int infd, int outfd)
+handle_stdin(struct cc_shim *shim)
 {
 	ssize_t    nread;
-	char       buf[BUFSIZ];
+	char       buf[BUFSIZ-12];
+	char       wbuf[BUFSIZ];
 	int        ret;
+	ssize_t     len;
 
-	if ( infd < 0 || outfd < 0) {
+	if (! shim || shim->proxy_io_fd < 0) {
 		return;
 	}
 
-	while ((nread = read(infd, buf, BUFSIZ))!= -1) {
-		ret = (int)write(outfd, buf, (size_t)nread);
+	// write data to I/O fd
+	while ((nread = read(STDIN_FILENO, buf, BUFSIZ-12)) != -1) {
+		set_big_endian_64 ((uint8_t*)wbuf, shim->io_seq_no);
+		len = nread + STREAM_HEADER_SIZE;
+		set_big_endian_32 ((uint8_t*)wbuf, (uint32_t)len);
+		strncpy(wbuf, buf, (size_t)nread);
+
+		// TODO: handle write in the poll loop to account for write blocking
+		ret = (int)write(shim->proxy_io_fd, wbuf, (size_t)nread);
 		if (ret == -1) {
-			shim_warning("Error writing from fd %d to fd %d: %s\n", infd, outfd, strerror(errno));
+			shim_warning("Error writing from fd %d to fd %d: %s\n",
+				STDIN_FILENO, shim->proxy_io_fd, strerror(errno));
 			return;
 		}
 	}
+}
+
+/*!
+ * Read and parse I/O message on proxy I/O fd
+ *
+ * \param shim \ref cc_shim
+ * \param[out] seq Seqence number of the I/O stream
+ * \param[out] stream_len Length of the data received
+ *
+ * \return newly allocated string on success, else \c NULL.
+ */
+char*
+read_IO_message(struct cc_shim *shim, uint64_t *seq, ssize_t *stream_len) {
+	char *buf = NULL;
+	ssize_t need_read = STREAM_HEADER_SIZE;
+	ssize_t bytes_read = 0, want, ret;
+
+	if (!shim) {
+		return NULL;
+	}
+
+	*stream_len = 0;
+
+	buf = calloc(STREAM_HEADER_SIZE, 1);
+	if (! buf ) {
+		abort();
+	}
+
+	while (bytes_read < need_read) {
+		want = need_read - bytes_read;
+		if (want > BUFSIZ)  {
+			want = BUFSIZ;
+		}
+
+		ret = read(shim->proxy_io_fd, buf+bytes_read, (size_t)want);
+		if (ret == -1) {
+			shim_warning("Error reading from proxy I/O fd: %s\n", strerror(errno));
+			free(buf);
+			return NULL;
+		} else if (ret == 0) {
+			/* TODO: handle this scenario - has the proxy gone away or eof received
+			 * from hyperstart denoting the container has stoppped
+			 */
+			shim_warning("EOF received on proxy I/O fd\n");
+			free(buf);
+			return NULL;
+		}
+
+		bytes_read += ret;
+
+		if (*stream_len == 0 && bytes_read >=12) {
+			*stream_len = get_big_endian_32(buf+STREAM_HEADER_LENGTH_OFFSET);
+			buf = realloc(buf, (size_t)*stream_len);
+			if (! buf) {
+				abort();
+			}
+		}
+	}
+	*seq = get_big_endian_64(buf);
+	return buf;
+}
+
+/*!
+ * Handle output on the proxy I/O fd
+ *
+ *\param shim \ref cc_shim
+ */
+void
+handle_proxy_output(struct cc_shim *shim)
+{
+	uint64_t  seq;
+	char     *buf;
+	int       outfd;
+	ssize_t   stream_len = 0;
+	ssize_t   ret;
+	ssize_t   offset = 0;
+
+	if (shim == NULL) {
+		return;
+	}
+
+	buf = read_IO_message(shim, &seq, &stream_len);
+	if ( !buf) {
+		/*TODO: is exiting here more appropriate, since this denotes
+		 * error communicating with proxy or proxy has exited
+		 */
+		return;
+	}
+
+	if (seq == shim->io_seq_no) {
+		outfd = STDOUT_FILENO;
+	} else if (seq == shim->io_seq_no + 1) {//proxy allocates errseq 1 higher
+		outfd = STDERR_FILENO;
+	} else {
+		//shim_warning("Seq no %"PRIu64 " received from proxy does not match with
+		//		 shim seq %"PRIu64 "\n", seq, shim->io_seq_no);
+		return;
+	}
+
+	/* TODO: what if writing to stdout/err blocks? Add this to the poll loop
+	 * to watch out for EPOLLOUT
+	 */
+	while (offset < stream_len) {
+		ret = write(outfd, buf+offset, (size_t)(stream_len-offset));
+		if (ret <= 0 ) {
+			free(buf);
+			return;
+		}
+		offset += (ssize_t)ret;
+	}
+	free(buf);
 }
 
 long long
@@ -445,6 +593,7 @@ main(int argc, char **argv)
 	set_fd_nonblocking(STDIN_FILENO);
 	add_pollfd(poll_fds, &nfds, STDIN_FILENO, POLLIN | POLLPRI);
 
+	add_pollfd(poll_fds, &nfds, shim.proxy_io_fd, POLLIN | POLLPRI);
 #if 0
 	// Connect to the cc-proxy AF_UNIX server
 	proxy_sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -458,7 +607,8 @@ main(int argc, char **argv)
 
 	/*	0 =>signal_pipe_fd[0]
 		1 =>stdin
-		2 =>sockfd
+		2 =>proxy_io_fd
+		3 =>sockfd
 	*/
 
 	while (1) {
@@ -469,21 +619,22 @@ main(int argc, char **argv)
 
 		/* check if signal was received first */
 		if (poll_fds[0].revents != 0) {
-			// TODO:  send to proxy socket fd instead
-			handle_signals(container_id, (int)STDOUT_FILENO);
+			handle_signals(shim.container_id, shim.proxy_sock_fd);
 		}
 
 		// check stdin fd
 		if (poll_fds[1].revents != 0) {
-			// Sending stdin to stdout, this should go to proxy tty fd later
-			handle_data((int)STDIN_FILENO, (int)STDOUT_FILENO);
+			handle_stdin(&shim);
 		}
 
-#if 0
+		//check proxy_io_fd
+		if (poll_fds[2].revents != 0) {
+			handle_proxy_output(&shim);
+		}
+
 		// check for proxy sockfd
 		if (poll_fds[2].revents != 0) {
 		}
-#endif
 	}
 
 	free(shim.container_id);
