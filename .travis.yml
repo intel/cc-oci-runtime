@@ -27,8 +27,8 @@ before_script:
 - go get github.com/golang/lint/golint
 
 script:
-- ./autogen.sh --enable-cppcheck --enable-valgrind --disable-valgrind-helgrind --disable-valgrind-drd --disable-silent-rules --disable-docker-tests
-- make -j5 CFLAGS=-Werror check
+- ./autogen.sh
+- ./.travis/travis-build.sh
 # go checks
 - export go_packages=`go list ./... | grep -v cc-oci-runtime/vendor | sed -e 's#.*/cc-oci-runtime/#./#'`
 - go list -f '{{.Dir}}/*.go' $go_packages | xargs -I % bash -c "misspell -error %"
