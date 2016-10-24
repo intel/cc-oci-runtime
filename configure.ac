@@ -75,12 +75,12 @@ AS_IF([test "x$enable_debug" = "xyes"],
        LDFLAGS=`echo "$LDFLAGS" | sed -e "s/ -g\b/ -ggdb3/g"`
       ]])
 
-AC_ARG_ENABLE(tests, AS_HELP_STRING([--disable-tests], [do not build unit tests @<:@default=no@:>@]),
-          [], [disable_tests=no])
-AS_IF([test x"$disable_tests" = "xno"],
+AC_ARG_ENABLE(tests, AS_HELP_STRING([--enable-tests], [build unit tests @<:@default=yes@:>@]),
+          [], [enable_tests=yes])
+AS_IF([test x"$enable_tests" = "xyes"],
     [AC_SUBST([BUILD_TESTS], [1])],
     [AC_SUBST([BUILD_TESTS], [0])])
-AM_CONDITIONAL([BUILD_TESTS], [test x$disable_tests = x"no"])
+AM_CONDITIONAL([BUILD_TESTS], [test x$enable_tests = x"yes"])
 
 AC_ARG_ENABLE(cppcheck, AS_HELP_STRING([--enable-cppcheck], [enable static analysis @<:@default=no@:>@]),
           [], [enable_cppcheck=no])
@@ -257,7 +257,7 @@ AS_IF([echo "$auto_bundle_creation_path"|grep -qv ^/],
 # Determine if automatic bundle creation should be enabled.
 AS_IF([test x"$auto_bundle_creation" = x"yes" dnl
     -a x"$with_tests_bundle_path" = x"" dnl
-    -a x"$disable_tests" = x"no" dnl
+    -a x"$enable_tests" = x"yes" dnl
     -a x"$run_functional_tests" = x"yes"],
     [enable_auto_bundle_creation=yes])
 
@@ -304,8 +304,6 @@ AC_ARG_WITH([cc-image],
 AC_OUTPUT
 
 dnl === Summary ===============================================================
-
-AS_IF([test x"$disable_tests" = xno], [enable_tests=yes], [enable_tests=no])
 
 AS_IF([test x"$disable_docker_tests" = xno],
       [enable_docker_tests=yes], [enable_docker_tests=no])
