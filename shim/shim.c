@@ -82,6 +82,26 @@ signal_handler(int signal_no)
 }
 
 /*!
+ * Assign signal handler for all the signals that should be
+ * forwarded by the shim to the proxy.
+ *
+ * \param sa Signal handler
+ * \return true on success, false otherwise
+ */
+bool
+assign_all_signals(struct sigaction *sa)
+{
+        for (int i = 0; shim_signal_table[i]; i++) {
+                if (sigaction(shim_signal_table[i], sa, NULL) == -1) {
+			shim_error("Error assigning signal handler for %d : %s\n",
+				shim_signal_table[i], strerror(errno));
+                        return false;
+                }
+        }
+        return true;
+}
+
+/*!
  * Print formatted message to stderr and exit with EXIT_FAILURE
  *
  * \param format Format that specifies how subsequent arguments are
@@ -198,6 +218,7 @@ handle_signals(char *container_id, int outfd) {
 	}
 
 	while (read(signal_pipe_fd[0], &sig, sizeof(sig)) != -1) {
+		printf("Handling signal : %d on fd %d\n", sig, signal_pipe_fd[0]);
 		if (sig == SIGWINCH ) {
 			cmd_type = WINSIZE;
 			if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) == -1) {
@@ -535,13 +556,10 @@ main(int argc, char **argv)
 	sa.sa_flags = SA_RESTART;           /* Restart interrupted reads()s */
 	sa.sa_handler = signal_handler;
 
-	/* TODO: Add signal handler for all signals */
-	if (sigaction(SIGINT, &sa, NULL) == -1)
+	// Change the default action of all signals that should be forwarded to proxy
+	if (! assign_all_signals(&sa)) {
 		err_exit("sigaction");
-	if (sigaction(SIGTERM, &sa, NULL) == -1)
-		err_exit("sigaction");
-	if (sigaction(SIGWINCH, &sa, NULL) == -1)
-		err_exit("sigaction");
+	}
 
 	if ( !set_fd_nonblocking(STDIN_FILENO)) {
 		exit(EXIT_FAILURE);

@@ -18,9 +18,53 @@
 #include <inttypes.h>
 #include <string.h>
 #include <errno.h>
+#include <signal.h>
 
 #include "log.h"
 #include "utils.h"
+
+/* Signals that should be forwarded by the shim.
+ * Commented out signals are handled by the default signal handler
+ * as it is appropriate for those signals to be handle by the default handler.
+ */
+int shim_signal_table[] = {
+	SIGHUP,              /* Hangup */
+	SIGINT,              /* Interrupt */
+	//SIGQUIT,           /* Quit */
+	//SIGILL,            /* Illegal instruction */
+	SIGTRAP,             /* Trace Trap */
+	//SIGABRT,           /* Abort */
+	SIGIOT,              /* IOT trap  */
+	//SIGBUS,            /* BUS error */
+	//SIGFPE,            /* Floating-point exception  */
+	//SIGKILL,           /* Kill, unblockable */
+	SIGUSR1,             /* User-defined signal 1  */
+	//SIGSEGV,           /* Segmentation violation  */
+	SIGUSR2,             /* User-defined signal 2  */
+	//SIGPIPE,           /* Broken pipe */
+	SIGALRM,             /* Alarm clock */
+	SIGTERM,             /* Termination */
+	SIGSTKFLT,           /* Stack fault  */
+	SIGCLD,              /* Same as SIGCHLD */
+	SIGCHLD,             /* Child status has changed */
+	SIGCONT,             /* Continue */
+	//SIGSTOP,           /* Stop, unblockable */
+	SIGTSTP,             /* Keyboard stop */
+	SIGTTIN,             /* Background read from tty */
+	SIGTTOU,             /* Background write to tty */
+	SIGURG,              /* Urgent condition on socket */
+	SIGXCPU,             /* CPU limit exceeded */
+	SIGXFSZ,             /* File size limit exceeded */
+	SIGVTALRM,           /* Virtual alarm clock */
+	SIGPROF,             /* Profiling alarm clock */
+	SIGWINCH,            /* Window size change */
+	SIGPOLL,             /* Pollable event occurred */
+	SIGIO,               /* I/O now possible */
+	SIGPWR,              /* Power failure restart */
+	//SIGSYS,            /* Bad system call */
+	SIGUNUSED,
+	0,
+};
 
 /*!
  * Set file descriptor as non-blocking

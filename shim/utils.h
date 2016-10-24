@@ -16,6 +16,8 @@
 
 #include <stdio.h>
 
+extern int shim_signal_table[];
+
 bool set_fd_nonblocking(int fd);
 void set_big_endian_32(uint8_t *buf, uint32_t val);
 uint32_t get_big_endian_32(char *buf);
