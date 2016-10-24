@@ -337,7 +337,13 @@ FUNCTIONAL_TESTS_DEPS += cc-oci-runtime $(GENERATED_FILES)
 functional-tests: $(FUNCTIONAL_TESTS_DEPS)
 		$(AM_V_GEN)test -n "$(BUNDLE_TEST_PATH)" && \
 			echo "Using bundle '$(BUNDLE_TEST_PATH)'" || true
-		@bash $(builddir)/data/run-bats.sh $(srcdir)/tests/functional/
+		@if [ "$(builddir)" != "$(srcdir)" ]; then \
+		     rm -f $(builddir)/tests/functional/*.bats ; \
+                     for f in $(abs_top_srcdir)/tests/functional/*.bats; do \
+		         ln -s $$f $(builddir)/tests/functional/ ; \
+		     done; \
+		 fi
+		@bash $(builddir)/data/run-bats.sh $(builddir)/tests/functional/
 endif
 
 if DOCKER_TESTS
