@@ -247,6 +247,8 @@ libexec_PROGRAMS = cc-shim
 cc_shim_SOURCES = \
 	shim/shim.c \
 	shim/shim.h \
+	shim/utils.c \
+	shim/utils.h \
 	shim/log.c \
 	shim/log.h
 

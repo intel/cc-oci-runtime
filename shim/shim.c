@@ -23,7 +23,6 @@
 #include <poll.h>
 #include <assert.h>
 #include <stdarg.h>
-#include <fcntl.h>
 #include <unistd.h>
 #include <signal.h>
 #include <termios.h>
@@ -34,6 +33,7 @@
 #include <stdbool.h>
 #include <limits.h>
 
+#include "utils.h"
 #include "log.h"
 #include "shim.h"
 
@@ -100,82 +100,6 @@ err_exit(const char *format, ...)
 	vfprintf(stderr, format, args);
 	va_end(args);
 	exit(EXIT_FAILURE);
-}
-
-/*!
- * Set file descriptor as non-blocking
- *
- * \param fd File descriptor to set as non-blocking
- */
-void
-set_fd_nonblocking(int fd)
-{
-	int flags;
-
-	if (fd < 0) {
-		return;
-	}
-
-	flags = fcntl(fd, F_GETFL);
-	if (flags == -1) {
-		err_exit("Error getting status flags for fd: %s\n", strerror(errno));
-	}
-	flags |= O_NONBLOCK;
-
-	if (fcntl(fd, F_SETFL, flags) == -1) {
-		err_exit("Error setting fd as nonblocking: %s\n", strerror(errno));
-	}
-}
-
-/*!
- * Store integer as big endian in buffer
- *
- * \param buf Buffer to store the value in
- * \param val Integer to be converted to big endian
- */
-void
-set_big_endian_32(uint8_t *buf, uint32_t val)
-{
-        buf[0] = (uint8_t)(val >> 24);
-        buf[1] = (uint8_t)(val >> 16);
-        buf[2] = (uint8_t)(val >> 8);
-        buf[3] = (uint8_t)val;
-}
-
-/*!
- * Convert the value stored in buffer to little endian
- *
- * \param buf Buffer storing the big endian value
- */
-uint32_t
-get_big_endian_32(char *buf) {
-	return (uint32_t)(buf[0] >> 24 | buf[1] >> 16 | buf[2] >> 8 | buf[3]);
-}
-
-/*!
- * Store 64 bit value in network byte order in buffer
- *
- * \param buf Buffer to store the value in
- * \param val 64 bit value to be converted to big endian
- */
-void
-set_big_endian_64(uint8_t *buf, uint64_t val)
-{
-	set_big_endian_32(buf, val >> 32);
-	set_big_endian_32(buf + 4, (uint32_t)val);
-}
-
-/*!
- * Convert 64 bit value stored in buffer to little endian
- *
- * \param buf Buffer storing the big endian value
- */
-uint64_t
-get_big_endian_64(char *buf) {
-	uint64_t val;
-
-	val = (get_big_endian_32(buf) << 32) | get_big_endian_32(buf+4);
-	return val;
 }
 
 /*!
@@ -600,8 +524,12 @@ main(int argc, char **argv)
 
 	// Add read end of pipe to pollfd list and make it non-bocking
 	add_pollfd(poll_fds, &nfds, signal_pipe_fd[0], POLLIN | POLLPRI);
-	set_fd_nonblocking(signal_pipe_fd[0]);
-	set_fd_nonblocking(signal_pipe_fd[1]);
+	if (! set_fd_nonblocking(signal_pipe_fd[0])) {
+		exit(EXIT_FAILURE);
+	}
+	if (! set_fd_nonblocking(signal_pipe_fd[1])) {
+		exit(EXIT_FAILURE);
+	}
 
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = SA_RESTART;           /* Restart interrupted reads()s */
@@ -615,7 +543,10 @@ main(int argc, char **argv)
 	if (sigaction(SIGWINCH, &sa, NULL) == -1)
 		err_exit("sigaction");
 
-	set_fd_nonblocking(STDIN_FILENO);
+	if ( !set_fd_nonblocking(STDIN_FILENO)) {
+		exit(EXIT_FAILURE);
+	}
+
 	add_pollfd(poll_fds, &nfds, STDIN_FILENO, POLLIN | POLLPRI);
 
 	add_pollfd(poll_fds, &nfds, shim.proxy_io_fd, POLLIN | POLLPRI);
