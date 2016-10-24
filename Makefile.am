@@ -65,6 +65,7 @@ GENERATED_FILES = \
 	tests/metrics/workload_time/cor_create_time.sh
 
 $(GENERATED_FILES): %: %.in Makefile
+	@mkdir -p `dirname $@`
 	$(AM_V_GEN)$(SED) \
 		-e 's|[@]bindir[@]|$(bindir)|g' \
 		-e 's|[@]libexecdir[@]|$(libexecdir)|' \
