@@ -27,7 +27,7 @@ AM_INIT_AUTOMAKE([foreign -Wall -Werror -Wno-portability silent-rules subdir-obj
 AM_SILENT_RULES([yes])
 AC_CONFIG_SRCDIR([src/main.c])
 AC_CONFIG_HEADERS([config.h])
-AC_CONFIG_FILES([Makefile data/vm.json data/config.json data/hypervisor.args])
+AC_CONFIG_FILES([Makefile data/hypervisor.args])
 AC_LANG(C)
 
 LT_INIT
