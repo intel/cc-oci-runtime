@@ -45,7 +45,7 @@ commit_id:
 		echo "0" > commit_id; \
 	fi
 
-STORED_COMMIT = $(shell cat commit_id 2>/dev/null)
+STORED_COMMIT = $(shell cat $(builddir)/commit_id 2>/dev/null || cat $(srcdir)/commit_id 2>/dev/null)
 
 SYSCONFDIR = $(sysconfdir)/$(PACKAGE_NAME)
 DEFAULTSDIR = $(datadir)/defaults/$(PACKAGE_NAME)
