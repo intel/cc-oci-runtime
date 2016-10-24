@@ -95,7 +95,7 @@ FUNCTIONAL_TESTS_DEPS += $(BUNDLE_TEST_PATH)
 # be running for example. Those tests that need a bundle will detect
 # that it doesn't exist and they will be skipped.
 $(BUNDLE_TEST_PATH):
-	$(AM_V_GEN)data/make-bundle-dir.sh $@ || true
+	$(AM_V_GEN)$(top_srcdir)/data/make-bundle-dir.sh $@ || true
 
 endif
 endif
