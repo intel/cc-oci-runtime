@@ -300,6 +300,7 @@ EXTRA_DIST = \
 	CONTRIBUTING.md \
 	DESIGN.rst \
 	Doxyfile \
+	data/config.json.in \
 	data/vm.json.in \
 	data/make-bundle-dir.sh \
 	tests/data \
