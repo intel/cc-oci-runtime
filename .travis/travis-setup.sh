@@ -19,8 +19,8 @@
 
 set -e -x
 
-cwd=$(cd `dirname "$0"`; pwd -P)
-source $cwd/versions.txt
+root=$(cd `dirname "$0"/..`; pwd -P)
+source $root/versions.txt
 
 #
 # Install go
