@@ -17,9 +17,10 @@ cc-oci-runtime
 cc-oci-runtime-*-coverage/
 cc-oci-runtime-*-coverage.info
 cc-oci-runtime-*.tar.xz
+/cc-proxy
 commit_id
 compile
-config.*
+/config.*
 configure
 CONTAINER-KERNEL
 cscope.files
@@ -46,6 +47,8 @@ Makefile
 Makefile.in
 missing
 __pycache__/
+/proxy/cc-proxy.service
+/proxy/cc-proxy.socket
 QEMU-LITE
 stamp-h1
 *_test

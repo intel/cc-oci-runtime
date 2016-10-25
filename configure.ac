@@ -43,6 +43,9 @@ AM_PROG_CC_C_O
 AC_PROG_INSTALL
 AC_PROG_MKDIR_P
 
+# We need go!
+AC_CHECK_PROG(GO,[go],[go],[no])
+test "$GO" == "no" && AC_MSG_ERROR([go is required to build cc-oci-runtime])
 
 # Checks for header files.
 AC_CHECK_HEADERS([fcntl.h mntent.h stdlib.h string.h sys/mount.h unistd.h uuid/uuid.h gio/gio.h gio/gunixsocketaddress.h])
@@ -205,6 +208,16 @@ AC_SUBST([QEMU_PATH], [$ac_cv_path_QEMU])
 #Read Kernel parameters
 AC_SUBST([CMDLINE], [$(cat $srcdir/data/kernel-cmdline)])
 
+# Sytemd unit files (host)
+AC_ARG_WITH([systemdsystemunitdir],
+            AS_HELP_STRING([--with-systemdsystemunitdir=DIR], [Directory for systemd service files]),
+            [],
+            [with_systemdsystemunitdir=$($PKG_CONFIG --variable=systemdsystemunitdir systemd)])
+if test "x$with_systemdsystemunitdir" != "xno"; then
+  AC_SUBST([systemdsystemunitdir], [$with_systemdsystemunitdir])
+fi
+AM_CONDITIONAL(HAVE_SYSTEMD, [test -n "$systemdsystemunitdir"])
+
 #bundle path for functional-test
 AC_ARG_WITH([tests-bundle-path],
     [AS_HELP_STRING([--with-tests-bundle-path=[[BUNDLE-PATH]]],
@@ -302,6 +315,10 @@ cc-oci-runtime - $VERSION
        Container image          : $CONTAINERS_IMG
        Container image services : $CC_IMAGE_SYSTEMDSYSTEMUNIT_PATH
        Debug build              : $enable_debug
+
+ • Proxy:
+
+       Systemd unit directory   : $systemdsystemunitdir
 
  • Tests:
 

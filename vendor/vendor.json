@@ -1,0 +1,22 @@
+{
+	"github.com/hyperhq/runv": {
+		"url": "https://github.com/hyperhq/runv.git",
+		"version": "28d48ac6",
+		"license": "Apache v2.0"
+	},
+	"github.com/pmezard/go-difflib": {
+		"url": "https://github.com/pmezard/go-difflib.git",
+		"version": "792786c7",
+		"license": "BSD"
+	},
+	"github.com/davecgh/go-spew": {
+		"url": "https://github.com/davecgh/go-spew.git",
+		"version": "6d212800",
+		"license": "ISC"
+	},
+	"github.com/stretchr/testify/": {
+		"url": "https://github.com/stretchr/testify.git",
+		"version": "976c720a",
+		"license": "MIT"
+	}
+}
