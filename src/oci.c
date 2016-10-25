@@ -1144,7 +1144,7 @@ cc_oci_start (struct cc_oci_config *config,
 	 *
 	 * Do not wait when console is empty.
 	 */
-	if ((config->oci.process.terminal && ! config->detached_mode) &&
+	if ((isatty (STDIN_FILENO) && ! config->detached_mode) &&
 	    !config->use_socket_console) {
 		wait = true;
 	}
@@ -1822,11 +1822,6 @@ cc_oci_config_update (struct cc_oci_config *config,
 	}
 
 	config->use_socket_console = state->use_socket_console;
-
-	if (config->console && ! config->use_socket_console && isatty (STDIN_FILENO)) {
-		g_debug ("enabling terminal for standalone mode");
-		config->oci.process.terminal = true;
-	}
 
 	if (state->vm) {
 		config->vm = state->vm;
