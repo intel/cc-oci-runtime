@@ -258,7 +258,7 @@ cc_proxy_extra_dist =			\
 CHECK_DEPS += check-proxy
 
 check-proxy:
-	go test -timeout 2s $(srcdir)/proxy
+	go test -v -timeout 2s $(srcdir)/proxy
 
 libexec_PROGRAMS = cc-shim
 
