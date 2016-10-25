@@ -73,3 +73,6 @@ enum {
 #define STREAM_HEADER_SIZE              12
 #define STREAM_HEADER_LENGTH_OFFSET     8
 
+#define PROXY_CTL_HEADER_SIZE           8
+#define PROXY_CTL_HEADER_LENGTH_OFFSET  0
+

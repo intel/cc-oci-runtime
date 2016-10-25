@@ -123,31 +123,31 @@ err_exit(const char *format, ...)
 }
 
 /*!
- * Construct message in the hyperstart control format
- * Hyperstart control message format:
+ * Construct message in the proxy ctl rpc protocol format
+ * Proxy control message format:
  *
- * | ctrl id | length  | payload (length-8)      |
+ * | length  | Reserved| Data(Request/Response   |
  * | . . . . | . . . . | . . . . . . . . . . . . |
  * 0         4         8                         length
  *
  * \param json Json Payload
- * \param hyper_cmd_type Hyperstart control id
- * \param len Length of the message
- */  
+ * \param[out] len Length of the message
+ */
 char*
-get_hypertart_msg(char *json, int hyper_cmd_type, size_t *len) {
-	char *hyperstart_msg = NULL;
+get_proxy_ctl_msg(char *json, size_t *len) {
+	char *proxy_ctl_msg = NULL;
 
 	*len = strlen(json) + 8 + 1;
-	hyperstart_msg = malloc(sizeof(char) * *len);
-	if (! hyperstart_msg) {
+	proxy_ctl_msg = malloc(sizeof(char) * *len);
+	if (! proxy_ctl_msg) {
 		abort();
 	}
-	set_big_endian_32((uint8_t*)hyperstart_msg, (uint32_t)hyper_cmd_type);
-	set_big_endian_32((uint8_t*)hyperstart_msg+4, (uint32_t)(strlen(json) + 8));
-	strcpy(hyperstart_msg+8, json);
 
-	return hyperstart_msg;
+	set_big_endian_32((uint8_t*)proxy_ctl_msg + PROXY_CTL_HEADER_LENGTH_OFFSET, 
+				(uint32_t)(strlen(json) + PROXY_CTL_HEADER_SIZE));
+	strcpy(proxy_ctl_msg + PROXY_CTL_HEADER_SIZE, json);
+
+	return proxy_ctl_msg;
  }
 
 /*!
@@ -159,10 +159,11 @@ get_hypertart_msg(char *json, int hyper_cmd_type, size_t *len) {
  */
 void
 send_proxy_hyper_message(int fd, int hyper_cmd_type, char *json) {
-	char *proxy_hyper_msg = NULL;
-	size_t len, offset = 0;
-	ssize_t ret;
-	char *proxy_command_id = "hyper";
+	char      *proxy_payload = NULL;
+	char      *proxy_command_id = "hyper";
+	char      *proxy_ctl_msg = NULL;
+	size_t     len, offset = 0;
+	ssize_t    ret;
 
 	/* cc-proxy has the following format for "hyper" payload:
 	 * {
@@ -174,7 +175,7 @@ send_proxy_hyper_message(int fd, int hyper_cmd_type, char *json) {
 	 * }
 	*/
 
-	ret = asprintf(&proxy_hyper_msg,
+	ret = asprintf(&proxy_payload,
 			"{\"id\":\"%s\",\"data\":{\"hyperName\":\"%d\",\"data\":\"%s\"",
 			proxy_command_id, hyper_cmd_type, json);
 
@@ -182,20 +183,21 @@ send_proxy_hyper_message(int fd, int hyper_cmd_type, char *json) {
 		abort();
 	}
 
-	len = strlen(proxy_hyper_msg + 1);
+	proxy_ctl_msg = get_proxy_ctl_msg(proxy_payload, &len);
+	free(proxy_payload);
 
 	while (offset < len) {
-		ret = write(fd, proxy_hyper_msg + offset, len-offset);
+		ret = write(fd, proxy_ctl_msg + offset, len-offset);
 		if (ret == EINTR) {
 			continue;
 		}
 		if (ret <= 0 ) {
-			free(proxy_hyper_msg);
+			free(proxy_ctl_msg);
 			return;
 		}
 		offset += (size_t)ret;
 	}
-	free(proxy_hyper_msg);
+	free(proxy_ctl_msg);
 }
 
 /*!
@@ -373,8 +375,9 @@ handle_proxy_output(struct cc_shim *shim)
 	} else if (seq == shim->io_seq_no + 1) {//proxy allocates errseq 1 higher
 		outfd = STDERR_FILENO;
 	} else {
-		//shim_warning("Seq no %"PRIu64 " received from proxy does not match with
-		//		 shim seq %"PRIu64 "\n", seq, shim->io_seq_no);
+		shim_warning("Seq no %"PRIu64 " received from proxy does not match with\
+				 shim seq %"PRIu64 "\n", seq, shim->io_seq_no);
+		free(buf);
 		return;
 	}
 
@@ -413,7 +416,7 @@ handle_proxy_ctl(struct cc_shim *shim)
 	}
 
 	//TODO: Parse the json and log error responses explicitly
-	shim_debug("Proxy response:%s\n", buf);
+	shim_debug("Proxy response:%s\n", buf + PROXY_CTL_HEADER_SIZE);
 }
 
 long long
