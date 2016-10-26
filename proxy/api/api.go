@@ -33,7 +33,7 @@ import (
 //    }
 //  }
 type Hello struct {
-	ContainerId string `json:"containerId"`
+	ContainerID string `json:"containerId"`
 	CtlSerial   string `json:"ctlSerial"`
 	IoSerial    string `json:"ioSerial"`
 }
@@ -49,7 +49,7 @@ type Hello struct {
 //    }
 //  }
 type Attach struct {
-	ContainerId string `json:"containerId"`
+	ContainerID string `json:"containerId"`
 }
 
 // The bye payload does the opposite of what hello does, indicating to the

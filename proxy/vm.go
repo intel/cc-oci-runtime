@@ -30,7 +30,7 @@ import (
 type vm struct {
 	sync.Mutex
 
-	containerId string
+	containerID string
 
 	ctlSerial, ioSerial string
 	ctl, io             net.Conn
@@ -66,7 +66,7 @@ type ioSession struct {
 
 func NewVM(id, ctlSerial, ioSerial string) *vm {
 	return &vm{
-		containerId: id,
+		containerID: id,
 		ctlSerial:   ctlSerial,
 		ioSerial:    ioSerial,
 		nextIoBase:  1,

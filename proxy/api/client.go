@@ -74,9 +74,9 @@ func errorFromResponse(resp *Response) error {
 	return nil
 }
 
-func (client *Client) Hello(containerId, ctlSerial, ioSerial string) error {
+func (client *Client) Hello(containerID, ctlSerial, ioSerial string) error {
 	hello := Hello{
-		ContainerId: containerId,
+		ContainerID: containerID,
 		CtlSerial:   ctlSerial,
 		IoSerial:    ioSerial,
 	}
@@ -89,9 +89,9 @@ func (client *Client) Hello(containerId, ctlSerial, ioSerial string) error {
 	return errorFromResponse(resp)
 }
 
-func (client *Client) Attach(containerId string) error {
+func (client *Client) Attach(containerID string) error {
 	hello := Attach{
-		ContainerId: containerId,
+		ContainerID: containerID,
 	}
 
 	resp, err := client.sendPayload("attach", &hello)

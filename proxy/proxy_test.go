@@ -169,7 +169,7 @@ func (rig *testRig) Stop() {
 	rig.wg.Wait()
 }
 
-const testContainerId = "0987654321"
+const testContainerID = "0987654321"
 
 func TestHello(t *testing.T) {
 	proto := NewProtocol()
@@ -180,21 +180,21 @@ func TestHello(t *testing.T) {
 
 	// Register new VM
 	ctlSocketPath, ioSocketPath := rig.Hyperstart.GetSocketPaths()
-	err := rig.Client.Hello(testContainerId, ctlSocketPath, ioSocketPath)
+	err := rig.Client.Hello(testContainerID, ctlSocketPath, ioSocketPath)
 	assert.Nil(t, err)
 
-	// A new Hello message with the same containerId should error out
-	err = rig.Client.Hello(testContainerId, "fooCtl", "fooIo")
+	// A new Hello message with the same containerID should error out
+	err = rig.Client.Hello(testContainerID, "fooCtl", "fooIo")
 	assert.NotNil(t, err)
 
 	// Hello should register a new vm object
 	proxy := rig.Proxy
 	proxy.Lock()
-	vm := proxy.vms[testContainerId]
+	vm := proxy.vms[testContainerID]
 	proxy.Unlock()
 
 	assert.NotNil(t, vm)
-	assert.Equal(t, testContainerId, vm.containerId)
+	assert.Equal(t, testContainerID, vm.containerID)
 
 	// This test shouldn't send anything to hyperstart
 	msgs := rig.Hyperstart.GetLastMessages()
@@ -213,7 +213,7 @@ func TestBye(t *testing.T) {
 
 	// Register new VM
 	ctlSocketPath, ioSocketPath := rig.Hyperstart.GetSocketPaths()
-	err := rig.Client.Hello(testContainerId, ctlSocketPath, ioSocketPath)
+	err := rig.Client.Hello(testContainerID, ctlSocketPath, ioSocketPath)
 	assert.Nil(t, err)
 
 	// Bye!
@@ -227,7 +227,7 @@ func TestBye(t *testing.T) {
 	// Bye should unregister the vm object
 	proxy := rig.Proxy
 	proxy.Lock()
-	vm := proxy.vms[testContainerId]
+	vm := proxy.vms[testContainerID]
 	proxy.Unlock()
 	assert.Nil(t, vm)
 
@@ -249,7 +249,7 @@ func TestAttach(t *testing.T) {
 
 	// Register new VM
 	ctlSocketPath, ioSocketPath := rig.Hyperstart.GetSocketPaths()
-	err := rig.Client.Hello(testContainerId, ctlSocketPath, ioSocketPath)
+	err := rig.Client.Hello(testContainerID, ctlSocketPath, ioSocketPath)
 	assert.Nil(t, err)
 
 	// Attaching to an unknown VM should return an error
@@ -258,7 +258,7 @@ func TestAttach(t *testing.T) {
 
 	// Attaching to an existing VM should work. To test we are effectively
 	// attached, we issue a bye that would error out if not attatched.
-	err = rig.Client.Attach(testContainerId)
+	err = rig.Client.Attach(testContainerID)
 	assert.Nil(t, err)
 	err = rig.Client.Bye()
 	assert.Nil(t, err)
@@ -279,7 +279,7 @@ func TestHyperPing(t *testing.T) {
 	rig.Start()
 
 	ctlSocketPath, ioSocketPath := rig.Hyperstart.GetSocketPaths()
-	err := rig.Client.Hello(testContainerId, ctlSocketPath, ioSocketPath)
+	err := rig.Client.Hello(testContainerID, ctlSocketPath, ioSocketPath)
 	assert.Nil(t, err)
 
 	// Send ping and verify we have indeed received the message on the
@@ -308,7 +308,7 @@ func TestHyperStartpod(t *testing.T) {
 
 	// Register new VM
 	ctlSocketPath, ioSocketPath := rig.Hyperstart.GetSocketPaths()
-	err := rig.Client.Hello(testContainerId, ctlSocketPath, ioSocketPath)
+	err := rig.Client.Hello(testContainerID, ctlSocketPath, ioSocketPath)
 	assert.Nil(t, err)
 
 	// Send startopd and verify we have indeed received the message on the
@@ -394,7 +394,7 @@ func TestAllocateIo(t *testing.T) {
 
 	// Register new VM
 	ctlSocketPath, ioSocketPath := rig.Hyperstart.GetSocketPaths()
-	err := rig.Client.Hello(testContainerId, ctlSocketPath, ioSocketPath)
+	err := rig.Client.Hello(testContainerID, ctlSocketPath, ioSocketPath)
 	assert.Nil(t, err)
 
 	// Allocate 2 seq numbers and verify we can use the fd passed from

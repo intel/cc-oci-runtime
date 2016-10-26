@@ -56,26 +56,26 @@ func helloHandler(data []byte, userData interface{}, response *HandlerResponse) 
 		return
 	}
 
-	if hello.ContainerId == "" || hello.CtlSerial == "" || hello.IoSerial == "" {
+	if hello.ContainerID == "" || hello.CtlSerial == "" || hello.IoSerial == "" {
 		response.SetErrorMsg("malformed hello command")
 	}
 
 	proxy := client.proxy
 	proxy.Lock()
-	if _, ok := proxy.vms[hello.ContainerId]; ok {
+	if _, ok := proxy.vms[hello.ContainerID]; ok {
 
 		proxy.Unlock()
 		response.SetErrorf("%s: container already registered",
-			hello.ContainerId)
+			hello.ContainerID)
 		return
 	}
-	vm := NewVM(hello.ContainerId, hello.CtlSerial, hello.IoSerial)
-	proxy.vms[hello.ContainerId] = vm
+	vm := NewVM(hello.ContainerID, hello.CtlSerial, hello.IoSerial)
+	proxy.vms[hello.ContainerID] = vm
 	proxy.Unlock()
 
 	if err := vm.Connect(); err != nil {
 		proxy.Lock()
-		delete(proxy.vms, hello.ContainerId)
+		delete(proxy.vms, hello.ContainerID)
 		proxy.Unlock()
 		response.SetError(err)
 		return
@@ -96,11 +96,11 @@ func attachHandler(data []byte, userData interface{}, response *HandlerResponse)
 	}
 
 	proxy.Lock()
-	vm := proxy.vms[attach.ContainerId]
+	vm := proxy.vms[attach.ContainerID]
 	proxy.Unlock()
 
 	if vm == nil {
-		response.SetErrorf("unknown containerId: %s", attach.ContainerId)
+		response.SetErrorf("unknown containerID: %s", attach.ContainerID)
 		return
 	}
 
@@ -119,7 +119,7 @@ func byeHandler(data []byte, userData interface{}, response *HandlerResponse) {
 	}
 
 	proxy.Lock()
-	delete(proxy.vms, vm.containerId)
+	delete(proxy.vms, vm.containerID)
 	proxy.Unlock()
 
 	client.vm = nil
