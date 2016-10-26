@@ -132,13 +132,18 @@ AM_CFLAGS = -std=gnu99 -fstack-protector -Wall -pedantic \
 	-Wformat -Wformat-security -Werror=format-security \
 	-Wconversion -Wunreachable-code
 
+# We set --with-systemdunitdir here so make distcheck can run make install as a
+# normal user and not fail.
+# This directory doesn't have to be unique and doing several make distcheck
+# will not end up clobbering /tmp this way.
 DISTCHECK_CONFIGURE_FLAGS = \
 	--enable-debug \
 	--enable-tests \
 	--enable-cppcheck \
 	--enable-valgrind \
 	--enable-code-coverage \
-	--enable-functional-tests
+	--enable-functional-tests \
+	--with-systemdsystemunitdir=/tmp/cc-distcheck/systemdunitdir/
 
 bin_PROGRAMS = cc-oci-runtime
 dist_bin_SCRIPTS = data/cc-oci-runtime.sh
