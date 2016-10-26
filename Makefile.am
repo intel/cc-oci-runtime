@@ -219,6 +219,8 @@ cc_oci_runtime_CFLAGS = \
 
 libexec_SCRIPTS = cc-proxy
 
+CLEANFILES += cc-proxy
+
 AM_V_GO    = $(am__v_GO_@AM_V@)
 am__v_GO_  = $(am__v_GO_@AM_DEFAULT_V@)
 am__v_GO_0 = @echo "  GOBUILD " $@;
