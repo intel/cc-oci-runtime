@@ -218,7 +218,7 @@ func (proxy *Proxy) Init() error {
 		if err = os.Remove(socketPath); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("couldn't remove exiting socket: %v\n", err)
 		}
-		l, err = net.ListenUnix("unix", &net.UnixAddr{socketPath, "unix"})
+		l, err = net.ListenUnix("unix", &net.UnixAddr{Name: socketPath, Net: "unix"})
 		if err != nil {
 			return fmt.Errorf("couldn't create AF_UNIX socket: %v", err)
 		}

@@ -306,7 +306,7 @@ type acceptCb func(c net.Conn)
 
 func (h *Hyperstart) startListening(path string, cb acceptCb) *net.UnixListener {
 
-	addr := &net.UnixAddr{path, "unix"}
+	addr := &net.UnixAddr{Name: path, Net: "unix"}
 	l, err := net.ListenUnix("unix", addr)
 	assert.Nil(h.t, err)
 
