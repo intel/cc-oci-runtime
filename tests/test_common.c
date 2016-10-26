@@ -26,6 +26,7 @@
 
 #include "test_common.h"
 #include "../src/util.h"
+#include "../src/oci-config.h"
 #include "json.h"
 
 #include "../src/command.h"
@@ -114,13 +115,16 @@ void test_spec_handler(struct spec_handler* handler, struct spec_handler_test* t
 	GNode* node;
 	GNode* handler_node;
 	GNode test_node;
-	struct cc_oci_config config;
+	struct cc_oci_config *config = NULL;
 	struct spec_handler_test* test;
 	int fd;
 
+	config = cc_oci_config_create ();
+	ck_assert (config);
+
 	ck_assert(! handler->handle_section(NULL, NULL));
 	ck_assert(! handler->handle_section(&test_node, NULL));
-	ck_assert(! handler->handle_section(NULL, &config));
+	ck_assert(! handler->handle_section(NULL, config));
 
 	/**
 	 * Create fake files for Kernel and image so
@@ -147,14 +151,18 @@ void test_spec_handler(struct spec_handler* handler, struct spec_handler_test* t
 		close(fd);
 	}
 
+	cc_oci_config_free(config);
+
 	for (test=tests; test->file; test++) {
-		memset(&config, 0, sizeof(config));
+		config = cc_oci_config_create ();
+		ck_assert (config);
+
 		cc_oci_json_parse(&node, test->file);
 		handler_node = node_find_child(node, handler->name);
 		ck_assert_msg(handler->handle_section(
-		    handler_node, &config) == test->test_result,
+		    handler_node, config) == test->test_result,
 		    test->file);
-		cc_oci_config_free(&config);
+		cc_oci_config_free(config);
 		g_free_node(node);
 	}
 
