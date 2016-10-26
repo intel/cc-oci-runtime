@@ -1549,30 +1549,38 @@ cc_oci_list_vm (const struct oci_state *state,
 static struct oci_state *
 cc_oci_vm_get_state (const gchar *name, const char *root_dir)
 {
-	struct cc_oci_config  config = { { 0 } };
+	struct cc_oci_config  *config = NULL;
 	struct oci_state      *state = NULL;
 	gchar                 *config_file = NULL;
 
 	g_assert (name);
 
-	config.optarg_container_id = name;
+	config = cc_oci_config_create ();
+	if (! config) {
+		return NULL;
+	}
+
+	config->optarg_container_id = name;
 
 	if (root_dir) {
-		config.root_dir = g_strdup (root_dir);
+		config->root_dir = g_strdup (root_dir);
 	}
 
-	if (! cc_oci_runtime_path_get (&config)) {
-		return NULL;
+	if (! cc_oci_runtime_path_get (config)) {
+		goto out;
 	}
 
-	if (! cc_oci_state_file_get (&config)) {
-		return NULL;
+	if (! cc_oci_state_file_get (config)) {
+		goto out;
 	}
 
-	state = cc_oci_state_file_read (config.state.state_file_path);
+	state = cc_oci_state_file_read (config->state.state_file_path);
 
+out:
 	g_free_if_set (config_file);
-	cc_oci_config_free (&config);
+	if (config) {
+		cc_oci_config_free (config);
+	}
 
 	return state;
 }
