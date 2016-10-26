@@ -38,10 +38,10 @@ setup() {
 }
 
 @test "Volume - use volume in a container" {
-	volPath=$($DOCKER_EXE volume inspect --format '{{ .Mountpoint }}' "$volName")
 	testFile='hello_world'
 	containerPath='/attached_vol'
-	touch "$volPath/$testFile"
+	run bash -c "$DOCKER_EXE run -i -v $volName:$containerPath busybox touch $containerPath/$testFile"
+	[ $status -eq 0 ]
 	run bash -c "$DOCKER_EXE run -i -v $volName:$containerPath busybox ls $containerPath | grep $testFile"
 	$DOCKER_EXE rm $($DOCKER_EXE ps -qa)
 	[ $status -eq 0 ]
