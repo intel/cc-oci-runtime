@@ -459,7 +459,8 @@ cc_oci_attach (struct cc_oci_config *config,
 	}
 
 	if (! g_socket_connect(socket, src_address, NULL, &error)) {
-		g_critical("failed to connect socket");
+		g_critical("failed to connect to hypervisor console socket :%s",
+				state->console);
 		if (error) {
 			g_critical("error: %s", error->message);
 			g_error_free (error);
@@ -990,7 +991,8 @@ handle_process_socket (struct process_watcher_data *data)
 	ret = g_socket_connect(data->socket, data->src_address,
 			NULL, &error);
 	if (! ret) {
-		g_critical("failed to connect to socket: %s",
+		g_critical("failed to connect to hypervisor process socket %s: %s",
+				path,
 				error->message);
 		g_error_free (error);
 		goto fail3;
