@@ -23,10 +23,14 @@ env:
 
 before_script:
 - ./.travis-setup.sh
+- go get github.com/client9/misspell/cmd/misspell
 
 script:
 - ./autogen.sh --enable-cppcheck --enable-valgrind --disable-valgrind-helgrind --disable-valgrind-drd --disable-silent-rules --disable-docker-tests
 - make -j5 CFLAGS=-Werror check
+# go checks
+- export go_packages=`go list ./... | grep -v cc-oci-runtime/vendor | sed -e 's#.*/cc-oci-runtime/#./#'`
+- go list -f '{{.Dir}}/*.go' $go_packages | xargs -I % bash -c "misspell -error %"
 
 after_failure:
 - ./.travis-teardown.sh
