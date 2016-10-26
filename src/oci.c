@@ -1553,7 +1553,9 @@ cc_oci_vm_get_state (const gchar *name, const char *root_dir)
 	struct oci_state      *state = NULL;
 	gchar                 *config_file = NULL;
 
-	g_assert (name);
+	if (! (name && root_dir)) {
+		return NULL;
+	}
 
 	config = cc_oci_config_create ();
 	if (! config) {
