@@ -11,8 +11,8 @@ env:
     - LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
     - PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
     - ACLOCAL_FLAGS="-I /usr/local/share/aclocal $ACLOCAL_FLAG"
-    - GOROOT=$PWD/go
-    - GOPATH=$PWD/gopath
+    - GOROOT=$HOME/go
+    - GOPATH=$HOME/gopath
     - PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/bin:$PATH
     # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
     #   via the "travis encrypt" command using the project repo's public key
