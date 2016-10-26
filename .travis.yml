@@ -31,6 +31,7 @@ script:
 # go checks
 - export go_packages=`go list ./... | grep -v cc-oci-runtime/vendor | sed -e 's#.*/cc-oci-runtime/#./#'`
 - go list -f '{{.Dir}}/*.go' $go_packages | xargs -I % bash -c "misspell -error %"
+- go vet $go_packages
 
 after_failure:
 - ./.travis-teardown.sh
