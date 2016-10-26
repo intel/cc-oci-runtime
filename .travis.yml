@@ -24,6 +24,7 @@ env:
 before_script:
 - ./.travis-setup.sh
 - go get github.com/client9/misspell/cmd/misspell
+- go get github.com/golang/lint/golint
 
 script:
 - ./autogen.sh --enable-cppcheck --enable-valgrind --disable-valgrind-helgrind --disable-valgrind-drd --disable-silent-rules --disable-docker-tests
@@ -33,6 +34,7 @@ script:
 - go list -f '{{.Dir}}/*.go' $go_packages | xargs -I % bash -c "misspell -error %"
 - go vet $go_packages
 - go list -f '{{.Dir}}' $go_packages | xargs gofmt -s -l | wc -l | xargs -I % bash -c "test % -eq 0"
+- for p in $go_packages; do golint -set_exit_status $p; done
 
 after_failure:
 - ./.travis-teardown.sh
