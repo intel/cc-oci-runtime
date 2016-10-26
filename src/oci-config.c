@@ -106,7 +106,26 @@ cc_oci_config_file_path (const gchar *bundle_path)
 }
 
 /*!
- * Free all resources associated with the static \p config object.
+ * Create a new \ref cc_oci_config object.
+ *
+ * \return Newly-allocated \ref cc_oci_config on success,
+ * else \c NULL.
+ */
+struct cc_oci_config *
+cc_oci_config_create (void)
+{
+	struct cc_oci_config *config;
+
+	config = g_malloc0 (sizeof (struct cc_oci_config));
+	if (! config) {
+		return NULL;
+	}
+
+	return config;
+}
+
+/*!
+ * Free all resources associated with the \p config object.
  *
  * \param config \ref cc_oci_config.
  */
