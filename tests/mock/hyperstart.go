@@ -142,7 +142,6 @@ func (h *Hyperstart) readCtl(data []byte) error {
 func (h *Hyperstart) ackData(nBytes int) {
 	data := make([]byte, 4)
 	binary.BigEndian.PutUint32(data[:], uint32(nBytes))
-	//h.logf("ctl: acking %d bytes\n", nBytes)
 	h.SendMessage(hyper.INIT_NEXT, data)
 }
 
