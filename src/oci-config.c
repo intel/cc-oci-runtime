@@ -188,6 +188,8 @@ cc_oci_config_free (struct cc_oci_config *config)
 		g_slist_free_full(config->net.interfaces,
                 (GDestroyNotify)cc_oci_net_interface_free);
 	}
+
+	g_free (config);
 }
 
 /*!
