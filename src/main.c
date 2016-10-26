@@ -266,13 +266,19 @@ handle_arguments (int argc, char **argv)
 	GOptionContext        *context;
 	GError                *error = NULL;
 	const char            *cmd;
-	struct cc_oci_config  config = { {0} };
+	struct cc_oci_config  *config = NULL;
 
 	program_name = argv[0];
 	context = g_option_context_new ("- OCI runtime for Clear Containers");
 	if (! context) {
 		g_critical ("failed to create option context");
 		return false;
+	}
+
+	config = cc_oci_config_create ();
+	if (! config) {
+		g_critical ("failed to create config object");
+		goto out;
 	}
 
 	/* ensure parsing stops at first non-argument and
@@ -333,7 +339,7 @@ handle_arguments (int argc, char **argv)
 	}
 
 	if (root_dir) {
-		config.root_dir = g_strdup (root_dir);
+		config->root_dir = g_strdup (root_dir);
 	}
 
 	cmd = argv[0];
@@ -347,7 +353,7 @@ handle_arguments (int argc, char **argv)
 		goto out;
 	}
 
-	priv_level = cc_oci_get_priv_level (argc, argv, sub, &config);
+	priv_level = cc_oci_get_priv_level (argc, argv, sub, config);
 	if (priv_level == 1 && getuid ()) {
 		g_critical ("must run as root");
 		ret = false;
@@ -375,16 +381,20 @@ handle_arguments (int argc, char **argv)
 	/* Now, deal with the sub-commands
 	 * (and their corresponding options)
 	 */
-	ret = handle_sub_commands (argc, argv, sub, &config);
+	ret = handle_sub_commands (argc, argv, sub, config);
 
 	if (! ret) {
 		goto out;
 	}
 
-	cc_oci_config_free (&config);
-
 out:
-	g_option_context_free (context);
+	if (context) {
+		g_option_context_free (context);
+	}
+
+	if (config) {
+		cc_oci_config_free (config);
+	}
 
 	return ret;
 }
