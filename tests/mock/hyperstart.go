@@ -54,7 +54,7 @@ func newMessageList() []hyper.DecodedMessage {
 }
 
 // Creates a new hyperstart instance. Ownership of the ctl and io connections
-// is transfered to this object (it will close them on Stop())
+// is transferred to this object (it will close them on Stop())
 func NewHyperstart(t *testing.T) *Hyperstart {
 	dir := os.TempDir()
 	ctlSocketPath := filepath.Join(dir, "mock.hyper."+nextSuffix()+".0.sock")
