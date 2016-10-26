@@ -2,7 +2,8 @@
 
 `cc-proxy` is a daemon offering access to the
 [`hyperstart`](https://github.com/hyperhq/hyperstart) VM agent to multiple
-clients on the host.
+clients. Only a single instance of `cc-proxy` per host is necessary as it can be
+used for several different VMs.
 
 ![High-level Architecture Diagram](../documentation/high-level-overview.png)
 
@@ -16,7 +17,6 @@ clients on the host.
     - Arbitrate access to the `hyperstart` control channel between all the
       instances of the OCI runtimes and `cc-shim`.
     - Route the I/O streams between the various shim instances and `hyperstart`.
-- There's only one `cc-proxy` per host.
  
 
 `cc-proxy` itself has an API to setup the route to the hypervisor/hyperstart
@@ -29,7 +29,7 @@ The proxy protocol is composed of messages: requests and responses. These form
 a small RPC protocol, requests being similar to a function call and responses
 encoding the result of the call.
 
-Each message is composed of a header and some data:
+Each message is composed of a header and some optional data:
 
 ```
   ┌────────────────┬────────────────┬──────────────────────────────┐
@@ -68,7 +68,8 @@ type Response struct {
 Unsurprisingly, the response has the result of a command, with `success`
 indicating if the request has succeeded for not. If `success` is `true`, the
 response can carry additional return values in `data`. If success if `false`,
-`error` may contain an error string.
+`error` will contain an error string suitable for reporting the error to a
+user.
 
 As a concrete example, here is an exchange between a client and the proxy:
 
