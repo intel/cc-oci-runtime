@@ -67,21 +67,24 @@ START_TEST(test_cc_oci_perform_mount) {
 } END_TEST
 
 START_TEST(test_cc_oci_handle_mounts) {
-	struct cc_oci_config config = { { 0 } };
+	struct cc_oci_config *config = NULL;
 	GNode* node = NULL;
 
 	ck_assert(! cc_oci_handle_mounts(NULL));
 
+	config = cc_oci_config_create ();
+	ck_assert (config);
+
 	cc_oci_json_parse(&node, TEST_DATA_DIR "/mounts.json");
 	mounts_spec_handler.handle_section(
-	    node_find_child(node, mounts_spec_handler.name), &config);
+	    node_find_child(node, mounts_spec_handler.name), config);
 
-	ck_assert(! cc_oci_handle_mounts(&config));
+	ck_assert(! cc_oci_handle_mounts(config));
 
-	config.dry_run_mode = true;
-	ck_assert(cc_oci_handle_mounts(&config));
+	config->dry_run_mode = true;
+	ck_assert(cc_oci_handle_mounts(config));
 
-	cc_oci_config_free(&config);
+	cc_oci_config_free(config);
 	g_free_node(node);
 } END_TEST
 
@@ -93,18 +96,21 @@ START_TEST(test_cc_oci_perform_unmount) {
 } END_TEST
 
 START_TEST(test_cc_oci_handle_umounts) {
-	struct cc_oci_config config = { { 0 } };
+	struct cc_oci_config *config = NULL;
 	GNode* node = NULL;
+
+	config = cc_oci_config_create ();
+	ck_assert (config);
 
 	ck_assert(! cc_oci_handle_unmounts(NULL));
 
 	cc_oci_json_parse(&node, TEST_DATA_DIR "/mounts.json");
 	mounts_spec_handler.handle_section(
-	    node_find_child(node, mounts_spec_handler.name), &config);
+	    node_find_child(node, mounts_spec_handler.name), config);
 
-	ck_assert(! cc_oci_handle_unmounts(&config));
+	ck_assert(! cc_oci_handle_unmounts(config));
 
-	cc_oci_config_free(&config);
+	cc_oci_config_free(config);
 	g_free_node(node);
 } END_TEST
 

@@ -32,102 +32,116 @@
 
 START_TEST(test_cc_oci_runtime_path_get) {
 	gchar *expected;
-	struct cc_oci_config config = { {0} };
+	struct cc_oci_config *config = NULL;
+
+	config = cc_oci_config_create ();
+	ck_assert (config);
 
 	ck_assert (! cc_oci_runtime_path_get (NULL));
 
 	/* container_id not set */
-	ck_assert (! cc_oci_runtime_path_get (&config));
+	ck_assert (! cc_oci_runtime_path_get (config));
 
-	config.optarg_container_id = "foo";
+	config->optarg_container_id = "foo";
 
-	ck_assert (cc_oci_runtime_path_get (&config));
+	ck_assert (cc_oci_runtime_path_get (config));
 
 	expected = g_strdup_printf ("%s/%s",
 			"/run/cc-oci-runtime",
-			config.optarg_container_id);
+			config->optarg_container_id);
 
-	ck_assert (! g_strcmp0 (config.state.runtime_path, expected));
+	ck_assert (! g_strcmp0 (config->state.runtime_path, expected));
 	g_free (expected);
+	cc_oci_config_free (config);
 
 } END_TEST
 
 START_TEST(test_cc_oci_runtime_dir_setup) {
 	gboolean ret;
 	gchar *tmpdir = g_dir_make_tmp (NULL, NULL);
-	struct cc_oci_config config = { {0} };
+	struct cc_oci_config *config = NULL;
+
+	config = cc_oci_config_create ();
+	ck_assert (config);
 
 	ck_assert (! cc_oci_runtime_dir_setup (NULL));
 
 	/* container_id not set */
-	ck_assert (! cc_oci_runtime_dir_setup (&config));
+	ck_assert (! cc_oci_runtime_dir_setup (config));
 
-	config.optarg_container_id = "foo";
+	config->optarg_container_id = "foo";
 
 	/* Set the runtimepath which subverts cc_oci_runtime_dir_setup()
 	 * setting it.
 	 */
-	g_snprintf (config.state.runtime_path,
-			(gulong)sizeof (config.state.runtime_path),
+	g_snprintf (config->state.runtime_path,
+			(gulong)sizeof (config->state.runtime_path),
 			"%s/%s",
 			tmpdir,
-			config.optarg_container_id);
+			config->optarg_container_id);
 
-	ret = g_file_test (config.state.runtime_path, G_FILE_TEST_EXISTS);
+	ret = g_file_test (config->state.runtime_path,
+			G_FILE_TEST_EXISTS);
 	ck_assert (! ret);
 
-	ck_assert (cc_oci_runtime_dir_setup (&config));
+	ck_assert (cc_oci_runtime_dir_setup (config));
 
-	ret = g_file_test (config.state.runtime_path,
+	ret = g_file_test (config->state.runtime_path,
 			G_FILE_TEST_EXISTS | G_FILE_TEST_IS_DIR);
 	ck_assert (ret);
 
-	ck_assert (! g_rmdir (config.state.runtime_path));
+	ck_assert (! g_rmdir (config->state.runtime_path));
 	ck_assert (! g_rmdir (tmpdir));
 
 	g_free (tmpdir);
+	cc_oci_config_free (config);
 
 } END_TEST
 
 START_TEST(test_cc_oci_runtime_dir_delete) {
 	gboolean ret;
 	gchar *tmpdir = g_dir_make_tmp (NULL, NULL);
-	struct cc_oci_config config = { {0} };
+	struct cc_oci_config *config = NULL;
+
+	config = cc_oci_config_create ();
+	ck_assert (config);
 
 	ck_assert (! cc_oci_runtime_dir_delete (NULL));
 
 	/* No runtime_path set */
-	ck_assert (! cc_oci_runtime_dir_delete (&config));
+	ck_assert (! cc_oci_runtime_dir_delete (config));
 
-	g_snprintf (config.state.runtime_path,
-			(gulong)sizeof (config.state.runtime_path),
+	g_snprintf (config->state.runtime_path,
+			(gulong)sizeof (config->state.runtime_path),
 			"hello");
 
 	/* runtime_path is not absolute */
-	ck_assert (! cc_oci_runtime_dir_delete (&config));
+	ck_assert (! cc_oci_runtime_dir_delete (config));
 
-	g_snprintf (config.state.runtime_path,
-			(gulong)sizeof (config.state.runtime_path),
+	g_snprintf (config->state.runtime_path,
+			(gulong)sizeof (config->state.runtime_path),
 			"../hello");
 
 	/* runtime_path still not absolute */
-	ck_assert (! cc_oci_runtime_dir_delete (&config));
+	ck_assert (! cc_oci_runtime_dir_delete (config));
 
-	g_snprintf (config.state.runtime_path,
-			(gulong)sizeof (config.state.runtime_path),
+	g_snprintf (config->state.runtime_path,
+			(gulong)sizeof (config->state.runtime_path),
 			"%s",
 			tmpdir);
 
-	ret = g_file_test (config.state.runtime_path, G_FILE_TEST_EXISTS);
+	ret = g_file_test (config->state.runtime_path,
+			G_FILE_TEST_EXISTS);
 	ck_assert (ret);
 
-	ck_assert (cc_oci_runtime_dir_delete (&config));
+	ck_assert (cc_oci_runtime_dir_delete (config));
 
-	ret = g_file_test (config.state.runtime_path,
+	ret = g_file_test (config->state.runtime_path,
 			G_FILE_TEST_EXISTS | G_FILE_TEST_IS_DIR);
 	ck_assert (! ret);
 
 	g_free (tmpdir);
+	cc_oci_config_free (config);
 } END_TEST
 
 Suite* make_runtime_suite(void) {
