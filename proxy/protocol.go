@@ -99,11 +99,11 @@ func (proto *protocol) handleRequest(ctx *clientCtx, req *api.Request, hr *handl
 			Error:   hr.err.Error(),
 			Data:    hr.results,
 		}
-	} else {
-		return &api.Response{
-			Success: true,
-			Data:    hr.results,
-		}
+	}
+
+	return &api.Response{
+		Success: true,
+		Data:    hr.results,
 	}
 }
 
