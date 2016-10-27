@@ -45,7 +45,7 @@ func (client *Client) sendPayload(id string, payload interface{}) (*Response, er
 	var err error
 
 	req := Request{}
-	req.Id = id
+	req.ID = id
 	if payload != nil {
 		if req.Data, err = json.Marshal(payload); err != nil {
 			return nil, err

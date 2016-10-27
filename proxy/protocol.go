@@ -81,18 +81,18 @@ type clientCtx struct {
 }
 
 func (proto *Protocol) handleRequest(ctx *clientCtx, req *api.Request, hr *HandlerResponse) *api.Response {
-	if req.Id == "" {
+	if req.ID == "" {
 		return &api.Response{
 			Success: false,
 			Error:   "no 'id' field in request",
 		}
 	}
 
-	handler, ok := proto.handlers[req.Id]
+	handler, ok := proto.handlers[req.ID]
 	if !ok {
 		return &api.Response{
 			Success: false,
-			Error:   fmt.Sprintf("no payload named '%s'", req.Id),
+			Error:   fmt.Sprintf("no payload named '%s'", req.ID),
 		}
 	}
 
