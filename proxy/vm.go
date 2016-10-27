@@ -64,7 +64,7 @@ type ioSession struct {
 	wg sync.WaitGroup
 }
 
-func NewVM(id, ctlSerial, ioSerial string) *vm {
+func newVM(id, ctlSerial, ioSerial string) *vm {
 	return &vm{
 		containerID: id,
 		ctlSerial:   ctlSerial,

@@ -69,7 +69,7 @@ func helloHandler(data []byte, userData interface{}, response *handlerResponse) 
 			hello.ContainerID)
 		return
 	}
-	vm := NewVM(hello.ContainerID, hello.CtlSerial, hello.IoSerial)
+	vm := newVM(hello.ContainerID, hello.CtlSerial, hello.IoSerial)
 	proxy.vms[hello.ContainerID] = vm
 	proxy.Unlock()
 
