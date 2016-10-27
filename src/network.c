@@ -643,7 +643,8 @@ cc_oci_vm_conn_new (const gchar *socket_path, GPid pid)
 	ret = g_socket_connect (conn->socket, conn->socket_addr,
 			NULL, &error);
 	if (! ret) {
-		g_critical ("failed to connect to socket: %s",
+		g_critical ("failed to connect to hypervisor control socket %s: %s",
+				socket_path,
 				error->message);
 		g_error_free (error);
 		goto err;
