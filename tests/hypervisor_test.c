@@ -29,6 +29,7 @@
 #include "../src/logging.h"
 #include "../src/hypervisor.h"
 #include "../src/oci.h"
+#include "../src/proxy.h"
 
 gchar *
 cc_oci_vm_args_file_path (const struct cc_oci_config *config);
@@ -234,8 +235,11 @@ START_TEST(test_cc_oci_expand_cmdline) {
 	gchar *image_size = g_strdup_printf ("%lu",
 			(unsigned long int)sizeof(image_contents)-1);
 	gchar *shell;
+	struct cc_proxy *proxy = NULL;
 	g_autofree gchar *cc_stdin = NULL;
 	g_autofree gchar *cc_stdout = NULL;
+	g_autofree gchar *proxy_ctl_socket_path = NULL;
+	g_autofree gchar *proxy_tty_socket_path = NULL;
 
 	struct cc_oci_config *config = NULL;
 
@@ -256,6 +260,7 @@ START_TEST(test_cc_oci_expand_cmdline) {
 
 	config = cc_oci_config_create ();
 	ck_assert (config);
+	ck_assert (config->proxy);
 
 	/* no config->vm */
 	ck_assert (! cc_oci_expand_cmdline (config, args));
@@ -316,6 +321,7 @@ START_TEST(test_cc_oci_expand_cmdline) {
 
 	ck_assert (! config->console);
 	ck_assert (! config->bundle_path);
+	ck_assert (config->proxy);
 
 	config->bundle_path = g_strdup (tmpdir);
 	ck_assert (cc_oci_expand_cmdline (config, args));
@@ -328,6 +334,27 @@ START_TEST(test_cc_oci_expand_cmdline) {
 	/* console should have been set */
 	ck_assert (config->console);
 	g_free (config->console);
+
+	/* proxy details should have been set */
+	ck_assert (config->proxy);
+	proxy = config->proxy;
+	ck_assert (proxy->agent_ctl_socket);
+	ck_assert (proxy->agent_tty_socket);
+
+	proxy_ctl_socket_path = g_build_path ("/",
+			config->state.runtime_path,
+			"ga-ctl.sock", NULL);
+	ck_assert (! g_strcmp0 (proxy->agent_ctl_socket, proxy_ctl_socket_path));
+
+	proxy_tty_socket_path = g_build_path ("/",
+			config->state.runtime_path,
+			"ga-tty.sock", NULL);
+	ck_assert (! g_strcmp0 (proxy->agent_tty_socket, proxy_tty_socket_path));
+
+	/* clean up ready for another call */
+	cc_proxy_free (config->proxy);
+	config->proxy = g_malloc0 (sizeof (struct cc_proxy));
+	ck_assert (config->proxy);
 
 	/* ensure no expansion took place */
 	ck_assert (! g_strcmp0 (args[0], ""));
@@ -365,6 +392,11 @@ START_TEST(test_cc_oci_expand_cmdline) {
 	args[8] = g_strdup ("@UUID@");
 	args[9] = NULL;
 
+	/* clean up ready for another call */
+	cc_proxy_free (config->proxy);
+	config->proxy = g_malloc0 (sizeof (struct cc_proxy));
+	ck_assert (config->proxy);
+
 	ck_assert (cc_oci_expand_cmdline (config, args));
 	ck_assert (check_full_expansion (config,
 				(const gchar **)args, image_size));
@@ -379,6 +411,11 @@ START_TEST(test_cc_oci_expand_cmdline) {
 	args[0] = g_strdup ("sh");
 	args[1] = NULL;
 
+	/* clean up ready for another call */
+	cc_proxy_free (config->proxy);
+	config->proxy = g_malloc0 (sizeof (struct cc_proxy));
+	ck_assert (config->proxy);
+
 	ck_assert (cc_oci_expand_cmdline (config, args));
 	ck_assert (! g_strcmp0 (args[0], shell));
 	ck_assert (! args[1]);
@@ -386,6 +423,11 @@ START_TEST(test_cc_oci_expand_cmdline) {
 	g_free (args[0]);
 	/* test with an already specified absolute path */
 	args[0] = g_strdup (shell);
+
+	/* clean up ready for another call */
+	cc_proxy_free (config->proxy);
+	config->proxy = g_malloc0 (sizeof (struct cc_proxy));
+	ck_assert (config->proxy);
 
 	ck_assert (cc_oci_expand_cmdline (config, args));
 	ck_assert (! g_strcmp0 (args[0], shell));
@@ -527,6 +569,11 @@ START_TEST(test_cc_oci_vm_args_get) {
 	ck_assert (! args[1]);
 	g_strfreev (args);
 
+	/* clean up ready for another call */
+	cc_proxy_free (config->proxy);
+	config->proxy = g_malloc0 (sizeof (struct cc_proxy));
+	ck_assert (config->proxy);
+
 	/* recreate the args file */
 	ret = g_file_set_contents (args_file, "hello# comment\n", -1, NULL);
 	ck_assert (ret);
@@ -541,6 +588,11 @@ START_TEST(test_cc_oci_vm_args_get) {
 	ret = g_file_set_contents (args_file, "hello\\# comment\n", -1, NULL);
 	ck_assert (ret);
 
+	/* clean up ready for another call */
+	cc_proxy_free (config->proxy);
+	config->proxy = g_malloc0 (sizeof (struct cc_proxy));
+	ck_assert (config->proxy);
+
 	ck_assert (cc_oci_vm_args_get (config, &args, NULL));
 
 	ck_assert (! g_strcmp0 (args[0], "hello\\# comment"));
@@ -550,6 +602,11 @@ START_TEST(test_cc_oci_vm_args_get) {
 	/* recreate the args file */
 	ret = g_file_set_contents (args_file, "hello\t # comment\n", -1, NULL);
 	ck_assert (ret);
+
+	/* clean up ready for another call */
+	cc_proxy_free (config->proxy);
+	config->proxy = g_malloc0 (sizeof (struct cc_proxy));
+	ck_assert (config->proxy);
 
 	ck_assert (cc_oci_vm_args_get (config, &args, NULL));
 
@@ -561,6 +618,11 @@ START_TEST(test_cc_oci_vm_args_get) {
 	ret = g_file_set_contents (args_file, "hello#comment\n", -1, NULL);
 	ck_assert (ret);
 
+	/* clean up ready for another call */
+	cc_proxy_free (config->proxy);
+	config->proxy = g_malloc0 (sizeof (struct cc_proxy));
+	ck_assert (config->proxy);
+
 	ck_assert (cc_oci_vm_args_get (config, &args, NULL));
 
 	ck_assert (! g_strcmp0 (args[0], "hello#comment"));
@@ -571,6 +633,11 @@ START_TEST(test_cc_oci_vm_args_get) {
 	ret = g_file_set_contents (args_file, "# comment\n", -1, NULL);
 	ck_assert (ret);
 
+	/* clean up ready for another call */
+	cc_proxy_free (config->proxy);
+	config->proxy = g_malloc0 (sizeof (struct cc_proxy));
+	ck_assert (config->proxy);
+
 	ck_assert (cc_oci_vm_args_get (config, &args, NULL));
 
 	ck_assert(! args[0]);
@@ -579,6 +646,11 @@ START_TEST(test_cc_oci_vm_args_get) {
 	/* recreate the args file */
 	ret = g_file_set_contents (args_file, "# comment", -1, NULL);
 	ck_assert (ret);
+
+	/* clean up ready for another call */
+	cc_proxy_free (config->proxy);
+	config->proxy = g_malloc0 (sizeof (struct cc_proxy));
+	ck_assert (config->proxy);
 
 	ck_assert (cc_oci_vm_args_get (config, &args, NULL));
 
@@ -589,6 +661,11 @@ START_TEST(test_cc_oci_vm_args_get) {
 	ret = g_file_set_contents (args_file, "foo", -1, NULL);
 	ck_assert (ret);
 
+	/* clean up ready for another call */
+	cc_proxy_free (config->proxy);
+	config->proxy = g_malloc0 (sizeof (struct cc_proxy));
+	ck_assert (config->proxy);
+
 	ck_assert (cc_oci_vm_args_get (config, &args, NULL));
 
 	ck_assert (! g_strcmp0 (args[0], "foo"));
@@ -596,22 +673,27 @@ START_TEST(test_cc_oci_vm_args_get) {
 	g_strfreev (args);
 
 	/* recreate the args file */
-	ret = g_file_set_contents (args_file,
-			"hello\nworld\nfoo\nbar",
-			-1, NULL);
-	ck_assert (ret);
+        ret = g_file_set_contents (args_file,
+                        "hello\nworld\nfoo\nbar",
+                        -1, NULL);
+        ck_assert (ret);
 
-	extra_args = g_ptr_array_new ();
+        extra_args = g_ptr_array_new ();
 
-	ck_assert (cc_oci_vm_args_get (config, &args, extra_args));
+	/* clean up ready for another call */
+	cc_proxy_free (config->proxy);
+	config->proxy = g_malloc0 (sizeof (struct cc_proxy));
+	ck_assert (config->proxy);
 
-	ck_assert (! g_strcmp0 (args[0], "hello"));
-	ck_assert (! g_strcmp0 (args[1], "world"));
-	ck_assert (! g_strcmp0 (args[2], "foo"));
-	ck_assert (! g_strcmp0 (args[3], "bar"));
-	ck_assert (! args[4]);
-	g_strfreev (args);
-	g_ptr_array_free(extra_args, TRUE);
+        ck_assert (cc_oci_vm_args_get (config, &args, extra_args));
+
+        ck_assert (! g_strcmp0 (args[0], "hello"));
+        ck_assert (! g_strcmp0 (args[1], "world"));
+        ck_assert (! g_strcmp0 (args[2], "foo"));
+        ck_assert (! g_strcmp0 (args[3], "bar"));
+        ck_assert (! args[4]);
+        g_strfreev (args);
+        g_ptr_array_free(extra_args, TRUE);
 
 	/* recreate the args file */
 	ret = g_file_set_contents (args_file,
@@ -622,6 +704,11 @@ START_TEST(test_cc_oci_vm_args_get) {
 	extra_args = g_ptr_array_new ();
 	g_ptr_array_add(extra_args, "-device testdevice");
 	g_ptr_array_add(extra_args, "-device testdevice2");
+
+	/* clean up ready for another call */
+	cc_proxy_free (config->proxy);
+	config->proxy = g_malloc0 (sizeof (struct cc_proxy));
+	ck_assert (config->proxy);
 
 	ck_assert (cc_oci_vm_args_get (config, &args, extra_args));
 
@@ -648,6 +735,11 @@ START_TEST(test_cc_oci_vm_args_get) {
 			"@UUID@\n",
 			-1, NULL);
 	ck_assert (ret);
+
+	/* clean up ready for another call */
+	cc_proxy_free (config->proxy);
+	config->proxy = g_malloc0 (sizeof (struct cc_proxy));
+	ck_assert (config->proxy);
 
 	ck_assert (cc_oci_vm_args_get (config, &args, NULL));
 	ck_assert (check_full_expansion (config, (const gchar **)args,
