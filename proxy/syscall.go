@@ -20,6 +20,8 @@ import (
 	"syscall"
 )
 
+// Socketpair wraps the eponymous syscall but gives go friendly objects instead
+// of the raw file descriptors.
 func Socketpair() (*net.UnixConn, *net.UnixConn, error) {
 	fds, err := syscall.Socketpair(syscall.AF_UNIX, syscall.SOCK_STREAM, 0)
 	if err != nil {
