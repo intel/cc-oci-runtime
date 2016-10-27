@@ -45,10 +45,6 @@ func (r *HandlerResponse) SetErrorf(format string, a ...interface{}) {
 	r.SetError(fmt.Errorf(format, a...))
 }
 
-func (r *HandlerResponse) SetResults(results map[string]interface{}) {
-	r.results = results
-}
-
 func (r *HandlerResponse) AddResult(key string, value interface{}) {
 	if r.results == nil {
 		r.results = make(map[string]interface{})
