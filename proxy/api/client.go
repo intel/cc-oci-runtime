@@ -21,18 +21,22 @@ import (
 	"os"
 )
 
+// The Client struct can be used to issue proxy API calls with a convenient
+// high level API.
 type Client struct {
 	conn *net.UnixConn
 }
 
-// Creates a new client object to communicate with the proxy using the
-// connection conn
+// NewClient creates a new client object to communicate with the proxy using
+// the connection conn. The user should call Close() once finished with the
+// client object to close conn.
 func NewClient(conn *net.UnixConn) *Client {
 	return &Client{
 		conn: conn,
 	}
 }
 
+// Close a client, closing the underlying AF_UNIX socket.
 func (client *Client) Close() {
 	client.conn.Close()
 }
@@ -74,6 +78,7 @@ func errorFromResponse(resp *Response) error {
 	return nil
 }
 
+// Hello wraps the Hello payload (see payload description for more details)
 func (client *Client) Hello(containerID, ctlSerial, ioSerial string) error {
 	hello := Hello{
 		ContainerID: containerID,
@@ -89,6 +94,7 @@ func (client *Client) Hello(containerID, ctlSerial, ioSerial string) error {
 	return errorFromResponse(resp)
 }
 
+// Attach wraps the Attach payload (see payload description for more details)
 func (client *Client) Attach(containerID string) error {
 	hello := Attach{
 		ContainerID: containerID,
@@ -102,6 +108,7 @@ func (client *Client) Attach(containerID string) error {
 	return errorFromResponse(resp)
 }
 
+// AllocateIo wraps the AllocateIo payload (see payload description for more details)
 func (client *Client) AllocateIo(nStreams int) (ioBase uint64, ioFile *os.File, err error) {
 	allocate := AllocateIo{
 		NStreams: nStreams,
@@ -135,6 +142,7 @@ func (client *Client) AllocateIo(nStreams int) (ioBase uint64, ioFile *os.File, 
 	return
 }
 
+// Hyper wraps the Hyper payload (see payload description for more details)
 func (client *Client) Hyper(hyperName string, hyperMessage interface{}) error {
 	var data []byte
 
@@ -160,6 +168,7 @@ func (client *Client) Hyper(hyperName string, hyperMessage interface{}) error {
 	return errorFromResponse(resp)
 }
 
+// Bye wraps the Bye payload (see payload description for more details)
 func (client *Client) Bye() error {
 	resp, err := client.sendPayload("bye", nil)
 	if err != nil {
