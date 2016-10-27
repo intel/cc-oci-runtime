@@ -33,6 +33,7 @@
 #include "semver.h"
 #include "oci-config.h"
 #include "networking.h"
+#include "proxy.h"
 
 /*!
  * Free all resources associated with \p h hook object.
@@ -121,6 +122,12 @@ cc_oci_config_create (void)
 		return NULL;
 	}
 
+	config->proxy = g_malloc0 (sizeof (struct cc_proxy));
+	if (! config->proxy) {
+		g_free (config);
+		return NULL;
+	}
+
 	return config;
 }
 
@@ -188,6 +195,8 @@ cc_oci_config_free (struct cc_oci_config *config)
 		g_slist_free_full(config->net.interfaces,
                 (GDestroyNotify)cc_oci_net_interface_free);
 	}
+
+	cc_proxy_free (config->proxy);
 
 	g_free (config);
 }
