@@ -35,7 +35,7 @@ type mockServer struct {
 	serverConn, clientConn net.Conn
 }
 
-func NewMockServer(t *testing.T, proto *protocol) *mockServer {
+func newMockServer(t *testing.T, proto *protocol) *mockServer {
 	var err error
 
 	server := &mockServer{
@@ -62,7 +62,7 @@ func (server *mockServer) ServeWithUserData(userData interface{}) {
 }
 
 func setupMockServer(t *testing.T, proto *protocol) (client net.Conn, server *mockServer) {
-	server = NewMockServer(t, proto)
+	server = newMockServer(t, proto)
 	client = server.GetClientConn()
 	go server.Serve()
 
@@ -138,7 +138,7 @@ func TestUserData(t *testing.T) {
 	proto := newProtocol()
 	proto.Handle("foo", userDataHandler)
 
-	server := NewMockServer(t, proto)
+	server := newMockServer(t, proto)
 	client := server.GetClientConn()
 	testUserData.t = t
 	go server.ServeWithUserData(&testUserData)
