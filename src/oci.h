@@ -74,7 +74,8 @@
 
 /** Directory below which container-specific directory will be created.
  */
-#define CC_OCI_RUNTIME_DIR_PREFIX	"/run/cc-oci-runtime"
+#define CC_OCI_RUNTIME_DIR_PREFIX	LOCALSTATEDIR \
+					"/run/cc-oci-runtime"
 
 /** Mode for \ref CC_OCI_WORKLOAD_FILE. */
 #define CC_OCI_SCRIPT_MODE		0755

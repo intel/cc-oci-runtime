@@ -98,6 +98,7 @@ CLEANFILES += $(GENERATED_FILES)
 AM_CPPFLAGS = -I $(top_srcdir)/src -DG_LOG_DOMAIN=\"$(PACKAGE_NAME)\" \
 	-DSYSCONFDIR=\"$(SYSCONFDIR)\" \
 	-DDEFAULTSDIR=\"$(DEFAULTSDIR)\" \
+	-DLOCALSTATEDIR=\"$(localstatedir)\" \
 	-DGIT_COMMIT=\"$(STORED_COMMIT)\"
 
 defaultsdir = $(datadir)/defaults/$(PACKAGE_NAME)

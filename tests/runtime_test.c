@@ -30,6 +30,8 @@
 #include "oci.h"
 #include "runtime.h"
 
+#define TEST_EXPECTED_PREFIX LOCALSTATEDIR "/run/cc-oci-runtime"
+
 START_TEST(test_cc_oci_runtime_path_get) {
 	gchar *expected;
 	struct cc_oci_config *config = NULL;
@@ -47,7 +49,7 @@ START_TEST(test_cc_oci_runtime_path_get) {
 	ck_assert (cc_oci_runtime_path_get (config));
 
 	expected = g_strdup_printf ("%s/%s",
-			"/run/cc-oci-runtime",
+			TEST_EXPECTED_PREFIX,
 			config->optarg_container_id);
 
 	ck_assert (! g_strcmp0 (config->state.runtime_path, expected));
