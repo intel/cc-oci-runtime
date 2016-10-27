@@ -98,6 +98,15 @@ START_TEST(test_cc_oci_state_file_read) {
 	ck_assert(! cc_oci_state_file_read(TEST_DATA_DIR
 	                "/state-no-vm-object.json"));
 
+	ck_assert(! cc_oci_state_file_read(TEST_DATA_DIR
+	                "/state-no-proxy.json"));
+
+	ck_assert(! cc_oci_state_file_read(TEST_DATA_DIR
+	                "/state-no-proxy-ctlSocket.json"));
+
+	ck_assert(! cc_oci_state_file_read(TEST_DATA_DIR
+	                "/state-no-proxy-ioSocket.json"));
+
 	/* Annotations are optional*/
 	state = cc_oci_state_file_read(TEST_DATA_DIR
 	                "/state-no-annotations.json");

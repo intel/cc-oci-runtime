@@ -59,6 +59,7 @@ static void handle_state_created_section(GNode*, struct handler_data*);
 static void handle_state_mounts_section(GNode*, struct handler_data*);
 static void handle_state_console_section(GNode*, struct handler_data*);
 static void handle_state_vm_section(GNode*, struct handler_data*);
+static void handle_state_proxy_section(GNode*, struct handler_data*);
 static void handle_state_annotations_section(GNode*, struct handler_data*);
 
 /*! Used to handle each section in \ref CC_OCI_STATE_FILE. */
@@ -88,6 +89,7 @@ static struct state_handler {
 	{ "mounts"      , handle_state_mounts_section      , 0 , 0 },
 	{ "console"     , handle_state_console_section     , 2 , 0 },
 	{ "vm"          , handle_state_vm_section          , 5 , 0 },
+	{ "proxy"       , handle_state_proxy_section       , 2 , 0 },
 	{ "annotations" , handle_state_annotations_section , 0 , 0 },
 
 	/* terminator */
@@ -357,6 +359,43 @@ handle_state_vm_section(GNode* node, struct handler_data* data) {
 }
 
 /*!
+ * handler for proxy section.
+ *
+ * \param node \c GNode.
+ * \param data \ref handler_data.
+ */
+static void
+handle_state_proxy_section(GNode* node, struct handler_data* data) {
+	struct cc_proxy *proxy;
+
+	if (! (node && node->data)) {
+		return;
+	}
+	if (! (node->children && node->children->data)) {
+		g_critical("%s missing value", (char*)node->data);
+		return;
+	}
+
+	g_assert (data->state);
+
+	proxy = data->state->proxy;
+
+	g_assert (proxy);
+
+	if (g_strcmp0(node->data, "ctlSocket") == 0) {
+		proxy->agent_ctl_socket =
+			g_strdup ((gchar *)node->children->data);
+		(*(data->subelements_count))++;
+	} else if (g_strcmp0(node->data, "ioSocket") == 0) {
+		proxy->agent_tty_socket =
+			g_strdup ((gchar *)node->children->data);
+		(*(data->subelements_count))++;
+	} else {
+		g_critical("unknown proxy option: %s", (char*)node->data);
+	}
+}
+
+/*!
  * handler for annotations section
  *
  * \param node \c GNode.
@@ -502,6 +541,14 @@ cc_oci_state_file_read (const char *file)
 			goto out;
 		}
 
+		state->proxy = g_malloc0 (sizeof(struct cc_proxy));
+		if (! state->proxy) {
+			g_free (state->vm);
+			g_free (state);
+			state = NULL;
+			goto out;
+		}
+
 		/* reset subelements_count */
 		for (handler=state_handlers; handler->name; ++handler) {
 			handler->subelements_count = 0;
@@ -557,6 +604,13 @@ cc_oci_state_free (struct oci_state *state)
         if (state->annotations) {
                 cc_oci_annotations_free_all(state->annotations);
         }
+
+	if (state->proxy) {
+		g_free_if_set(state->proxy->agent_ctl_socket);
+		g_free_if_set(state->proxy->agent_tty_socket);
+		g_free (state->proxy);
+	}
+
 	g_free (state);
 }
 
@@ -577,6 +631,7 @@ cc_oci_state_file_create (struct cc_oci_config *config,
 	JsonObject  *obj = NULL;
 	JsonObject  *console = NULL;
 	JsonObject  *vm = NULL;
+	JsonObject  *proxy = NULL;
 	JsonObject  *annotation_obj = NULL;
 	JsonArray   *mounts = NULL;
 	gchar       *str = NULL;
@@ -608,6 +663,17 @@ cc_oci_state_file_create (struct cc_oci_config *config,
 		return false;
 	}
 	if (! config->vm) {
+		return false;
+	}
+
+	/* Note that although the proxy object must be allocated, it
+	 * may not have had its members set.
+	 *
+	 * This has to be allowed given the way cc_oci_vm_launch()
+	 * works (it creates the state file with "blank" proxy values,
+	 * then later recreates it with complete information).
+	 */
+	if (! config->proxy) {
 		return false;
 	}
 
@@ -690,6 +756,19 @@ cc_oci_state_file_create (struct cc_oci_config *config,
 			? config->vm->kernel_params : "");
 
 	json_object_set_object_member (obj, "vm", vm);
+
+	/* Add an object containing proxy details */
+	proxy = json_object_new ();
+
+	json_object_set_string_member (proxy, "ctlSocket",
+			config->proxy->agent_ctl_socket ?
+			config->proxy->agent_ctl_socket : "");
+
+	json_object_set_string_member (proxy, "ioSocket",
+			config->proxy->agent_tty_socket ?
+			config->proxy->agent_tty_socket : "");
+
+	json_object_set_object_member (obj, "proxy", proxy);
 
 	if (config->oci.annotations) {
 		/* Add an object containing annotations */

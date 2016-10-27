@@ -9,5 +9,9 @@
   "console" : {
       "path" : "/run/cc-oci-runtime/test/console.sock",
       "socket" : true
+  },
+  "proxy" : {
+      "ctlSocket" : "/run/cc-oci-runtime/container/ga-ctl.sock",
+      "ioSocket" : "/run/cc-oci-runtime/container/ga-tty.sock"
   }
 }
