@@ -152,6 +152,7 @@ common_sources = \
 	src/oci-config.c src/oci-config.h \
 	src/hypervisor.c src/hypervisor.h \
 	src/json.c src/json.h \
+	src/proxy.c src/proxy.h \
 	src/spec_handler.c src/spec_handler.h \
 	src/common.h \
 	src/command.c src/command.h \
@@ -364,6 +365,7 @@ TESTS = \
 	oci_config_test \
 	oci_test \
 	priv_test \
+	proxy_test \
 	process_test \
 	runtime_test \
 	semver_test \
@@ -516,6 +518,17 @@ priv_test_CFLAGS = \
 	$(TEST_COMMON_CFLAGS)
 
 priv_test_LDADD = \
+	$(TEST_COMMON_LDADD)
+
+## proxy.c test ##
+proxy_test_SOURCES = \
+	$(TEST_COMMON_SOURCES) \
+	tests/proxy_test.c
+
+proxy_test_CFLAGS = \
+	$(TEST_COMMON_CFLAGS)
+
+proxy_test_LDADD = \
 	$(TEST_COMMON_LDADD)
 
 ## mount.c test ##
