@@ -78,6 +78,13 @@
 #define CC_OCI_RUNTIME_DIR_PREFIX	LOCALSTATEDIR \
 					"/run/cc-oci-runtime"
 
+/** Command used to talk to hyperstart inside the VM. */
+#define CC_OCI_PROXY			"cc-proxy"
+
+/** Full path to socket used to talk to \ref CC_OCI_PROXY. */
+#define CC_OCI_PROXY_SOCKET 		CC_OCI_RUNTIME_DIR_PREFIX \
+					"/proxy.sock"
+
 /** Mode for \ref CC_OCI_WORKLOAD_FILE. */
 #define CC_OCI_SCRIPT_MODE		0755
 
