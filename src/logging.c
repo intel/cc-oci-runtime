@@ -396,32 +396,7 @@ cc_oci_log_handler (const gchar *log_domain,
 		goto out;
 	}
 
-	if (log_level == G_LOG_LEVEL_ERROR || log_level == G_LOG_LEVEL_CRITICAL) {
-		/* Ensure the message gets across.
-		 *
-		 * XXX: Note that writing to stderr cannot occur for
-		 * other log levels since this would invalidate JSON
-		 * output. However, in an error scenario all bets are
-		 * off so we do it anyway.
-		 */
-		fprintf (stderr, "%s\n", final);
-	}
-
-	if ((log_level == G_LOG_LEVEL_DEBUG) && (!options->enable_debug)) {
-		/* Debug calls are always added to the global log, but
-		 * only added to the main log if debug is enabled.
-		 */
-		goto update_global_log;
-	}
-
-	if (options->filename) {
-		ret = cc_oci_log_msg_write (options->filename, final);
-		if (! ret) {
-			goto out;
-		}
-	}
-
-update_global_log:
+	/* Update the global log first */
 	if (options->global_logfile) {
 		/* If we're logging in JSON, switch back to ASCII for
 		 * the global log write as we want all the metadata
@@ -437,6 +412,20 @@ update_global_log:
 		}
 		ret = cc_oci_log_msg_write (options->global_logfile,
 				final);
+		if (! ret) {
+			goto out;
+		}
+	}
+
+	if ((log_level == G_LOG_LEVEL_DEBUG) && (!options->enable_debug)) {
+		/* Debug calls are always added to the global log, but
+		 * only added to the main log if debug is enabled.
+		 */
+		goto out;
+	}
+
+	if (options->filename) {
+		ret = cc_oci_log_msg_write (options->filename, final);
 		if (! ret) {
 			goto out;
 		}
