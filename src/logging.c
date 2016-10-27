@@ -82,14 +82,25 @@ cc_oci_error (const char *file,
 		const char *fmt,
 		...)
 {
-	gchar    buffer[CC_OCI_LOG_BUFSIZE];
-	va_list  ap;
-	int      ret;
+	gchar            buffer[CC_OCI_LOG_BUFSIZE];
+	va_list          ap;
+	int              ret;
+	static gboolean  initialised = FALSE;
 
 	g_assert (file);
 	g_assert (line_number >= 0);
 	g_assert (function);
 	g_assert (fmt);
+
+	if (! initialised) {
+		int syslog_options = (LOG_CONS | LOG_PID | LOG_PERROR |
+				LOG_NOWAIT);
+
+		/* setup the fallback logging */
+		openlog (G_LOG_DOMAIN, syslog_options, LOG_LOCAL0);
+
+		initialised = TRUE;
+	}
 
 	va_start (ap, fmt);
 
@@ -319,8 +330,7 @@ cc_oci_log_handler (const gchar *log_domain,
 	const gchar                  *level = NULL;;
 	gchar                        *final = NULL;
 	gchar                        *timestamp = NULL;
-	const struct cc_log_options *options;
-	static gboolean               initialised = FALSE;
+	const struct cc_log_options  *options;
 	gboolean                      ret;
 
 	g_assert (message);
@@ -342,16 +352,6 @@ cc_oci_log_handler (const gchar *log_domain,
 		 * still logged to that logfile.
 		 */
 		return;
-	}
-
-	if (! initialised) {
-		int syslog_options = (LOG_CONS | LOG_PID | LOG_PERROR |
-				LOG_NOWAIT);
-
-		/* setup the fallback logging */
-		openlog (G_LOG_DOMAIN, syslog_options, LOG_LOCAL0);
-
-		initialised = TRUE;
 	}
 
 	switch (log_level) {
