@@ -47,7 +47,7 @@ type testRig struct {
 	proxyFork bool
 
 	// proxy, in process
-	Proxy     *Proxy
+	proxy     *proxy
 	protocol  *protocol
 	proxyConn net.Conn // socket used by proxy to communicate with Client
 
@@ -113,10 +113,10 @@ func (rig *testRig) Start() {
 		clientConn, rig.proxyConn, err = Socketpair()
 		assert.Nil(rig.t, err)
 		// Start proxy main go routine
-		rig.Proxy = NewProxy()
+		rig.proxy = newProxy()
 		rig.wg.Add(1)
 		go func() {
-			rig.Proxy.serveNewClient(rig.protocol, rig.proxyConn)
+			rig.proxy.serveNewClient(rig.protocol, rig.proxyConn)
 			rig.wg.Done()
 		}()
 	}
@@ -188,7 +188,7 @@ func TestHello(t *testing.T) {
 	assert.NotNil(t, err)
 
 	// Hello should register a new vm object
-	proxy := rig.Proxy
+	proxy := rig.proxy
 	proxy.Lock()
 	vm := proxy.vms[testContainerID]
 	proxy.Unlock()
@@ -225,7 +225,7 @@ func TestBye(t *testing.T) {
 	assert.NotNil(t, err)
 
 	// Bye should unregister the vm object
-	proxy := rig.Proxy
+	proxy := rig.proxy
 	proxy.Lock()
 	vm := proxy.vms[testContainerID]
 	proxy.Unlock()

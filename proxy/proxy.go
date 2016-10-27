@@ -25,7 +25,7 @@ import (
 )
 
 // Main struct holding the proxy state
-type Proxy struct {
+type proxy struct {
 	// Protect concurrent accesses from separate client goroutines to this
 	// structure fields
 	sync.Mutex
@@ -40,7 +40,7 @@ type Proxy struct {
 // Represents a client, either a cc-oci-runtime or cc-shim process having
 // opened a socket to the proxy
 type client struct {
-	proxy *Proxy
+	proxy *proxy
 	vm    *vm
 
 	conn net.Conn
@@ -190,8 +190,8 @@ func hyperHandler(data []byte, userData interface{}, response *handlerResponse) 
 	response.SetError(err)
 }
 
-func NewProxy() *Proxy {
-	return &Proxy{
+func newProxy() *proxy {
+	return &proxy{
 		vms: make(map[string]*vm),
 	}
 }
@@ -200,7 +200,7 @@ func NewProxy() *Proxy {
 //   ${locatestatedir}/run/cc-oci-runtime/proxy
 var socketPath string
 
-func (proxy *Proxy) Init() error {
+func (proxy *proxy) init() error {
 	var l net.Listener
 	var err error
 
@@ -232,7 +232,7 @@ func (proxy *Proxy) Init() error {
 	return nil
 }
 
-func (proxy *Proxy) serveNewClient(proto *protocol, newConn net.Conn) {
+func (proxy *proxy) serveNewClient(proto *protocol, newConn net.Conn) {
 	newClient := &client{
 		proxy: proxy,
 		conn:  newConn,
@@ -241,7 +241,7 @@ func (proxy *Proxy) serveNewClient(proto *protocol, newConn net.Conn) {
 	proto.Serve(newConn, newClient)
 }
 
-func (proxy *Proxy) Serve() {
+func (proxy *proxy) serve() {
 
 	// Define the client (runtime/shim) <-> proxy protocol
 	proto := newProtocol()
@@ -263,12 +263,12 @@ func (proxy *Proxy) Serve() {
 }
 
 func proxyMain() {
-	proxy := NewProxy()
-	if err := proxy.Init(); err != nil {
+	proxy := newProxy()
+	if err := proxy.init(); err != nil {
 		fmt.Fprintln(os.Stderr, "init:", err.Error())
 		os.Exit(1)
 	}
-	proxy.Serve()
+	proxy.serve()
 }
 
 func main() {
