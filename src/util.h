@@ -71,8 +71,6 @@ __extension__ ({ \
 	_ret; \
 })
 
-#define __unused__ __attribute__((unused))
-
 gchar *cc_oci_get_iso8601_timestamp (void);
 gboolean cc_oci_setup_console (const char *console);
 gboolean cc_oci_create_pidfile (const gchar *pidfile, GPid pid);
