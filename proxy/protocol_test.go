@@ -31,11 +31,11 @@ import (
 // A simple way to mock a net.Conn around syscall.socketpair()
 type mockServer struct {
 	t                      *testing.T
-	proto                  *Protocol
+	proto                  *protocol
 	serverConn, clientConn net.Conn
 }
 
-func NewMockServer(t *testing.T, proto *Protocol) *mockServer {
+func NewMockServer(t *testing.T, proto *protocol) *mockServer {
 	var err error
 
 	server := &mockServer{
@@ -61,7 +61,7 @@ func (server *mockServer) ServeWithUserData(userData interface{}) {
 	server.proto.Serve(server.serverConn, userData)
 }
 
-func setupMockServer(t *testing.T, proto *Protocol) (client net.Conn, server *mockServer) {
+func setupMockServer(t *testing.T, proto *protocol) (client net.Conn, server *mockServer) {
 	server = NewMockServer(t, proto)
 	client = server.GetClientConn()
 	go server.Serve()
@@ -127,7 +127,7 @@ type myUserData struct {
 
 var testUserData myUserData
 
-func userDataHandler(data []byte, userData interface{}, response *HandlerResponse) {
+func userDataHandler(data []byte, userData interface{}, response *handlerResponse) {
 	p := userData.(*myUserData)
 	assert.Equal(p.t, p, &testUserData)
 
@@ -135,7 +135,7 @@ func userDataHandler(data []byte, userData interface{}, response *HandlerRespons
 }
 
 func TestUserData(t *testing.T) {
-	proto := NewProtocol()
+	proto := newProtocol()
 	proto.Handle("foo", userDataHandler)
 
 	server := NewMockServer(t, proto)
@@ -152,29 +152,29 @@ func TestUserData(t *testing.T) {
 }
 
 // Tests various behaviours of the protocol main loop and handler dispatching
-func simpleHandler(data []byte, userData interface{}, response *HandlerResponse) {
+func simpleHandler(data []byte, userData interface{}, response *handlerResponse) {
 }
 
 type Echo struct {
 	Arg string
 }
 
-func echoHandler(data []byte, userData interface{}, response *HandlerResponse) {
+func echoHandler(data []byte, userData interface{}, response *handlerResponse) {
 	echo := Echo{}
 	json.Unmarshal(data, &echo)
 
 	response.AddResult("result", echo.Arg)
 }
 
-func returnDataHandler(data []byte, userData interface{}, response *HandlerResponse) {
+func returnDataHandler(data []byte, userData interface{}, response *handlerResponse) {
 	response.AddResult("foo", "bar")
 }
 
-func returnErrorHandler(data []byte, userData interface{}, response *HandlerResponse) {
+func returnErrorHandler(data []byte, userData interface{}, response *handlerResponse) {
 	response.SetErrorMsg("This is an error")
 }
 
-func returnDataErrorHandler(data []byte, userData interface{}, response *HandlerResponse) {
+func returnDataErrorHandler(data []byte, userData interface{}, response *handlerResponse) {
 	response.AddResult("foo", "bar")
 	response.SetErrorMsg("This is an error")
 }
@@ -200,7 +200,7 @@ func TestProtocol(t *testing.T) {
 			`{"success":true,"data":{"result":"ping"}}`},
 	}
 
-	proto := NewProtocol()
+	proto := newProtocol()
 	proto.Handle("simple", simpleHandler)
 	proto.Handle("returnData", returnDataHandler)
 	proto.Handle("returnError", returnErrorHandler)
@@ -223,7 +223,7 @@ func TestProtocol(t *testing.T) {
 
 // Make sure the server closes the connection when encountering an error
 func TestCloseOnError(t *testing.T) {
-	proto := NewProtocol()
+	proto := newProtocol()
 	proto.Handle("simple", simpleHandler)
 
 	client, _ := setupMockServer(t, proto)

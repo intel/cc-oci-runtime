@@ -48,7 +48,7 @@ type testRig struct {
 
 	// proxy, in process
 	Proxy     *Proxy
-	protocol  *Protocol
+	protocol  *protocol
 	proxyConn net.Conn // socket used by proxy to communicate with Client
 
 	// proxy, forked
@@ -59,7 +59,7 @@ type testRig struct {
 	Client *api.Client
 }
 
-func newTestRig(t *testing.T, proto *Protocol) *testRig {
+func newTestRig(t *testing.T, proto *protocol) *testRig {
 	return &testRig{
 		t:        t,
 		protocol: proto,
@@ -172,7 +172,7 @@ func (rig *testRig) Stop() {
 const testContainerID = "0987654321"
 
 func TestHello(t *testing.T) {
-	proto := NewProtocol()
+	proto := newProtocol()
 	proto.Handle("hello", helloHandler)
 
 	rig := newTestRig(t, proto)
@@ -204,7 +204,7 @@ func TestHello(t *testing.T) {
 }
 
 func TestBye(t *testing.T) {
-	proto := NewProtocol()
+	proto := newProtocol()
 	proto.Handle("hello", helloHandler)
 	proto.Handle("bye", byeHandler)
 
@@ -239,7 +239,7 @@ func TestBye(t *testing.T) {
 }
 
 func TestAttach(t *testing.T) {
-	proto := NewProtocol()
+	proto := newProtocol()
 	proto.Handle("hello", helloHandler)
 	proto.Handle("attach", attachHandler)
 	proto.Handle("bye", byeHandler)
@@ -271,7 +271,7 @@ func TestAttach(t *testing.T) {
 }
 
 func TestHyperPing(t *testing.T) {
-	proto := NewProtocol()
+	proto := newProtocol()
 	proto.Handle("hello", helloHandler)
 	proto.Handle("hyper", hyperHandler)
 
@@ -299,7 +299,7 @@ func TestHyperPing(t *testing.T) {
 }
 
 func TestHyperStartpod(t *testing.T) {
-	proto := NewProtocol()
+	proto := newProtocol()
 	proto.Handle("hello", helloHandler)
 	proto.Handle("hyper", hyperHandler)
 
@@ -384,7 +384,7 @@ func readIo(t *testing.T, reader io.Reader) (seq uint64, data []byte) {
 }
 
 func TestAllocateIo(t *testing.T) {
-	proto := NewProtocol()
+	proto := newProtocol()
 	proto.Handle("hello", helloHandler)
 	proto.Handle("allocateIO", allocateIoHandler)
 

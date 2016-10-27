@@ -47,7 +47,7 @@ type client struct {
 }
 
 // "hello"
-func helloHandler(data []byte, userData interface{}, response *HandlerResponse) {
+func helloHandler(data []byte, userData interface{}, response *handlerResponse) {
 	client := userData.(*client)
 	hello := api.Hello{}
 
@@ -85,7 +85,7 @@ func helloHandler(data []byte, userData interface{}, response *HandlerResponse) 
 }
 
 // "attach"
-func attachHandler(data []byte, userData interface{}, response *HandlerResponse) {
+func attachHandler(data []byte, userData interface{}, response *handlerResponse) {
 	client := userData.(*client)
 	proxy := client.proxy
 
@@ -108,7 +108,7 @@ func attachHandler(data []byte, userData interface{}, response *HandlerResponse)
 }
 
 // "bye"
-func byeHandler(data []byte, userData interface{}, response *HandlerResponse) {
+func byeHandler(data []byte, userData interface{}, response *handlerResponse) {
 	client := userData.(*client)
 	proxy := client.proxy
 	vm := client.vm
@@ -127,7 +127,7 @@ func byeHandler(data []byte, userData interface{}, response *HandlerResponse) {
 }
 
 // "allocateIO"
-func allocateIoHandler(data []byte, userData interface{}, response *HandlerResponse) {
+func allocateIoHandler(data []byte, userData interface{}, response *handlerResponse) {
 	client := userData.(*client)
 	vm := client.vm
 
@@ -171,7 +171,7 @@ func allocateIoHandler(data []byte, userData interface{}, response *HandlerRespo
 }
 
 // "hyper"
-func hyperHandler(data []byte, userData interface{}, response *HandlerResponse) {
+func hyperHandler(data []byte, userData interface{}, response *handlerResponse) {
 	client := userData.(*client)
 	hyper := api.Hyper{}
 	vm := client.vm
@@ -232,7 +232,7 @@ func (proxy *Proxy) Init() error {
 	return nil
 }
 
-func (proxy *Proxy) serveNewClient(proto *Protocol, newConn net.Conn) {
+func (proxy *Proxy) serveNewClient(proto *protocol, newConn net.Conn) {
 	newClient := &client{
 		proxy: proxy,
 		conn:  newConn,
@@ -244,7 +244,7 @@ func (proxy *Proxy) serveNewClient(proto *Protocol, newConn net.Conn) {
 func (proxy *Proxy) Serve() {
 
 	// Define the client (runtime/shim) <-> proxy protocol
-	proto := NewProtocol()
+	proto := newProtocol()
 	proto.Handle("hello", helloHandler)
 	proto.Handle("attach", attachHandler)
 	proto.Handle("bye", byeHandler)

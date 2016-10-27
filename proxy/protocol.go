@@ -24,49 +24,49 @@ import (
 )
 
 // XXX: could do with its own package to remove that ugly namespacing
-type ProtocolHandler func([]byte, interface{}, *HandlerResponse)
+type protocolHandler func([]byte, interface{}, *handlerResponse)
 
 // Encapsulates the different parts of what a handler can return.
-type HandlerResponse struct {
+type handlerResponse struct {
 	err     error
 	results map[string]interface{}
 	file    *os.File
 }
 
-func (r *HandlerResponse) SetError(err error) {
+func (r *handlerResponse) SetError(err error) {
 	r.err = err
 }
 
-func (r *HandlerResponse) SetErrorMsg(msg string) {
+func (r *handlerResponse) SetErrorMsg(msg string) {
 	r.err = errors.New(msg)
 }
 
-func (r *HandlerResponse) SetErrorf(format string, a ...interface{}) {
+func (r *handlerResponse) SetErrorf(format string, a ...interface{}) {
 	r.SetError(fmt.Errorf(format, a...))
 }
 
-func (r *HandlerResponse) AddResult(key string, value interface{}) {
+func (r *handlerResponse) AddResult(key string, value interface{}) {
 	if r.results == nil {
 		r.results = make(map[string]interface{})
 	}
 	r.results[key] = value
 }
 
-func (r *HandlerResponse) SetFile(f *os.File) {
+func (r *handlerResponse) SetFile(f *os.File) {
 	r.file = f
 }
 
-type Protocol struct {
-	handlers map[string]ProtocolHandler
+type protocol struct {
+	handlers map[string]protocolHandler
 }
 
-func NewProtocol() *Protocol {
-	return &Protocol{
-		handlers: make(map[string]ProtocolHandler),
+func newProtocol() *protocol {
+	return &protocol{
+		handlers: make(map[string]protocolHandler),
 	}
 }
 
-func (proto *Protocol) Handle(cmd string, handler ProtocolHandler) {
+func (proto *protocol) Handle(cmd string, handler protocolHandler) {
 	proto.handlers[cmd] = handler
 }
 
@@ -76,7 +76,7 @@ type clientCtx struct {
 	userData interface{}
 }
 
-func (proto *Protocol) handleRequest(ctx *clientCtx, req *api.Request, hr *HandlerResponse) *api.Response {
+func (proto *protocol) handleRequest(ctx *clientCtx, req *api.Request, hr *handlerResponse) *api.Response {
 	if req.ID == "" {
 		return &api.Response{
 			Success: false,
@@ -107,7 +107,7 @@ func (proto *Protocol) handleRequest(ctx *clientCtx, req *api.Request, hr *Handl
 	}
 }
 
-func (proto *Protocol) Serve(conn net.Conn, userData interface{}) {
+func (proto *protocol) Serve(conn net.Conn, userData interface{}) {
 	ctx := &clientCtx{
 		conn:     conn,
 		userData: userData,
@@ -116,7 +116,7 @@ func (proto *Protocol) Serve(conn net.Conn, userData interface{}) {
 	for {
 		// Parse a request.
 		req := api.Request{}
-		hr := HandlerResponse{}
+		hr := handlerResponse{}
 
 		err := api.ReadMessage(conn, &req)
 		if err != nil {
