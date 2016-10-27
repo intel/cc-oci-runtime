@@ -27,7 +27,7 @@ import (
 // not possible to send out of band data without actual data to write, we write
 // a dummy byte, 'F', to the socket when passing the fd.
 
-var fileTag []byte = []byte{'F'}
+var fileTag = []byte{'F'}
 
 func WriteFd(c *net.UnixConn, fd int) error {
 	rights := syscall.UnixRights(fd)
