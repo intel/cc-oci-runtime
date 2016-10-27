@@ -42,6 +42,7 @@
 #include <linux/sched.h>
 
 #include <glib.h>
+#include <gio/gio.h>
 
 #ifndef CLONE_NEWCGROUP
 #define CLONE_NEWCGROUP 0x02000000
@@ -385,6 +386,7 @@ struct oci_state {
 	gboolean         use_socket_console;
 
 	struct cc_oci_vm_cfg *vm;
+	struct cc_proxy      *proxy;
 };
 
 /** clr-specific state fields. */
@@ -441,6 +443,26 @@ struct cc_oci_mount {
 	gchar          *directory_created;
 };
 
+/**
+ * Representation of a connect to \ref CC_OCI_PROXY.
+ */
+struct cc_proxy {
+	/** Socket connection used to communicate with \ref
+	 * CC_OCI_PROXY.
+	 */
+	GSocket *socket;
+
+	/** Full path to socket used to send control messages
+	 * to the agent running in the VM.
+	 */
+	gchar *agent_ctl_socket;
+
+	/** Full path to socket used to transfer I/O
+	 * to/from the agent running in the VM.
+	 */
+	gchar *agent_tty_socket;
+};
+
 /** The main object holding all configuration data.
  *
  * \note The main user of this object is "start" - other commands
@@ -490,6 +512,8 @@ struct cc_oci_config {
 
 	/** If \c true, don't wait for hypervisor process to finish. */
 	gboolean detached_mode;
+
+	struct cc_proxy *proxy;
 };
 
 gboolean cc_oci_attach(struct cc_oci_config *config,
