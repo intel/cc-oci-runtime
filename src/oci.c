@@ -40,6 +40,7 @@
 #include <gio/gunixsocketaddress.h>
 #include <json-glib/json-glib.h>
 #include <json-glib/json-gobject.h>
+#include <sys/stat.h>
 
 #include "common.h"
 #include "oci.h"
@@ -1036,40 +1037,24 @@ fail1:
  * Determine when \ref CC_OCI_PROCESS_SOCKET is created.
  *
  * \param monitor \c GFileMonitor.
- * \param file \c GFile.
+ * \param file \c GFile (unused).
  * \param other_file \c GFile (unused).
- * \param event_type \c GFileMonitorEvent.
+ * \param event_type \c GFileMonitorEvent (unused).
  * \param data \ref process_watcher_data.
  */
 static void
-watcher_runtime_dir (GFileMonitor            *monitor,
+cc_oci_procsock_monitor_callback(
+		GFileMonitor                 *monitor,
 		GFile                        *file,
 		GFile                        *other_file,
 		GFileMonitorEvent             event_type,
 		struct process_watcher_data  *data)
 {
-	g_autofree gchar  *path = NULL;
-	g_autofree gchar  *name = NULL;
-
+	(void)file;
 	(void)other_file;
+	(void)event_type;
 
 	g_assert (data);
-
-	if (event_type != G_FILE_MONITOR_EVENT_CHANGES_DONE_HINT) {
-		return;
-	}
-
-	path = g_file_get_path (file);
-	if (! path) {
-		return;
-	}
-
-	name = g_path_get_basename (path);
-
-	/* ignore non-matching files */
-	if (g_strcmp0 (CC_OCI_PROCESS_SOCKET, name)) {
-		return;
-	}
 
 	/* CC_OCI_PROCESS_SOCKET has now been created, so delete the
 	 * monitor.
@@ -1103,6 +1088,7 @@ cc_oci_start (struct cc_oci_config *config,
 	gboolean       wait = false;
 	struct process_watcher_data data = { 0 };
 	gchar         *config_file = NULL;
+	struct stat    st;
 
 	if (! config || ! state) {
 		return false;
@@ -1160,32 +1146,37 @@ cc_oci_start (struct cc_oci_config *config,
 			return false;
 		}
 
-		file = g_file_new_for_path (config->state.runtime_path);
-		if (! file) {
-			g_main_loop_unref (data.loop);
-			return false;
-		}
+		/* Create a file monitor if CC_OCI_PROCESS_SOCKET does not exist */
+		if (stat(config->state.procsock_path, &st)) {
+			file = g_file_new_for_path (config->state.procsock_path);
+			if (! file) {
+				g_main_loop_unref (data.loop);
+				return false;
+			}
 
-		/* create inotify watch on runtime directory
-		 * (crucially before the VM is resumed).
-		 */
-		monitor = g_file_monitor_directory (file,
-				G_FILE_MONITOR_WATCH_MOVES,
-				NULL, &error);
-		if (! monitor) {
-			g_critical ("failed to monitor %s: %s",
-					g_file_get_path (file),
-					error->message);
-			g_error_free (error);
-			g_object_unref (file);
-			g_main_loop_unref (data.loop);
+			/* create inotify watch on file */
+			monitor = g_file_monitor(file, G_FILE_MONITOR_NONE, NULL, &error);
+			if (! monitor) {
+				g_critical ("failed to monitor %s: %s",
+						g_file_get_path (file),
+						error->message);
+				g_error_free (error);
+				g_object_unref (file);
+				g_main_loop_unref (data.loop);
 
-			return false;
-		}
+				return false;
+			}
 
-		g_signal_connect (monitor, "changed",
-				G_CALLBACK (watcher_runtime_dir),
+			g_signal_connect (monitor, "changed",
+				G_CALLBACK (cc_oci_procsock_monitor_callback),
 				&data);
+		} else {
+			/* procsock exists, connect to it */
+			if (! handle_process_socket (&data)) {
+				data.failed = true;
+				g_critical ("failed to handle process socket");
+			}
+		}
 	}
 
 	/* "create" left the VM in a stopped state, so now let it
