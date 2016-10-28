@@ -53,6 +53,7 @@
 #include "runtime.h"
 #include "spec_handler.h"
 #include "command.h"
+#include "proxy.h"
 
 extern struct start_data start_data;
 
@@ -1838,6 +1839,12 @@ cc_oci_config_update (struct cc_oci_config *config,
 	if (state->vm) {
 		config->vm = state->vm;
 		state->vm = NULL;
+	}
+
+	if (state->proxy) {
+		cc_proxy_free (config->proxy);
+		config->proxy = state->proxy;
+		state->proxy = NULL;
 	}
 
 	if (state->procsock_path) {
