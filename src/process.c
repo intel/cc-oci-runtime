@@ -652,6 +652,13 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 					strerror (errno));
 			abort ();
 		}
+
+child_failed:
+		/* Any data written by the child to this pipe signifies failure,
+		 * so send a very short message ("E", denoting Error).
+		 */
+		(void)write (child_err_pipe[1], "E", 1);
+		exit (EXIT_FAILURE);
 	}
 
 	/* parent */
@@ -763,13 +770,6 @@ out:
 	}
 
 	return ret;
-
-child_failed:
-	/* Any data written by the child to this pipe signifies failure,
-	 * so send a very short message ("E", denoting Error).
-	 */
-	(void)write (child_err_pipe[1], "E", 1);
-	exit (EXIT_FAILURE);
 }
 
 /*!
