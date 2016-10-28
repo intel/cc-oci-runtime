@@ -224,15 +224,16 @@ test_helper_create_state_file (const char *name,
 		  sizeof (config->state.procsock_path));
 
 	if (! cc_oci_runtime_dir_setup (config)) {
-		fprintf (stderr, "ERROR: failed to setup runtime dir "
-				"for vm %s", name);
+		fprintf (stderr, "ERROR: failed to setup "
+				"runtime dir for vm %s\n", name);
 		return false;
 	}
 
 	/* config->vm not set */
 	if (cc_oci_state_file_create (config, timestamp)) {
 		fprintf (stderr, "ERROR: cc_oci_state_file_create "
-				"worked unexpectedly for vm %s", name);
+				"worked unexpectedly for vm %s "
+				"(no config->vm)\n", name);
 		return false;
 	}
 
@@ -256,7 +257,7 @@ test_helper_create_state_file (const char *name,
 	/* config->vm now set */
 	if (! cc_oci_state_file_create (config, timestamp)) {
 		fprintf (stderr, "ERROR: cc_oci_state_file_create "
-				"failed unexpectedly");
+				"failed unexpectedly\n");
 		return false;
 
 	}
