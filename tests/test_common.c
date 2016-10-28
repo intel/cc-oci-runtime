@@ -264,4 +264,3 @@ test_helper_create_state_file (const char *name,
 
 	return true;
 }
-
