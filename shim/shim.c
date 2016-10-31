@@ -17,8 +17,6 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <sys/un.h>
 #include <poll.h>
 #include <assert.h>
@@ -462,9 +460,6 @@ main(int argc, char **argv)
 		.io_seq_no      =  0,
 		.err_seq_no     =  0,
 	};
-	struct             sockaddr_un proxy_address;
-	char              *container_id = NULL;
-	char              *proxy_sock_path;
 	struct pollfd      poll_fds[MAX_POLL_FDS] = {{-1}};
 	nfds_t             nfds = 0;
 	int                ret;
@@ -576,16 +571,6 @@ main(int argc, char **argv)
 	add_pollfd(poll_fds, &nfds, STDIN_FILENO, POLLIN | POLLPRI);
 
 	add_pollfd(poll_fds, &nfds, shim.proxy_io_fd, POLLIN | POLLPRI);
-#if 0
-	// Connect to the cc-proxy AF_UNIX server
-	proxy_sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
-	strcpy(proxy_address.sun_path, proxy_sock_path);
-	//block waiting to connect to the cc_proxy
-	connect(proxy_sockfd, (struct sockaddr *)&proxy_address, sizeof(proxy_address));
-
-	// Add the proxy socket to the list of pollfds
-	add_pollfd(poll_fds, &nfds, proxy_sockfd, POLLIN | POLLPRI);
-#endif
 
 	add_pollfd(poll_fds, &nfds, shim.proxy_sock_fd, POLLIN | POLLPRI);
 

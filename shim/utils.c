@@ -128,7 +128,7 @@ get_big_endian_32(char *buf) {
 void
 set_big_endian_64(uint8_t *buf, uint64_t val)
 {
-	set_big_endian_32(buf, val >> 32);
+	set_big_endian_32(buf, (uint32_t)(val >> 32));
 	set_big_endian_32(buf + 4, (uint32_t)val);
 }
 
@@ -141,6 +141,6 @@ uint64_t
 get_big_endian_64(char *buf) {
 	uint64_t val;
 
-	val = (get_big_endian_32(buf) << 32) | get_big_endian_32(buf+4);
+	val = ((uint64_t)get_big_endian_32(buf) << 32) | get_big_endian_32(buf+4);
 	return val;
 }
