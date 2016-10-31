@@ -26,6 +26,7 @@ struct cc_shim {
 	int         proxy_io_fd;
 	uint64_t    io_seq_no;
 	uint64_t    err_seq_no;
+	bool        exiting;
 };
 
 // Hyperstart control cmd ids : apiversion 4242

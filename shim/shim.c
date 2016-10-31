@@ -319,9 +319,7 @@ read_IO_message(struct cc_shim *shim, uint64_t *seq, ssize_t *stream_len) {
 			free(buf);
 			return NULL;
 		} else if (ret == 0) {
-			/* TODO: handle this scenario - has the proxy gone away or eof received
-			 * from hyperstart denoting the container has stoppped
-			 */
+			/* EOF received on proxy I/O fd*/
 			shim_warning("EOF received on proxy I/O fd\n");
 			free(buf);
 			return NULL;
@@ -331,6 +329,11 @@ read_IO_message(struct cc_shim *shim, uint64_t *seq, ssize_t *stream_len) {
 
 		if (*stream_len == 0 && bytes_read >=12) {
 			*stream_len = get_big_endian_32(buf+STREAM_HEADER_LENGTH_OFFSET);
+
+			// length is 12 when hyperstart sends eof before sending exit code
+			if (*stream_len == STREAM_HEADER_SIZE) {
+				break;
+			}
 
 			if (*stream_len > STREAM_HEADER_SIZE) {
 				need_read = *stream_len;
@@ -359,6 +362,7 @@ handle_proxy_output(struct cc_shim *shim)
 	ssize_t   stream_len = 0;
 	ssize_t   ret;
 	ssize_t   offset;
+	int       code = 0;
 
 	if (shim == NULL) {
 		return;
@@ -381,6 +385,16 @@ handle_proxy_output(struct cc_shim *shim)
 				 shim seq %"PRIu64 "\n", seq, shim->io_seq_no);
 		free(buf);
 		return;
+	}
+
+	if (!shim->exiting && stream_len == STREAM_HEADER_SIZE) {
+		shim->exiting = true;
+		free(buf);
+		return;
+	} else if (shim->exiting && stream_len == (STREAM_HEADER_SIZE+1)) {
+		code = atoi(buf + STREAM_HEADER_SIZE); 	// hyperstart has sent the exit status
+		free(buf);
+		exit(code);
 	}
 
 	/* TODO: what if writing to stdout/err blocks? Add this to the poll loop
@@ -416,6 +430,10 @@ handle_proxy_ctl(struct cc_shim *shim)
 	ret = read(shim->proxy_sock_fd, buf, LINE_MAX);
 	if (ret == -1) {
 		shim_warning("Error reading from the proxy ctl socket: %s\n", strerror(errno));
+		exit(EXIT_FAILURE);
+	} else if (ret == 0) {
+		shim_warning("EOF received on proxy ctl socket. Proxy has exited\n");
+		exit(EXIT_FAILURE);
 	}
 
 	//TODO: Parse the json and log error responses explicitly
@@ -459,6 +477,7 @@ main(int argc, char **argv)
 		.proxy_io_fd    = -1,
 		.io_seq_no      =  0,
 		.err_seq_no     =  0,
+		.exiting        =  false,
 	};
 	struct pollfd      poll_fds[MAX_POLL_FDS] = {{-1}};
 	nfds_t             nfds = 0;
