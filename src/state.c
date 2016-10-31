@@ -88,7 +88,7 @@ static struct state_handler {
 	{ "created"     , handle_state_created_section     , 1 , 0 },
 	{ "mounts"      , handle_state_mounts_section      , 0 , 0 },
 	{ "console"     , handle_state_console_section     , 2 , 0 },
-	{ "vm"          , handle_state_vm_section          , 5 , 0 },
+	{ "vm"          , handle_state_vm_section          , 6 , 0 },
 	{ "proxy"       , handle_state_proxy_section       , 2 , 0 },
 	{ "annotations" , handle_state_annotations_section , 0 , 0 },
 
@@ -353,6 +353,15 @@ handle_state_vm_section(GNode* node, struct handler_data* data) {
 	} else if (g_strcmp0(node->data, "kernel_params") == 0) {
 		vm->kernel_params = g_strdup(node->children->data);
 		(*(data->subelements_count))++;
+	} else if (g_strcmp0(node->data, "pid") == 0) {
+		gchar *endptr = NULL;
+		vm->pid = (GPid)g_ascii_strtoll((char*)node->children->data, &endptr, 10);
+		if (endptr != node->children->data) {
+			(*(data->subelements_count))++;
+		} else {
+			g_critical("failed to convert '%s' to int",
+			    (char*)node->children->data);
+		}
 	} else {
 		g_critical("unknown console option: %s", (char*)node->data);
 	}
@@ -735,6 +744,9 @@ cc_oci_state_file_create (struct cc_oci_config *config,
 
 	/* Add an object containing hypervisor details */
 	vm = json_object_new ();
+
+	json_object_set_int_member (vm, "pid",
+			(unsigned)config->vm->pid);
 
 	json_object_set_string_member (vm, "hypervisor_path",
 			config->vm->hypervisor_path);

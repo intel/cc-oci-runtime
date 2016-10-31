@@ -267,6 +267,9 @@ test_helper_create_state_file (const char *name,
 	proxy->agent_ctl_socket = g_strdup ("agent-ctl-socket");
 	proxy->agent_tty_socket = g_strdup ("agent-tty-socket");
 
+	/* set pid to ourselves so we know it's running */
+	config->vm->pid = getpid ();
+
 	/* config->vm and config->proxy now set */
 	if (! cc_oci_state_file_create (config, timestamp)) {
 		fprintf (stderr, "ERROR: cc_oci_state_file_create "

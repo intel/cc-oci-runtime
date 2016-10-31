@@ -905,9 +905,6 @@ cc_oci_create (struct cc_oci_config *config)
 		return true;
 	}
 
-	/* start VM is a stopped state (containerd requires a
-	 * valid pid in the pidfile after a successful "create").
-	 */
 	if (! cc_oci_vm_launch (config)) {
 		g_critical ("failed to launch VM");
 		goto out;
@@ -1081,7 +1078,6 @@ cc_oci_start (struct cc_oci_config *config,
 		struct oci_state *state)
 {
 	gboolean       ret = false;
-	GPid           pid;
 	GFileMonitor  *monitor = NULL;
 	GFile         *file = NULL;
 	GError        *error = NULL;
@@ -1122,8 +1118,6 @@ cc_oci_start (struct cc_oci_config *config,
 		g_free (start_data.bundle);
 		start_data.bundle = NULL;
 	}
-
-	pid = config->state.workload_pid;
 
 	/* XXX: If running stand-alone, wait for the hypervisor to
 	 * finish. But if running under containerd, don't wait.
@@ -1179,26 +1173,7 @@ cc_oci_start (struct cc_oci_config *config,
 		}
 	}
 
-	/* "create" left the VM in a stopped state, so now let it
-	 * continue.
-	 *
-	 * This will result in \ref CC_OCI_PROCESS_SOCKET being
-	 * created, however there will be a delay. Since we wish to
-	 * connect to this socket, the approach is to use an inotify
-	 * watch to wait for the socket file to exist, then connect to
-	 * it.
-	 */
-	if (kill (pid, SIGCONT) < 0) {
-		g_critical ("failed to start VM %s: %s",
-				config->optarg_container_id,
-				strerror (errno));
-		return false;
-	}
-
-	g_debug ("activated VM %s (pid %d)",
-			config->optarg_container_id,
-			(int)pid);
-
+	// FIXME: start pod and run workload, then set this status.
 	/* Now the VM is running */
 	config->state.status = OCI_STATUS_RUNNING;
 
@@ -1344,6 +1319,11 @@ cc_oci_stop (struct cc_oci_config *config,
 		g_warning ("Cannot delete VM %s (pid %u) - "
 				"not running",
 				state->id, state->pid);
+	}
+
+	/* Allow the proxy to clean up resources */
+	if (! cc_proxy_cmd_bye (config->proxy)) {
+		return false;
 	}
 
 	/* The post-stop hooks are called after the container process is
