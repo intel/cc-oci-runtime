@@ -478,6 +478,49 @@ cc_oci_vm_netcfg_get (struct cc_oci_config *config,
 }
 
 /*!
+ * Create a socket connection from a fd.
+ *
+ * \param fd int.
+ *
+ * \return a GSocketConnection on success, else NULL.
+ */
+static GSocketConnection *
+socket_connection_from_fd (int fd)
+{
+	GError            *error = NULL;
+	GSocket           *socket = NULL;
+	GSocketConnection *connection = NULL;
+
+	if( fd < 0 ) {
+		goto out;
+	}
+
+	socket = g_socket_new_from_fd (fd, &error);
+	if (! socket) {
+		g_critical("failed to create socket from fd");
+		if (error) {
+			g_critical("%s", error->message);
+			g_error_free(error);
+		}
+		goto out;
+	}
+
+	g_socket_set_blocking (socket, TRUE);
+
+	connection = g_socket_connection_factory_create_connection (socket);
+	if (!connection) {
+		g_critical("failed to create socket connection from fd");
+	}
+
+out:
+	if (socket) {
+		g_object_unref (socket);
+	}
+
+	return connection;
+}
+
+/*!
  * Start \ref CC_OCI_SHIM as a child process.
  *
  * \param config \ref cc_oci_config.
