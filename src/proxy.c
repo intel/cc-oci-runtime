@@ -597,6 +597,79 @@ out:
 }
 
 /**
+ * Attach current proxy connection to a
+ * previous registered VM (hello command)
+ *
+ * \param proxy \ref cc_proxy.
+ * \param container_id container id.
+ *
+ * \return \c true on success, else \c false.
+ */
+static gboolean
+cc_proxy_attach (struct cc_proxy *proxy, const char *container_id)
+{
+
+	JsonObject        *obj = NULL;
+	JsonObject        *data = NULL;
+	JsonNode          *root = NULL;
+	JsonGenerator     *generator = NULL;
+	gchar             *msg_to_send = NULL;
+	GString           *msg_received = NULL;
+	gboolean           ret = false;
+
+	/* The name of the command used to initiate communicate
+	 * with the proxy.
+	 */
+	const gchar       *proxy_cmd = "attach";
+
+	if (! (proxy && proxy->socket && container_id)) {
+		return false;
+	}
+
+	obj = json_object_new ();
+	data = json_object_new ();
+
+	json_object_set_string_member (obj, "id", proxy_cmd);
+
+	json_object_set_string_member (data, "containerId",
+			container_id);
+
+	json_object_set_object_member (obj, "data", data);
+
+	root = json_node_new (JSON_NODE_OBJECT);
+	generator = json_generator_new ();
+	json_node_take_object (root, obj);
+
+	json_generator_set_root (generator, root);
+	g_object_set (generator, "pretty", FALSE, NULL);
+
+	msg_to_send = json_generator_to_data (generator, NULL);
+
+	msg_received = g_string_new("");
+
+	if (! cc_proxy_run_cmd(proxy, msg_to_send, msg_received)) {
+		g_critical("failed to run proxy command %s: %s",
+				proxy_cmd,
+				msg_received->str);
+		goto out;
+	}
+
+	ret = true;
+
+	g_debug("msg received: %s", msg_received->str);
+
+out:
+	if (msg_received) {
+		g_string_free(msg_received, true);
+	}
+	if (obj) {
+		json_object_unref (obj);
+	}
+
+	return ret;
+}
+
+/**
  * Send the final message to the proxy.
  *
  * \param proxy \ref cc_proxy.
