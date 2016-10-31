@@ -39,6 +39,7 @@
 #include "annotation.h"
 #include "json.h"
 #include "config.h"
+#include "spec_handler.h"
 
 #define update_subelements_and_strdup(node, data, member) \
 	if (node && node->data) { \
@@ -61,6 +62,7 @@ static void handle_state_console_section(GNode*, struct handler_data*);
 static void handle_state_vm_section(GNode*, struct handler_data*);
 static void handle_state_proxy_section(GNode*, struct handler_data*);
 static void handle_state_annotations_section(GNode*, struct handler_data*);
+static void handle_state_process_section(GNode* node, struct handler_data* data);
 
 /*! Used to handle each section in \ref CC_OCI_STATE_FILE. */
 static struct state_handler {
@@ -437,6 +439,29 @@ handle_state_annotations_section(GNode* node, struct handler_data* data)
 }
 
 /*!
+* handler for process section usig oci spec handlers
+*
+* \param node \c GNode.
+* \param data \ref handler_data.
+*/
+static void
+handle_state_process_section(GNode* node, struct handler_data* data)
+{
+	struct cc_oci_config config;
+
+	g_assert(data->state);
+
+	config.oci.process.args = NULL;
+	config.oci.process.env  = NULL;
+
+	data->state->process = g_new0(struct oci_cfg_process, 1);
+
+	process_spec_handler.handle_section(node, &config);
+
+	*data->state->process = config.oci.process;
+}
+
+/*!
  * process all sections in state.json using the right section handler
  *
  * \param node \c GNode.
@@ -458,6 +483,11 @@ handle_state_sections(GNode* node, struct oci_state* state) {
 				(GNodeForeachFunc)handler->handle_section, &data);
 			return;
 		}
+	}
+	/* Handle "process" node using oci spec handlers */
+	if (g_strcmp0(node->data, "process") == 0) {
+		handle_state_process_section(node, &data);
+		return;
 	}
 
 	g_critical("handler not found %s", (char*)node->data);
@@ -601,6 +631,18 @@ cc_oci_state_free (struct oci_state *state)
 	g_free_if_set (state->create_time);
 	g_free_if_set (state->console);
 
+	if(state->process) {
+		if (state->process->args) {
+			g_strfreev (state->process->args);
+		}
+
+		if (state->process->env) {
+			g_strfreev (state->process->env);
+		}
+
+		g_free_if_set (state->process);
+	}
+
 	if (state->mounts) {
 		cc_oci_mounts_free_all (state->mounts);
 	}
@@ -643,6 +685,7 @@ cc_oci_state_file_create (struct cc_oci_config *config,
 	JsonObject  *proxy = NULL;
 	JsonObject  *annotation_obj = NULL;
 	JsonArray   *mounts = NULL;
+	JsonObject  *process = NULL;
 	gchar       *str = NULL;
 	gsize        str_len = 0;
 	GError      *err = NULL;
@@ -730,6 +773,17 @@ cc_oci_state_file_create (struct cc_oci_config *config,
 	}
 
 	json_object_set_array_member (obj, "mounts", mounts);
+
+	/* Add an process object to allow "start" command  what workload
+	 * will be used
+	 */
+	process = cc_oci_process_to_json(&config->oci.process);
+	if (! process) {
+		g_critical ("failed to create state file, no process information");
+		goto out;
+	}
+
+	json_object_set_object_member (obj, "process", process);
 
 	/* Add an object containing details of the console device being
 	 * used.

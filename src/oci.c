@@ -1800,6 +1800,11 @@ cc_oci_config_update (struct cc_oci_config *config,
 		state->mounts = NULL;
 	}
 
+	if(state->process && ! config->oci.process.args) {
+		config->oci.process = *state->process;
+		g_free_if_set (state->process);
+	}
+
 	if (state->console) {
 		config->console = state->console;
 		state->console = NULL;
@@ -1826,4 +1831,48 @@ cc_oci_config_update (struct cc_oci_config *config,
 	}
 
 	return true;
+}
+
+/*!
+* Convert the config process to a JSON object.
+*
+* \param process \ref oci_cfg_process.
+*
+* \return \c JsonObject on success, else \c NULL.
+*/
+JsonObject *
+cc_oci_process_to_json(const struct oci_cfg_process *process)
+{
+	JsonObject *json_process = NULL;
+	JsonObject *user         = NULL;
+	JsonArray  *args         = NULL;
+	JsonArray  *envs         = NULL;
+
+	if (! (process && process->args && process->cwd[0])) {
+		goto out;
+	}
+
+	json_process = json_object_new ();
+	user         = json_object_new ();
+	args         = json_array_new ();
+	envs         = json_array_new ();
+
+
+	for (gchar** p = process->args; p && *p; p++) {
+		json_array_add_string_element (args, *p);
+	}
+
+	for (gchar** p = process->env; p && *p; p++) {
+		json_array_add_string_element (envs, *p);
+	}
+
+	json_object_set_string_member (json_process, "cwd", process->cwd);
+	json_object_set_boolean_member (json_process, "terminal",
+			process->terminal);
+	json_object_set_object_member (json_process, "user", user);
+	json_object_set_array_member (json_process, "args", args);
+	json_object_set_array_member (json_process, "env", envs);
+
+out:
+	return json_process;
 }

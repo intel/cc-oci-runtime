@@ -1023,10 +1023,13 @@ START_TEST(test_cc_oci_kill) {
 		G_SPAWN_STDOUT_TO_DEV_NULL |
 		G_SPAWN_STDERR_TO_DEV_NULL |
 		G_SPAWN_DO_NOT_REAP_CHILD);
-	gchar *args[] = { "sleep", "999", NULL };
 
 	config = cc_oci_config_create ();
 	ck_assert (config);
+
+	config->oci.process.args = g_strsplit("sleep 999", " ", -1);
+	snprintf(config->oci.process.cwd, sizeof(config->oci.process.cwd),
+				"%s", "/working_directory");
 
 	config_tmp = cc_oci_config_create ();
 	ck_assert (config_tmp);
@@ -1046,7 +1049,7 @@ START_TEST(test_cc_oci_kill) {
 
 	/* start a fake process */
 	ret = g_spawn_async (NULL, /* wd */
-			args,
+			config->oci.process.args,
 			NULL, /* env */
 			flags,
 			NULL, /* child setup */

@@ -43,6 +43,8 @@
 
 #include <glib.h>
 #include <gio/gio.h>
+#include <json-glib/json-glib.h>
+
 
 #ifndef CLONE_NEWCGROUP
 #define CLONE_NEWCGROUP 0x02000000
@@ -413,6 +415,9 @@ struct oci_state {
 
 	struct cc_oci_vm_cfg *vm;
 	struct cc_proxy      *proxy;
+
+	/* Needed by start to create a new container workload  */
+	struct oci_cfg_process *process;
 };
 
 /** clr-specific state fields. */
@@ -579,5 +584,8 @@ gboolean cc_oci_config_update (struct cc_oci_config *config,
 		struct oci_state *state);
 gboolean
 cc_oci_create_container_networking_workload (struct cc_oci_config *config);
+
+JsonObject *
+cc_oci_process_to_json(const struct oci_cfg_process *process);
 
 #endif /* _CC_OCI_H */
