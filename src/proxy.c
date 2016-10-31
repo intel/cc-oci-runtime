@@ -798,22 +798,117 @@ out:
  *
  * \return \c true on success, else \c false.
  */
-static gboolean
-__attribute__((__unused__))
-cc_proxy_cmd_allocate_io (struct cc_proxy *proxy)
+gboolean
+cc_proxy_cmd_allocate_io (struct cc_proxy *proxy,
+	int *proxy_io_fd,
+	int *ioBase )
 {
+	JsonObject        *obj = NULL;
+	JsonObject        *data = NULL;
+	JsonNode          *root = NULL;
+	JsonGenerator     *generator = NULL;
+	gchar             *msg_to_send = NULL;
+	GString           *msg_received = NULL;
+	gboolean           ret = false;
+	JsonParser        *parser = NULL;
+	GError            *error = NULL;
+	JsonReader        *reader = NULL;
+
+	const gchar       *proxy_cmd = "allocateIO";
+	int n_streams = IO_STREAMS_NUMBER;
+
 	if (! proxy) {
 		return false;
 	}
 
-	/* FIXME: TODO:
-	 *
-	 * - call "allocateIO" proxy command.
-	 * - get both stdout + stderr sequence numbers.
-	 * - store in cc_proxy object.
-	 */
+	obj = json_object_new ();
+	data = json_object_new ();
 
-	return true;
+	json_object_set_string_member (obj, "id", proxy_cmd);
+
+	json_object_set_int_member (data, "nStreams",
+		n_streams);
+
+	json_object_set_object_member (obj, "data", data);
+
+	root = json_node_new (JSON_NODE_OBJECT);
+	generator = json_generator_new ();
+	json_node_take_object (root, obj);
+
+	json_generator_set_root (generator, root);
+	g_object_set (generator, "pretty", FALSE, NULL);
+
+	msg_to_send = json_generator_to_data (generator, NULL);
+
+	msg_received = g_string_new("");
+
+	if (! cc_proxy_run_cmd(proxy, msg_to_send, msg_received, proxy_io_fd)) {
+		g_critical("failed to run proxy command %s: %s",
+				proxy_cmd,
+				msg_received->str);
+		goto out;
+	}
+
+	g_debug("msg received: %s", msg_received->str);
+
+	if (!ioBase) {
+		ret = true;
+		goto out;
+	}
+
+	/* parse message received to get ioBase */
+	parser = json_parser_new();
+	ret = json_parser_load_from_data(parser,
+		msg_received->str,
+		(gssize) msg_received->len,
+		&error);
+
+	if (! ret) {
+		g_critical ("failed to parse proxy response: %s",
+				error->message);
+		g_error_free (error);
+		goto out;
+	}
+
+	reader = json_reader_new(json_parser_get_root(parser));
+	if (!reader) {
+		g_critical("failed to create reader");
+		goto out;
+	}
+
+	ret = json_reader_read_member (reader, "data");
+	if (! ret) {
+		g_critical ("failed to find proxy data");
+		goto out;
+	}
+
+	ret = json_reader_read_member (reader, "ioBase");
+	if (! ret) {
+		g_critical ("failed to find ioBase");
+		goto out;
+	}
+
+	*ioBase = (int) json_reader_get_int_value(reader);
+
+	json_reader_end_member (reader);
+
+	ret = true;
+
+out:
+	if (reader) {
+		g_object_unref (reader);
+	}
+	if (parser) {
+		g_object_unref (parser);
+	}
+	if (msg_received) {
+		g_string_free(msg_received, true);
+	}
+	if (obj) {
+		json_object_unref (obj);
+	}
+
+	return ret;
 }
 
 /**

@@ -25,6 +25,9 @@
 #include <gio/gio.h>
 #include "oci.h"
 
+/* allocate 2 streams, stdio and stderr */
+#define IO_STREAMS_NUMBER 2
+
 gboolean cc_proxy_connect (struct cc_proxy *proxy);
 gboolean cc_proxy_disconnect (struct cc_proxy *proxy);
 gboolean cc_proxy_wait_until_ready (struct cc_oci_config *config);
