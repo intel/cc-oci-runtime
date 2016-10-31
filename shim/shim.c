@@ -333,9 +333,13 @@ read_IO_message(struct cc_shim *shim, uint64_t *seq, ssize_t *stream_len) {
 
 		if (*stream_len == 0 && bytes_read >=12) {
 			*stream_len = get_big_endian_32(buf+STREAM_HEADER_LENGTH_OFFSET);
-			buf = realloc(buf, (size_t)*stream_len);
-			if (! buf) {
-				abort();
+
+			if (*stream_len > STREAM_HEADER_SIZE) {
+				need_read = *stream_len;
+				buf = realloc(buf, (size_t)*stream_len);
+				if (! buf) {
+					abort();
+				}
 			}
 		}
 	}
@@ -356,7 +360,7 @@ handle_proxy_output(struct cc_shim *shim)
 	int       outfd;
 	ssize_t   stream_len = 0;
 	ssize_t   ret;
-	ssize_t   offset = 0;
+	ssize_t   offset;
 
 	if (shim == NULL) {
 		return;
@@ -384,6 +388,7 @@ handle_proxy_output(struct cc_shim *shim)
 	/* TODO: what if writing to stdout/err blocks? Add this to the poll loop
 	 * to watch out for EPOLLOUT
 	 */
+	offset = STREAM_HEADER_SIZE;
 	while (offset < stream_len) {
 		ret = write(outfd, buf+offset, (size_t)(stream_len-offset));
 		if (ret <= 0 ) {
