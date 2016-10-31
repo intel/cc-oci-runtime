@@ -28,6 +28,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Hyperstart is an object mocking the hyperstart agent.
 type Hyperstart struct {
 	t                           *testing.T
 	ctlSocketPath, ioSocketPath string
@@ -53,8 +54,7 @@ func newMessageList() []hyper.DecodedMessage {
 	return make([]hyper.DecodedMessage, 0, 10)
 }
 
-// Creates a new hyperstart instance. Ownership of the ctl and io connections
-// is transferred to this object (it will close them on Stop())
+// NewHyperstart creates a new hyperstart instance.
 func NewHyperstart(t *testing.T) *Hyperstart {
 	dir := os.TempDir()
 	ctlSocketPath := filepath.Join(dir, "mock.hyper."+nextSuffix()+".0.sock")
@@ -68,16 +68,16 @@ func NewHyperstart(t *testing.T) *Hyperstart {
 	}
 }
 
-// Returns the ctl and io socket paths, respectively
+// GetSocketPaths returns the ctl and io socket paths, respectively
 func (h *Hyperstart) GetSocketPaths() (string, string) {
 	return h.ctlSocketPath, h.ioSocketPath
 
 }
 
-// Returns list of messages received by hyperstart, older first. This function
-// only returns the messages:
-//  - since Start() on the first invocation
-//  - since the last GetLastMessages() for subsequent invocations
+// GetLastMessages returns list of messages received by hyperstart, older
+// first. This function only returns the messages:
+//  - since Start on the first invocation
+//  - since the last GetLastMessages for subsequent invocations
 func (h *Hyperstart) GetLastMessages() []hyper.DecodedMessage {
 	msgs := h.lastMessages
 	h.lastMessages = newMessageList()
@@ -262,6 +262,9 @@ func (h *Hyperstart) writeIo(data []byte) {
 	assert.Equal(h.t, n, len(data))
 }
 
+// SendIo sends a packet of I/O data to a client connected the I/O channel.
+// Multiple I/O streams are multiplexed on that channel. seq specifies which
+// steam the data belongs to.
 func (h *Hyperstart) SendIo(seq uint64, data []byte) {
 	length := ioHeaderSize + len(data)
 	header := make([]byte, ioHeaderSize)
@@ -279,19 +282,29 @@ func (h *Hyperstart) SendIo(seq uint64, data []byte) {
 	h.writeIo(data)
 }
 
+// SendIoString sends a string a client connected the I/O channel.
+// Multiple I/O streams are multiplexed on that channel. seq specifies which
+// steam the data belongs to.
 func (h *Hyperstart) SendIoString(seq uint64, data string) {
 	h.SendIo(seq, []byte(data))
 }
 
+// CloseIo closes the I/O stream specified by seq.
 func (h *Hyperstart) CloseIo(seq uint64) {
 	h.SendIo(seq, nil)
 }
 
+// SendExitStatus sends the exit status on the I/O streams specified by seq.
+// The exit status should only be sent after the stream has been closed with
+// CloseIo.
 func (h *Hyperstart) SendExitStatus(seq uint64, exitStatus uint8) {
 	status := []byte{exitStatus}
 	h.SendIo(seq, status)
 }
 
+// ReadIo reads data that has been sent on the I/O channel by a client. It
+// returns the full packet (header & data) as well as the seq number decoded
+// from the header.
 func (h *Hyperstart) ReadIo(buf []byte) (n int, seq uint64) {
 	h.wgConnected.Wait()
 
@@ -325,6 +338,8 @@ func (h *Hyperstart) startListening(path string, cb acceptCb) *net.UnixListener 
 	return l
 }
 
+// Start will
+// Once finished with the Hyperstart object, Close must be called.
 func (h *Hyperstart) Start() {
 	h.log("start")
 	h.wgConnected.Add(1)
@@ -354,6 +369,8 @@ func (h *Hyperstart) Start() {
 	})
 }
 
+// Stop closes all internal resources and waits for goroutines started by Start
+// to finish. Stop shouldn't be called if Start hasn't been called.
 func (h *Hyperstart) Stop() {
 	h.ctlListener.Close()
 	h.ioListener.Close()
