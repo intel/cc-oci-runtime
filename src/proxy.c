@@ -19,6 +19,7 @@
  */
 
 #include <string.h>
+#include <errno.h>
 #include <sys/stat.h>
 #include <arpa/inet.h>
 #include <gio/gunixsocketaddress.h>
@@ -34,6 +35,14 @@ struct watcher_proxy_data
 	GIOChannel  *channel;
 	gchar       *msg_to_send;
 	GString     *msg_received;
+	int          socket_fd;
+	/**
+	 * indicates that we expect an out-of-band file descriptor
+	 * from proxy socket.
+	 * if NULL read watcher WILL NOT wait for oob data,
+	 * otherwise it WILL wait
+	 */
+	int         *oob_fd;
 };
 
 /** Format of a proxy message */
@@ -216,60 +225,102 @@ static gboolean
 cc_proxy_msg_read (GIOChannel *source, GIOCondition condition,
 	struct watcher_proxy_data *proxy_data)
 {
-	GIOStatus status;
-	g_autofree gchar *buffer = NULL;
-	gsize bytes_read = 0;
-	gsize len = 0;
-	GError *error = NULL;
-	struct proxy_msg msg = { 0 };
+	struct proxy_msg p_msg = { 0 };
+	gchar iov_buffer[LINE_MAX] = { 0 };
+	ssize_t bytes_read;
+	gboolean fd_read = false;
+	struct msghdr msg = { 0 };
+	struct cmsghdr *cmsg = NULL;
+	struct iovec io = { .iov_base = iov_buffer,
+	                    .iov_len = sizeof(iov_buffer) };
+	char ctl_buffer[LINE_MAX] = { 0 };
+	unsigned char *data;
+	/* length + reserved */
+	const size_t data_offset = sizeof(p_msg.length) + sizeof(p_msg.reserved);
+	guint8 buf_len[sizeof(p_msg.length)] = { 0 };
+	size_t bytes_to_copy = 0;
 
-	if (condition == G_IO_HUP) {
-		g_io_channel_unref(source);
+	msg.msg_iov = &io;
+	msg.msg_iovlen = 1;
+	msg.msg_control = ctl_buffer;
+	msg.msg_controllen = sizeof(ctl_buffer);
+
+	/* read length */
+	bytes_read = recvmsg(proxy_data->socket_fd, &msg, 0);
+
+	if (bytes_read == -1){
+		g_critical("failed to read proxy message %s", strerror(errno));
+		return false;
+	}
+
+	if (bytes_read == 0) {
+		g_critical("failed to read lenght");
+		return false;
+	}
+
+	memcpy(buf_len, iov_buffer, sizeof(p_msg.length));
+	p_msg.length = cc_oci_get_big_endian_32(buf_len);
+	g_debug("msg length: %d", p_msg.length);
+
+	if (proxy_data->oob_fd) {
+		/* check if oob data was received */
+		cmsg = CMSG_FIRSTHDR(&msg);
+		if (cmsg) {
+			data = CMSG_DATA(cmsg);
+			if (data) {
+				*proxy_data->oob_fd = *((int*) data);
+				g_message("oob fd read from proxy socket %d",
+					*proxy_data->oob_fd);
+				fd_read = true;
+			}
+		}
+	}
+
+	/* ensure DO NOT copy extra bytes */
+	bytes_to_copy = MIN((size_t)bytes_read-data_offset, (size_t)p_msg.length);
+	g_string_append_len(proxy_data->msg_received,
+		iov_buffer+data_offset, (ssize_t)bytes_to_copy);
+
+	if (bytes_read >= p_msg.length+data_offset) {
 		goto out;
 	}
 
-	/* read length of message data that follows */
-	do {
-		status = g_io_channel_read_chars (source,
-				(gchar *)&msg,
-				sizeof (msg.length) +
-				sizeof (msg.reserved),
-				&bytes_read,
-				&error);
-	} while (status == G_IO_STATUS_AGAIN);
+	/* read missing bytes */
+	while(true) {
+		bytes_read = recvmsg(proxy_data->socket_fd, &msg, 0);
+		if (bytes_read < 0) {
+			/* no more data to read */
+			break;
+		}
+		if (! proxy_data->oob_fd) {
+			/* this message has not out-of-band data */
+			continue;
+		}
 
-	if (status != G_IO_STATUS_NORMAL) {
-		goto out;
-	}
-
-	len = (gsize)ntohl (msg.length);
-
-	g_debug ("proxy sending %lu bytes", (unsigned long int)len);
-
-	buffer = g_malloc0 (len);
-
-	/* read and print all chars */
-	do {
-		status = g_io_channel_read_chars (source,
-				buffer,
-				len+1, /* +1 for terminator */
-				&bytes_read,
-				&error);
-
+		/* check if oob data was received */
+		cmsg = CMSG_FIRSTHDR(&msg);
+		if (cmsg) {
+			data = CMSG_DATA(cmsg);
+			if (data) {
+				*proxy_data->oob_fd = *((int*) data);
+				g_message("oob fd read from proxy socket %d",
+					*proxy_data->oob_fd);
+				fd_read = true;
+			}
+		}
 		g_string_append_len(proxy_data->msg_received,
-				buffer, (gssize)bytes_read);
-	} while (status == G_IO_STATUS_AGAIN);
-
-	if (status == G_IO_STATUS_ERROR) {
-		g_debug ("proxy read failed: %s", error->message);
-		g_error_free (error);
-		goto out;
+			iov_buffer, bytes_read);
 	}
 
+out:
 	g_debug("message read from proxy socket: %s",
 			proxy_data->msg_received->str);
 
-out:
+	if (proxy_data->oob_fd && !fd_read) {
+		g_debug("waiting for oob fd");
+		return true;
+	}
+
 	g_main_loop_quit (proxy_data->loop);
 
 	/* unregister this watcher */
@@ -453,16 +504,17 @@ out:
  * \param proxy \ref cc_proxy.
  * \param msg_to_send gchar.
  * \param msg_received GString.
+ * \param oob_fd int.
  *
  * \return \c true on success, else \c false.
  */
 static gboolean
 cc_proxy_run_cmd(struct cc_proxy *proxy,
 		gchar *msg_to_send,
-		GString* msg_received)
+		GString* msg_received,
+		int *oob_fd)
 {
 	GIOChannel        *channel = NULL;
-	int                fd;
 	struct watcher_proxy_data proxy_data;
 	gboolean ret = false;
 	gboolean hyper_result = false;
@@ -480,9 +532,11 @@ cc_proxy_run_cmd(struct cc_proxy *proxy,
 
 	proxy_data.msg_to_send = msg_to_send;
 
-	fd = g_socket_get_fd (proxy->socket);
+	proxy_data.oob_fd = oob_fd;
 
-	channel = g_io_channel_unix_new(fd);
+	proxy_data.socket_fd = g_socket_get_fd (proxy->socket);
+
+	channel = g_io_channel_unix_new(proxy_data.socket_fd);
 	if (! channel) {
 		g_critical("failed to create I/O channel");
 		goto out;
@@ -574,7 +628,7 @@ cc_proxy_cmd_hello (struct cc_proxy *proxy, const char *container_id)
 
 	msg_received = g_string_new("");
 
-	if (! cc_proxy_run_cmd(proxy, msg_to_send, msg_received)) {
+	if (! cc_proxy_run_cmd(proxy, msg_to_send, msg_received, NULL)) {
 		g_critical("failed to run proxy command %s: %s",
 				proxy_cmd,
 				msg_received->str);
@@ -647,7 +701,7 @@ cc_proxy_attach (struct cc_proxy *proxy, const char *container_id)
 
 	msg_received = g_string_new("");
 
-	if (! cc_proxy_run_cmd(proxy, msg_to_send, msg_received)) {
+	if (! cc_proxy_run_cmd(proxy, msg_to_send, msg_received, NULL)) {
 		g_critical("failed to run proxy command %s: %s",
 				proxy_cmd,
 				msg_received->str);
@@ -715,7 +769,7 @@ cc_proxy_cmd_bye (struct cc_proxy *proxy)
 
 	msg_received = g_string_new ("");
 
-	if (! cc_proxy_run_cmd (proxy, msg_to_send, msg_received)) {
+	if (! cc_proxy_run_cmd(proxy, msg_to_send, msg_received, NULL)) {
 		g_critical ("failed to run proxy command %s: %s",
 				proxy_cmd,
 				msg_received->str);
@@ -879,7 +933,7 @@ cc_proxy_run_hyper_cmd (struct cc_oci_config *config,
 
 	msg_received = g_string_new("");
 
-	if (! cc_proxy_run_cmd(config->proxy, msg_to_send, msg_received)) {
+	if (! cc_proxy_run_cmd(config->proxy, msg_to_send, msg_received, NULL)) {
 		g_critical("failed to run hyper cmd %s: %s",
 				cmd,
 				msg_received->str);
