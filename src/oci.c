@@ -1042,7 +1042,11 @@ cc_oci_start (struct cc_oci_config *config,
 		}
 	}
 
-	// FIXME: start pod and run workload, then set this status.
+	if (! cc_proxy_hyper_new_container (config)) {
+	    ret = false;
+	    goto out;
+	}
+
 	/* Now the VM is running */
 	config->state.status = OCI_STATUS_RUNNING;
 
