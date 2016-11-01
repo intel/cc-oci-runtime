@@ -4,7 +4,8 @@
 provides the pid of the cc-shim process to containerd-shim on OCI create command.
 
 Usage:
-	cc-shim --container-id $(container_id) --proxy-sock-fd $(proxy_socket_fd) --proxy-io-fd $(io-fd) --seq-no $(io-seq-no) --err-seq-no $(err-seq-no)
+   cc-shim --container-id $(container_id) --proxy-sock-fd $(proxy_socket_fd) \ 
+	--proxy-io-fd $(io-fd) --seq-no $(io-seq-no) --err-seq-no $(err-seq-no)
 
 Here the $(proxy_socket_fd) is the socket fd opened by the runtime for connecting
 to the proxy control socket, $(io-fd) is a per exec I/O file descriptor passed by 

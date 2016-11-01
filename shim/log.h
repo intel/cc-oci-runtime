@@ -29,7 +29,7 @@ void shim_log(int priority,
  *
  *  LOG_EMERG      system is unusable -> 0
  *  LOG_ALERT      action must be taken immediately -> 1
- *  LOG_CRIT       critical conditions
+ *  LOG_CRITICAL   critical conditions
  *  LOG_ERR        error conditions
  *  LOG_WARNING    warning conditions
  *  LOG_NOTICE     normal, but significant, condition

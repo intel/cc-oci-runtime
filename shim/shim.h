@@ -29,7 +29,9 @@ struct cc_shim {
 	bool        exiting;
 };
 
-// Hyperstart control cmd ids : apiversion 4242
+/* Hyperstart control cmd ids : apiversion 4242
+ * These need to be kept in sync with the hyperstart repo
+ */
 enum {
 	GETVERSION,
 	STARTPOD,

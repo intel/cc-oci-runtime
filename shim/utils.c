@@ -25,7 +25,7 @@
 
 /* Signals that should be forwarded by the shim.
  * Commented out signals are handled by the default signal handler
- * as it is appropriate for those signals to be handle by the default handler.
+ * as it is appropriate for those signals to be handled by the default handler.
  */
 int shim_signal_table[] = {
 	SIGHUP,              /* Hangup */
@@ -70,6 +70,8 @@ int shim_signal_table[] = {
  * Set file descriptor as non-blocking
  *
  * \param fd File descriptor to set as non-blocking
+ *
+ * \return true on success, false otherwise
  */
 bool
 set_fd_nonblocking(int fd)
@@ -113,6 +115,8 @@ set_big_endian_32(uint8_t *buf, uint32_t val)
  * Convert the value stored in buffer to little endian
  *
  * \param buf Buffer storing the big endian value
+ *
+ * \return Unsigned 32 bit network ordered integer
  */
 uint32_t 
 get_big_endian_32(char *buf) {
@@ -136,6 +140,8 @@ set_big_endian_64(uint8_t *buf, uint64_t val)
  * Convert 64 bit value stored in buffer to little endian
  *
  * \param buf Buffer storing the big endian value
+ *
+ * \return Unsigned 64 bit network ordered integer
  */
 uint64_t
 get_big_endian_64(char *buf) {
