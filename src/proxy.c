@@ -607,7 +607,6 @@ gboolean
 cc_proxy_cmd_bye (struct cc_proxy *proxy)
 {
 	JsonObject        *obj = NULL;
-	JsonObject        *data = NULL;
 	JsonNode          *root = NULL;
 	JsonGenerator     *generator = NULL;
 	gchar             *msg_to_send = NULL;
@@ -629,7 +628,6 @@ cc_proxy_cmd_bye (struct cc_proxy *proxy)
 	}
 
 	obj = json_object_new ();
-	data = json_object_new ();
 
 	json_object_set_string_member (obj, "id", proxy_cmd);
 
