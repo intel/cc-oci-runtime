@@ -485,6 +485,7 @@ main(int argc, char **argv)
 	struct sigaction   sa;
 	int                c;
 	bool               debug = false;
+	long long          val;
 
 	program_name = argv[0];
 
@@ -517,16 +518,18 @@ main(int argc, char **argv)
 				}
 				break;
 			case 's':
-				shim.io_seq_no = (uint64_t)parse_numeric_option(optarg);
-				if (shim.io_seq_no < 0) {
+				val = parse_numeric_option(optarg);
+				if (val == -1) {
 					err_exit("Invalid value for I/O seqence no\n");
 				}
+				shim.io_seq_no = (uint64_t)val;
 				break;
 			case 'e':
-				shim.err_seq_no = (uint64_t)parse_numeric_option(optarg);
-				if (shim.err_seq_no < 0) {
+				val = parse_numeric_option(optarg);
+				if (val == -1) {
 					err_exit("Invalid value for error sequence no\n");
 				}
+				shim.err_seq_no = (uint64_t)val;
 				break;
 			case 'd':
 				debug = true;
@@ -602,7 +605,8 @@ main(int argc, char **argv)
 	while (1) {
 		ret = poll(poll_fds, nfds, -1);
 		if (ret == -1 && errno != EINTR) {
-			err_exit("Error in poll : %s\n", strerror(errno));
+			shim_error("Error in poll : %s\n", strerror(errno));
+			break;
 		}
 
 		/* check if signal was received first */
