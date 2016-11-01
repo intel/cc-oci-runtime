@@ -672,6 +672,7 @@ out:
  * \return \c true on success, else \c false.
  */
 static gboolean
+__attribute__((__unused__))
 cc_proxy_cmd_allocate_io (struct cc_proxy *proxy)
 {
 	if (! proxy) {
