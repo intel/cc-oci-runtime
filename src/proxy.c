@@ -1103,3 +1103,145 @@ out:
 
 	return ret;
 }
+
+/**
+ * Request \ref CC_OCI_PROXY to start a new container
+ * using intial worload from \ref cc_oci_config
+ *
+ * \param config
+ *
+ * \return \c true on success, else \c false.
+ */
+gboolean
+cc_proxy_hyper_new_container (struct cc_oci_config *config)
+{
+	JsonObject *newcontainer_payload= NULL;
+	JsonObject *process = NULL;
+	JsonArray *args= NULL;
+	JsonArray *envs= NULL;
+	gboolean ret = false;
+
+	if (! (config && config->proxy)) {
+		goto out;
+	}
+
+	if (! cc_proxy_connect (config->proxy)) {
+		goto out;
+	}
+	if (! cc_proxy_attach (config->proxy, config->optarg_container_id)) {
+		goto out;
+	}
+
+	if (config->oci.process.stdio_stream < 0  ||
+			config->oci.process.stderr_stream < 0 ) {
+		g_critical("invalid io stream number");
+		goto out;
+	}
+
+	/* json stanza for NEWCONTAINER*/
+	/*
+	   {
+	   "id": "container_id",
+	   "rootfs": "??",
+	   "image": "??",
+	   "process": {
+	   "terminal": true,
+	   "stdio": 1,
+	   "stderr": 2,
+	   "args": [
+	   "config.process.args0",
+	   "config.process.args..",
+	   ],
+	   "envs": [
+	   {
+	   "env": "config.process.env_var_name",
+	   "value": "var_value"
+	   }
+	   ],
+	   "workdir": "config.process.cwd"
+	   },
+	   "restartPolicy": "never", ??
+	   "initialize": false ??
+	   }
+	 * */
+
+	newcontainer_payload = json_object_new ();
+	process  = json_object_new ();
+	args     = json_array_new ();
+	envs     = json_array_new ();
+
+	json_object_set_string_member (newcontainer_payload, "id",
+			config->optarg_container_id);
+	/*
+	 * FIXME ADD rootfs
+	 */
+	json_object_set_string_member (newcontainer_payload, "rootfs", "");
+
+	json_object_set_string_member (newcontainer_payload, "image", "");
+	/*json_object_set_string_member (newcontainer_payload, "image",
+	  config->optarg_container_id);
+	  */
+
+	/* newcontainer.process */
+	json_object_set_boolean_member(process, "terminal",
+			config->oci.process.terminal);
+
+	json_object_set_int_member (process, "stdio",
+			config->oci.process.stdio_stream);
+	json_object_set_int_member (process, "stderr",
+			config->oci.process.stderr_stream);
+
+	/* initial workload from config */
+	for (gchar** p = config->oci.process.args; p && *p; p++) {
+		json_array_add_string_element (args, *p);
+	}
+
+	set_env_home(config);
+	for (gchar** p = config->oci.process.env; p && *p; p++) {
+		JsonObject *env_var = json_object_new ();
+		g_autofree char *var = g_strdup(*p);
+		/* Split config.process.env to get key values (KEY=VALUE) */
+		char *e = g_strstr_len (var, -1, "=");
+		if (! e ){
+			g_critical("failed to split enviroment variable value");
+			goto out;
+		}
+		*e = '\0';
+		e++;
+		json_object_set_string_member (env_var, "value", e);
+		json_object_set_string_member (env_var, "env", var);
+		json_array_add_object_element (envs, env_var);
+	}
+
+	json_object_set_string_member (process, "workdir",
+			config->oci.process.cwd);
+
+	// FIXME match with config or find a good default
+	json_object_set_string_member (newcontainer_payload,
+			"restartPolicy", "never");
+
+	// FIXME match with config or find a good default
+	json_object_set_boolean_member (newcontainer_payload,
+			"initialize", false);
+
+	json_object_set_array_member (process, "args", args);
+	json_object_set_array_member (process, "envs", envs);
+	json_object_set_object_member (newcontainer_payload,
+			"process", process);
+
+	if (! cc_proxy_run_hyper_cmd (config, "newcontainer",
+				newcontainer_payload)) {
+		g_critical("failed to run new container");
+		goto out;
+	}
+
+	ret = true;
+out:
+	if (newcontainer_payload) {
+		json_object_unref (newcontainer_payload);
+	}
+
+	cc_proxy_disconnect (config->proxy);
+
+	return ret;
+}

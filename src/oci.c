@@ -571,7 +571,7 @@ get_user_home_dir(struct cc_oci_config *config, gchar *passwd_path) {
  *
  * returns early if HOME is present in the environment configuration in \p config
  */
-private void
+void
 set_env_home(struct cc_oci_config *config)
 {
 	g_autofree gchar *user_home_dir = NULL;

@@ -587,4 +587,5 @@ cc_oci_create_container_networking_workload (struct cc_oci_config *config);
 JsonObject *
 cc_oci_process_to_json(const struct oci_cfg_process *process);
 
+void set_env_home(struct cc_oci_config *config);
 #endif /* _CC_OCI_H */
