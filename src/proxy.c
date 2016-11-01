@@ -300,7 +300,7 @@ cc_proxy_msg_write (GIOChannel *source, GIOCondition condition,
 		goto out;
 	}
 
-	len = g_utf8_strlen(proxy_data->msg_to_send, -1);
+	len = (gsize)g_utf8_strlen(proxy_data->msg_to_send, -1);
 
 	msg.length = htonl ((guint32)len);
 	msg.data = proxy_data->msg_to_send;
