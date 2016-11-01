@@ -222,6 +222,10 @@ struct oci_cfg_process {
 	gboolean             terminal;
 
 	struct oci_cfg_user  user;
+
+	/** Stream IO ids allocated by \c cc_proxy_allocate_io */
+	gint                 stdio_stream;
+	gint                 stderr_stream;
 };
 
 /**
