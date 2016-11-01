@@ -260,7 +260,7 @@ setup_logging (struct cc_log_options *options)
 static gboolean
 handle_arguments (int argc, char **argv)
 {
-	gboolean               ret;
+	gboolean               ret = false;
 	gint                   priv_level;
 	struct subcommand     *sub = NULL;
 	GOptionContext        *context;
