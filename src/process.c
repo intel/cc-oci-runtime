@@ -118,10 +118,12 @@ cc_oci_cmd_is_shell (const char *cmd)
 /*!
  * Close file descriptors, excluding standard streams.
  *
+ * \param fds Array of file descriptors that should not be closed
+ *
  * \return \c true on success, else \c false.
  */
 static gboolean
-cc_oci_close_fds (void) {
+cc_oci_close_fds (GArray *fds) {
 	char           *fd_dir = "/proc/self/fd";
 	DIR            *dir;
 	struct dirent  *ent;
@@ -143,6 +145,18 @@ cc_oci_close_fds (void) {
 		if (fd < 3) {
 			/* ignore stdandard fds */
 			continue;
+		}
+
+		if (fds) {
+			uint i;
+			for (i = 0; i < fds->len; i++) {
+				if (g_array_index (fds, int, i) == fd) {
+					break;
+				}
+			}
+			if (i != fds->len) {
+				continue;
+			}
 		}
 
 		if (fd == dirfd (dir)) {
@@ -174,10 +188,36 @@ cc_oci_setup_child (struct cc_oci_config *config)
 
 	/* Do not close fds when VM runs in detached mode*/
 	if (! config->detached_mode) {
-		cc_oci_close_fds ();
+		cc_oci_close_fds (NULL);
 	}
 
 	cc_oci_setup_hypervisor_logs(config);
+
+	return true;
+}
+
+/*! Perform setup on spawned shim process.
+ *
+ * \param proxy_fd Proxy socket connection 
+ * \param proxy_io_fd Proxy IO fd
+ *
+ * \return \c true on success, else \c false.
+ */
+static gboolean
+cc_oci_setup_shim (int proxy_fd, int proxy_io_fd)
+{
+	GArray *fds;
+
+	/* become session leader */
+	setsid ();
+
+	fds = g_array_sized_new(FALSE, FALSE, sizeof(int), 2);
+	g_array_append_val (fds, proxy_fd);
+	g_array_append_val (fds, proxy_io_fd);
+
+	cc_oci_close_fds (fds);
+
+	g_array_free(fds, TRUE);
 
 	return true;
 }
@@ -687,7 +727,7 @@ cc_shim_launch (struct cc_oci_config *config,
 			g_debug ("arg: '%s'", *p);
 		}
 
-		if (! cc_oci_setup_child (config)) {
+		if (! cc_oci_setup_shim (proxy_socket_fd, proxy_io_fd)) {
 			goto child_failed;
 		}
 
