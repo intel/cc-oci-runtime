@@ -30,6 +30,7 @@
 #include <getopt.h>
 #include <stdbool.h>
 #include <limits.h>
+#include <fcntl.h>
 
 #include "utils.h"
 #include "log.h"
@@ -592,6 +593,18 @@ main(int argc, char **argv)
 	}
 
 	shim_log_init(debug);
+
+	ret = fcntl(shim.proxy_sock_fd, F_GETFD);
+	if (ret == -1) {
+		shim_error("Invalid proxy socket connection fd : %s\n", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
+	ret = fcntl(shim.proxy_io_fd, F_GETFD);
+	if (ret == -1) {
+		shim_error("Invalid proxy I/O fd : %s\n", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
 
 	/* Using self pipe trick to handle signals in the main loop, other strategy
 	 * would be to clock signals and use signalfd()/ to handle signals synchronously
