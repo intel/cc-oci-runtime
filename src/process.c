@@ -515,6 +515,10 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 	gboolean           hook_status = false;
 	GPtrArray         *additional_args = NULL;
 
+	if (! config) {
+		return false;
+	}
+
 	setup_networking = cc_oci_enable_networking ();
 
 	timestamp = cc_oci_get_iso8601_timestamp ();
