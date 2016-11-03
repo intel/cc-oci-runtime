@@ -169,7 +169,7 @@ get_proxy_ctl_msg(char *json, size_t *len) {
  * \param json Json payload
  */
 void
-send_proxy_hyper_message(int fd, int hyper_cmd_type, char *json) {
+send_proxy_hyper_message(int fd, const char *hyper_cmd, char *json) {
 	char      *proxy_payload = NULL;
 	char      *proxy_command_id = "hyper";
 	char      *proxy_ctl_msg = NULL;
@@ -190,9 +190,10 @@ send_proxy_hyper_message(int fd, int hyper_cmd_type, char *json) {
 		return;
 	}
 
+
 	ret = asprintf(&proxy_payload,
-			"{\"id\":\"%s\",\"data\":{\"hyperName\":\"%d\",\"data\":\"%s\"",
-			proxy_command_id, hyper_cmd_type, json);
+			"{\"id\":\"%s\",\"data\":{\"hyperName\":\"%s\",\"data\":%s}}",
+			proxy_command_id, hyper_cmd, json);
 
 	if (ret == -1) {
 		abort();
@@ -225,11 +226,12 @@ send_proxy_hyper_message(int fd, int hyper_cmd_type, char *json) {
  */
 void
 handle_signals(char *container_id, int outfd) {
-	int            sig;
-	char          *buf;
-	int            ret;
-	int            cmd_type;
-	struct winsize ws;
+	int                sig;
+	char              *buf;
+	int                ret;
+	char              *cmd = NULL;
+	struct winsize     ws;
+	static char*       cmds[] = { "winsize", "killcontainer"};
 
 	if (! container_id || outfd < 0) {
 		return;
@@ -238,7 +240,7 @@ handle_signals(char *container_id, int outfd) {
 	while (read(signal_pipe_fd[0], &sig, sizeof(sig)) != -1) {
 		printf("Handling signal : %d on fd %d\n", sig, signal_pipe_fd[0]);
 		if (sig == SIGWINCH ) {
-			cmd_type = WINSIZE;
+			cmd = cmds[0];
 			if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) == -1) {
 				shim_warning("Error getting the current window size: %s\n",
 					strerror(errno));
@@ -249,7 +251,7 @@ handle_signals(char *container_id, int outfd) {
 			shim_debug("handled SIGWINCH for container %s (row=%d, col=%d)\n",
 				container_id, ws.ws_row, ws.ws_col);
 		} else {
-			cmd_type = KILLCONTAINER;
+			cmd = cmds[1];
 			ret = asprintf(&buf, "{\"container_id\":\"%s\", \"signal\":\"%d\"}",
                                                         container_id, sig);
 			shim_debug("Killed container %s with signal %d\n", container_id, sig);
@@ -258,7 +260,7 @@ handle_signals(char *container_id, int outfd) {
 			abort();
 		}
 
-		send_proxy_hyper_message(outfd, cmd_type, buf);
+		send_proxy_hyper_message(outfd, cmd, buf);
 		free(buf);
         }
 }
