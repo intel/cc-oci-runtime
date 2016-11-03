@@ -141,21 +141,24 @@ err_exit(const char *format, ...)
  * \return Newly allocated string on sucess, NULL on failure
  */
 char*
-get_proxy_ctl_msg(char *json, size_t *len) {
-	char *proxy_ctl_msg = NULL;
+get_proxy_ctl_msg(const char *json, size_t *len) {
+	char   *proxy_ctl_msg = NULL;
+	size_t  json_len;
 
 	if (! (json && len)) {
 		return NULL;
 	}
 
-	*len = strlen(json) + PROXY_CTL_HEADER_SIZE + 1;
-	proxy_ctl_msg = calloc(*len, sizeof(char));
+	json_len = strlen(json);
+	*len = json_len + PROXY_CTL_HEADER_SIZE;
+	proxy_ctl_msg = calloc(*len + 1, sizeof(char));
+
 	if (! proxy_ctl_msg) {
 		abort();
 	}
 
 	set_big_endian_32((uint8_t*)proxy_ctl_msg + PROXY_CTL_HEADER_LENGTH_OFFSET, 
-				(uint32_t)(strlen(json) + PROXY_CTL_HEADER_SIZE));
+				(uint32_t)(json_len));
 	strcpy(proxy_ctl_msg + PROXY_CTL_HEADER_SIZE, json);
 
 	return proxy_ctl_msg;
@@ -169,7 +172,7 @@ get_proxy_ctl_msg(char *json, size_t *len) {
  * \param json Json payload
  */
 void
-send_proxy_hyper_message(int fd, const char *hyper_cmd, char *json) {
+send_proxy_hyper_message(int fd, const char *hyper_cmd, const char *json) {
 	char      *proxy_payload = NULL;
 	char      *proxy_command_id = "hyper";
 	char      *proxy_ctl_msg = NULL;
