@@ -110,7 +110,7 @@ func (h *Hyperstart) writeCtl(data []byte) {
 	assert.Equal(h.t, n, len(data))
 }
 
-func (h *Hyperstart) sendMessage(cmd int, data []byte) {
+func (h *Hyperstart) SendMessage(cmd int, data []byte) {
 	length := ctlHeaderSize + len(data)
 	header := make([]byte, ctlHeaderSize)
 
@@ -141,7 +141,7 @@ func (h *Hyperstart) ackData(nBytes int) {
 	data := make([]byte, 4)
 	binary.BigEndian.PutUint32(data[:], uint32(nBytes))
 	//h.logf("ctl: acking %d bytes\n", nBytes)
-	h.sendMessage(hyper.INIT_NEXT, data)
+	h.SendMessage(hyper.INIT_NEXT, data)
 }
 
 func (h *Hyperstart) readMessage() (int, []byte, error) {
@@ -241,7 +241,7 @@ func (h *Hyperstart) handleCtl() {
 		// XXX: may be interesting to be able to configure the mock
 		// hyperstart to fail and test the reaction of proxy/clients
 		h.logf("ctl: <-- command %s executed successfully\n", cmdName)
-		h.sendMessage(hyper.INIT_ACK, nil)
+		h.SendMessage(hyper.INIT_ACK, nil)
 
 	}
 
@@ -338,9 +338,6 @@ func (h *Hyperstart) Start() {
 		if s == nil {
 			return
 		}
-
-		// signal the client hyperstart is ready
-		h.sendMessage(hyper.INIT_READY, nil)
 
 		// start the goroutine that will handle the ctl socket
 		h.wg.Add(1)
