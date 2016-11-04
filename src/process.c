@@ -657,6 +657,10 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 	int                shim_args_fd = -1;
 	int                proxy_fd = -1;
 
+	if (! config) {
+		return false;
+	}
+
 	setup_networking = cc_oci_enable_networking ();
 
 	timestamp = cc_oci_get_iso8601_timestamp ();
