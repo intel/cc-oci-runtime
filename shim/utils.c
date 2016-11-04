@@ -118,9 +118,10 @@ set_big_endian_32(uint8_t *buf, uint32_t val)
  *
  * \return Unsigned 32 bit network ordered integer
  */
-uint32_t 
-get_big_endian_32(char *buf) {
-	return (uint32_t)(buf[0] >> 24 | buf[1] >> 16 | buf[2] >> 8 | buf[3]);
+uint32_t
+get_big_endian_32(const uint8_t *buf)
+{
+        return (uint32_t)(buf[0] << 24 | buf[1] << 16 | buf[2] << 8 | buf[3]);
 }
 
 /*!
@@ -144,7 +145,8 @@ set_big_endian_64(uint8_t *buf, uint64_t val)
  * \return Unsigned 64 bit network ordered integer
  */
 uint64_t
-get_big_endian_64(char *buf) {
+get_big_endian_64(const uint8_t *buf)
+{
 	uint64_t val;
 
 	val = ((uint64_t)get_big_endian_32(buf) << 32) | get_big_endian_32(buf+4);
