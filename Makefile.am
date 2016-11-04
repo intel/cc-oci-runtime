@@ -104,6 +104,8 @@ defaultsdir = $(datadir)/defaults/$(PACKAGE_NAME)
 defaults_DATA = data/vm.json data/hypervisor.args data/kernel-cmdline
 
 cc_image_systemd_files = \
+	data/cc-agent.target \
+	data/cc-agent.service \
 	data/container.target \
 	data/opt-rootfs.mount \
 	data/opt-rootfs-proc.mount \
