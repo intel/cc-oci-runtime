@@ -30,6 +30,7 @@
 #include <getopt.h>
 #include <stdbool.h>
 #include <limits.h>
+#include <fcntl.h>
 
 #include "utils.h"
 #include "log.h"
@@ -141,21 +142,24 @@ err_exit(const char *format, ...)
  * \return Newly allocated string on sucess, NULL on failure
  */
 char*
-get_proxy_ctl_msg(char *json, size_t *len) {
-	char *proxy_ctl_msg = NULL;
+get_proxy_ctl_msg(const char *json, size_t *len) {
+	char   *proxy_ctl_msg = NULL;
+	size_t  json_len;
 
 	if (! (json && len)) {
 		return NULL;
 	}
 
-	*len = strlen(json) + PROXY_CTL_HEADER_SIZE + 1;
-	proxy_ctl_msg = calloc(*len, sizeof(char));
+	json_len = strlen(json);
+	*len = json_len + PROXY_CTL_HEADER_SIZE;
+	proxy_ctl_msg = calloc(*len + 1, sizeof(char));
+
 	if (! proxy_ctl_msg) {
 		abort();
 	}
 
 	set_big_endian_32((uint8_t*)proxy_ctl_msg + PROXY_CTL_HEADER_LENGTH_OFFSET, 
-				(uint32_t)(strlen(json) + PROXY_CTL_HEADER_SIZE));
+				(uint32_t)(json_len));
 	strcpy(proxy_ctl_msg + PROXY_CTL_HEADER_SIZE, json);
 
 	return proxy_ctl_msg;
@@ -169,7 +173,7 @@ get_proxy_ctl_msg(char *json, size_t *len) {
  * \param json Json payload
  */
 void
-send_proxy_hyper_message(int fd, int hyper_cmd_type, char *json) {
+send_proxy_hyper_message(int fd, const char *hyper_cmd, const char *json) {
 	char      *proxy_payload = NULL;
 	char      *proxy_command_id = "hyper";
 	char      *proxy_ctl_msg = NULL;
@@ -190,9 +194,10 @@ send_proxy_hyper_message(int fd, int hyper_cmd_type, char *json) {
 		return;
 	}
 
+
 	ret = asprintf(&proxy_payload,
-			"{\"id\":\"%s\",\"data\":{\"hyperName\":\"%d\",\"data\":\"%s\"",
-			proxy_command_id, hyper_cmd_type, json);
+			"{\"id\":\"%s\",\"data\":{\"hyperName\":\"%s\",\"data\":%s}}",
+			proxy_command_id, hyper_cmd, json);
 
 	if (ret == -1) {
 		abort();
@@ -225,11 +230,12 @@ send_proxy_hyper_message(int fd, int hyper_cmd_type, char *json) {
  */
 void
 handle_signals(char *container_id, int outfd) {
-	int            sig;
-	char          *buf;
-	int            ret;
-	int            cmd_type;
-	struct winsize ws;
+	int                sig;
+	char              *buf;
+	int                ret;
+	char              *cmd = NULL;
+	struct winsize     ws;
+	static char*       cmds[] = { "winsize", "killcontainer"};
 
 	if (! container_id || outfd < 0) {
 		return;
@@ -238,7 +244,7 @@ handle_signals(char *container_id, int outfd) {
 	while (read(signal_pipe_fd[0], &sig, sizeof(sig)) != -1) {
 		printf("Handling signal : %d on fd %d\n", sig, signal_pipe_fd[0]);
 		if (sig == SIGWINCH ) {
-			cmd_type = WINSIZE;
+			cmd = cmds[0];
 			if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) == -1) {
 				shim_warning("Error getting the current window size: %s\n",
 					strerror(errno));
@@ -249,7 +255,7 @@ handle_signals(char *container_id, int outfd) {
 			shim_debug("handled SIGWINCH for container %s (row=%d, col=%d)\n",
 				container_id, ws.ws_row, ws.ws_col);
 		} else {
-			cmd_type = KILLCONTAINER;
+			cmd = cmds[1];
 			ret = asprintf(&buf, "{\"container_id\":\"%s\", \"signal\":\"%d\"}",
                                                         container_id, sig);
 			shim_debug("Killed container %s with signal %d\n", container_id, sig);
@@ -258,7 +264,7 @@ handle_signals(char *container_id, int outfd) {
 			abort();
 		}
 
-		send_proxy_hyper_message(outfd, cmd_type, buf);
+		send_proxy_hyper_message(outfd, cmd, buf);
 		free(buf);
         }
 }
@@ -587,6 +593,18 @@ main(int argc, char **argv)
 	}
 
 	shim_log_init(debug);
+
+	ret = fcntl(shim.proxy_sock_fd, F_GETFD);
+	if (ret == -1) {
+		shim_error("Invalid proxy socket connection fd : %s\n", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
+	ret = fcntl(shim.proxy_io_fd, F_GETFD);
+	if (ret == -1) {
+		shim_error("Invalid proxy I/O fd : %s\n", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
 
 	/* Using self pipe trick to handle signals in the main loop, other strategy
 	 * would be to clock signals and use signalfd()/ to handle signals synchronously

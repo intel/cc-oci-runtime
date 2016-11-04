@@ -29,35 +29,6 @@ struct cc_shim {
 	bool        exiting;
 };
 
-/* Hyperstart control cmd ids : apiversion 4242
- * These need to be kept in sync with the hyperstart repo
- */
-enum {
-	GETVERSION,
-	STARTPOD,
-	GETPOD,
-	STOPPOD_DEPRECATED,
-	DESTROYPOD,
-	RESTARTCONTAINER,
-	EXECCMD,
-	CMDFINISHED,
-	READY,
-	ACK,
-	ERROR,
-	WINSIZE,
-	PING,
-	PODFINISHED,
-	NEXT,
-	WRITEFILE,
-	READFILE,
-	NEWCONTAINER,
-	KILLCONTAINER,
-	ONLINECPUMEM,
-	SETUPINTERFACE,
-	SETUPROUTE,
-	REMOVECONTAINER,
-};
-
 /*
  * control message format
  * | ctrl id | length  | payload (length-8)      |
