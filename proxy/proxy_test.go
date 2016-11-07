@@ -75,6 +75,9 @@ func (rig *testRig) Start() {
 	rig.Hyperstart = mock.NewHyperstart(rig.t)
 	rig.Hyperstart.Start()
 
+	// Explicitly send READY message from hyperstart mock
+	go rig.Hyperstart.SendMessage(int(hyper.INIT_READY), []byte{})
+
 	// we can either "start" the proxy in process or spawn a proxy process.
 	// Spawning the process (through TestLaunchProxy).
 	// Passing a file descriptor through connected AF_UNIX sockets in the
