@@ -56,6 +56,8 @@ src/commands/cc_oci_runtime-version.$(OBJEXT): \
 GENERATED_FILES = \
 	data/cc-oci-runtime.sh \
 	data/run-bats.sh \
+	data/dockerFiles/Dockerfile.fedora \
+	data/dockerFiles/Dockerfile.ubuntu \
 	tests/functional/common.bash \
 	tests/functional/data/config-minimal-cc-oci.json \
 	tests/metrics/density/docker_cpu_usage.sh \
@@ -77,6 +79,10 @@ $(GENERATED_FILES): %: %.in Makefile
 		-e 's|[@]BATS_PATH[@]|$(BATS_PATH)|g' \
 		-e 's|[@]ROOTFS_PATH[@]|$(BUNDLE_TEST_PATH)/rootfs|g' \
 		-e 's|[@]SYSCONFDIR[@]|$(SYSCONFDIR)|g' \
+		-e 's|[@]DOCKER_FEDORA_VERSION[@]|$(DOCKER_FEDORA_VERSION)|g' \
+		-e 's|[@]DOCKER_ENGINE_FEDORA_VERSION[@]|$(DOCKER_ENGINE_FEDORA_VERSION)|g' \
+		-e 's|[@]DOCKER_UBUNTU_VERSION[@]|$(DOCKER_UBUNTU_VERSION)|g' \
+		-e 's|[@]DOCKER_ENGINE_UBUNTU_VERSION[@]|$(DOCKER_ENGINE_UBUNTU_VERSION)|g' \
 		"$<" > "$@"
 
 if FUNCTIONAL_TESTS
@@ -283,6 +289,9 @@ EXTRA_DIST = \
 	$(cc_proxy_sources) \
 	$(systemdservice_in_files) \
 	data/cc-oci-runtime.sh.in \
+	data/dockerFiles/Dockerfile.fedora.in \
+	data/dockerFiles/Dockerfile.ubuntu.in \
+	data/dockerFiles/Dockerfile.clearlinux \
 	$(bats_test_sources) \
 	tests/integration \
 	tests/metrics/density/docker_cpu_usage.sh.in \
