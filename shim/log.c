@@ -61,6 +61,7 @@ void shim_log(int priority, const char *func, int line_number, const char *forma
 
 	va_start(vargs, format);
 	if (vasprintf(&buf, format, vargs) == -1) {
+		va_end(vargs);
 		return;
 	}
 

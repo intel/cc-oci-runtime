@@ -208,6 +208,12 @@ AC_SUBST([QEMU_PATH], [$ac_cv_path_QEMU])
 #Read Kernel parameters
 AC_SUBST([CMDLINE], [$(cat $srcdir/data/kernel-cmdline)])
 
+# Read Dockerfile parameters
+AC_SUBST([DOCKER_FEDORA_VERSION], [$docker_fedora_version])
+AC_SUBST([DOCKER_ENGINE_FEDORA_VERSION], [$docker_engine_fedora_version])
+AC_SUBST([DOCKER_UBUNTU_VERSION], [$docker_ubuntu_version])
+AC_SUBST([DOCKER_ENGINE_UBUNTU_VERSION], [$docker_engine_ubuntu_version])
+
 # Sytemd unit files (host)
 AC_ARG_WITH([systemdsystemunitdir],
             AS_HELP_STRING([--with-systemdsystemunitdir=DIR], [Directory for systemd service files]),
