@@ -143,7 +143,7 @@ cc_proxy_connect (struct cc_proxy *proxy)
 
 	fd = g_socket_get_fd (proxy->socket);
 
-	ret = cc_oci_fd_set_cloexec (fd);
+	ret = cc_oci_fd_toggle_cloexec(fd, true);
 	if (! ret) {
 		g_critical ("failed to set close-exec bit on proxy socket");
 		goto out;

@@ -633,7 +633,6 @@ cc_shim_launch (struct cc_oci_config *config,
 		int       proxy_io_base = -1;
 		GSocketConnection *connection = NULL;
 		GError   *error = NULL;
-		int       flags;
 
 		/* child */
 
@@ -698,15 +697,9 @@ cc_shim_launch (struct cc_oci_config *config,
 			goto child_failed;
 		}
 
-		/* remove FD_CLOEXEC flags */
-		flags = fcntl(proxy_socket_fd, F_GETFD);
-		flags &= ~FD_CLOEXEC;
-		fcntl(proxy_socket_fd, F_SETFD, flags);
+		cc_oci_fd_toggle_cloexec(proxy_socket_fd, false);
 
-		/* remove FD_CLOEXEC flags */
-		flags = fcntl(proxy_io_fd, F_GETFD);
-		flags &= ~FD_CLOEXEC;
-		fcntl(proxy_io_fd, F_SETFD, flags);
+		cc_oci_fd_toggle_cloexec(proxy_io_fd, false);
 
 		/* +1 for for NULL terminator */
 		args = g_new0 (gchar *, 11+1);

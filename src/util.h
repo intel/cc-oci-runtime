@@ -85,7 +85,7 @@ char** node_to_strv(GNode* root);
 gboolean gnode_free(GNode* node, gpointer data);
 int cc_oci_get_signum (const gchar *signame);
 gchar *cc_oci_resolve_path (const gchar *path);
-gboolean cc_oci_fd_set_cloexec (int fd);
+gboolean cc_oci_fd_toggle_cloexec (int fd, gboolean set);
 gboolean cc_oci_enable_networking (void);
 guint32 cc_oci_get_big_endian_32(const guint8 *buf);
 
