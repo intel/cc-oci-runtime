@@ -110,6 +110,8 @@ func (h *Hyperstart) writeCtl(data []byte) {
 	assert.Equal(h.t, n, len(data))
 }
 
+// SendMessage makes hyperstart send the hyper command cmd along with optional
+// data on the control channel
 func (h *Hyperstart) SendMessage(cmd int, data []byte) {
 	length := ctlHeaderSize + len(data)
 	header := make([]byte, ctlHeaderSize)
