@@ -126,9 +126,6 @@
 /** Shell to use for \ref CC_OCI_WORKLOAD_FILE. */
 #define CC_OCI_WORKLOAD_SHELL		"/bin/sh"
 
-/** Command to use to allow "exec" to connect to the container. */
-#define CC_OCI_EXEC_CMD               "ssh"
-
 /** File that contains vm spec configuration, used if vm node
  * in CC_OCI_CONFIG_FILE bundle file
 */
