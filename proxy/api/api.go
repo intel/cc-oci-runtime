@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 )
 
-// The hello payload is issued first after connecting to the proxy socket.
+// The Hello payload is issued first after connecting to the proxy socket.
 // It is used to let the proxy know about a new container on the system along
 // with the paths go hyperstart's command and I/O channels (AF_UNIX sockets).
 //
@@ -33,12 +33,12 @@ import (
 //    }
 //  }
 type Hello struct {
-	ContainerId string `json:"containerId"`
+	ContainerID string `json:"containerId"`
 	CtlSerial   string `json:"ctlSerial"`
 	IoSerial    string `json:"ioSerial"`
 }
 
-// The attach payload can be used to associate clients to an already known VM.
+// The Attach payload can be used to associate clients to an already known VM.
 // attach cannot be issued if a hello for this container hasn't been issued
 // beforehand.
 //
@@ -49,10 +49,10 @@ type Hello struct {
 //    }
 //  }
 type Attach struct {
-	ContainerId string `json:"containerId"`
+	ContainerID string `json:"containerId"`
 }
 
-// The bye payload does the opposite of what hello does, indicating to the
+// The Bye payload does the opposite of what hello does, indicating to the
 // proxy it should release resources created by hello. This command has no
 // parameter.
 //
@@ -62,7 +62,7 @@ type Attach struct {
 type Bye struct {
 }
 
-// The allocateIO payload asks the proxy to allocate IO stream sequence numbers
+// The AllocateIo payload asks the proxy to allocate IO stream sequence numbers
 // for use with the execcmd hyperstart command.
 //
 // A stream sequence number is a globally unique number identifying a data
@@ -88,7 +88,7 @@ type AllocateIo struct {
 	NStreams int `json:"nStreams"`
 }
 
-// allocateIOResult is the result from a successful allocateIO.
+// AllocateIoResult is the result from a successful allocateIO.
 //
 // The sequence numbers allocated are:
 //   ioBase, ioBase + 1, ..., ioBase + nStreams - 1
@@ -113,7 +113,7 @@ type AllocateIoResult struct {
 	IoBase uint64 `json:"ioBase"`
 }
 
-// The hyper payload will forward an hyperstart command to hyperstart.
+// The Hyper payload will forward an hyperstart command to hyperstart.
 //
 //  {
 //    "id": "hyper",

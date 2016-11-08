@@ -28,7 +28,7 @@ func socketpair() (*net.UnixConn, *net.UnixConn, error) {
 
 	// First end
 	f0 := os.NewFile(uintptr(fds[0]), "")
-	// os.NewFile() dups the fd and we're reponsible for closing it
+	// os.NewFile() dups the fd and we're responsible for closing it
 	defer f0.Close()
 	c0, err := net.FileConn(f0)
 	if err != nil {

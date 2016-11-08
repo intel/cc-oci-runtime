@@ -41,7 +41,7 @@ func TestFdPassing(t *testing.T) {
 
 	// write into the pipe and check reading from newReader gives the
 	// expected result
-	var data []byte = []byte("foo")
+	var data = []byte("foo")
 
 	n, err := writer.Write(data)
 	assert.Nil(t, err)

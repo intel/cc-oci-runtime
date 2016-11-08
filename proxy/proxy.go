@@ -25,7 +25,7 @@ import (
 )
 
 // Main struct holding the proxy state
-type Proxy struct {
+type proxy struct {
 	// Protect concurrent accesses from separate client goroutines to this
 	// structure fields
 	sync.Mutex
@@ -40,14 +40,14 @@ type Proxy struct {
 // Represents a client, either a cc-oci-runtime or cc-shim process having
 // opened a socket to the proxy
 type client struct {
-	proxy *Proxy
+	proxy *proxy
 	vm    *vm
 
 	conn net.Conn
 }
 
 // "hello"
-func helloHandler(data []byte, userData interface{}, response *HandlerResponse) {
+func helloHandler(data []byte, userData interface{}, response *handlerResponse) {
 	client := userData.(*client)
 	hello := api.Hello{}
 
@@ -56,26 +56,26 @@ func helloHandler(data []byte, userData interface{}, response *HandlerResponse) 
 		return
 	}
 
-	if hello.ContainerId == "" || hello.CtlSerial == "" || hello.IoSerial == "" {
+	if hello.ContainerID == "" || hello.CtlSerial == "" || hello.IoSerial == "" {
 		response.SetErrorMsg("malformed hello command")
 	}
 
 	proxy := client.proxy
 	proxy.Lock()
-	if _, ok := proxy.vms[hello.ContainerId]; ok {
+	if _, ok := proxy.vms[hello.ContainerID]; ok {
 
 		proxy.Unlock()
 		response.SetErrorf("%s: container already registered",
-			hello.ContainerId)
+			hello.ContainerID)
 		return
 	}
-	vm := NewVM(hello.ContainerId, hello.CtlSerial, hello.IoSerial)
-	proxy.vms[hello.ContainerId] = vm
+	vm := newVM(hello.ContainerID, hello.CtlSerial, hello.IoSerial)
+	proxy.vms[hello.ContainerID] = vm
 	proxy.Unlock()
 
 	if err := vm.Connect(); err != nil {
 		proxy.Lock()
-		delete(proxy.vms, hello.ContainerId)
+		delete(proxy.vms, hello.ContainerID)
 		proxy.Unlock()
 		response.SetError(err)
 		return
@@ -85,7 +85,7 @@ func helloHandler(data []byte, userData interface{}, response *HandlerResponse) 
 }
 
 // "attach"
-func attachHandler(data []byte, userData interface{}, response *HandlerResponse) {
+func attachHandler(data []byte, userData interface{}, response *handlerResponse) {
 	client := userData.(*client)
 	proxy := client.proxy
 
@@ -96,11 +96,11 @@ func attachHandler(data []byte, userData interface{}, response *HandlerResponse)
 	}
 
 	proxy.Lock()
-	vm := proxy.vms[attach.ContainerId]
+	vm := proxy.vms[attach.ContainerID]
 	proxy.Unlock()
 
 	if vm == nil {
-		response.SetErrorf("unknown containerId: %s", attach.ContainerId)
+		response.SetErrorf("unknown containerID: %s", attach.ContainerID)
 		return
 	}
 
@@ -108,7 +108,7 @@ func attachHandler(data []byte, userData interface{}, response *HandlerResponse)
 }
 
 // "bye"
-func byeHandler(data []byte, userData interface{}, response *HandlerResponse) {
+func byeHandler(data []byte, userData interface{}, response *handlerResponse) {
 	client := userData.(*client)
 	proxy := client.proxy
 	vm := client.vm
@@ -119,7 +119,7 @@ func byeHandler(data []byte, userData interface{}, response *HandlerResponse) {
 	}
 
 	proxy.Lock()
-	delete(proxy.vms, vm.containerId)
+	delete(proxy.vms, vm.containerID)
 	proxy.Unlock()
 
 	client.vm = nil
@@ -127,7 +127,7 @@ func byeHandler(data []byte, userData interface{}, response *HandlerResponse) {
 }
 
 // "allocateIO"
-func allocateIoHandler(data []byte, userData interface{}, response *HandlerResponse) {
+func allocateIoHandler(data []byte, userData interface{}, response *handlerResponse) {
 	client := userData.(*client)
 	vm := client.vm
 
@@ -171,7 +171,7 @@ func allocateIoHandler(data []byte, userData interface{}, response *HandlerRespo
 }
 
 // "hyper"
-func hyperHandler(data []byte, userData interface{}, response *HandlerResponse) {
+func hyperHandler(data []byte, userData interface{}, response *handlerResponse) {
 	client := userData.(*client)
 	hyper := api.Hyper{}
 	vm := client.vm
@@ -190,8 +190,8 @@ func hyperHandler(data []byte, userData interface{}, response *HandlerResponse) 
 	response.SetError(err)
 }
 
-func NewProxy() *Proxy {
-	return &Proxy{
+func newProxy() *proxy {
+	return &proxy{
 		vms: make(map[string]*vm),
 	}
 }
@@ -200,7 +200,7 @@ func NewProxy() *Proxy {
 //   ${locatestatedir}/run/cc-oci-runtime/proxy
 var socketPath string
 
-func (proxy *Proxy) Init() error {
+func (proxy *proxy) init() error {
 	var l net.Listener
 	var err error
 
@@ -218,7 +218,7 @@ func (proxy *Proxy) Init() error {
 		if err = os.Remove(socketPath); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("couldn't remove exiting socket: %v\n", err)
 		}
-		l, err = net.ListenUnix("unix", &net.UnixAddr{socketPath, "unix"})
+		l, err = net.ListenUnix("unix", &net.UnixAddr{Name: socketPath, Net: "unix"})
 		if err != nil {
 			return fmt.Errorf("couldn't create AF_UNIX socket: %v", err)
 		}
@@ -232,7 +232,7 @@ func (proxy *Proxy) Init() error {
 	return nil
 }
 
-func (proxy *Proxy) serveNewClient(proto *Protocol, newConn net.Conn) {
+func (proxy *proxy) serveNewClient(proto *protocol, newConn net.Conn) {
 	newClient := &client{
 		proxy: proxy,
 		conn:  newConn,
@@ -241,10 +241,10 @@ func (proxy *Proxy) serveNewClient(proto *Protocol, newConn net.Conn) {
 	proto.Serve(newConn, newClient)
 }
 
-func (proxy *Proxy) Serve() {
+func (proxy *proxy) serve() {
 
 	// Define the client (runtime/shim) <-> proxy protocol
-	proto := NewProtocol()
+	proto := newProtocol()
 	proto.Handle("hello", helloHandler)
 	proto.Handle("attach", attachHandler)
 	proto.Handle("bye", byeHandler)
@@ -263,12 +263,12 @@ func (proxy *Proxy) Serve() {
 }
 
 func proxyMain() {
-	proxy := NewProxy()
-	if err := proxy.Init(); err != nil {
+	proxy := newProxy()
+	if err := proxy.init(); err != nil {
 		fmt.Fprintln(os.Stderr, "init:", err.Error())
 		os.Exit(1)
 	}
-	proxy.Serve()
+	proxy.serve()
 }
 
 func main() {

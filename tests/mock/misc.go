@@ -20,7 +20,7 @@ import (
 	"path/filepath"
 )
 
-// GetTmpPath() will return a filename suitable for a tempory file according to
+// GetTmpPath will return a filename suitable for a tempory file according to
 // the format string given in argument. The format string must contain a single
 // %s which will be replaced by a random string. Eg.:
 //
