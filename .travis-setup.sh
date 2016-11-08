@@ -29,6 +29,7 @@ source $cwd/versions.txt
 go_tarball="go${go_version}.linux-amd64.tar.gz"
 curl -L -O "https://storage.googleapis.com/golang/$go_tarball"
 tar xvf $go_tarball 1>/dev/null
+mv go $GOROOT
 # Unfortunately, go doesn't support vendoring outside of GOPATH (maybe in 1.8?)
 # So, we setup a GOPATH tree with our vendored dependencies.
 # See: https://github.com/golang/go/issues/14566

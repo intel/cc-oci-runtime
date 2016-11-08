@@ -30,7 +30,7 @@ import (
 type vm struct {
 	sync.Mutex
 
-	containerId string
+	containerID string
 
 	ctlSerial, ioSerial string
 	ctl, io             net.Conn
@@ -64,9 +64,9 @@ type ioSession struct {
 	wg sync.WaitGroup
 }
 
-func NewVM(id, ctlSerial, ioSerial string) *vm {
+func newVM(id, ctlSerial, ioSerial string) *vm {
 	return &vm{
-		containerId: id,
+		containerID: id,
 		ctlSerial:   ctlSerial,
 		ioSerial:    ioSerial,
 		nextIoBase:  1,

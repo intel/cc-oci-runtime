@@ -11,8 +11,8 @@ env:
     - LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
     - PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
     - ACLOCAL_FLAGS="-I /usr/local/share/aclocal $ACLOCAL_FLAG"
-    - GOROOT=$PWD/go
-    - GOPATH=$PWD/gopath
+    - GOROOT=$HOME/go
+    - GOPATH=$HOME/gopath
     - PATH=$GOROOT/bin:$GOPATH/bin:/usr/local/bin:$PATH
     # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
     #   via the "travis encrypt" command using the project repo's public key
@@ -23,10 +23,18 @@ env:
 
 before_script:
 - ./.travis-setup.sh
+- go get github.com/client9/misspell/cmd/misspell
+- go get github.com/golang/lint/golint
 
 script:
 - ./autogen.sh --enable-cppcheck --enable-valgrind --disable-valgrind-helgrind --disable-valgrind-drd --disable-silent-rules --disable-docker-tests
 - make -j5 CFLAGS=-Werror check
+# go checks
+- export go_packages=`go list ./... | grep -v cc-oci-runtime/vendor | sed -e 's#.*/cc-oci-runtime/#./#'`
+- go list -f '{{.Dir}}/*.go' $go_packages | xargs -I % bash -c "misspell -error %"
+- go vet $go_packages
+- go list -f '{{.Dir}}' $go_packages | xargs gofmt -s -l | wc -l | xargs -I % bash -c "test % -eq 0"
+- for p in $go_packages; do golint -set_exit_status $p; done
 
 after_failure:
 - ./.travis-teardown.sh

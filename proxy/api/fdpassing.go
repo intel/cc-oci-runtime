@@ -27,14 +27,19 @@ import (
 // not possible to send out of band data without actual data to write, we write
 // a dummy byte, 'F', to the socket when passing the fd.
 
-var fileTag []byte = []byte{'F'}
+var fileTag = []byte{'F'}
 
+// WriteFd passes the fd file descriptor through the c AF_UNIX socket using out
+// of band data. Along with the file descriptor, WriteFd will write the single
+// byte 'F' to the socket as stream sockets need some data to actually unblock
+// the read at the other end.
 func WriteFd(c *net.UnixConn, fd int) error {
 	rights := syscall.UnixRights(fd)
 	_, _, err := c.WriteMsgUnix(fileTag, rights, nil)
 	return err
 }
 
+// ReadFd reads a fd file descriptor written with WriteFd.
 func ReadFd(c *net.UnixConn) (int, error) {
 	oob := make([]byte, 32)
 	buf := make([]byte, 1)
