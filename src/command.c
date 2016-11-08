@@ -25,6 +25,7 @@
 #include "state.h"
 #include "oci-config.h"
 
+#include <errno.h>
 #include <glib/gstdio.h>
 
 extern struct start_data start_data;
@@ -366,4 +367,87 @@ handle_option_console (const gchar *option_name,
 
 	/* option handled */
 	return true;
+}
+
+/**
+ * Handle parsing of --user from exec command
+ *
+ * \param option_name Full option name ("--user").
+ * \param value Value of user option in format <uid>[:<gid>]
+ * \param data \ref start_data.
+ * \param error Unused.
+ *
+ * \return \c true if option \p option_name was parsed successfully,
+ * else \c false.
+ */
+gboolean
+handle_option_user (const gchar *option_name,
+		const gchar *value,
+		gpointer data,
+		GError **error)
+{
+	struct start_data *start_data;
+	gboolean  ret = false;
+	gchar   **ids = NULL;
+	gchar   **strvp = NULL;
+	gchar    *endptr;
+	gint64    uid = 0;
+	gint64    gid = 0;
+
+	if (!data && value){
+		goto out;
+	}
+
+	start_data = (struct start_data *)data;
+
+	ids = g_strsplit (value, ":", 2);
+	strvp = ids;
+
+	if (! (strvp && *strvp)) {
+		goto out;
+	}
+
+	uid = g_ascii_strtoll (*strvp,
+			&endptr,
+			10);
+
+	if (endptr == *strvp) {
+		goto out;
+	}
+
+	if (errno == ERANGE || errno == EINVAL){
+		goto out;
+	}
+
+	strvp++;
+
+	if (! (strvp && *strvp)) {
+		goto out;
+	}
+
+	gid = g_ascii_strtoll (*strvp,
+			&endptr,
+			10);
+
+	if (endptr == *strvp) {
+		goto out;
+	}
+
+	if (errno == ERANGE || errno == EINVAL){
+		goto out;
+	}
+
+	if (uid < 0 || gid < 0){
+		g_critical("negative uid value");
+		goto out;
+	}
+
+	start_data->user.uid = (uid_t)uid;
+	start_data->user.gid = (uid_t)gid;
+
+	ret = true;
+out:
+	g_strfreev(ids);
+
+	return ret;
 }
