@@ -364,9 +364,6 @@ func readIo(t *testing.T, reader io.Reader) (seq uint64, data []byte) {
 	assert.Nil(t, err)
 	assert.Equal(t, ioHeaderLength, n)
 
-	println("=====")
-	println(len(buf))
-
 	seq = binary.BigEndian.Uint64(buf[:8])
 	length := binary.BigEndian.Uint32(buf[8:12]) - ioHeaderLength
 	if length == 0 {

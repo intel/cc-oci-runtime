@@ -240,17 +240,27 @@ cc-proxy: $(cc_proxy_sources)
 
 cc_proxy_sources =			\
 	proxy/api/api.go		\
+	proxy/api/client.go		\
+	proxy/api/common_test.go	\
 	proxy/api/fdpassing.go		\
+	proxy/api/fdpassing_test.go	\
+	proxy/api/protocol.go		\
 	proxy/protocol.go		\
+	proxy/protocol_test.go		\
 	proxy/proxy.go			\
+	proxy/proxy_test.go		\
 	proxy/socket_activation.go	\
 	proxy/syscall.go		\
 	proxy/vm.go
 
+cc_proxy_extra_dist =			\
+	proxy/README.md			\
+	proxy/COPYING
+
 CHECK_DEPS += check-proxy
 
 check-proxy:
-	go test -timeout 2s $(srcdir)/proxy
+	go test -v -race -timeout 2s $(srcdir)/proxy
 
 libexec_PROGRAMS = cc-shim
 
@@ -278,6 +288,14 @@ bats_test_sources = \
 	tests/functional/state.bats \
 	tests/functional/version.bats
 
+documentation_extra_dist =	\
+	documentation/high-level-overview.png
+
+mock_extra_dist = \
+	tests/mock/hyperstart.go \
+	tests/mock/misc.go \
+	tests/mock/rand.go
+
 EXTRA_DIST = \
 	LICENSE \
 	CONTRIBUTING.md \
@@ -288,9 +306,12 @@ EXTRA_DIST = \
 	tests/data \
 	commit_id \
 	versions.txt \
+	$(documentation_extra_dist) \
 	$(defaults_DATA) \
 	$(cc_image_systemd_files) \
 	$(cc_proxy_sources) \
+	$(cc_proxy_extra_dist) \
+	$(mock_extra_dist) \
 	$(systemdservice_in_files) \
 	data/cc-oci-runtime.sh.in \
 	data/dockerFiles/Dockerfile.fedora.in \
