@@ -21,6 +21,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Ensure the message we send along with the fd is only a single byte
+func TestTagLength(t *testing.T) {
+	assert.Equal(t, 1, len(fileTagMsg))
+}
+
 func TestFdPassing(t *testing.T) {
 	reader, writer, err := os.Pipe()
 	assert.Nil(t, err)

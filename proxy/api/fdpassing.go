@@ -27,7 +27,9 @@ import (
 // not possible to send out of band data without actual data to write, we write
 // a dummy byte, 'F', to the socket when passing the fd.
 
-var fileTag = []byte{'F'}
+const fileTag = 'F'
+
+var fileTagMsg = []byte{fileTag}
 
 // WriteFd passes the fd file descriptor through the c AF_UNIX socket using out
 // of band data. Along with the file descriptor, WriteFd will write the single
@@ -35,7 +37,7 @@ var fileTag = []byte{'F'}
 // the read at the other end.
 func WriteFd(c *net.UnixConn, fd int) error {
 	rights := syscall.UnixRights(fd)
-	_, _, err := c.WriteMsgUnix(fileTag, rights, nil)
+	_, _, err := c.WriteMsgUnix(fileTagMsg, rights, nil)
 	return err
 }
 
@@ -52,7 +54,7 @@ func ReadFd(c *net.UnixConn) (int, error) {
 	if oobn == 0 {
 		return -1, errors.New("no out of band data read")
 	}
-	if n != 1 && buf[0] != 'F' {
+	if n != 1 && buf[0] != fileTag {
 		return -1, errors.New("couldn't read fd passing tag")
 	}
 

@@ -142,7 +142,6 @@ func (h *Hyperstart) readCtl(data []byte) error {
 func (h *Hyperstart) ackData(nBytes int) {
 	data := make([]byte, 4)
 	binary.BigEndian.PutUint32(data[:], uint32(nBytes))
-	//h.logf("ctl: acking %d bytes\n", nBytes)
 	h.SendMessage(hyper.INIT_NEXT, data)
 }
 
@@ -371,16 +370,13 @@ func (h *Hyperstart) Start() {
 // Stop closes all internal resources and waits for goroutines started by Start
 // to finish. Stop shouldn't be called if Start hasn't been called.
 func (h *Hyperstart) Stop() {
+	h.wgConnected.Wait()
+
 	h.ctlListener.Close()
 	h.ioListener.Close()
-	if h.ctl != nil {
-		h.ctl.Close()
-	}
-	if h.io != nil {
-		h.io.Close()
-	}
+	h.ctl.Close()
+	h.io.Close()
 
-	h.wgConnected.Wait()
 	h.wg.Wait()
 
 	h.ctl = nil
