@@ -645,10 +645,6 @@ main(int argc, char **argv)
 		err_exit("sigaction");
 	}
 
-	if ( !set_fd_nonblocking(STDIN_FILENO)) {
-		exit(EXIT_FAILURE);
-	}
-
 	add_pollfd(poll_fds, &nfds, STDIN_FILENO, POLLIN | POLLPRI);
 
 	add_pollfd(poll_fds, &nfds, shim.proxy_io_fd, POLLIN | POLLPRI);
