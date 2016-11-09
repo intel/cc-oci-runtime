@@ -23,9 +23,6 @@ group_defaults:
     enabled: true
   author_approval:
     ignored: true
-  conditions:
-    branches:
-      - master
 
 groups:
   code-reviewers:
