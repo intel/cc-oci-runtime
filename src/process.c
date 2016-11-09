@@ -43,6 +43,8 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/socket.h>
+#include <termios.h>
+#include <sys/ioctl.h>
 
 #include <glib.h>
 #include <glib/gprintf.h>
@@ -198,18 +200,44 @@ cc_oci_setup_child (struct cc_oci_config *config)
 
 /*! Perform setup on spawned shim process.
  *
- * \param proxy_fd Proxy socket connection 
- * \param proxy_io_fd Proxy IO fd
+ * \param config \ref cc_oci_config.
+ * \param proxy_fd Proxy socket connection.
+ * \param proxy_io_fd Proxy IO fd.
  *
  * \return \c true on success, else \c false.
  */
 static gboolean
-cc_oci_setup_shim (int proxy_fd, int proxy_io_fd)
+cc_oci_setup_shim (struct cc_oci_config *config,
+			int proxy_fd,
+			int proxy_io_fd)
 {
-	GArray *fds;
+	int             tty_fd;
+	GArray         *fds;
+
+	if (! config || proxy_fd < 0 || proxy_io_fd < 0) {
+		return false;
+	}
 
 	/* become session leader */
 	setsid ();
+
+	// In the console case, the terminal needs to be dup'ed to stdio
+	if (config->oci.process.terminal) {
+		tty_fd = open(config->console, O_RDWR |  O_NOCTTY);
+
+		if (tty_fd == -1) {
+			g_warning("Error opening slave pty %s: %s",
+					config->console,
+					strerror(errno));
+		}
+
+		dup2(tty_fd, 0);
+		dup2(tty_fd, 1);
+		dup2(tty_fd, 2);
+
+		ioctl(0, TIOCSCTTY, 1);
+		close(tty_fd);
+	}
 
 	fds = g_array_sized_new(FALSE, FALSE, sizeof(int), 2);
 	g_array_append_val (fds, proxy_fd);
@@ -697,6 +725,18 @@ cc_shim_launch (struct cc_oci_config *config,
 			goto child_failed;
 		}
 
+		/* When run interactively, the fds 0,1,2 are closed.
+		 * Since these need to be assigned to the terminal fd, make sure the
+		 * proxy fds are assigned >= 3
+		 */
+		while(proxy_socket_fd < 3) {
+			proxy_socket_fd = dup(proxy_socket_fd);
+		}
+
+		while(proxy_io_fd < 3) {
+			proxy_io_fd = dup(proxy_io_fd);
+		}
+
 		cc_oci_fd_toggle_cloexec(proxy_socket_fd, false);
 
 		cc_oci_fd_toggle_cloexec(proxy_io_fd, false);
@@ -720,7 +760,7 @@ cc_shim_launch (struct cc_oci_config *config,
 			g_debug ("arg: '%s'", *p);
 		}
 
-		if (! cc_oci_setup_shim (proxy_socket_fd, proxy_io_fd)) {
+		if (! cc_oci_setup_shim (config, proxy_socket_fd, proxy_io_fd)) {
 			goto child_failed;
 		}
 
