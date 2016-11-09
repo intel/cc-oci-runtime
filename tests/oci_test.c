@@ -628,13 +628,11 @@ START_TEST(test_cc_oci_config_update) {
 
 	ck_assert (! config->oci.mounts);
 	ck_assert (! config->console);
-	ck_assert (! config->use_socket_console);
 	ck_assert (! config->vm);
 
 	/**************************/
 	/* setup the state object */
 
-	state->use_socket_console = true;
 	state->console = g_strdup ("console");
 
 	/* create mount object */
@@ -670,7 +668,6 @@ START_TEST(test_cc_oci_config_update) {
 
 	ck_assert (config->oci.mounts);
 	ck_assert (config->console);
-	ck_assert (config->use_socket_console);
 
 	ck_assert (config->vm);
 

@@ -409,9 +409,6 @@ struct oci_state {
 	/* See member of same name in \ref cc_oci_config. */
 	gchar           *console;
 
-	/* See member of same name in \ref cc_oci_config. */
-	gboolean         use_socket_console;
-
 	struct cc_oci_vm_cfg *vm;
 	struct cc_proxy      *proxy;
 
@@ -528,11 +525,6 @@ struct cc_oci_config {
 
 	/** Path to device to use for I/O. */
 	gchar *console;
-
-	/** If \c true, \ref console will be a socket rather than a pty
-	 * device.
-	 */
-	gboolean use_socket_console;
 
 	/** If set, use an alternative root directory to the default
 	 * CC_OCI_RUNTIME_DIR_PREFIX.

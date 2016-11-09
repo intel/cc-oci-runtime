@@ -66,8 +66,13 @@ check_full_expansion (struct cc_oci_config *config,
 		return false;
 	}
 
-	gchar *console = g_strdup_printf ("serial,id=charconsole0,path=%s",
-					  config->console);
+	g_autofree gchar *hypervisor_console_socket = g_build_path ("/",
+			config->state.runtime_path,
+			CC_OCI_CONSOLE_SOCKET, NULL);
+
+	gchar *console = g_strdup_printf ("socket,path=%s,server,nowait,id=charconsole0,signal=off",
+					  hypervisor_console_socket);
+
 	gboolean ok = g_strcmp0 (args[6], console) == 0;
 	g_free (console);
 	if (!ok) {
@@ -236,8 +241,6 @@ START_TEST(test_cc_oci_expand_cmdline) {
 			(unsigned long int)sizeof(image_contents)-1);
 	gchar *shell;
 	struct cc_proxy *proxy = NULL;
-	g_autofree gchar *cc_stdin = NULL;
-	g_autofree gchar *cc_stdout = NULL;
 	g_autofree gchar *proxy_ctl_socket_path = NULL;
 	g_autofree gchar *proxy_tty_socket_path = NULL;
 
@@ -325,15 +328,6 @@ START_TEST(test_cc_oci_expand_cmdline) {
 
 	config->bundle_path = g_strdup (tmpdir);
 	ck_assert (cc_oci_expand_cmdline (config, args));
-
-	cc_stdin = g_build_path ("/", config->bundle_path,
-			"cc-std.in", NULL);
-	cc_stdout = g_build_path ("/", config->bundle_path,
-			"cc-std.out", NULL);
-
-	/* console should have been set */
-	ck_assert (config->console);
-	g_free (config->console);
 
 	/* proxy details should have been set */
 	ck_assert (config->proxy);
@@ -440,11 +434,6 @@ START_TEST(test_cc_oci_expand_cmdline) {
 	ck_assert (! g_remove (config->vm->kernel_path));
 	ck_assert (! g_remove (config->oci.root.path));
 
-	if (! config->oci.process.terminal) {
-		ck_assert (! g_remove (cc_stdin));
-		ck_assert (! g_remove (cc_stdout));
-	}
-
 	ck_assert (! g_remove (tmpdir));
 	g_free (tmpdir);
 
@@ -463,8 +452,6 @@ START_TEST(test_cc_oci_vm_args_get) {
 	gchar *image_size = g_strdup_printf ("%lu",
 			(unsigned long int)sizeof(image_contents)-1);
 	gchar *invalid_dir = "/this/directory/must/not/exist";
-	g_autofree gchar *cc_stdin = NULL;
-	g_autofree gchar *cc_stdout = NULL;
 	GPtrArray *extra_args = NULL;
 
 	tmpdir = g_dir_make_tmp (NULL, NULL);
@@ -496,11 +483,6 @@ START_TEST(test_cc_oci_vm_args_get) {
 	ck_assert (! cc_oci_vm_args_get (config, &args, NULL));
 
 	config->bundle_path = g_strdup (tmpdir);
-
-	cc_stdin = g_build_path ("/", config->bundle_path,
-			"cc-std.in", NULL);
-	cc_stdout = g_build_path ("/", config->bundle_path,
-			"cc-std.out", NULL);
 
 	/* no config->vm */
 	ck_assert (! cc_oci_vm_args_get (config, &args, NULL));
@@ -752,10 +734,6 @@ START_TEST(test_cc_oci_vm_args_get) {
 	ck_assert (! g_remove (config->vm->kernel_path));
 	ck_assert (! g_remove (config->oci.root.path));
 
-	if (! config->oci.process.terminal) {
-		ck_assert (! g_remove (cc_stdin));
-		ck_assert (! g_remove (cc_stdout));
-	}
 	ck_assert (! g_remove (tmpdir));
 
 	g_free (args_file);

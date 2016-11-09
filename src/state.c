@@ -89,7 +89,7 @@ static struct state_handler {
 	{ "status"      , handle_state_status_section      , 1 , 0 },
 	{ "created"     , handle_state_created_section     , 1 , 0 },
 	{ "mounts"      , handle_state_mounts_section      , 0 , 0 },
-	{ "console"     , handle_state_console_section     , 2 , 0 },
+	{ "console"     , handle_state_console_section     , 1 , 0 },
 	{ "vm"          , handle_state_vm_section          , 6 , 0 },
 	{ "proxy"       , handle_state_proxy_section       , 2 , 0 },
 	{ "annotations" , handle_state_annotations_section , 0 , 0 },
@@ -296,11 +296,7 @@ handle_state_console_section(GNode* node, struct handler_data* data) {
 		g_critical("%s missing value", (char*)node->data);
 		return;
 	}
-	if (g_strcmp0(node->data, "socket") == 0) {
-		(*(data->subelements_count))++;
-		data->state->use_socket_console =
-		    g_strcmp0(node->children->data, "true") ? false : true;
-	} else if (g_strcmp0(node->data, "path") == 0) {
+	if (g_strcmp0(node->data, "path") == 0) {
 		(*(data->subelements_count))++;
 		data->state->console = g_strdup(node->children->data);
 	} else {
@@ -789,8 +785,6 @@ cc_oci_state_file_create (struct cc_oci_config *config,
 	 * used.
 	 */
 	console = json_object_new ();
-	json_object_set_boolean_member (console, "socket",
-			config->use_socket_console);
 	json_object_set_string_member (console, "path",
 			config->console);
 
