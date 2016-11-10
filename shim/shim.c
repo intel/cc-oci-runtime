@@ -270,38 +270,68 @@ handle_signals(char *container_id, int outfd) {
 }
 
 /*!
- * Read data from infd and write to outfd
+ * Read data from stdin(with tty set in raw mode)
+ * and send it to proxy I/O channel
+ * Reference : https://github.com/hyperhq/runv/blob/master/hypervisor/tty.go#L448
  *
- * \param infd File descriptor to read from
- * \param outfd File descriptor to write to
+ * \param shim \ref cc_shim
  */
 void
 handle_stdin(struct cc_shim *shim)
 {
-	ssize_t    nread;
-	char       buf[BUFSIZ-12];
-	char       wbuf[BUFSIZ];
-	int        ret;
-	ssize_t     len;
+	ssize_t      nread;
+	int          ret;
+	ssize_t      len;
+	static char  buf[BUFSIZ-STREAM_HEADER_SIZE] = {0};
+	static char  wbuf[BUFSIZ] = {0};
+	static bool  cr  = false;
+	static bool  emit = false;
+	static int   cnt = 0;
+	char         ch;
 
 	if (! shim || shim->proxy_io_fd < 0) {
 		return;
 	}
 
-	// write data to I/O fd
-	while ((nread = read(STDIN_FILENO, buf, BUFSIZ-12)) != -1) {
+	nread = read(STDIN_FILENO , &ch, 1);
+	if (nread <= 0) {
+		shim_warning("Error while reading stdin char :%s\n", strerror(errno));
+		return;
+	}
+
+	if (ch == '\n') {
+		emit = !cr;
+		cr = false;
+		if (emit) {
+			buf[cnt++] = ch;
+		}
+	} else if  (ch == '\r') {
+		emit = true;
+		cr = true;
+		buf[cnt++] = '\n';
+	} else {
+		cr = false;
+		buf[cnt++] = ch;
+	}
+	if (emit || cnt == (BUFSIZ-STREAM_HEADER_SIZE)) {
+		len = cnt + STREAM_HEADER_SIZE;
 		set_big_endian_64 ((uint8_t*)wbuf, shim->io_seq_no);
-		len = nread + STREAM_HEADER_SIZE;
-		set_big_endian_32 ((uint8_t*)wbuf, (uint32_t)len);
-		strncpy(wbuf, buf, (size_t)nread);
+		set_big_endian_32 ((uint8_t*)wbuf + STREAM_HEADER_LENGTH_OFFSET, (uint32_t)len);
+		strncpy(wbuf + STREAM_HEADER_SIZE, buf, (size_t)cnt);
 
 		// TODO: handle write in the poll loop to account for write blocking
-		ret = (int)write(shim->proxy_io_fd, wbuf, (size_t)nread);
+		ret = (int)write(shim->proxy_io_fd, wbuf, (size_t)len);
 		if (ret == -1) {
 			shim_warning("Error writing from fd %d to fd %d: %s\n",
 				STDIN_FILENO, shim->proxy_io_fd, strerror(errno));
 			return;
 		}
+
+		memset(buf, 0, BUFSIZ-STREAM_HEADER_SIZE);
+		memset(wbuf, 0, BUFSIZ);
+		cnt = 0;
+		cr = false;
+		emit = false;
 	}
 }
 
