@@ -242,7 +242,7 @@ handle_signals(char *container_id, int outfd) {
 	}
 
 	while (read(signal_pipe_fd[0], &sig, sizeof(sig)) != -1) {
-		printf("Handling signal : %d on fd %d\n", sig, signal_pipe_fd[0]);
+		shim_debug("Handling signal : %d on fd %d\n", sig, signal_pipe_fd[0]);
 		if (sig == SIGWINCH ) {
 			cmd = cmds[0];
 			if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) == -1) {
