@@ -381,7 +381,7 @@ void
 handle_proxy_output(struct cc_shim *shim)
 {
 	uint64_t  seq;
-	char     *buf;
+	char     *buf = NULL;
 	int       outfd;
 	ssize_t   stream_len = 0;
 	ssize_t   ret;
@@ -393,11 +393,11 @@ handle_proxy_output(struct cc_shim *shim)
 	}
 
 	buf = read_IO_message(shim, &seq, &stream_len);
-	if ( !buf) {
+	if ((! buf) || (stream_len <= 0)) {
 		/*TODO: is exiting here more appropriate, since this denotes
 		 * error communicating with proxy or proxy has exited
 		 */
-		return;
+		goto out;
 	}
 
 	if (seq == shim->io_seq_no) {
@@ -407,14 +407,12 @@ handle_proxy_output(struct cc_shim *shim)
 	} else {
 		shim_warning("Seq no %"PRIu64 " received from proxy does not match with\
 				 shim seq %"PRIu64 "\n", seq, shim->io_seq_no);
-		free(buf);
-		return;
+		goto out;
 	}
 
 	if (!shim->exiting && stream_len == STREAM_HEADER_SIZE) {
 		shim->exiting = true;
-		free(buf);
-		return;
+		goto out;
 	} else if (shim->exiting && stream_len == (STREAM_HEADER_SIZE+1)) {
 		code = atoi(buf + STREAM_HEADER_SIZE); 	// hyperstart has sent the exit status
 		free(buf);
@@ -428,12 +426,15 @@ handle_proxy_output(struct cc_shim *shim)
 	while (offset < stream_len) {
 		ret = write(outfd, buf+offset, (size_t)(stream_len-offset));
 		if (ret <= 0 ) {
-			free(buf);
-			return;
+			goto out;
 		}
 		offset += (ssize_t)ret;
 	}
-	free(buf);
+
+out:
+	if (buf) {
+		free (buf);
+	}
 }
 
 /*!
