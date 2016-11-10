@@ -45,7 +45,7 @@ commit_id:
 		echo "0" > commit_id; \
 	fi
 
-STORED_COMMIT = $(shell cat commit_id 2>/dev/null)
+STORED_COMMIT = $(shell cat $(builddir)/commit_id 2>/dev/null || cat $(srcdir)/commit_id 2>/dev/null)
 
 SYSCONFDIR = $(sysconfdir)/$(PACKAGE_NAME)
 DEFAULTSDIR = $(datadir)/defaults/$(PACKAGE_NAME)
@@ -55,9 +55,11 @@ src/commands/cc_oci_runtime-version.$(OBJEXT): \
 
 GENERATED_FILES = \
 	data/cc-oci-runtime.sh \
+	data/config.json \
 	data/run-bats.sh \
 	data/dockerFiles/Dockerfile.fedora \
 	data/dockerFiles/Dockerfile.ubuntu \
+	data/vm.json \
 	tests/functional/common.bash \
 	tests/functional/data/config-minimal-cc-oci.json \
 	tests/metrics/density/docker_cpu_usage.sh \
@@ -65,6 +67,7 @@ GENERATED_FILES = \
 	tests/metrics/workload_time/cor_create_time.sh
 
 $(GENERATED_FILES): %: %.in Makefile
+	@mkdir -p `dirname $@`
 	$(AM_V_GEN)$(SED) \
 		-e 's|[@]bindir[@]|$(bindir)|g' \
 		-e 's|[@]libexecdir[@]|$(libexecdir)|' \
@@ -94,7 +97,7 @@ FUNCTIONAL_TESTS_DEPS += $(BUNDLE_TEST_PATH)
 # be running for example. Those tests that need a bundle will detect
 # that it doesn't exist and they will be skipped.
 $(BUNDLE_TEST_PATH):
-	$(AM_V_GEN)data/make-bundle-dir.sh $@ || true
+	$(AM_V_GEN)$(top_srcdir)/data/make-bundle-dir.sh $@ || true
 
 endif
 endif
@@ -130,13 +133,18 @@ AM_CFLAGS = -std=gnu99 -fstack-protector -Wall -pedantic \
 	-Wformat -Wformat-security -Werror=format-security \
 	-Wconversion -Wunreachable-code
 
+# We set --with-systemdunitdir here so make distcheck can run make install as a
+# normal user and not fail.
+# This directory doesn't have to be unique and doing several make distcheck
+# will not end up clobbering /tmp this way.
 DISTCHECK_CONFIGURE_FLAGS = \
 	--enable-debug \
 	--enable-tests \
 	--enable-cppcheck \
 	--enable-valgrind \
 	--enable-code-coverage \
-	--enable-functional-tests
+	--enable-functional-tests \
+	--with-systemdsystemunitdir=/tmp/cc-distcheck/systemdunitdir/
 
 bin_PROGRAMS = cc-oci-runtime
 dist_bin_SCRIPTS = data/cc-oci-runtime.sh
@@ -212,6 +220,8 @@ cc_oci_runtime_CFLAGS = \
 	$(UUID_CFLAGS)
 
 libexec_SCRIPTS = cc-proxy
+
+CLEANFILES += cc-proxy
 
 AM_V_GO    = $(am__v_GO_@AM_V@)
 am__v_GO_  = $(am__v_GO_@AM_DEFAULT_V@)
@@ -301,6 +311,7 @@ EXTRA_DIST = \
 	CONTRIBUTING.md \
 	DESIGN.rst \
 	Doxyfile \
+	data/config.json.in \
 	data/vm.json.in \
 	data/make-bundle-dir.sh \
 	tests/data \
@@ -338,7 +349,13 @@ FUNCTIONAL_TESTS_DEPS += cc-oci-runtime $(GENERATED_FILES)
 functional-tests: $(FUNCTIONAL_TESTS_DEPS)
 		$(AM_V_GEN)test -n "$(BUNDLE_TEST_PATH)" && \
 			echo "Using bundle '$(BUNDLE_TEST_PATH)'" || true
-		@bash $(srcdir)/data/run-bats.sh $(srcdir)/tests/functional/
+		@if [ "$(builddir)" != "$(srcdir)" ]; then \
+		     rm -f $(builddir)/tests/functional/*.bats ; \
+                     for f in $(abs_top_srcdir)/tests/functional/*.bats; do \
+		         ln -s $$f $(builddir)/tests/functional/ ; \
+		     done; \
+		 fi
+		@bash $(builddir)/data/run-bats.sh $(builddir)/tests/functional/
 endif
 
 if DOCKER_TESTS

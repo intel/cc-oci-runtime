@@ -19,8 +19,8 @@
 
 set -e -x
 
-cwd=$(cd `dirname "$0"`; pwd -P)
-source $cwd/versions.txt
+root=$(cd `dirname "$0"/..`; pwd -P)
+source $root/versions.txt
 
 #
 # Install go
@@ -55,26 +55,19 @@ gnome_dl=https://download.gnome.org/sources
 # glib, json-glib, libmnl-dev check and cc-oci-runtime
 sudo apt-get -qq install valgrind lcov uuid-dev pkg-config \
   zlib1g-dev libffi-dev gettext libpcre3-dev cppcheck \
-  libmnl-dev
+  libmnl-dev moreutils
 
 function compile {
 	name="$1"
 	tarball="$2"
 	directory="$3"
 
-	fail=0
-	{
-		tar -xvf ${tarball}
-		pushd ${directory}
-		./configure --disable-silent-rules || fail=1
-		make -j5 || fail=1
-		sudo make install || fail=1
-		popd
-	} >>$name-build.log 2>&1
-
-	if [ $fail -eq 1 ]; then
-		cat $name-build.log
-	fi
+	chronic tar -xvf ${tarball}
+	pushd ${directory}
+	chronic	./configure --disable-silent-rules
+	chronic make -j5
+	chronic sudo make install
+	popd
 }
 
 mkdir cor-dependencies

@@ -24,6 +24,6 @@
 # See https://github.com/01org/cc-oci-runtime/issues/93
 cmd="@BATS_PATH@"
 #Networking is not configured using non-root user
-#run bats functional tesst with network namespace unshared
+#run bats functional tests with network namespace unshared
 [ $(id -u) -eq 0 ] && cmd="unshare -n $cmd"
 eval "$cmd" $@
