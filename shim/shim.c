@@ -675,16 +675,22 @@ main(int argc, char **argv)
 		err_exit("sigaction");
 	}
 
-	add_pollfd(poll_fds, &nfds, STDIN_FILENO, POLLIN | POLLPRI);
-
 	add_pollfd(poll_fds, &nfds, shim.proxy_io_fd, POLLIN | POLLPRI);
 
 	add_pollfd(poll_fds, &nfds, shim.proxy_sock_fd, POLLIN | POLLPRI);
 
+	/* Add stdin only if it is attached to a terminal.
+	 * If we add stdin in the non-interactive case, since stdin is closed by docker
+	 * this causes continuous close events to be generated on the poll loop.
+	 */
+	if (isatty(STDIN_FILENO)) {
+		add_pollfd(poll_fds, &nfds, STDIN_FILENO, POLLIN | POLLPRI);
+	}
+
 	/*	0 =>signal_pipe_fd[0]
-		1 =>stdin
-		2 =>proxy_io_fd
-		3 =>sockfd
+		1 =>proxy_io_fd
+		2 =>sockfd
+		3 =>stdin
 	*/
 
 	while (1) {
@@ -699,19 +705,19 @@ main(int argc, char **argv)
 			handle_signals(shim.container_id, shim.proxy_sock_fd);
 		}
 
-		// check stdin fd
-		if (poll_fds[1].revents != 0) {
-			handle_stdin(&shim);
-		}
-
 		//check proxy_io_fd
-		if (poll_fds[2].revents != 0) {
+		if (poll_fds[1].revents != 0) {
 			handle_proxy_output(&shim);
 		}
 
 		// check for proxy sockfd
-		if (poll_fds[3].revents != 0) {
+		if (poll_fds[2].revents != 0) {
 			handle_proxy_ctl(&shim);
+		}
+
+		// check stdin fd
+		if (poll_fds[3].revents != 0) {
+			handle_stdin(&shim);
 		}
 	}
 
