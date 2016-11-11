@@ -183,7 +183,7 @@ handler_exec (const struct subcommand *sub,
 		goto out;
 	}
 
-	ret = cc_oci_exec (config, state, &process);
+	ret = cc_oci_exec (config, state, &process, process_json);
 	if (! ret) {
 		goto out;
 	}
@@ -198,6 +198,7 @@ out:
 	g_free_if_set (cwd);
 	g_free_if_set (process_json);
 	g_free_if_set (process_label);
+	g_free_if_set (process_json);
 	if (config->oci.process.args) {
 		g_strfreev (config->oci.process.args);
 	}

@@ -1147,6 +1147,61 @@ cc_oci_toggle (struct cc_oci_config *config,
 
 	return cc_oci_state_file_create (config, state->create_time);
 }
+/*!
+ * Parse the \c GNode representation of \c process_json file
+ * and save values in the provided \ref oci_cfg_process.
+ *
+ * \param process_json json file with a oci process node.
+ *
+ * \param process \ref oci_cfg_process.
+ *
+ * \return \c true on success, else \c false.
+ */
+static gboolean
+cc_oci_process_exec_file (const gchar *process_json,
+		struct oci_cfg_process *process)
+{
+	/*
+	 * use \ref cc_oci_config to parse
+	 * the json file from --process option
+	 **/
+	struct cc_oci_config *process_config = NULL;
+	GNode *root = NULL;
+	gboolean ret = false;
+
+	if (! (process_json && process)){
+		goto out;
+	}
+	if (! cc_oci_json_parse (&root, process_json)) {
+		goto out;
+	}
+
+#ifdef DEBUG
+	cc_oci_node_dump (root);
+#endif /*DEBUG*/
+
+	process_config = g_malloc0 (sizeof (struct cc_oci_config));
+	if (! process_config){
+		goto out;
+	}
+
+	process_config->oci.process = *process;
+	process_spec_handler.handle_section(root, process_config);
+	*process = process_config->oci.process;
+
+	ret = true;
+out:
+
+	/* Only process_config.oci.process data has handled
+	 * just free process_config pointer
+	 * process_config.oci.processprocess was copied to
+	 * process param pointer.
+	 * */
+	g_free (process_config);
+	g_free_node(root);
+
+	return ret;
+}
 
 /*!
  * Run the command specified by \p argv in the hypervisor
@@ -1155,24 +1210,37 @@ cc_oci_toggle (struct cc_oci_config *config,
  * \param config \ref cc_oci_config.
  * \param state \ref oci_state.
  * \param process \ref oci_cfg_process.
+ * \param process_json json file with a oci process node.
  *
  * \return \c true on success, else \c false.
  */
 gboolean
 cc_oci_exec (struct cc_oci_config *config,
 		struct oci_state *state,
-		struct oci_cfg_process *process)
+		struct oci_cfg_process *process,
+		const gchar *process_json)
 {
+	gboolean ret = false;
+
 	if (! (config && state && process)) {
 		return false;
 	}
 
-	if (! cc_oci_vm_connect (config, process)) {
-		g_critical ("failed to connect to VM");
-		return false;
+	if (process_json){
+		if(! cc_oci_process_exec_file(process_json,
+					process)) {
+			goto out;
+		}
 	}
 
-	return true;
+	if (! cc_oci_vm_connect (config, process)) {
+		g_critical ("failed to connect to VM");
+		goto out;
+	}
+
+	ret = true;
+out:
+	return ret;
 }
 
 /*!

@@ -1091,9 +1091,9 @@ START_TEST(test_cc_oci_exec) {
 	struct cc_oci_config config;
 	struct oci_state state;
 	struct oci_cfg_process process;
-	ck_assert(! cc_oci_exec(NULL, NULL, NULL));
-	ck_assert(! cc_oci_exec(&config, &state, NULL));
-	ck_assert(! cc_oci_exec(&config, &state, &process));
+	ck_assert(! cc_oci_exec(NULL, NULL, NULL, NULL));
+	ck_assert(! cc_oci_exec(&config, &state, NULL , NULL));
+	ck_assert(! cc_oci_exec(&config, &state, &process, NULL));
 } END_TEST
 
 START_TEST(test_cc_oci_toggle) {

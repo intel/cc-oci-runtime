@@ -591,7 +591,8 @@ gboolean cc_oci_toggle (struct cc_oci_config *config,
 		struct oci_state *state, gboolean pause);
 gboolean cc_oci_exec (struct cc_oci_config *config,
 		struct oci_state *state,
-		struct oci_cfg_process *process);
+		struct oci_cfg_process *process,
+		const gchar *process_json);
 gboolean cc_oci_list (struct cc_oci_config *config,
 		const gchar *format, gboolean show_all);
 gboolean cc_oci_delete (struct cc_oci_config *config,
