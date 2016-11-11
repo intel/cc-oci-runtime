@@ -349,15 +349,23 @@ func (h *Hyperstart) Start() {
 		// a client is now connected to the ctl socket
 		h.ctl = s
 
-		h.wgConnected.Done()
-
+		// Close() was called before we had a chance to accept a
+		// connection.
 		if s == nil {
+			h.wgConnected.Done()
 			return
 		}
 
 		// start the goroutine that will handle the ctl socket
 		h.wg.Add(1)
 		go h.handleCtl()
+
+		// we need signal wgConnected late, so wg.Add(1) is done before
+		// the wg.Wait() in Close()
+		// See https://golang.org/pkg/sync/#WaitGroup.Wait:
+		//   "Note that calls with a positive delta that occur when the
+		//    counter is zero must happen before a Wait"
+		h.wgConnected.Done()
 	})
 
 	h.ioListener = h.startListening(h.ioSocketPath, func(s net.Conn) {
@@ -378,9 +386,6 @@ func (h *Hyperstart) Stop() {
 	h.io.Close()
 
 	h.wg.Wait()
-
-	h.ctl = nil
-	h.io = nil
 
 	os.Remove(h.ctlSocketPath)
 	os.Remove(h.ioSocketPath)
