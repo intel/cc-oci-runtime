@@ -168,7 +168,14 @@ handler_exec (const struct subcommand *sub,
 		    "%s", cwd) < 0) {
 			g_critical("failed to copy process cwd");
 		}
+	}
 
+	if (argc > 0){
+		/* +1 NULL */
+		process.args = g_new0 (gchar *, (gsize) argc + 1 );
+		for ( int i = 0; i < argc ; i++){
+			process.args[i] = g_strdup(argv[i]);
+		}
 	}
 
 	ret = cc_oci_get_config_and_state (&config_file, config, &state);
@@ -176,7 +183,7 @@ handler_exec (const struct subcommand *sub,
 		goto out;
 	}
 
-	ret = cc_oci_exec (config, state, argc, argv);
+	ret = cc_oci_exec (config, state, &process);
 	if (! ret) {
 		goto out;
 	}

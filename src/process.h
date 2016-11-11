@@ -27,6 +27,6 @@ gboolean cc_run_hooks(GSList* hooks, const gchar* state_file_path,
                        gboolean stop_on_failure);
 
 gboolean cc_oci_vm_connect (struct cc_oci_config *config,
-		int argc, char *const argv[]);
+		struct oci_cfg_process *process);
 
 #endif /* _CC_OCI_PROCESS_H */

@@ -1154,22 +1154,20 @@ cc_oci_toggle (struct cc_oci_config *config,
  *
  * \param config \ref cc_oci_config.
  * \param state \ref oci_state.
- * \param argc Argument count.
- * \param argv Argument vector.
+ * \param process \ref oci_cfg_process.
  *
  * \return \c true on success, else \c false.
  */
 gboolean
 cc_oci_exec (struct cc_oci_config *config,
 		struct oci_state *state,
-		int argc,
-		char *const argv[])
+		struct oci_cfg_process *process)
 {
-	if (! (config && state && argc && argv)) {
+	if (! (config && state && process)) {
 		return false;
 	}
 
-	if (! cc_oci_vm_connect (config, argc, argv)) {
+	if (! cc_oci_vm_connect (config, process)) {
 		g_critical ("failed to connect to VM");
 		return false;
 	}
