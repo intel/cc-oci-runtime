@@ -319,6 +319,7 @@ read_IO_message(struct cc_shim *shim, uint64_t *seq, ssize_t *stream_len) {
 	char *buf = NULL;
 	ssize_t need_read = STREAM_HEADER_SIZE;
 	ssize_t bytes_read = 0, want, ret;
+	ssize_t max_bytes = HYPERSTART_MAX_RECV_BYTES;
 
 	if (! (shim && seq && stream_len)) {
 		return NULL;
@@ -340,23 +341,29 @@ read_IO_message(struct cc_shim *shim, uint64_t *seq, ssize_t *stream_len) {
 		ret = read(shim->proxy_io_fd, buf+bytes_read, (size_t)want);
 		if (ret == -1) {
 			shim_warning("Error reading from proxy I/O fd: %s\n", strerror(errno));
-			free(buf);
-			return NULL;
+			goto err;
 		} else if (ret == 0) {
 			/* EOF received on proxy I/O fd*/
 			shim_warning("EOF received on proxy I/O fd\n");
-			free(buf);
-			return NULL;
+			goto err;
 		}
 
 		bytes_read += ret;
 
-		if (*stream_len == 0 && bytes_read >=12) {
+		if (*stream_len == 0 && bytes_read >= STREAM_HEADER_SIZE) {
 			*stream_len = get_big_endian_32((uint8_t*)(buf+STREAM_HEADER_LENGTH_OFFSET));
 
 			// length is 12 when hyperstart sends eof before sending exit code
 			if (*stream_len == STREAM_HEADER_SIZE) {
 				break;
+			}
+
+			/* Ensure amount of data is within expected bounds */
+			if (*stream_len > max_bytes) {
+				shim_warning("message too big (limit is %lu, but proxy returned %lu)",
+						(unsigned long int)max_bytes,
+						(unsigned long int)stream_len);
+				goto err;
 			}
 
 			if (*stream_len > STREAM_HEADER_SIZE) {
@@ -370,6 +377,12 @@ read_IO_message(struct cc_shim *shim, uint64_t *seq, ssize_t *stream_len) {
 	}
 	*seq = get_big_endian_64((uint8_t*)buf);
 	return buf;
+
+err:
+	if (buf) {
+		free(buf);
+	}
+	return NULL;
 }
 
 /*!
@@ -381,7 +394,7 @@ void
 handle_proxy_output(struct cc_shim *shim)
 {
 	uint64_t  seq;
-	char     *buf;
+	char     *buf = NULL;
 	int       outfd;
 	ssize_t   stream_len = 0;
 	ssize_t   ret;
@@ -393,11 +406,11 @@ handle_proxy_output(struct cc_shim *shim)
 	}
 
 	buf = read_IO_message(shim, &seq, &stream_len);
-	if ( !buf) {
+	if ((! buf) || (stream_len <= 0) || (stream_len > HYPERSTART_MAX_RECV_BYTES)) {
 		/*TODO: is exiting here more appropriate, since this denotes
 		 * error communicating with proxy or proxy has exited
 		 */
-		return;
+		goto out;
 	}
 
 	if (seq == shim->io_seq_no) {
@@ -407,14 +420,12 @@ handle_proxy_output(struct cc_shim *shim)
 	} else {
 		shim_warning("Seq no %"PRIu64 " received from proxy does not match with\
 				 shim seq %"PRIu64 "\n", seq, shim->io_seq_no);
-		free(buf);
-		return;
+		goto out;
 	}
 
 	if (!shim->exiting && stream_len == STREAM_HEADER_SIZE) {
 		shim->exiting = true;
-		free(buf);
-		return;
+		goto out;
 	} else if (shim->exiting && stream_len == (STREAM_HEADER_SIZE+1)) {
 		code = atoi(buf + STREAM_HEADER_SIZE); 	// hyperstart has sent the exit status
 		free(buf);
@@ -428,12 +439,15 @@ handle_proxy_output(struct cc_shim *shim)
 	while (offset < stream_len) {
 		ret = write(outfd, buf+offset, (size_t)(stream_len-offset));
 		if (ret <= 0 ) {
-			free(buf);
-			return;
+			goto out;
 		}
 		offset += (ssize_t)ret;
 	}
-	free(buf);
+
+out:
+	if (buf) {
+		free (buf);
+	}
 }
 
 /*!
