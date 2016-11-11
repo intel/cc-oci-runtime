@@ -29,6 +29,7 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <json-glib/json-glib.h>
+#include <json-glib/json-gobject.h>
 
 #include "test_common.h"
 #include "../src/logging.h"
@@ -1014,6 +1015,80 @@ START_TEST(test_cc_oci_kill) {
 
 } END_TEST
 
+START_TEST(test_cc_oci_process_to_json) {
+	struct oci_cfg_process *process = NULL;
+	JsonObject* process_obj = NULL;\
+
+	ck_assert (! cc_oci_process_to_json(process));
+
+	process = calloc(1, sizeof(*process));
+
+	ck_assert (! cc_oci_process_to_json(process));
+
+	process->args = calloc(3, sizeof(*process->args));
+	process->args[0] = "_hello";
+	process->args[1] = "_world";
+
+	ck_assert (! cc_oci_process_to_json(process));
+
+	process->cwd[0] = '/';
+
+	process_obj = cc_oci_process_to_json(process);
+	ck_assert (process_obj);
+	json_object_unref(process_obj);
+
+	process->env = calloc(3, sizeof(*process->env));
+	process->env[0] = "var1=beer";
+	process->env[1] = "var1=wine";
+
+	process_obj = cc_oci_process_to_json(process);
+	ck_assert (process_obj);
+	json_object_unref(process_obj);
+
+	process->terminal = false;
+
+	process_obj = cc_oci_process_to_json(process);
+	ck_assert (process_obj);
+	json_object_unref(process_obj);
+
+	process->terminal = false;
+
+	process_obj = cc_oci_process_to_json(process);
+	ck_assert (process_obj);
+	json_object_unref(process_obj);
+
+	process->user.additionalGids =
+		calloc(2, sizeof(*process->user.additionalGids));
+	process->user.additionalGids[0] = 1;
+	process->user.gid = 0;
+	process->user.uid = 0;
+
+	process_obj = cc_oci_process_to_json(process);
+	ck_assert (process_obj);
+	json_object_unref(process_obj);
+
+	process->stdio_stream = 0;
+	process->stderr_stream = 1;
+
+	process_obj = cc_oci_process_to_json(process);
+	ck_assert (process_obj);
+
+	ck_assert (json_object_has_member(process_obj, "cwd"));
+	ck_assert (json_object_has_member(process_obj, "terminal"));
+	ck_assert (json_object_has_member(process_obj, "user"));
+	ck_assert (json_object_has_member(process_obj, "args"));
+	ck_assert (json_object_has_member(process_obj, "env"));
+	ck_assert (json_object_has_member(process_obj, "stdio_stream"));
+	ck_assert (json_object_has_member(process_obj, "stderr_stream"));
+
+	json_object_unref(process_obj);
+
+	free(process->user.additionalGids);
+	free(process->args);
+	free(process->env);
+	free(process);
+} END_TEST
+
 Suite* make_oci_suite(void) {
 	Suite* s = suite_create(__FILE__);
 
@@ -1025,6 +1100,7 @@ Suite* make_oci_suite(void) {
 	ADD_TEST (test_cc_oci_kill, s);
 	ADD_TEST (test_get_user_home_dir, s);
 	ADD_TEST (test_set_env_home, s);
+	ADD_TEST (test_cc_oci_process_to_json, s);
 
 	return s;
 }
