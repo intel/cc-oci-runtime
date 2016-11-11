@@ -350,7 +350,7 @@ read_IO_message(struct cc_shim *shim, uint64_t *seq, ssize_t *stream_len) {
 
 		bytes_read += ret;
 
-		if (*stream_len == 0 && bytes_read >=12) {
+		if (*stream_len == 0 && bytes_read >= STREAM_HEADER_SIZE) {
 			*stream_len = get_big_endian_32((uint8_t*)(buf+STREAM_HEADER_LENGTH_OFFSET));
 
 			// length is 12 when hyperstart sends eof before sending exit code
