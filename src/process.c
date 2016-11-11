@@ -574,7 +574,7 @@ cc_oci_vm_netcfg_get (struct cc_oci_config *config,
  *
  * \return a GSocketConnection on success, else NULL.
  */
-static GSocketConnection *
+private GSocketConnection *
 socket_connection_from_fd (int fd)
 {
 	GError            *error = NULL;

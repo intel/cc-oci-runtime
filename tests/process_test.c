@@ -21,6 +21,8 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 #include <check.h>
 #include <glib.h>
@@ -37,6 +39,7 @@ gboolean cc_run_hook (struct oci_cfg_hook* hook,
 gboolean cc_oci_setup_shim (struct cc_oci_config *config,
 		int proxy_fd,
 		int proxy_io_fd);
+GSocketConnection *socket_connection_from_fd (int fd);
 
 extern GMainLoop *hook_loop;
 
@@ -236,12 +239,28 @@ START_TEST(test_cc_oci_setup_shim) {
 	g_free (config.console);
 } END_TEST
 
+START_TEST(test_socket_connection_from_fd) {
+	int sockets[2] = { -1, -1 };
+	GSocketConnection *conn = NULL;
+	ck_assert (! socket_connection_from_fd (-1));
+	ck_assert (! socket_connection_from_fd (STDIN_FILENO));
+
+	ck_assert (socketpair(PF_UNIX, SOCK_STREAM, 0, sockets) == 0);
+	close (sockets[0]);
+
+	conn = socket_connection_from_fd (sockets[1]);
+	ck_assert (conn);
+	g_object_unref (conn);
+	close(sockets[1]);
+} END_TEST
+
 Suite* make_process_suite(void) {
 	Suite* s = suite_create(__FILE__);
 
 	ADD_TEST(test_cc_oci_cmd_is_shell, s);
 	ADD_TEST(test_cc_run_hook, s);
 	ADD_TEST(test_cc_oci_setup_shim, s);
+	ADD_TEST(test_socket_connection_from_fd, s);
 
 	return s;
 }
