@@ -571,7 +571,7 @@ get_user_home_dir(struct cc_oci_config *config, gchar *passwd_path) {
  *
  * returns early if HOME is present in the environment configuration in \p config
  */
-private void
+void
 set_env_home(struct cc_oci_config *config)
 {
 	g_autofree gchar *user_home_dir = NULL;
@@ -617,132 +617,6 @@ set_env_home(struct cc_oci_config *config)
 
 	g_strfreev(config->oci.process.env);
 	config->oci.process.env = new_env;
-}
-
-
-/*!
- * Create the containers Clear Linux workload file
- * (\ref CC_OCI_WORKLOAD_FILE).
- *
- * \param config \ref cc_oci_config.
- *
- * \warning FIXME: Need to support running the workload as a different user/group.
- * Something like:
- *
- *      su -c "sg $group -c $cmd" $user
- *
- * \return \c true on success, else \c false.
- */
-private gboolean
-cc_oci_create_container_workload (struct cc_oci_config *config)
-{
-	GString           *contents = NULL;
-	GError            *err = NULL;
-	gchar             *workload_cmdline = NULL;
-	g_autofree gchar  *path = NULL;
-	g_autofree gchar   *cwd = NULL;
-	gboolean           ret = false;
-	gchar             **args = NULL;
-
-	if (! (config && config->oci.process.args)) {
-		return false;
-	}
-
-	if (! config->vm) {
-		g_critical ("No vm configuration");
-		goto out;
-	}
-
-	if (config->oci.process.env) {
-		g_autofree gchar  *envpath = NULL;
-		g_autofree gchar  *env = NULL;
-
-		envpath = g_build_path ("/", config->oci.root.path,
-				CC_OCI_ENV_FILE, NULL);
-		if (! envpath) {
-			return false;
-		}
-
-		set_env_home(config);
-
-		env = g_strjoinv ("\n", config->oci.process.env);
-		ret = g_file_set_contents (envpath, env, -1, &err);
-		if (! ret) {
-			g_critical ("failed to create environment file (%s): %s",
-					envpath, err->message);
-			g_error_free (err);
-			goto out;
-		}
-	}
-
-	path = g_build_path ("/", config->oci.root.path,
-			CC_OCI_WORKLOAD_FILE, NULL);
-	if (! path) {
-		return false;
-	}
-
-	cwd = g_shell_quote (config->oci.process.cwd);
-	if (! cwd) {
-		return false;
-	}
-
-	g_strlcpy (config->vm->workload_path, path,
-			sizeof (config->vm->workload_path));
-
-	args = config->oci.process.args;
-	while (*args != NULL) {
-		gchar *new_arg = g_shell_quote(*args);
-		g_free(*args);
-		*args = new_arg;
-		args++;
-	}
-
-	workload_cmdline = g_strjoinv (" ", config->oci.process.args);
-	if (! workload_cmdline) {
-		goto out;
-	}
-
-	contents = g_string_new("");
-	if (! contents) {
-		goto out;
-	}
-
-	/* TODO: we should probably force failure if the 'cd' fails */
-	g_string_printf(contents,
-			"#!%s\n"
-			"cd %s\n"
-			"%s\n",
-			CC_OCI_WORKLOAD_SHELL,
-			cwd,
-			workload_cmdline);
-
-	ret = g_file_set_contents (config->vm->workload_path,
-			contents->str, (gssize)contents->len, &err);
-
-	if (! ret) {
-		g_critical ("failed to create workload file (%s): %s",
-				config->vm->workload_path, err->message);
-		g_error_free (err);
-		goto out;
-	}
-
-	if (g_chmod (config->vm->workload_path, CC_OCI_SCRIPT_MODE) < 0) {
-		g_critical ("failed to set mode for file file %s",
-				config->vm->workload_path);
-		goto out;
-	}
-
-	g_debug ("created workload_path %s", config->vm->workload_path);
-
-	ret = true;
-
-out:
-	g_free_if_set (workload_cmdline);
-	if (contents) {
-		g_string_free(contents, true);
-	}
-
-	return ret;
 }
 
 /*!
@@ -891,11 +765,6 @@ cc_oci_create (struct cc_oci_config *config)
 
 	if (! cc_oci_handle_mounts (config)) {
 		g_critical ("failed to handle mounts");
-		return false;
-	}
-
-	if (! cc_oci_create_container_workload (config)) {
-		g_critical ("failed to create workload");
 		return false;
 	}
 
@@ -1127,8 +996,7 @@ cc_oci_start (struct cc_oci_config *config,
 	 *
 	 * Do not wait when console is empty.
 	 */
-	if ((isatty (STDIN_FILENO) && ! config->detached_mode) &&
-	    !config->use_socket_console) {
+	if ((isatty (STDIN_FILENO) && ! config->detached_mode)) {
 		wait = true;
 	}
 
@@ -1173,7 +1041,11 @@ cc_oci_start (struct cc_oci_config *config,
 		}
 	}
 
-	// FIXME: start pod and run workload, then set this status.
+	if (! cc_proxy_hyper_new_container (config)) {
+	    ret = false;
+	    goto out;
+	}
+
 	/* Now the VM is running */
 	config->state.status = OCI_STATUS_RUNNING;
 
@@ -1800,12 +1672,15 @@ cc_oci_config_update (struct cc_oci_config *config,
 		state->mounts = NULL;
 	}
 
+	if(state->process && ! config->oci.process.args) {
+		config->oci.process = *state->process;
+		g_free_if_set (state->process);
+	}
+
 	if (state->console) {
 		config->console = state->console;
 		state->console = NULL;
 	}
-
-	config->use_socket_console = state->use_socket_console;
 
 	if (state->vm) {
 		config->vm = state->vm;
@@ -1826,4 +1701,52 @@ cc_oci_config_update (struct cc_oci_config *config,
 	}
 
 	return true;
+}
+
+/*!
+* Convert the config process to a JSON object.
+*
+* \param process \ref oci_cfg_process.
+*
+* \return \c JsonObject on success, else \c NULL.
+*/
+JsonObject *
+cc_oci_process_to_json(const struct oci_cfg_process *process)
+{
+	JsonObject *json_process = NULL;
+	JsonObject *user         = NULL;
+	JsonArray  *args         = NULL;
+	JsonArray  *envs         = NULL;
+
+	if (! (process && process->args && process->cwd[0])) {
+		goto out;
+	}
+
+	json_process = json_object_new ();
+	user         = json_object_new ();
+	args         = json_array_new ();
+	envs         = json_array_new ();
+
+
+	for (gchar** p = process->args; p && *p; p++) {
+		json_array_add_string_element (args, *p);
+	}
+
+	for (gchar** p = process->env; p && *p; p++) {
+		json_array_add_string_element (envs, *p);
+	}
+
+	json_object_set_string_member (json_process, "cwd", process->cwd);
+	json_object_set_boolean_member (json_process, "terminal",
+			process->terminal);
+	json_object_set_object_member (json_process, "user", user);
+	json_object_set_array_member (json_process, "args", args);
+	json_object_set_array_member (json_process, "env", envs);
+	json_object_set_int_member (json_process, "stdio_stream",
+			process->stdio_stream);
+	json_object_set_int_member (json_process, "stderr_stream",
+			process->stderr_stream);
+
+out:
+	return json_process;
 }

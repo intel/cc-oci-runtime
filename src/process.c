@@ -42,11 +42,15 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/socket.h>
+#include <termios.h>
+#include <sys/ioctl.h>
 
 #include <glib.h>
 #include <glib/gprintf.h>
 #include <gio/gio.h>
 #include <gio/gunixsocketaddress.h>
+#include <gio/gunixconnection.h>
 
 #include "oci.h"
 #include "util.h"
@@ -116,10 +120,12 @@ cc_oci_cmd_is_shell (const char *cmd)
 /*!
  * Close file descriptors, excluding standard streams.
  *
+ * \param fds Array of file descriptors that should not be closed
+ *
  * \return \c true on success, else \c false.
  */
 static gboolean
-cc_oci_close_fds (void) {
+cc_oci_close_fds (GArray *fds) {
 	char           *fd_dir = "/proc/self/fd";
 	DIR            *dir;
 	struct dirent  *ent;
@@ -141,6 +147,18 @@ cc_oci_close_fds (void) {
 		if (fd < 3) {
 			/* ignore stdandard fds */
 			continue;
+		}
+
+		if (fds) {
+			uint i;
+			for (i = 0; i < fds->len; i++) {
+				if (g_array_index (fds, int, i) == fd) {
+					break;
+				}
+			}
+			if (i != fds->len) {
+				continue;
+			}
 		}
 
 		if (fd == dirfd (dir)) {
@@ -172,10 +190,62 @@ cc_oci_setup_child (struct cc_oci_config *config)
 
 	/* Do not close fds when VM runs in detached mode*/
 	if (! config->detached_mode) {
-		cc_oci_close_fds ();
+		cc_oci_close_fds (NULL);
 	}
 
 	cc_oci_setup_hypervisor_logs(config);
+
+	return true;
+}
+
+/*! Perform setup on spawned shim process.
+ *
+ * \param config \ref cc_oci_config.
+ * \param proxy_fd Proxy socket connection.
+ * \param proxy_io_fd Proxy IO fd.
+ *
+ * \return \c true on success, else \c false.
+ */
+static gboolean
+cc_oci_setup_shim (struct cc_oci_config *config,
+			int proxy_fd,
+			int proxy_io_fd)
+{
+	int             tty_fd;
+	GArray         *fds;
+
+	if (! config || proxy_fd < 0 || proxy_io_fd < 0) {
+		return false;
+	}
+
+	/* become session leader */
+	setsid ();
+
+	// In the console case, the terminal needs to be dup'ed to stdio
+	if (config->oci.process.terminal) {
+		tty_fd = open(config->console, O_RDWR |  O_NOCTTY);
+
+		if (tty_fd == -1) {
+			g_warning("Error opening slave pty %s: %s",
+					config->console,
+					strerror(errno));
+		}
+
+		dup2(tty_fd, 0);
+		dup2(tty_fd, 1);
+		dup2(tty_fd, 2);
+
+		ioctl(0, TIOCSCTTY, 1);
+		close(tty_fd);
+	}
+
+	fds = g_array_sized_new(FALSE, FALSE, sizeof(int), 2);
+	g_array_append_val (fds, proxy_fd);
+	g_array_append_val (fds, proxy_io_fd);
+
+	cc_oci_close_fds (fds);
+
+	g_array_free(fds, TRUE);
 
 	return true;
 }
@@ -236,7 +306,7 @@ static gboolean
 cc_oci_output_watcher(GIOChannel* channel, GIOCondition cond,
                             gint stream)
 {
-	gchar* string;
+	gchar* string = NULL;
 	gsize size;
 
 	if (cond == G_IO_HUP) {
@@ -244,6 +314,8 @@ cc_oci_output_watcher(GIOChannel* channel, GIOCondition cond,
 	}
 
 	g_io_channel_read_line(channel, &string, &size, NULL, NULL);
+
+
 	if (STDOUT_FILENO == stream) {
 		g_message("%s", string ? string : "");
 	} else {
@@ -420,6 +492,7 @@ cc_run_hook(struct oci_cfg_hook* hook, const gchar* state,
 	/* (re-)start the main loop and wait for the hook
 	 * to finish.
 	 */
+
 	g_main_loop_run(hook_loop);
 
 	/* check hook exit code */
@@ -478,6 +551,49 @@ cc_oci_vm_netcfg_get (struct cc_oci_config *config,
 }
 
 /*!
+ * Create a socket connection from a fd.
+ *
+ * \param fd int.
+ *
+ * \return a GSocketConnection on success, else NULL.
+ */
+static GSocketConnection *
+socket_connection_from_fd (int fd)
+{
+	GError            *error = NULL;
+	GSocket           *socket = NULL;
+	GSocketConnection *connection = NULL;
+
+	if( fd < 0 ) {
+		goto out;
+	}
+
+	socket = g_socket_new_from_fd (fd, &error);
+	if (! socket) {
+		g_critical("failed to create socket from fd");
+		if (error) {
+			g_critical("%s", error->message);
+			g_error_free(error);
+		}
+		goto out;
+	}
+
+	g_socket_set_blocking (socket, TRUE);
+
+	connection = g_socket_connection_factory_create_connection (socket);
+	if (!connection) {
+		g_critical("failed to create socket connection from fd");
+	}
+
+out:
+	if (socket) {
+		g_object_unref (socket);
+	}
+
+	return connection;
+}
+
+/*!
  * Start \ref CC_OCI_SHIM as a child process.
  *
  * \param config \ref cc_oci_config.
@@ -487,24 +603,28 @@ cc_oci_vm_netcfg_get (struct cc_oci_config *config,
  * \param shim_args_fd Writable file descriptor caller should use to
  *   send the proxy_socket_fd to the child before \ref CC_OCI_SHIM is
  *   launched.
+ * \param shim_socket_fd Writable file descriptor caller should use to
+ *   send the proxy IO fd to child before \ref CC_OCI_SHIM is launched.
  *
  * \return \c true on success, else \c false.
  */
 static gboolean
 cc_shim_launch (struct cc_oci_config *config,
 		int *child_err_fd,
-		int *shim_args_fd)
+		int *shim_args_fd,
+		int *shim_socket_fd)
 {
 	gboolean  ret = false;
 	GPid      pid;
 	int       child_err_pipe[2] = {-1, -1};
 	int       shim_args_pipe[2] = {-1, -1};
+	int       shim_socket[2] = {-1, -1};
 
 	if (! (config && config->proxy)) {
 		return false;
 	}
 
-	if (! (child_err_fd && shim_args_fd)) {
+	if (! (child_err_fd && shim_args_fd && shim_socket_fd)) {
 		return false;
 	}
 
@@ -520,6 +640,12 @@ cc_shim_launch (struct cc_oci_config *config,
 		goto out;
 	}
 
+	if (socketpair(PF_UNIX, SOCK_STREAM, 0, shim_socket) < 0) {
+		g_critical ("failed to create shim socket: %s",
+				strerror (errno));
+		goto out;
+	}
+
 	/* Inform caller of workload PID */
 	pid = config->state.workload_pid = fork ();
 
@@ -531,6 +657,10 @@ cc_shim_launch (struct cc_oci_config *config,
 		gchar   **args = NULL;
 		ssize_t   bytes;
 		int       proxy_socket_fd = -1;
+		int       proxy_io_fd = -1;
+		int       proxy_io_base = -1;
+		GSocketConnection *connection = NULL;
+		GError   *error = NULL;
 
 		/* child */
 
@@ -539,6 +669,7 @@ cc_shim_launch (struct cc_oci_config *config,
 
 		close (child_err_pipe[0]);
 		close (shim_args_pipe[1]);
+		close (shim_socket[1]);
 
 		g_debug ("shim child waiting for proxy socket fd on fd %d", shim_args_pipe[0]);
 
@@ -546,13 +677,45 @@ cc_shim_launch (struct cc_oci_config *config,
 		bytes = read (shim_args_pipe[0],
 				&proxy_socket_fd,
 				sizeof (proxy_socket_fd));
-		close (shim_args_pipe[0]);
-		shim_args_pipe[0] = -1;
 
 		if (bytes <= 0) {
 			g_critical ("failed to read proxy socket fd");
 			goto child_failed;
 		}
+
+		/* block reading proxy ioBase */
+		bytes = read (shim_args_pipe[0],
+				&proxy_io_base,
+				sizeof (proxy_io_base));
+
+		if (bytes <= 0) {
+			g_critical ("failed to read proxy ioBase");
+			goto child_failed;
+		}
+
+		/* read proxy IO fd from socket out-of-band */
+		connection = socket_connection_from_fd(shim_socket[0]);
+		if (!connection) {
+			g_critical ("failed to read proxy IO fd");
+			goto child_failed;
+		}
+
+		proxy_io_fd = g_unix_connection_receive_fd (
+			G_UNIX_CONNECTION (connection), NULL, &error);
+		if (proxy_io_fd < 0) {
+			g_critical ("failed to read proxy IO fd from socket");
+			if (error) {
+				g_critical("%s", error->message);
+				g_error_free(error);
+			}
+			goto child_failed;
+		}
+
+		close (shim_args_pipe[0]);
+		shim_args_pipe[0] = -1;
+
+		close (shim_socket[0]);
+		shim_socket[0] = -1;
 
 		g_debug ("proxy socket fd from parent=%d",
 				proxy_socket_fd);
@@ -562,18 +725,24 @@ cc_shim_launch (struct cc_oci_config *config,
 			goto child_failed;
 		}
 
-		/* +1 for for NULL terminator */
+		/* When run interactively, the fds 0,1,2 are closed.
+		 * Since these need to be assigned to the terminal fd, make sure the
+		 * proxy fds are assigned >= 3
+		 */
+		while(proxy_socket_fd < 3) {
+			proxy_socket_fd = dup(proxy_socket_fd);
+		}
 
-		/* FIXME: uncomment once we have run "AllocateIO" */
-#if 1
-		args = g_new0 (gchar *, 5+1);
-		args[0] = g_strdup (CC_OCI_SHIM);
-		args[1] = g_strdup ("-c");
-		args[2] = g_strdup (config->optarg_container_id);
-		args[3] = g_strdup ("-p");
-		args[4] = g_strdup_printf ("%d", proxy_socket_fd);
-#else
-		args = g_new0 (gchar *, 9+1);
+		while(proxy_io_fd < 3) {
+			proxy_io_fd = dup(proxy_io_fd);
+		}
+
+		cc_oci_fd_toggle_cloexec(proxy_socket_fd, false);
+
+		cc_oci_fd_toggle_cloexec(proxy_io_fd, false);
+
+		/* +1 for for NULL terminator */
+		args = g_new0 (gchar *, 11+1);
 		args[0] = g_strdup (CC_OCI_SHIM);
 		args[1] = g_strdup ("-c");
 		args[2] = g_strdup (config->optarg_container_id);
@@ -582,15 +751,16 @@ cc_shim_launch (struct cc_oci_config *config,
 		args[5] = g_strdup ("-o");
 		args[6] = g_strdup_printf ("%d", proxy_io_fd);
 		args[7] = g_strdup ("-s");
-		args[8] = g_strdup_printf ("%d", proxy_io_seq_no);
-#endif
+		args[8] = g_strdup_printf ("%d", proxy_io_base);
+		args[9] = g_strdup ("-e");
+		args[10] = g_strdup_printf ("%d", proxy_io_base + 1);
 
 		g_debug ("running command:");
 		for (gchar** p = args; p && *p; p++) {
 			g_debug ("arg: '%s'", *p);
 		}
 
-		if (! cc_oci_setup_child (config)) {
+		if (! cc_oci_setup_shim (config, proxy_socket_fd, proxy_io_fd)) {
 			goto child_failed;
 		}
 
@@ -605,6 +775,12 @@ child_failed:
 		/* Any data written by the child to this pipe signifies failure,
 		 * so send a very short message ("E", denoting Error).
 		 */
+		close (shim_args_pipe[0]);
+		shim_args_pipe[0] = -1;
+
+		close (shim_socket[0]);
+		shim_socket[0] = -1;
+
 		(void)write (child_err_pipe[1], "E", 1);
 		exit (EXIT_FAILURE);
 	}
@@ -615,12 +791,14 @@ child_failed:
 
 	*child_err_fd = child_err_pipe[0];
 	*shim_args_fd = shim_args_pipe[1];
+	*shim_socket_fd = shim_socket[1];
 
 	ret = true;
 
 out:
 	close (child_err_pipe[1]);
 	close (shim_args_pipe[0]);
+	close (shim_socket[0]);
 
 	return ret;
 }
@@ -655,7 +833,12 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 	g_autofree gchar  *hypervisor_args = NULL;
 	int                shim_err_fd = -1;
 	int                shim_args_fd = -1;
+	int                shim_socket_fd = -1;
 	int                proxy_fd = -1;
+	int                proxy_io_fd = -1;
+	int                ioBase = -1;
+	GSocketConnection *shim_socket_connection = NULL;
+	GError            *error = NULL;
 
 	if (! config) {
 		return false;
@@ -826,7 +1009,7 @@ child_failed:
 	 *
 	 * The child blocks waiting for a write to shim_args_fd.
 	 */
-	if (! cc_shim_launch (config, &shim_err_fd, &shim_args_fd)) {
+	if (! cc_shim_launch (config, &shim_err_fd, &shim_args_fd, &shim_socket_fd)) {
 		goto out;
 	}
 
@@ -914,6 +1097,7 @@ child_failed:
 		ret = false;
 		goto out;
 	}
+
 	g_debug ("child setup successful");
 
 	/* Wait for the proxy to signal readiness.
@@ -933,10 +1117,6 @@ child_failed:
 		goto out;
 	}
 
-	/* FIXME: TODO: call cc_proxy_cmd_allocate_io () to get
-	 * sequence numbers and pass to cc-shim via shim_args_fd.
-	 */
-
 	proxy_fd = g_socket_get_fd (config->proxy->socket);
 	if (proxy_fd < 0) {
 		g_critical ("invalid proxy fd: %d", proxy_fd);
@@ -949,6 +1129,37 @@ child_failed:
 			strerror (errno));
 		goto out;
 	}
+
+	if (! cc_proxy_cmd_allocate_io(config->proxy,
+			&proxy_io_fd, &ioBase)) {
+		goto out;
+	}
+
+	bytes = write (shim_args_fd, &ioBase, sizeof (ioBase));
+	if (bytes < 0) {
+		g_critical ("failed to send proxy ioBase to shim child: %s",
+			strerror (errno));
+		goto out;
+	}
+
+	/* send proxy IO fd to cc-shim child */
+	shim_socket_connection = socket_connection_from_fd(shim_socket_fd);
+	if (! shim_socket_connection) {
+		g_critical("failed to create a socket connection to send proxy IO fd");
+		goto out;
+	}
+
+	ret = g_unix_connection_send_fd (G_UNIX_CONNECTION (shim_socket_connection),
+		proxy_io_fd, NULL, &error);
+
+	if (! ret) {
+		g_critical("failed to send proxy IO fd");
+		goto out;
+	}
+
+	/* save ioBase */
+	config->oci.process.stdio_stream = ioBase;
+	config->oci.process.stderr_stream = ioBase + 1;
 
 	close (shim_args_fd);
 	shim_args_fd = -1;
@@ -1000,6 +1211,7 @@ out:
 	if (child_err_pipe[1] != -1) close (child_err_pipe[1]);
 	if (shim_err_fd != -1) close (shim_err_fd);
 	if (shim_args_fd != -1) close (shim_args_fd);
+	if (shim_socket_fd != -1) close (shim_socket_fd);
 
 	if (setup_networking) {
 		netlink_close (hndl);

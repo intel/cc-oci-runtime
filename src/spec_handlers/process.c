@@ -61,6 +61,10 @@ handle_process_section(GNode* root, struct cc_oci_config* config) {
 	} else if(g_strcmp0(root->data, "user") == 0) {
 		g_node_children_foreach (root, G_TRAVERSE_ALL,
 				(GNodeForeachFunc)handle_user_section, config);
+	} else if(g_strcmp0(root->data, "stdio_stream") == 0) {
+		config->oci.process.stdio_stream = atoi (root->children->data);
+	} else if(g_strcmp0(root->data, "stderr_stream") == 0) {
+		config->oci.process.stderr_stream = atoi (root->children->data);
 	}
 }
 
@@ -76,6 +80,9 @@ process_handle_section(GNode* root, struct cc_oci_config* config)
 		g_critical("oci config is NULL");
 		return false;
 	}
+
+	config->oci.process.stdio_stream = -1;
+	config->oci.process.stderr_stream = -1;
 
 	g_node_children_foreach(root, G_TRAVERSE_ALL,
 		(GNodeForeachFunc)handle_process_section, config);

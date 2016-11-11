@@ -152,6 +152,7 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 	gchar           **arg;
 	gchar            *bytes = NULL;
 	gchar            *console_device = NULL;
+	g_autofree gchar *hypervisor_console = NULL;
 	g_autofree gchar *procsock_device = NULL;
 
 	gboolean          ret = false;
@@ -227,82 +228,12 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 
 	bytes = g_strdup_printf ("%lu", (unsigned long int)st.st_size);
 
-	/* XXX: Note that "signal=off" ensures that the key sequence
-	 * CONTROL+c will not cause the VM to exit.
-	 */
-	if (! config->console || ! g_utf8_strlen(config->console, LINE_MAX)) {
+	hypervisor_console = g_build_path ("/", config->state.runtime_path,
+			CC_OCI_CONSOLE_SOCKET, NULL);
 
-		config->use_socket_console = true;
-
-		/* Temporary fix for non-console output, since -chardev stdio is not working as expected
-		 * 
-		 * Check if called from docker. Use -chardev pipe as virtualconsole.
-		 * Create symlinks to docker named pipes in the format qemu expects.
-		 *
-		 * Eventually move to using "stdio,id=charconsole0,signal=off"
-		 */
-		if (! config->oci.process.terminal ) {
-
-			config->console = g_build_path ("/",
-					config->bundle_path,
-					"cc-std", NULL);
-
-			g_debug ("no console device provided , so using pipe: %s", config->console);
-
-			g_autofree gchar *init_stdout = g_build_path ("/",
-							config->bundle_path,
-							"init-stdout", NULL);
-
-			g_autofree gchar *cc_stdout = g_build_path ("/",
-							config->bundle_path,
-							"cc-std.out", NULL);
-
-			g_autofree gchar *init_stdin = g_build_path ("/",
-							config->bundle_path,
-							"init-stdin", NULL);
-			g_autofree gchar *cc_stdin = g_build_path ("/",
-							config->bundle_path,
-							"cc-std.in", NULL);
-
-			if ( symlink (init_stdout, cc_stdout) == -1) {
-				g_critical("Failed to create symlink for output pipe: %s",
-					   strerror (errno));
-				goto out;
-			}
-
-			if ( symlink (init_stdin, cc_stdin) == -1) {
-				g_critical("Failed to create symlink for input pipe: %s",
-					   strerror (errno));
-				goto out;
-			}
-
-			console_device = g_strdup_printf ("pipe,id=charconsole0,path=%s", config->console);
-
-		} else {
-
-			/* In case the runtime is called standalone without console */
-
-			/* No console specified, so make the hypervisor create
-			 * a Unix domain socket.
-			 */	
-			config->console = g_build_path ("/",
-					config->state.runtime_path,
-					CC_OCI_CONSOLE_SOCKET, NULL);
-
-			/* Note that path is not quoted - attempting to do so
-			 * results in qemu failing with the error:
-			 *
-			 *   Failed to bind socket to "/a/dir/console.sock": No such file or directory
-			 */
-
-			g_debug ("no console device provided, so using socket: %s", config->console);
-
-			console_device = g_strdup_printf ("socket,path=%s,server,nowait,id=charconsole0,signal=off",
-				config->console);
-		}
-	} else {
-		console_device = g_strdup_printf ("serial,id=charconsole0,path=%s", config->console);
-	}
+	console_device = g_strdup_printf (
+			"socket,path=%s,server,nowait,id=charconsole0,signal=off",
+			hypervisor_console);
 
 	procsock_device = g_strdup_printf ("socket,id=procsock,path=%s,server,nowait", config->state.procsock_path);
 

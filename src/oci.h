@@ -43,6 +43,8 @@
 
 #include <glib.h>
 #include <gio/gio.h>
+#include <json-glib/json-glib.h>
+
 
 #ifndef CLONE_NEWCGROUP
 #define CLONE_NEWCGROUP 0x02000000
@@ -112,11 +114,6 @@
 
 /** Architecture we expect \ref CC_OCI_CONFIG_FILE to specify. */
 #define CC_OCI_EXPECTED_ARCHITECTURE	"amd64"
-
-/** File that will be executed automatically on VM boot by
- * container-workload.service.
- */
-#define CC_OCI_WORKLOAD_FILE		"/.containerexec"
 
 /** Name of file containing environment variables that will be set
  * inside the VM.
@@ -225,6 +222,10 @@ struct oci_cfg_process {
 	gboolean             terminal;
 
 	struct oci_cfg_user  user;
+
+	/** Stream IO ids allocated by \c cc_proxy_allocate_io */
+	gint                 stdio_stream;
+	gint                 stderr_stream;
 };
 
 /**
@@ -408,11 +409,11 @@ struct oci_state {
 	/* See member of same name in \ref cc_oci_config. */
 	gchar           *console;
 
-	/* See member of same name in \ref cc_oci_config. */
-	gboolean         use_socket_console;
-
 	struct cc_oci_vm_cfg *vm;
 	struct cc_proxy      *proxy;
+
+	/* Needed by start to create a new container workload  */
+	struct oci_cfg_process *process;
 };
 
 /** clr-specific state fields. */
@@ -525,11 +526,6 @@ struct cc_oci_config {
 	/** Path to device to use for I/O. */
 	gchar *console;
 
-	/** If \c true, \ref console will be a socket rather than a pty
-	 * device.
-	 */
-	gboolean use_socket_console;
-
 	/** If set, use an alternative root directory to the default
 	 * CC_OCI_RUNTIME_DIR_PREFIX.
 	 */
@@ -580,4 +576,8 @@ gboolean cc_oci_config_update (struct cc_oci_config *config,
 gboolean
 cc_oci_create_container_networking_workload (struct cc_oci_config *config);
 
+JsonObject *
+cc_oci_process_to_json(const struct oci_cfg_process *process);
+
+void set_env_home(struct cc_oci_config *config);
 #endif /* _CC_OCI_H */
