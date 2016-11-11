@@ -40,6 +40,7 @@ gboolean cc_oci_setup_shim (struct cc_oci_config *config,
 		int proxy_fd,
 		int proxy_io_fd);
 GSocketConnection *socket_connection_from_fd (int fd);
+gboolean cc_oci_setup_child (struct cc_oci_config *config);
 
 extern GMainLoop *hook_loop;
 
@@ -254,6 +255,15 @@ START_TEST(test_socket_connection_from_fd) {
 	close(sockets[1]);
 } END_TEST
 
+START_TEST(test_cc_oci_setup_child) {
+	struct cc_oci_config config = { 0 };
+	ck_assert (! cc_oci_setup_child (NULL));
+	ck_assert (cc_oci_setup_child (&config));
+
+	config.detached_mode = true;
+	ck_assert (cc_oci_setup_child (&config));
+} END_TEST
+
 Suite* make_process_suite(void) {
 	Suite* s = suite_create(__FILE__);
 
@@ -261,6 +271,7 @@ Suite* make_process_suite(void) {
 	ADD_TEST(test_cc_run_hook, s);
 	ADD_TEST(test_cc_oci_setup_shim, s);
 	ADD_TEST(test_socket_connection_from_fd, s);
+	ADD_TEST(test_cc_oci_setup_child, s);
 
 	return s;
 }

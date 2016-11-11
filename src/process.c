@@ -183,9 +183,13 @@ cc_oci_close_fds (GArray *fds) {
  *
  * \return \c true on success, else \c false.
  */
-static gboolean
+private gboolean
 cc_oci_setup_child (struct cc_oci_config *config)
 {
+	if (! config) {
+		return false;
+	}
+
 	/* become session leader */
 	setsid ();
 
