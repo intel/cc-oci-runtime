@@ -25,11 +25,17 @@
 #include <gio/gio.h>
 #include "oci.h"
 
+/* allocate 2 streams, stdio and stderr */
+#define IO_STREAMS_NUMBER 2
+
 gboolean cc_proxy_connect (struct cc_proxy *proxy);
 gboolean cc_proxy_disconnect (struct cc_proxy *proxy);
 gboolean cc_proxy_wait_until_ready (struct cc_oci_config *config);
 gboolean cc_proxy_hyper_pod_create (struct cc_oci_config *config);
 gboolean cc_proxy_cmd_bye (struct cc_proxy *proxy);
+gboolean cc_proxy_cmd_allocate_io (struct cc_proxy *proxy, int *proxy_io_fd,
+		int *ioBase);
+gboolean cc_proxy_hyper_new_container (struct cc_oci_config *config);
 void cc_proxy_free (struct cc_proxy *proxy);
 
 #endif /* _CC_OCI_PROXY_H */

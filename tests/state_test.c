@@ -219,6 +219,14 @@ START_TEST(test_cc_oci_state_file_create) {
         config->oci.annotations =
 		g_slist_append(config->oci.annotations, a);
 
+	/* config->oci.process not set */
+	ck_assert(! cc_oci_state_file_create (config, timestamp));
+
+	snprintf(config->oci.process.cwd, sizeof(config->oci.process.cwd),
+				"%s", "/working_directory");
+
+	config->oci.process.args = g_strsplit("/bin/echo test", " ", -1);
+
 	/* config->vm not set */
 	ck_assert(! cc_oci_state_file_create (config, timestamp));
 

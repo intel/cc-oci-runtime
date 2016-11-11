@@ -231,6 +231,21 @@ test_helper_create_state_file (const char *name,
 		return false;
 	}
 
+	/* config->process not set */
+	if (cc_oci_state_file_create (config, timestamp)) {
+		fprintf (stderr, "ERROR: cc_oci_state_file_create "
+				"worked unexpectedly for vm %s (no config->process)\n", name);
+		return false;
+	}
+
+	if (snprintf(config->oci.process.cwd, sizeof(config->oci.process.cwd),
+				"%s", "/working_directory") < 0) {
+		fprintf (stderr, "ERROR: cc_oci_state_file_create "
+				"failed to copy process cwd for vm %s\n", name);
+	}
+
+	config->oci.process.args = g_strsplit("/bin/echo test", " ", -1);
+
 	/* config->vm not set */
 	if (cc_oci_state_file_create (config, timestamp)) {
 		fprintf (stderr, "ERROR: cc_oci_state_file_create "
