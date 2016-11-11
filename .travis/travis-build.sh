@@ -40,4 +40,5 @@ mkdir travis_build
      --enable-valgrind --disable-valgrind-helgrind --disable-valgrind-drd \
      --disable-silent-rules \
      --disable-docker-tests \
- && make -j5 CFLAGS=-Werror check)
+ && make -j5 CFLAGS=-Werror \
+ && make check)
