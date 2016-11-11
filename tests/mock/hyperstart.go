@@ -379,9 +379,6 @@ func (h *Hyperstart) Stop() {
 
 	h.wg.Wait()
 
-	h.ctl = nil
-	h.io = nil
-
 	os.Remove(h.ctlSocketPath)
 	os.Remove(h.ioSocketPath)
 
