@@ -207,7 +207,7 @@ cc_oci_setup_child (struct cc_oci_config *config)
  *
  * \return \c true on success, else \c false.
  */
-static gboolean
+private gboolean
 cc_oci_setup_shim (struct cc_oci_config *config,
 			int proxy_fd,
 			int proxy_io_fd)

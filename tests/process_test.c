@@ -20,9 +20,11 @@
 
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 #include <check.h>
 #include <glib.h>
+#include <glib/gstdio.h>
 
 #include "test_common.h"
 #include "../src/logging.h"
@@ -32,6 +34,9 @@ gboolean cc_oci_cmd_is_shell (const char *cmd);
 gboolean cc_run_hook (struct oci_cfg_hook* hook,
 		const gchar* state,
 		gsize state_length);
+gboolean cc_oci_setup_shim (struct cc_oci_config *config,
+		int proxy_fd,
+		int proxy_io_fd);
 
 extern GMainLoop *hook_loop;
 
@@ -215,11 +220,28 @@ START_TEST(test_cc_run_hook) {
 
 } END_TEST
 
+START_TEST(test_cc_oci_setup_shim) {
+	struct cc_oci_config config = { 0 };
+
+	ck_assert (! cc_oci_setup_shim (NULL, -1, -1));
+	ck_assert (! cc_oci_setup_shim (NULL, STDIN_FILENO, -1));
+	ck_assert (! cc_oci_setup_shim (NULL, -1, STDIN_FILENO));
+
+	config.oci.process.terminal = false;
+	ck_assert (cc_oci_setup_shim (&config, STDIN_FILENO, STDIN_FILENO));
+
+	config.oci.process.terminal = true;
+	config.console = g_strdup ("/dev/ptmx");
+	ck_assert (cc_oci_setup_shim (&config, STDIN_FILENO, STDIN_FILENO));
+	g_free (config.console);
+} END_TEST
+
 Suite* make_process_suite(void) {
 	Suite* s = suite_create(__FILE__);
 
 	ADD_TEST(test_cc_oci_cmd_is_shell, s);
 	ADD_TEST(test_cc_run_hook, s);
+	ADD_TEST(test_cc_oci_setup_shim, s);
 
 	return s;
 }
