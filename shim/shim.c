@@ -319,6 +319,7 @@ read_IO_message(struct cc_shim *shim, uint64_t *seq, ssize_t *stream_len) {
 	char *buf = NULL;
 	ssize_t need_read = STREAM_HEADER_SIZE;
 	ssize_t bytes_read = 0, want, ret;
+	ssize_t max_bytes = HYPERSTART_MAX_RECV_BYTES;
 
 	if (! (shim && seq && stream_len)) {
 		return NULL;
@@ -340,13 +341,11 @@ read_IO_message(struct cc_shim *shim, uint64_t *seq, ssize_t *stream_len) {
 		ret = read(shim->proxy_io_fd, buf+bytes_read, (size_t)want);
 		if (ret == -1) {
 			shim_warning("Error reading from proxy I/O fd: %s\n", strerror(errno));
-			free(buf);
-			return NULL;
+			goto err;
 		} else if (ret == 0) {
 			/* EOF received on proxy I/O fd*/
 			shim_warning("EOF received on proxy I/O fd\n");
-			free(buf);
-			return NULL;
+			goto err;
 		}
 
 		bytes_read += ret;
@@ -357,6 +356,14 @@ read_IO_message(struct cc_shim *shim, uint64_t *seq, ssize_t *stream_len) {
 			// length is 12 when hyperstart sends eof before sending exit code
 			if (*stream_len == STREAM_HEADER_SIZE) {
 				break;
+			}
+
+			/* Ensure amount of data is within expected bounds */
+			if (*stream_len > max_bytes) {
+				shim_warning("message too big (limit is %lu, but proxy returned %lu)",
+						(unsigned long int)max_bytes,
+						(unsigned long int)stream_len);
+				goto err;
 			}
 
 			if (*stream_len > STREAM_HEADER_SIZE) {
@@ -370,6 +377,12 @@ read_IO_message(struct cc_shim *shim, uint64_t *seq, ssize_t *stream_len) {
 	}
 	*seq = get_big_endian_64((uint8_t*)buf);
 	return buf;
+
+err:
+	if (buf) {
+		free(buf);
+	}
+	return NULL;
 }
 
 /*!
@@ -393,7 +406,7 @@ handle_proxy_output(struct cc_shim *shim)
 	}
 
 	buf = read_IO_message(shim, &seq, &stream_len);
-	if ((! buf) || (stream_len <= 0)) {
+	if ((! buf) || (stream_len <= 0) || (stream_len > HYPERSTART_MAX_RECV_BYTES)) {
 		/*TODO: is exiting here more appropriate, since this denotes
 		 * error communicating with proxy or proxy has exited
 		 */

@@ -50,3 +50,12 @@ struct cc_shim {
 #define PROXY_CTL_HEADER_SIZE           8
 #define PROXY_CTL_HEADER_LENGTH_OFFSET  0
 
+/*
+ * Hyperstart is limited to sending this number of bytes to
+ * a client.
+ *
+ * (This value can be determined by inspecting the hyperstart
+ * source where hyper_event_ops->wbuf_size is set).
+ */
+#define HYPERSTART_MAX_RECV_BYTES       10240
+
