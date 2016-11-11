@@ -1349,6 +1349,121 @@ exit:
 }
 
 /*!
+ * Start a process that launch \ref CC_OCI_SHIM as a child process
+ * then send all needed data to launch a shim.
+ *
+ * \param config \ref cc_oci_config.
+ * \param process \ref oci_cfg_process
+ *
+ * \return \c true on success, else \c false.
+ */
+gboolean
+cc_oci_exec_shim (struct cc_oci_config *config,
+		struct oci_cfg_process *process) {
+
+	gboolean           ret = false;
+	GSocketConnection *shim_socket_connection = NULL;
+	int                shim_args_fd = -1;
+	int                shim_socket_fd = -1;
+	int                shim_err_fd = -1;
+	ssize_t            bytes;
+	char               err_buffer[2] = { '\0' };
+	int                proxy_fd = -1;
+	int                proxy_io_fd = -1;
+	int                ioBase = -1;
+	GError            *error = NULL;
+
+	if(! (config && process)){
+		goto out;
+	}
+
+	if (! cc_shim_launch (config,
+				&shim_err_fd,
+				&shim_args_fd,
+				&shim_socket_fd)) {
+		goto out;
+	}
+
+	/*
+	 * 1. The child blocks waiting for a write proxy fd to shim_args_fd.
+	*/
+	proxy_fd = g_socket_get_fd (config->proxy->socket);
+	if (proxy_fd < 0) {
+		g_critical ("invalid proxy fd: %d", proxy_fd);
+		goto out;
+	}
+
+	bytes = write (shim_args_fd, &proxy_fd, sizeof (proxy_fd));
+	if (bytes < 0) {
+		g_critical ("failed to send proxy fd to shim child: %s",
+			strerror (errno));
+		goto out;
+	}
+
+	/*
+	 * 2. The child blocks waiting for a write ioBase to shim_args_fd.
+	*/
+
+	if (! cc_proxy_cmd_allocate_io(config->proxy,
+			&proxy_io_fd, &ioBase)) {
+		goto out;
+	}
+
+	bytes = write (shim_args_fd, &ioBase, sizeof (ioBase));
+	if (bytes < 0) {
+		g_critical ("failed to send proxy ioBase to shim child: %s",
+			strerror (errno));
+		goto out;
+	}
+
+	/* save ioBase */
+	config->oci.process.stdio_stream = ioBase;
+	config->oci.process.stderr_stream = ioBase + 1;
+
+	/*
+	 * 3. The child blocks waiting for a write proxy IO fd to shim_socket_fd.
+	*/
+	proxy_fd = g_socket_get_fd (config->proxy->socket);
+	if (proxy_fd < 0) {
+		g_critical ("invalid proxy fd: %d", proxy_fd);
+		goto out;
+	}
+
+	/* send proxy IO fd to cc-shim child */
+	shim_socket_connection = socket_connection_from_fd(shim_socket_fd);
+	if (! shim_socket_connection) {
+		g_critical("failed to create a socket connection to send proxy IO fd");
+		goto out;
+	}
+
+	if (! g_unix_connection_send_fd (
+				G_UNIX_CONNECTION (shim_socket_connection),
+				proxy_io_fd, NULL, &error) ) {
+
+		g_critical("failed to send proxy IO fd");
+		goto out;
+	}
+	/*
+	 * Finally. Check if an error happend
+	*/
+	bytes = read (shim_err_fd,
+			err_buffer,
+			sizeof (err_buffer));
+	if (bytes > 0) {
+		g_critical ("shim setup failed");
+		goto out;
+	}
+
+	ret = true;
+out:
+	if (shim_err_fd != -1) close (shim_err_fd);
+	if (shim_args_fd != -1) close (shim_args_fd);
+	if (shim_socket_fd != -1) close (shim_socket_fd);
+	return ret;
+}
+
+
+/*!
  * Create a connection to the VM, run a command and disconnect.
  *
  * \param config \ref cc_oci_config.
@@ -1372,8 +1487,20 @@ cc_oci_vm_connect (struct cc_oci_config *config,
 	guint i;
 #endif
 
-	g_assert (config);
-	g_assert (process);
+	if(! (config && process)){
+		goto out;
+	}
+
+	if (! cc_proxy_connect (config->proxy)) {
+		goto out;
+	}
+	if (! cc_proxy_attach (config->proxy, config->optarg_container_id)) {
+		goto out;
+	}
+	if (! cc_oci_exec_shim (config, process)) {
+		goto out;
+	}
+
 #if 0
 	/* create a new main loop */
 	main_loop = g_main_loop_new (NULL, 0);
