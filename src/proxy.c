@@ -675,7 +675,7 @@ out:
  *
  * \return \c true on success, else \c false.
  */
-static gboolean
+gboolean
 cc_proxy_attach (struct cc_proxy *proxy, const char *container_id)
 {
 
