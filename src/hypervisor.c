@@ -487,11 +487,13 @@ cc_oci_vm_args_get (struct cc_oci_config *config,
 		}
 	}
 
-	 /*  append additional args array */
-        for (int i = 0; i < extra_args_len; i++) {
-                gchar* arg = g_ptr_array_index(hypervisor_extra_args, i);
-                new_args[line_count++] = g_strdup(arg);
-        }
+	/*  append additional args array */
+	for (int i = 0; i < extra_args_len; i++) {
+		const gchar* arg = g_ptr_array_index(hypervisor_extra_args, i);
+		if (arg != '\0') {
+			new_args[line_count++] = g_strstrip(g_strdup(arg));
+		}
+	}
 
 	/* only free pointer to gchar* */
 	g_free(*args);
