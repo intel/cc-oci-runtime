@@ -1054,7 +1054,7 @@ child_failed:
 
 	}
 
-	cc_oci_populate_extra_args(config, &additional_args);
+	cc_oci_populate_extra_args(config, additional_args);
 	ret = cc_oci_vm_args_get (config, &args, additional_args);
 	if (! (ret && args)) {
 		goto out;

@@ -505,9 +505,9 @@ out:
  */
 void
 cc_oci_populate_extra_args(struct cc_oci_config *config ,
-		GPtrArray **additional_args)
+		GPtrArray *additional_args)
 {
-	if (! (config && additional_args && *additional_args)) {
+	if (! (config && additional_args)) {
 		return;
 	}
 
