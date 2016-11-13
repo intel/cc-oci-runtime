@@ -28,6 +28,7 @@
 #include "common.h"
 #include "proxy.h"
 #include "util.h"
+#include "networking.h"
 
 struct watcher_proxy_data
 {
@@ -1062,9 +1063,17 @@ out:
 gboolean
 cc_proxy_hyper_pod_create (struct cc_oci_config *config)
 {
-	JsonObject        *data = NULL;
-	JsonArray         *array = NULL;
-	gboolean           ret = false;
+	JsonObject                   *data = NULL;
+	JsonArray                    *array = NULL;
+	gboolean                      ret = false;
+	JsonArray                    *iface_array = NULL;
+	JsonObject                   *iface_data = NULL;
+	struct cc_oci_net_if_cfg     *if_cfg = NULL;
+	struct cc_oci_net_ipv4_cfg   *ipv4_cfg = NULL;
+	gchar                       **ifnames = NULL;
+	gsize                         len;
+	JsonObject                   *ipaddr_obj = NULL;
+	JsonArray                    *ipaddr_arr = NULL;
 
 	if (! (config && config->proxy)) {
 		return false;
@@ -1076,7 +1085,7 @@ cc_proxy_hyper_pod_create (struct cc_oci_config *config)
 	json_object_set_string_member (data, "hostname",
 		config->optarg_container_id);
 
-	/* FIXME: missing interfaces, routes, dns,
+	/* FIXME: missing routes, dns,
 	 * portmappingWhiteLists, externalNetworks ?
 	 */
 
@@ -1089,6 +1098,45 @@ cc_proxy_hyper_pod_create (struct cc_oci_config *config)
 
 	json_object_set_string_member (data, "shareDir", "rootfs");
 
+	/* Setup interfaces */
+	iface_array = json_array_new ();
+
+	len = g_slist_length(config->net.interfaces);
+	ifnames = g_new0(gchar *, len + 1);
+
+	for (guint i = 0; i < len; i++) {
+                ifnames[i] = get_pcie_ifname(i);
+
+		if_cfg = (struct cc_oci_net_if_cfg *)
+	                g_slist_nth_data(config->net.interfaces, i);
+
+		iface_data = json_object_new ();
+		json_object_set_string_member (iface_data, "device",
+			ifnames[i]);
+		json_object_set_string_member (iface_data, "newDeviceName",
+			if_cfg->ifname);
+
+		ipaddr_arr = json_array_new();
+
+		for (guint j = 0; j < g_slist_length(if_cfg->ipv4_addrs); j++) {
+			ipv4_cfg = (struct cc_oci_net_ipv4_cfg *)
+				g_slist_nth_data(if_cfg->ipv4_addrs, j);
+
+			ipaddr_obj = json_object_new();
+			json_object_set_string_member (ipaddr_obj, "ipAddress",
+				ipv4_cfg->ip_address);
+			json_object_set_string_member (ipaddr_obj, "netMask",
+				ipv4_cfg->subnet_mask);
+			json_array_add_object_element(ipaddr_arr, ipaddr_obj);
+
+		}
+		json_object_set_array_member (iface_data, "ipAddresses",
+			ipaddr_arr);
+		json_array_add_object_element(iface_array, iface_data);
+	}
+
+	json_object_set_array_member(data, "interfaces", iface_array);
+
 	if (! cc_proxy_run_hyper_cmd (config, "startpod", data)) {
 		g_critical("failed to run pod create");
 		goto out;
@@ -1099,6 +1147,10 @@ cc_proxy_hyper_pod_create (struct cc_oci_config *config)
 out:
 	if (data) {
 		json_object_unref (data);
+	}
+
+	if (ifnames) {
+		g_strfreev(ifnames);
 	}
 
 	return ret;

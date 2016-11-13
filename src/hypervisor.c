@@ -52,35 +52,17 @@ cc_oci_expand_net_cmdline(struct cc_oci_config *config) {
          * <device>:<autoconf>:<dns0-ip>:<dns1-ip>
 	 */
 
-	/* TODO: Use cloud-init based network init
-	 * For now, just pick the first interface
-	 */
-	struct cc_oci_net_if_cfg *if_cfg = NULL;
-	struct cc_oci_net_ipv4_cfg *ipv4_cfg = NULL;
-
-	if_cfg = (struct cc_oci_net_if_cfg *)
-		g_slist_nth_data(config->net.interfaces, 0);
-
-	if (if_cfg == NULL) {
-		goto out;
+	if (! config) {
+		return NULL;
 	}
 
-	ipv4_cfg = (struct cc_oci_net_ipv4_cfg *)
-		g_slist_nth_data(if_cfg->ipv4_addrs, 0);
-
-	if (ipv4_cfg == NULL){
-		goto out;
+	if (! (config->net.gateway && config->net.hostname)) {
+		return NULL;
 	}
 
-	return ( g_strdup_printf("ip=%s::%s:%s:%s:%s:off::",
-		ipv4_cfg->ip_address,
+	return ( g_strdup_printf("ip=:::%s:::%s::off::",
 		config->net.gateway,
-		ipv4_cfg->subnet_mask,
-		config->net.hostname,
-		if_cfg->ifname));
-
-out:
-	return g_strdup("");
+		config->net.hostname));
 }
 
 #define QEMU_FMT_NETDEV "tap,ifname=%s,script=no,downscript=no,id=%s,vhost=on"
