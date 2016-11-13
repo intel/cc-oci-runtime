@@ -53,7 +53,3 @@ unix:@COMMS_SOCKET@,server,nowait
 -nographic
 -vga
 none
-@NETDEV@
-@NETDEV_PARAMS@
-@NETDEVICE@
-@NETDEVICE_PARAMS@

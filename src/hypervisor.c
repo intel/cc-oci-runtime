@@ -140,6 +140,37 @@ out:
 	return g_strdup("");
 }
 
+/*!
+ * Append qemu options for networking
+ *
+ * \param config \ref cc_oci_config.
+ * \param additional_args Array that will be appended
+ */
+static void
+cc_oci_append_network_args(struct cc_oci_config *config, 
+			GPtrArray *additional_args)
+{
+	gchar *netdev_params = NULL;
+	gchar *net_device_params = NULL;
+
+	if (! (config && additional_args)) {
+		return;
+	}
+
+	if ( config->net.interfaces == NULL ) {
+		g_ptr_array_add(additional_args, g_strdup("-net\nnone\n"));
+	} else {
+		for (guint index = 0; index < g_slist_length(config->net.interfaces); index++) {
+			netdev_params = cc_oci_expand_netdev_cmdline(config, index);
+			net_device_params = cc_oci_expand_net_device_cmdline(config, index);
+
+			g_ptr_array_add(additional_args, g_strdup("-netdev"));
+			g_ptr_array_add(additional_args, netdev_params);
+			g_ptr_array_add(additional_args, g_strdup("-device"));
+			g_ptr_array_add(additional_args, net_device_params);
+		}
+        }
+}
 
 /*!
  * Replace any special tokens found in \p args with their expanded
@@ -172,10 +203,6 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 	gint              uuid_index = 0;
 
 	gchar            *kernel_net_params = NULL;
-	gchar            *net_device_params = NULL;
-	gchar            *netdev_params = NULL;
-	gchar            *net_device_option = NULL;
-	gchar            *netdev_option = NULL;
 	struct cc_proxy  *proxy;
 
 	if (! (config && args)) {
@@ -259,26 +286,6 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 
 	kernel_net_params = cc_oci_expand_net_cmdline(config);
 
-	if ( config->net.interfaces == NULL ) {
-		/* Support --net=none */
-		/* FIXME, no clean way to append args today
-		 * For multiple network we need to have a way to append
-		 * args to the hypervisor command line vs substitution
-		 */
-		netdev_option = g_strdup("-net");
-		netdev_params = g_strdup("none");
-		net_device_option = g_strdup("-net");
-		net_device_params = g_strdup("none");
-	} else {
-		netdev_option = g_strdup("-netdev");
-		net_device_option = g_strdup("-device");
-		/* Support a single interface till we have the capability
-		 * to append more arguments
-		 */
-		netdev_params = cc_oci_expand_netdev_cmdline(config, 0);
-		net_device_params = cc_oci_expand_net_device_cmdline(config, 0);
-	}
-
 	/* Note: @NETDEV@: For multiple network we need to have a way to append
 	 * args to the hypervisor command line vs substitution
 	 */
@@ -297,10 +304,6 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 		{ "@CONSOLE_DEVICE@"    , console_device             },
 		{ "@NAME@"              , g_strrstr(uuid_str, "-")+1 },
 		{ "@UUID@"              , uuid_str                   },
-		{ "@NETDEV@"            , netdev_option              },
-		{ "@NETDEV_PARAMS@"     , netdev_params              },
-		{ "@NETDEVICE@"         , net_device_option          },
-		{ "@NETDEVICE_PARAMS@"  , net_device_params          },
 		{ "@AGENT_CTL_SOCKET@"  , proxy->agent_ctl_socket    },
 		{ "@AGENT_TTY_SOCKET@"  , proxy->agent_tty_socket    },
 		{ NULL }
@@ -349,10 +352,6 @@ out:
 	g_free_if_set (bytes);
 	g_free_if_set (console_device);
 	g_free_if_set (kernel_net_params);
-	g_free_if_set (net_device_params);
-	g_free_if_set (netdev_params);
-	g_free_if_set (net_device_option);
-	g_free_if_set (netdev_option);
 
 	return ret;
 }
@@ -523,6 +522,8 @@ cc_oci_populate_extra_args(struct cc_oci_config *config ,
 
 	/* Add args to be appended here.*/
 	//g_ptr_array_add(additional_args, g_strdup("-device testdevice"));
+
+	cc_oci_append_network_args(config, additional_args);
 
 	return;
 }
