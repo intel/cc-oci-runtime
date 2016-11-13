@@ -105,7 +105,11 @@ out:
 	return g_strdup("");
 }
 
-#define QEMU_FMT_DEVICE "driver=virtio-net-pci,netdev=%s"
+/* "pcie.0" is the child pci bus available for device "pci-lite-host".
+ * Use a pci slot available on that bus after adding an offset to take 
+ * into account busy slots and the slots used earlier in our qemu options.
+ */
+#define QEMU_FMT_DEVICE "driver=virtio-net-pci,bus=/pci-lite-host/pcie.0,addr=%x,netdev=%s"
 #define QEMU_FMT_DEVICE_MAC QEMU_FMT_DEVICE ",mac=%s"
 
 static gchar *
@@ -119,11 +123,15 @@ cc_oci_expand_net_device_cmdline(struct cc_oci_config *config, guint index) {
 		goto out;
 	}
 
+	g_debug("PCI Offset used for network: %d", PCI_OFFSET);
+
 	if ( if_cfg->mac_address == NULL ) {
 		return g_strdup_printf(QEMU_FMT_DEVICE,
+			index + PCI_OFFSET,
 			if_cfg->tap_device);
 	} else {
 		return g_strdup_printf(QEMU_FMT_DEVICE_MAC,
+			index + PCI_OFFSET,
 			if_cfg->tap_device,
 			if_cfg->mac_address);
 	}
