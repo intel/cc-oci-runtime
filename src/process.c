@@ -945,26 +945,6 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 			goto child_failed;
 		}
 
-		if (setup_networking) {
-			hndl = netlink_init();
-			if (hndl == NULL) {
-				g_critical("failed to setup netlink socket");
-				goto child_failed;
-			}
-
-			if (! cc_oci_vm_netcfg_get (config, hndl)) {
-				g_critical("failed to discover network configuration");
-				goto child_failed;
-			}
-
-			if (! cc_oci_network_create(config, hndl)) {
-				g_critical ("failed to create network");
-				goto child_failed;
-			}
-			g_debug ("network configuration complete");
-
-		}
-
 		g_debug ("running command:");
 		for (p = args; p && *p; p++) {
 			g_debug ("arg: '%s'", *p);
@@ -1053,6 +1033,26 @@ child_failed:
 	// - cc_oci_container_state()
 	// - oci_state()
 	// - cc_oci_update_options()
+
+	if (setup_networking) {
+		hndl = netlink_init();
+		if (hndl == NULL) {
+			g_critical("failed to setup netlink socket");
+			goto child_failed;
+		}
+
+		if (! cc_oci_vm_netcfg_get (config, hndl)) {
+			g_critical("failed to discover network configuration");
+			goto child_failed;
+		}
+
+		if (! cc_oci_network_create(config, hndl)) {
+			g_critical ("failed to create network");
+			goto child_failed;
+		}
+		g_debug ("network configuration complete");
+
+	}
 
 	cc_oci_populate_extra_args(config, &additional_args);
 	ret = cc_oci_vm_args_get (config, &args, additional_args);
