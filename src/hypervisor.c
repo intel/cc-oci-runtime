@@ -511,11 +511,8 @@ cc_oci_populate_extra_args(struct cc_oci_config *config ,
 		return;
 	}
 
-	/* Add args to be appended here.
-	 * Note: The array does not free any dynamically allocated strings
-	 * that it stores pointers to
-	 */
-	//g_ptr_array_add(*additional_args, "-device testdevice");
+	/* Add args to be appended here.*/
+	//g_ptr_array_add(additional_args, g_strdup("-device testdevice"));
 
 	return;
 }

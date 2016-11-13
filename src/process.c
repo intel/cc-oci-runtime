@@ -804,6 +804,18 @@ out:
 }
 
 /*!
+ * Function called when a data element in GPtrArray is destroyed
+ */
+private void
+cc_free_pointer(gpointer str)
+{
+	if (! str) {
+		return;
+	}
+	g_free(str);
+}
+
+/*!
  * Start the hypervisor as a child process.
  *
  * Due to the way networking is handled in Docker, the logic here
@@ -851,7 +863,7 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 		goto out;
 	}
 
-        additional_args = g_ptr_array_new ();
+        additional_args = g_ptr_array_new_with_free_func(cc_free_pointer);
 
 	config->state.status = OCI_STATUS_CREATED;
 

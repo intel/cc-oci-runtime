@@ -34,6 +34,7 @@
 gchar *
 cc_oci_vm_args_file_path (const struct cc_oci_config *config);
 gboolean cc_oci_expand_cmdline (struct cc_oci_config *config, gchar **args);
+void cc_free_pointer(gpointer str);
 
 extern gchar *sysconfdir;
 extern gchar *defaultsdir;
@@ -660,7 +661,7 @@ START_TEST(test_cc_oci_vm_args_get) {
                         -1, NULL);
         ck_assert (ret);
 
-        extra_args = g_ptr_array_new ();
+        extra_args = g_ptr_array_new_with_free_func(cc_free_pointer);
 
 	/* clean up ready for another call */
 	cc_proxy_free (config->proxy);
@@ -683,9 +684,9 @@ START_TEST(test_cc_oci_vm_args_get) {
 			-1, NULL);
 	ck_assert (ret);
 
-	extra_args = g_ptr_array_new ();
-	g_ptr_array_add(extra_args, "-device testdevice");
-	g_ptr_array_add(extra_args, "-device testdevice2");
+        extra_args = g_ptr_array_new_with_free_func(cc_free_pointer);
+	g_ptr_array_add(extra_args, g_strdup("-device testdevice"));
+	g_ptr_array_add(extra_args, g_strdup("-device testdevice2"));
 
 	/* clean up ready for another call */
 	cc_proxy_free (config->proxy);
