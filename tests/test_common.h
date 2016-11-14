@@ -33,6 +33,13 @@
 	tcase_add_test(tc_##test, test); \
 	suite_add_tcase(suite, tc_##test);
 
+#define ADD_TEST_TIMEOUT(test,suite,timeout) \
+	TCase *tc_##test; \
+	tc_##test = tcase_create(#test); \
+	tcase_add_test(tc_##test, test); \
+	suite_add_tcase(suite, tc_##test); \
+	tcase_set_timeout(tc_##test, timeout);
+
 /**
  * Run the block following this macro with stdout and stderr redirected
  * to a temporary file.

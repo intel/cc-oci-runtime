@@ -433,6 +433,7 @@ TESTS = \
 	util_test \
 	mount_test \
 	annotation_test \
+	network_test \
 	sh_annotations_test \
 	sh_linux_test \
 	sh_vm_test \
@@ -611,6 +612,17 @@ annotation_test_CFLAGS = \
 	$(TEST_COMMON_CFLAGS)
 
 annotation_test_LDADD = \
+	$(TEST_COMMON_LDADD)
+
+## annotation.c test ##
+network_test_SOURCES = \
+	$(TEST_COMMON_SOURCES) \
+	tests/network_test.c
+
+network_test_CFLAGS = \
+	$(TEST_COMMON_CFLAGS)
+
+network_test_LDADD = \
 	$(TEST_COMMON_LDADD)
 
 ## spec_handlers/annotations.c test ##
