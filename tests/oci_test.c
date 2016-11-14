@@ -1089,6 +1089,16 @@ START_TEST(test_cc_oci_process_to_json) {
 	free(process);
 } END_TEST
 
+START_TEST(test_cc_oci_exec) {
+	struct cc_oci_config config;
+	struct oci_state state;
+	char *argv[] = { "hello", "world" };
+	ck_assert(! cc_oci_exec(NULL, NULL, NULL, NULL));
+	ck_assert(! cc_oci_exec(&config, &state, NULL, NULL));
+	ck_assert(! cc_oci_exec(&config, &state, 2, NULL));
+	ck_assert(! cc_oci_exec(&config, &state, 2, argv));
+} END_TEST
+
 Suite* make_oci_suite(void) {
 	Suite* s = suite_create(__FILE__);
 
@@ -1101,6 +1111,7 @@ Suite* make_oci_suite(void) {
 	ADD_TEST (test_get_user_home_dir, s);
 	ADD_TEST (test_set_env_home, s);
 	ADD_TEST (test_cc_oci_process_to_json, s);
+	ADD_TEST (test_cc_oci_exec, s);
 
 	return s;
 }
