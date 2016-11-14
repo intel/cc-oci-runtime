@@ -31,6 +31,8 @@
 SCRIPT_PATH=$(dirname "$(readlink -f "$0")")
 SCRIPT_NAME=${0##*/}
 
+[ -z "$GOPATH" ] && echo >&2 "${SCRIPT_NAME}: Please set GOPATH Env variable first." && exit 1
+
 # Default values:
 QEMU_PATH="/usr/bin/qemu-lite-system-x86_64"
 IMAGE_PATH="/usr/share/clear-containers/clear-containers.img"
