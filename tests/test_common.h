@@ -109,3 +109,4 @@ void test_spec_handler(struct spec_handler* handler,
 gboolean test_helper_create_state_file (const char *name,
 		const char *root_dir,
 		struct cc_oci_config *config);
+pid_t run_qmp_vm(char **socket_path);
