@@ -211,8 +211,9 @@ cc_oci_setup_shim (struct cc_oci_config *config,
 			int proxy_fd,
 			int proxy_io_fd)
 {
-	int             tty_fd;
-	GArray         *fds;
+	gboolean        ret = false;
+	int             tty_fd = -1;
+	GArray         *fds = NULL;
 
 	if (! config || proxy_fd < 0 || proxy_io_fd < 0) {
 		return false;
@@ -229,14 +230,22 @@ cc_oci_setup_shim (struct cc_oci_config *config,
 			g_warning("Error opening slave pty %s: %s",
 					config->console,
 					strerror(errno));
+			return false;
 		}
 
-		dup2(tty_fd, 0);
-		dup2(tty_fd, 1);
-		dup2(tty_fd, 2);
+		if (dup2(tty_fd, STDIN_FILENO) < 0) {
+			goto out;
+		}
+		if (dup2(tty_fd, STDOUT_FILENO) < 0) {
+			goto out;
+		}
+		if (dup2(tty_fd, STDERR_FILENO) < 0) {
+			goto out;
+		}
 
-		ioctl(0, TIOCSCTTY, 1);
-		close(tty_fd);
+		if (ioctl(STDIN_FILENO, TIOCSCTTY, 1) < 0) {
+			goto out;
+		}
 	}
 
 	fds = g_array_sized_new(FALSE, FALSE, sizeof(int), 2);
@@ -247,7 +256,12 @@ cc_oci_setup_shim (struct cc_oci_config *config,
 
 	g_array_free(fds, TRUE);
 
-	return true;
+	ret = true;
+
+out:
+	close (tty_fd);
+
+	return ret;
 }
 
 /*!
