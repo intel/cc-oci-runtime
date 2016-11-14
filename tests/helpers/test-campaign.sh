@@ -91,6 +91,7 @@ shift "$((OPTIND - 1))"
 LOG_DIR="${SCRIPT_PATH}/test_logs"
 AUTOGEN_LOG_FILE="${LOG_DIR}/autogen.log"
 MAKE_LOG_FILE="${LOG_DIR}/make.log"
+MAKE_INSTALL_LOG_FILE="${LOG_DIR}/make_install.log"
 UNIT_TESTS_LOG_FILE="${LOG_DIR}/unit_tests.log"
 FUNCTIONAL_TESTS_LOG_FILE="${LOG_DIR}/functional_tests.log"
 VALGRIND_LOG_FILE="${LOG_DIR}/valgrind_tests.log"
@@ -103,6 +104,7 @@ SUMMARY_LOG_FILE="${LOG_DIR}/test_summary.log"
 # Set return codes to 1
 AUTOGEN_RC=1
 MAKE_RC=1
+MAKE_INSTALL_RC=1
 UNIT_TESTS_RC=1
 FUNCTIONAL_TESTS_RC=1
 VALGRIND_TESTS_RC=1
@@ -135,6 +137,12 @@ function run_make(){
 	echo "make execution"
 	make 2>&1 | tee "$MAKE_LOG_FILE"
 	( exit "${PIPESTATUS[0]}" ) && MAKE_RC=0
+}
+
+function run_make_install(){
+	echo "make execution"
+	sudo make install 2>&1 | tee "$MAKE_INSTALL_LOG_FILE"
+	( exit "${PIPESTATUS[0]}" ) && MAKE_INSTALL_RC=0
 }
 
 function run_test(){
@@ -212,6 +220,7 @@ mkdir "$LOG_DIR"
 # Execute Tests
 run_autogen
 run_make
+run_make_install
 run_test "check-TESTS" "$UNIT_TESTS_LOG_FILE" && UNIT_TESTS_RC=0
 check_tests "$UNIT_TESTS_LOG_FILE"
 run_test "functional-tests" "$FUNCTIONAL_TESTS_LOG_FILE" && FUNCTIONAL_TESTS_RC=0
@@ -228,6 +237,7 @@ run_docker_tests
 echo -e "\nReturn Codes of executed checks:" | tee -a "$SUMMARY_LOG_FILE"
 echo "autogen return code: $AUTOGEN_RC" | tee -a "$SUMMARY_LOG_FILE"
 echo "make return code: $MAKE_RC" | tee -a "$SUMMARY_LOG_FILE"
+echo "make install return code: $MAKE_INSTALL_RC" | tee -a "$SUMMARY_LOG_FILE"
 echo "unit tests return code: $UNIT_TESTS_RC" | tee -a "$SUMMARY_LOG_FILE"
 echo "functional tests return code: $FUNCTIONAL_TESTS_RC" | tee -a "$SUMMARY_LOG_FILE"
 echo "valgrind tests return code: $VALGRIND_TESTS_RC" | tee -a "$SUMMARY_LOG_FILE"
