@@ -154,6 +154,7 @@ function run_docker_tests(){
 	passed=$(awk '/^[0-9]* ok/ {print $1}' "$DOCKER_TESTS_LOG_FILE")
 	failed=$(awk '/^[0-9]* failed/ {print $1}' "$DOCKER_TESTS_LOG_FILE")
 	skipped=$(awk '/^[0-9]* skipped/ {print $1}' "$DOCKER_TESTS_LOG_FILE")
+	passed=$((passed-skipped))
 	echo -e "\nSummary for Docker Tests:" | tee -a "$SUMMARY_LOG_FILE"
 	echo "Total Tests:  ${total_tests}" | tee -a "$SUMMARY_LOG_FILE"
 	echo "Passed Tests: ${passed}" | tee -a "$SUMMARY_LOG_FILE"
@@ -185,6 +186,7 @@ function check_functional_tests(){
 	passed=$(grep -c "^ok" "$log_file")
 	failed=$(grep -c "^not ok" "$log_file")
 	skipped=$(grep -c "# skip" "$log_file")
+	passed=$((passed-skipped))
 	echo -e "\nSummary for ${test_name}" | tee -a "$SUMMARY_LOG_FILE"
 	echo "Total Tests:  ${total_tests}" | tee -a "$SUMMARY_LOG_FILE"
 	echo "Passed Tests: ${passed}" | tee -a "$SUMMARY_LOG_FILE"
