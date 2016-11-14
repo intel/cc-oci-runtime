@@ -160,7 +160,7 @@ get_proxy_ctl_msg(const char *json, size_t *len) {
 
 	set_big_endian_32((uint8_t*)proxy_ctl_msg + PROXY_CTL_HEADER_LENGTH_OFFSET, 
 				(uint32_t)(json_len));
-	strcpy(proxy_ctl_msg + PROXY_CTL_HEADER_SIZE, json);
+	strncpy(proxy_ctl_msg + PROXY_CTL_HEADER_SIZE, json, json_len);
 
 	return proxy_ctl_msg;
  }
