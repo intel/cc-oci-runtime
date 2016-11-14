@@ -629,7 +629,7 @@ out:
  *
  * \return \c true on success, else \c false.
  */
-static gboolean
+private gboolean
 cc_shim_launch (struct cc_oci_config *config,
 		int *child_err_fd,
 		int *shim_args_fd,

@@ -44,6 +44,9 @@ GSocketConnection *socket_connection_from_fd (int fd);
 gboolean cc_oci_setup_child (struct cc_oci_config *config);
 gboolean cc_oci_vm_netcfg_get (struct cc_oci_config *config,
 		struct netlink_handle *hndl);
+gboolean
+cc_shim_launch (struct cc_oci_config *config, int *child_err_fd,
+		int *shim_args_fd, int *shim_socket_fd);
 
 extern GMainLoop *hook_loop;
 
@@ -273,6 +276,31 @@ START_TEST(test_cc_oci_vm_netcfg_get) {
 	cc_oci_vm_netcfg_get(&config, NULL);
 } END_TEST
 
+START_TEST(test_cc_shim_launch) {
+	struct cc_oci_config config;
+	int child_err_fd;
+	int shim_args_fd;
+	int shim_socket_fd;
+
+	ck_assert(! cc_shim_launch(NULL, NULL, NULL, NULL));
+	child_err_fd = -1;
+	ck_assert(! cc_shim_launch(&config, &child_err_fd, NULL, NULL));
+	child_err_fd = shim_args_fd = -1;
+	ck_assert(! cc_shim_launch(&config, &child_err_fd, &shim_args_fd, NULL));
+	child_err_fd = shim_args_fd = shim_socket_fd = -1;
+
+	config.state.workload_pid = -1;
+	ck_assert(cc_shim_launch(&config, &child_err_fd,
+		&shim_args_fd, &shim_socket_fd));
+	ck_assert(child_err_fd >= 0);
+	ck_assert(shim_args_fd >= 0);
+	ck_assert(shim_socket_fd >= 0);
+	close(child_err_fd);
+	close(shim_args_fd);
+	close(shim_socket_fd);
+	ck_assert(config.state.workload_pid != -1);
+} END_TEST
+
 Suite* make_process_suite(void) {
 	Suite* s = suite_create(__FILE__);
 
@@ -282,6 +310,7 @@ Suite* make_process_suite(void) {
 	ADD_TEST(test_socket_connection_from_fd, s);
 	ADD_TEST(test_cc_oci_setup_child, s);
 	ADD_TEST(test_cc_oci_vm_netcfg_get, s);
+	ADD_TEST(test_cc_shim_launch, s);
 
 	return s;
 }
