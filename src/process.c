@@ -554,7 +554,7 @@ exit:
  *
  * \return \c true on success, else \c false.
  */
-static gboolean
+private gboolean
 cc_oci_vm_netcfg_get (struct cc_oci_config *config,
 		      struct netlink_handle *hndl)
 {

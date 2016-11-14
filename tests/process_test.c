@@ -31,6 +31,7 @@
 #include "test_common.h"
 #include "../src/logging.h"
 #include "../src/process.h"
+#include "../src/netlink.h"
 
 gboolean cc_oci_cmd_is_shell (const char *cmd);
 gboolean cc_run_hook (struct oci_cfg_hook* hook,
@@ -41,6 +42,8 @@ gboolean cc_oci_setup_shim (struct cc_oci_config *config,
 		int proxy_io_fd);
 GSocketConnection *socket_connection_from_fd (int fd);
 gboolean cc_oci_setup_child (struct cc_oci_config *config);
+gboolean cc_oci_vm_netcfg_get (struct cc_oci_config *config,
+		struct netlink_handle *hndl);
 
 extern GMainLoop *hook_loop;
 
@@ -264,6 +267,12 @@ START_TEST(test_cc_oci_setup_child) {
 	ck_assert (cc_oci_setup_child (&config));
 } END_TEST
 
+START_TEST(test_cc_oci_vm_netcfg_get) {
+	struct cc_oci_config config;
+	cc_oci_vm_netcfg_get(NULL, NULL);
+	cc_oci_vm_netcfg_get(&config, NULL);
+} END_TEST
+
 Suite* make_process_suite(void) {
 	Suite* s = suite_create(__FILE__);
 
@@ -272,6 +281,7 @@ Suite* make_process_suite(void) {
 	ADD_TEST(test_cc_oci_setup_shim, s);
 	ADD_TEST(test_socket_connection_from_fd, s);
 	ADD_TEST(test_cc_oci_setup_child, s);
+	ADD_TEST(test_cc_oci_vm_netcfg_get, s);
 
 	return s;
 }
