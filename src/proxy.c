@@ -1241,7 +1241,9 @@ out:
 		json_object_unref (newcontainer_payload);
 	}
 
-	cc_proxy_disconnect (config->proxy);
+	if (config && config->proxy) {
+		cc_proxy_disconnect (config->proxy);
+	}
 
 	return ret;
 }
