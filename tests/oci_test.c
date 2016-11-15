@@ -1059,7 +1059,7 @@ START_TEST(test_cc_oci_process_to_json) {
 
 	process->user.additionalGids =
 		calloc(2, sizeof(*process->user.additionalGids));
-	process->user.additionalGids[0] = 1;
+	process->user.additionalGids = 0;
 	process->user.gid = 0;
 	process->user.uid = 0;
 
@@ -1093,8 +1093,8 @@ START_TEST(test_cc_oci_exec) {
 	struct cc_oci_config config;
 	struct oci_state state;
 	char *argv[] = { "hello", "world" };
-	ck_assert(! cc_oci_exec(NULL, NULL, NULL, NULL));
-	ck_assert(! cc_oci_exec(&config, &state, NULL, NULL));
+	ck_assert(! cc_oci_exec(NULL, NULL, 0, NULL));
+	ck_assert(! cc_oci_exec(&config, &state, 0, NULL));
 	ck_assert(! cc_oci_exec(&config, &state, 2, NULL));
 	ck_assert(! cc_oci_exec(&config, &state, 2, argv));
 } END_TEST
