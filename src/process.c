@@ -40,6 +40,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <linux/limits.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/socket.h>
@@ -829,7 +830,7 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 	gboolean           setup_networking;
 	gboolean           hook_status = false;
 	GPtrArray         *additional_args = NULL;
-	gint               hypervisor_args_len;
+	gint               hypervisor_args_len = 0;
 	g_autofree gchar  *hypervisor_args = NULL;
 	int                shim_err_fd = -1;
 	int                shim_args_fd = -1;
@@ -916,8 +917,21 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 		g_debug ("reading hypervisor command-line length from pipe");
 		bytes = read (hypervisor_args_pipe[0], &hypervisor_args_len,
 			sizeof (hypervisor_args_len));
-		if (bytes < 0) {
+		if (bytes < 0 || hypervisor_args_len < 0) {
 			g_critical ("failed to read hypervisor args length");
+			goto child_failed;
+		}
+
+		/* Perform a basic validation check.
+		 *
+		 * ARG_MAX is technically the maximum size of the args *and*
+		 * the environment for a process, but atleast this
+		 * provides an upper-bound to protect against any
+		 * potential DoS.
+		 */
+		if (hypervisor_args_len >= ARG_MAX) {
+			g_critical ("max args len is %d, but parent sent %d",
+					ARG_MAX, hypervisor_args_len);
 			goto child_failed;
 		}
 
