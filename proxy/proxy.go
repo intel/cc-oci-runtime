@@ -111,10 +111,19 @@ func attachHandler(data []byte, userData interface{}, response *handlerResponse)
 func byeHandler(data []byte, userData interface{}, response *handlerResponse) {
 	client := userData.(*client)
 	proxy := client.proxy
-	vm := client.vm
+
+	bye := api.Bye{}
+	if err := json.Unmarshal(data, &bye); err != nil {
+		response.SetError(err)
+		return
+	}
+
+	proxy.Lock()
+	vm := proxy.vms[bye.ContainerID]
+	proxy.Unlock()
 
 	if vm == nil {
-		response.SetErrorMsg("client not attached to a vm")
+		response.SetErrorf("unknown containerID: %s", bye.ContainerID)
 		return
 	}
 
