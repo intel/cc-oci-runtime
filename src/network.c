@@ -680,8 +680,9 @@ cc_oci_vm_shutdown (const gchar *socket_path, GPid pid)
 	gboolean                 ret = false;
 	struct cc_oci_vm_conn  *conn = NULL;
 
-	g_assert (socket_path);
-	g_assert (pid);
+	if (! (socket_path != NULL && pid > 0)) {
+		return false;
+	}
 
 	conn = cc_oci_vm_conn_new (socket_path, pid);
 	if (! conn) {
