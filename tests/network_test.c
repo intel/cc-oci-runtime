@@ -56,10 +56,38 @@ START_TEST(test_cc_oci_vm_pause) {
 	g_free(diname);
 } END_TEST
 
+START_TEST(test_cc_oci_vm_resume) {
+	char *socket_path = NULL;
+	pid_t pid = 0;
+	char *diname = NULL;
+
+	pid = run_qmp_vm (&socket_path);
+	ck_assert (pid > 0);
+	ck_assert (socket_path != NULL);
+
+	ck_assert (! cc_oci_vm_resume (NULL, -1));
+	ck_assert (! cc_oci_vm_resume (socket_path, -1));
+	ck_assert (! cc_oci_vm_resume (NULL, pid));
+	ck_assert (! cc_oci_vm_resume (NULL, 0));
+	ck_assert (! cc_oci_vm_resume (socket_path, 0));
+
+	ck_assert (cc_oci_vm_pause (socket_path, pid));
+	ck_assert (cc_oci_vm_resume (socket_path, pid));
+
+	kill (pid, SIGTERM);
+
+	diname = g_path_get_dirname (socket_path);
+	cc_oci_rm_rf(diname);
+
+	g_free(socket_path);
+	g_free(diname);
+} END_TEST
+
 Suite* make_oci_suite(void) {
 	Suite* s = suite_create(__FILE__);
 
 	ADD_TEST_TIMEOUT (test_cc_oci_vm_pause, s, 8);
+	ADD_TEST_TIMEOUT (test_cc_oci_vm_resume, s, 8);
 
 	return s;
 }
