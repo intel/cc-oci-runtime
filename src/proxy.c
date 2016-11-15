@@ -731,9 +731,10 @@ out:
  * \return \c true on success, else \c false.
  */
 gboolean
-cc_proxy_cmd_bye (struct cc_proxy *proxy)
+cc_proxy_cmd_bye (struct cc_proxy *proxy, const char *container_id)
 {
 	JsonObject        *obj = NULL;
+	JsonObject        *data = NULL;
 	JsonNode          *root = NULL;
 	JsonGenerator     *generator = NULL;
 	gchar             *msg_to_send = NULL;
@@ -745,7 +746,7 @@ cc_proxy_cmd_bye (struct cc_proxy *proxy)
 	 */
 	const gchar       *proxy_cmd = "bye";
 
-	if (! proxy) {
+	if (! (proxy && container_id)) {
 		return false;
 	}
 
@@ -755,8 +756,14 @@ cc_proxy_cmd_bye (struct cc_proxy *proxy)
 	}
 
 	obj = json_object_new ();
+	data = json_object_new ();
 
 	json_object_set_string_member (obj, "id", proxy_cmd);
+
+	json_object_set_string_member (data, "containerId",
+			container_id);
+
+	json_object_set_object_member (obj, "data", data);
 
 	root = json_node_new (JSON_NODE_OBJECT);
 	generator = json_generator_new ();
