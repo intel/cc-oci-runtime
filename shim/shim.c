@@ -457,7 +457,8 @@ handle_proxy_output(struct cc_shim *shim)
 		shim->exiting = true;
 		goto out;
 	} else if (shim->exiting && stream_len == (STREAM_HEADER_SIZE+1)) {
-		code = atoi(buf + STREAM_HEADER_SIZE); 	// hyperstart has sent the exit status
+		code = *(buf + STREAM_HEADER_SIZE); 	// hyperstart has sent the exit status
+		shim_debug("Exit status for container: %d\n", code);
 		free(buf);
 		exit(code);
 	}
