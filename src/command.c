@@ -389,52 +389,42 @@ handle_option_user (const gchar *option_name,
 	struct start_data *start_data;
 	gboolean  ret = false;
 	gchar   **ids = NULL;
-	gchar   **strvp = NULL;
+	gchar    *struid = NULL;
+	gchar    *strgid = NULL;
 	gchar    *endptr;
 	gint64    uid = 0;
 	gint64    gid = 0;
 
-	if (!data && value){
-		goto out;
+	if (! (data && value)) {
+		return false;
 	}
 
 	start_data = (struct start_data *)data;
 
 	ids = g_strsplit (value, ":", 2);
-	strvp = ids;
 
-	if (! (strvp && *strvp)) {
+	/* uid is *NOT* optional */
+	struid = *ids;
+	if (! struid) {
+		g_critical("missing uid in option user");
 		goto out;
 	}
 
-	uid = g_ascii_strtoll (*strvp,
-			&endptr,
-			10);
-
-	if (endptr == *strvp) {
+	uid = g_ascii_strtoll (struid, &endptr, 10);
+	if (endptr == struid) {
+		g_critical("failed to convert '%s' to int", struid);
 		goto out;
 	}
 
-	if (errno == ERANGE || errno == EINVAL){
-		goto out;
-	}
-
-	strvp++;
-
-	if (! (strvp && *strvp)) {
-		goto out;
-	}
-
-	gid = g_ascii_strtoll (*strvp,
-			&endptr,
-			10);
-
-	if (endptr == *strvp) {
-		goto out;
-	}
-
-	if (errno == ERANGE || errno == EINVAL){
-		goto out;
+	/* gid is optional */
+	if (ids+1 && *(ids+1)) {
+		/* copy gid */
+		strgid = *(ids+1);
+		gid = g_ascii_strtoll (strgid, &endptr,	10);
+		if (endptr == strgid) {
+			g_critical("failed to convert '%s' to int", strgid);
+			goto out;
+		}
 	}
 
 	if (uid < 0 || gid < 0){
