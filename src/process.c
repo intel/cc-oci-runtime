@@ -644,7 +644,7 @@ cc_shim_launch (struct cc_oci_config *config,
 	}
 
 	/* Inform caller of workload PID */
-	pid = fork ();
+	config->state.workload_pid = pid = fork ();
 
 	if (pid < 0) {
 		g_critical ("failed to spawn shim child: %s",
@@ -660,10 +660,6 @@ cc_shim_launch (struct cc_oci_config *config,
 		GError   *error = NULL;
 
 		/* child */
-
-		/* inform the child who they are */
-		config->state.workload_pid = getpid ();
-
 		close (child_err_pipe[0]);
 		close (shim_args_pipe[1]);
 		close (shim_socket[1]);
@@ -1041,11 +1037,7 @@ child_failed:
 	 *
 	 * The child blocks waiting for a write to shim_args_fd.
 	 */
-	config->state.workload_pid = cc_shim_launch (config,
-							&shim_err_fd,
-							&shim_args_fd,
-							&shim_socket_fd);
-	if (config->state.workload_pid < 0 ) {
+	if (! cc_shim_launch (config, &shim_err_fd, &shim_args_fd, &shim_socket_fd)) {
 		goto out;
 	}
 
@@ -1379,19 +1371,13 @@ cc_oci_exec_shim (struct cc_oci_config *config,
 	int                proxy_fd = -1;
 	int                proxy_io_fd = -1;
 	int                ioBase = -1;
-	GPid               shim_pid= -1;
 	GError            *error = NULL;
 
 	if(! (config && process)){
-		goto out;
+		return false;
 	}
 
-	shim_pid = cc_shim_launch (config,
-			&shim_err_fd,
-			&shim_args_fd,
-			&shim_socket_fd);
-
-	if (shim_pid < 0) {
+	if (! cc_shim_launch (config, &shim_err_fd, &shim_args_fd, &shim_socket_fd)) {
 		goto out;
 	}
 
@@ -1467,13 +1453,18 @@ cc_oci_exec_shim (struct cc_oci_config *config,
 
 	ret = true;
 out:
-	if (shim_err_fd != -1) close (shim_err_fd);
-	if (shim_args_fd != -1) close (shim_args_fd);
-	if (shim_socket_fd != -1) close (shim_socket_fd);
-
-	if ( !ret && shim_pid > 0 ) {
-		g_critical("killing shim with pid:%d", shim_pid);
-		kill(shim_pid, SIGKILL);
+	if (shim_err_fd != -1) {
+		close (shim_err_fd);
+	}
+	if (shim_args_fd != -1) {
+		close (shim_args_fd);
+	}
+	if (shim_socket_fd != -1) {
+		close (shim_socket_fd);
+	}
+	if (! ret) {
+		g_critical ("killing shim with pid:%d", config->state.workload_pid);
+		kill (config->state.workload_pid, SIGTERM);
 	}
 	return ret;
 }
