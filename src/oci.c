@@ -1165,7 +1165,7 @@ cc_oci_process_exec_file (const gchar *process_json,
 	 * use \ref cc_oci_config to parse
 	 * the json file from --process option
 	 **/
-	struct cc_oci_config *process_config = NULL;
+	struct cc_oci_config process_config = { { 0 } };
 	GNode *root = NULL;
 	gboolean ret = false;
 
@@ -1180,24 +1180,12 @@ cc_oci_process_exec_file (const gchar *process_json,
 	cc_oci_node_dump (root);
 #endif /*DEBUG*/
 
-	process_config = g_malloc0 (sizeof (struct cc_oci_config));
-	if (! process_config){
-		goto out;
-	}
-
-	process_config->oci.process = *process;
-	process_spec_handler.handle_section(root, process_config);
-	*process = process_config->oci.process;
+	process_config.oci.process = *process;
+	process_spec_handler.handle_section(root, &process_config);
+	*process = process_config.oci.process;
 
 	ret = true;
 out:
-
-	/* Only process_config.oci.process data has handled
-	 * just free process_config pointer
-	 * process_config.oci.processprocess was copied to
-	 * process param pointer.
-	 * */
-	g_free (process_config);
 	g_free_node(root);
 
 	return ret;
