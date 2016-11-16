@@ -156,7 +156,7 @@ function run_test(){
 function run_docker_tests(){
 	echo 'docker tests verification:'
 	pushd "${SCRIPT_PATH}/../integration/docker"
-	prove -m -Q --formatter=TAP::Formatter::HTML ./*.bats >> "$DOCKER_TESTS_LOG_FILE" \
+	sudo prove -m -Q --formatter=TAP::Formatter::HTML ./*.bats >> "$DOCKER_TESTS_LOG_FILE" \
 	&& DOCKER_TESTS_RC=0
 	total_tests=$(awk '/^[0-9]* tests/ {print $1}' "$DOCKER_TESTS_LOG_FILE")
 	passed=$(awk '/^[0-9]* ok/ {print $1}' "$DOCKER_TESTS_LOG_FILE")
