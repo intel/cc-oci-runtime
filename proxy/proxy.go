@@ -20,6 +20,7 @@ import (
 	"net"
 	"os"
 	"sync"
+	"sync/atomic"
 
 	"github.com/01org/cc-oci-runtime/proxy/api"
 )
@@ -40,6 +41,7 @@ type proxy struct {
 // Represents a client, either a cc-oci-runtime or cc-shim process having
 // opened a socket to the proxy
 type client struct {
+	id    uint64
 	proxy *proxy
 	vm    *vm
 
@@ -241,11 +243,16 @@ func (proxy *proxy) init() error {
 	return nil
 }
 
+var nextClientID = uint64(1)
+
 func (proxy *proxy) serveNewClient(proto *protocol, newConn net.Conn) {
 	newClient := &client{
+		id:    nextClientID,
 		proxy: proxy,
 		conn:  newConn,
 	}
+
+	atomic.AddUint64(&nextClientID, 1)
 
 	if err := proto.Serve(newConn, newClient); err != nil {
 		fmt.Println("error serving client: %v", err)
