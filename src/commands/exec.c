@@ -33,9 +33,8 @@
 
 extern struct start_data start_data;
 
-struct oci_cfg_process process;
-
 gchar    *cwd          = NULL;
+gchar   **env          = NULL;
 gchar    *process_json = NULL;
 
 /* Not supported flags */
@@ -88,7 +87,7 @@ static GOptionEntry options_exec[] =
 	},
 	{
 		"env", 'e', G_OPTION_FLAG_NONE,
-		G_OPTION_ARG_STRING_ARRAY, &process.env,
+		G_OPTION_ARG_STRING_ARRAY, &env,
 		"in the container",
 		NULL
 	},
@@ -140,9 +139,12 @@ handler_exec (const struct subcommand *sub,
 	struct oci_state  *state = NULL;
 	gchar             *config_file = NULL;
 	gboolean           ret = false;
+	struct oci_cfg_process *process = NULL;
 
 	g_assert (sub);
 	g_assert (config);
+
+	process = &config->oci.process;
 
 	if (handle_default_usage (argc, argv, sub->name,
 				&ret, MIN_EXEC_ARGS, "<cmd> [args]")) {
@@ -161,10 +163,12 @@ handler_exec (const struct subcommand *sub,
 		goto out;
 	}
 
-	process.user.uid = start_data.user.uid;
-	process.user.gid = start_data.user.gid;
+	process->user.uid = start_data.user.uid;
+	process->user.gid = start_data.user.gid;
+	process->terminal = (start_data.console != NULL ? true : false);
+	process->env = env;
 	if (cwd){
-		if (snprintf(process.cwd,sizeof(process.cwd),
+		if (snprintf (process->cwd, sizeof(process->cwd),
 		    "%s", cwd) < 0) {
 			g_critical("failed to copy process cwd");
 		}
@@ -172,9 +176,9 @@ handler_exec (const struct subcommand *sub,
 
 	if (argc > 0){
 		/* +1 NULL */
-		process.args = g_new0 (gchar *, (gsize) argc + 1 );
+		process->args = g_new0 (gchar *, (gsize) argc + 1 );
 		for ( int i = 0; i < argc ; i++){
-			process.args[i] = g_strdup(argv[i]);
+			process->args[i] = g_strdup(argv[i]);
 		}
 	}
 
@@ -183,7 +187,7 @@ handler_exec (const struct subcommand *sub,
 		goto out;
 	}
 
-	ret = cc_oci_exec (config, state, &process, process_json);
+	ret = cc_oci_exec (config, state, process_json);
 	if (! ret) {
 		goto out;
 	}

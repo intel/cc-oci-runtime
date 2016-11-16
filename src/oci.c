@@ -1205,23 +1205,22 @@ out:
 gboolean
 cc_oci_exec (struct cc_oci_config *config,
 		struct oci_state *state,
-		struct oci_cfg_process *process,
 		const gchar *process_json)
 {
 	gboolean ret = false;
 
-	if (! (config && state && process)) {
+	if (! (config && state)) {
 		return false;
 	}
 
 	if (process_json){
 		if(! cc_oci_process_exec_file(process_json,
-					process)) {
+					&config->oci.process)) {
 			goto out;
 		}
 	}
 
-	if (! cc_oci_vm_connect (config, process)) {
+	if (! cc_oci_vm_connect (config)) {
 		g_critical ("failed to connect to VM");
 		goto out;
 	}

@@ -1454,14 +1454,14 @@ out:
  * \return \c true on success, else \c false.
  */
 gboolean
-cc_proxy_hyper_exec_command (struct cc_oci_config *config,
-		struct oci_cfg_process *process)
+cc_proxy_hyper_exec_command (struct cc_oci_config *config)
 {
 	JsonObject *payload= NULL;
 	JsonObject *process_node = NULL;
 	JsonArray *args= NULL;
 	JsonArray *envs= NULL;
 	gboolean ret = false;
+	struct oci_cfg_process *process = &config->oci.process;
 
 	if (! (config && config->proxy)) {
 		goto out;
