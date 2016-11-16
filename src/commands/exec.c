@@ -199,13 +199,6 @@ out:
 	g_free_if_set (process_json);
 	g_free_if_set (process_label);
 	g_free_if_set (process_json);
-	if (config->oci.process.args) {
-		g_strfreev (config->oci.process.args);
-	}
-
-	if (config->oci.process.env) {
-		g_strfreev (config->oci.process.env);
-	}
 
 	return ret;
 }
