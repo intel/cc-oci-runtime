@@ -247,7 +247,11 @@ func (proxy *proxy) serveNewClient(proto *protocol, newConn net.Conn) {
 		conn:  newConn,
 	}
 
-	proto.Serve(newConn, newClient)
+	if err := proto.Serve(newConn, newClient); err != nil {
+		fmt.Println("error serving client: %v", err)
+	}
+
+	newConn.Close()
 }
 
 func (proxy *proxy) serve() {
