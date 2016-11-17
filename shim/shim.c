@@ -223,13 +223,12 @@ send_proxy_hyper_message(int fd, const char *hyper_cmd, const char *json) {
 
 /*!
  * Read signals received and send message in the hyperstart protocol
- * format to outfd
+ * format to the proxy ctl socket.
  *
- * \param container_id Container id
- * \param outfd File descriptor to send the message to
+ * \param shim \ref cc_shim
  */
 void
-handle_signals(char *container_id, int outfd) {
+handle_signals(struct cc_shim *shim) {
 	int                sig;
 	char              *buf;
 	int                ret;
@@ -237,7 +236,7 @@ handle_signals(char *container_id, int outfd) {
 	struct winsize     ws;
 	static char*       cmds[] = { "winsize", "killcontainer"};
 
-	if (! container_id || outfd < 0) {
+	if ( !(shim && shim->container_id) || shim->proxy_sock_fd < 0) {
 		return;
 	}
 
@@ -250,15 +249,13 @@ handle_signals(char *container_id, int outfd) {
 					strerror(errno));
 				continue;
 			}
-			ret = asprintf(&buf, "{\"container_id\":\"%s\", \"row\":\"%d\", \"col\":\"%d\"}",
-                                                        container_id, ws.ws_row, ws.ws_col);
+			ret = asprintf(&buf, "{\"seq\":%"PRIu64", \"row\":%d, \"col\":%d}",
+					shim->io_seq_no, ws.ws_row, ws.ws_col);
 			shim_debug("handled SIGWINCH for container %s (row=%d, col=%d)\n",
-				container_id, ws.ws_row, ws.ws_col);
+				shim->container_id, ws.ws_row, ws.ws_col);
+
 		} else {
 			cmd = cmds[1];
-			ret = asprintf(&buf, "{\"container_id\":\"%s\", \"signal\":\"%d\"}",
-                                                        container_id, sig);
-			shim_debug("Killed container %s with signal %d\n", container_id, sig);
 			ret = asprintf(&buf, "{\"container\":\"%s\", \"signal\":%d}",
                                                         shim->container_id, sig);
 			shim_debug("Killed container %s with signal %d\n", shim->container_id, sig);
@@ -267,7 +264,7 @@ handle_signals(char *container_id, int outfd) {
 			abort();
 		}
 
-		send_proxy_hyper_message(outfd, cmd, buf);
+		send_proxy_hyper_message(shim->proxy_sock_fd, cmd, buf);
 		free(buf);
         }
 }
@@ -706,7 +703,7 @@ main(int argc, char **argv)
 
 		/* check if signal was received first */
 		if (poll_fds[0].revents != 0) {
-			handle_signals(shim.container_id, shim.proxy_sock_fd);
+			handle_signals(&shim);
 		}
 
 		//check proxy_io_fd
