@@ -1057,8 +1057,6 @@ START_TEST(test_cc_oci_process_to_json) {
 	ck_assert (process_obj);
 	json_object_unref(process_obj);
 
-	process->user.additionalGids =
-		calloc(2, sizeof(*process->user.additionalGids));
 	process->user.additionalGids = 0;
 	process->user.gid = 0;
 	process->user.uid = 0;
@@ -1083,7 +1081,6 @@ START_TEST(test_cc_oci_process_to_json) {
 
 	json_object_unref(process_obj);
 
-	free(process->user.additionalGids);
 	free(process->args);
 	free(process->env);
 	free(process);
