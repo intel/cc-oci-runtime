@@ -417,7 +417,7 @@ handle_option_user (const gchar *option_name,
 	}
 
 	/* gid is optional */
-	if (ids+1 && *(ids+1)) {
+	if ((ids+1) != NULL && *(ids+1) != NULL) {
 		/* copy gid */
 		strgid = *(ids+1);
 		gid = g_ascii_strtoll (strgid, &endptr,	10);
