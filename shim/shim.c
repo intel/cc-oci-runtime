@@ -259,6 +259,9 @@ handle_signals(char *container_id, int outfd) {
 			ret = asprintf(&buf, "{\"container_id\":\"%s\", \"signal\":\"%d\"}",
                                                         container_id, sig);
 			shim_debug("Killed container %s with signal %d\n", container_id, sig);
+			ret = asprintf(&buf, "{\"container\":\"%s\", \"signal\":%d}",
+                                                        shim->container_id, sig);
+			shim_debug("Killed container %s with signal %d\n", shim->container_id, sig);
 		}
 		if (ret == -1) {
 			abort();
