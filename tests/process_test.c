@@ -232,7 +232,7 @@ START_TEST(test_cc_run_hook) {
 } END_TEST
 
 START_TEST(test_cc_oci_setup_shim) {
-	struct cc_oci_config config = { 0 };
+	struct cc_oci_config config = { { 0 } };
 
 	ck_assert (! cc_oci_setup_shim (NULL, -1, -1));
 	ck_assert (! cc_oci_setup_shim (NULL, STDIN_FILENO, -1));
@@ -263,7 +263,7 @@ START_TEST(test_socket_connection_from_fd) {
 } END_TEST
 
 START_TEST(test_cc_oci_setup_child) {
-	struct cc_oci_config config = { 0 };
+	struct cc_oci_config config = { { 0 } };
 	ck_assert (! cc_oci_setup_child (NULL));
 	ck_assert (cc_oci_setup_child (&config));
 
