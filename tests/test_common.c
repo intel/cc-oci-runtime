@@ -39,8 +39,8 @@
 #define QEMU_ARGS 12
 #define QEMU_MEM "1M"
 #define QEMU_SMP "1"
-#define QMP_STAT_TRIES 5
-#define QMP_STAT_USLEEP 2000
+#define QMP_STAT_TRIES 20
+#define QMP_STAT_USLEEP 10000
 
 struct start_data start_data;
 
@@ -402,7 +402,7 @@ pid_t run_qmp_vm(char **socket_path) {
 
 	/* waiting for qmp socket */
 	for (i=0; i<QMP_STAT_TRIES; ++i) {
-		if (! stat (*socket_path, &st)) {
+		if (! stat (*socket_path, &st) && S_ISSOCK (st.st_mode)) {
 			break;
 		}
 		usleep (QMP_STAT_USLEEP);

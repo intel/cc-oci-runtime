@@ -93,9 +93,9 @@ START_TEST(test_cc_oci_vm_shutdown) {
 Suite* make_oci_suite(void) {
 	Suite* s = suite_create(__FILE__);
 
-	ADD_TEST_TIMEOUT (test_cc_oci_vm_pause, s, 8);
-	ADD_TEST_TIMEOUT (test_cc_oci_vm_resume, s, 8);
-	ADD_TEST_TIMEOUT (test_cc_oci_vm_shutdown, s, 8);
+	ADD_TEST_TIMEOUT (test_cc_oci_vm_pause, s, 10);
+	ADD_TEST_TIMEOUT (test_cc_oci_vm_resume, s, 10);
+	ADD_TEST_TIMEOUT (test_cc_oci_vm_shutdown, s, 10);
 
 	return s;
 }
