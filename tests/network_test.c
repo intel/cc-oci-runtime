@@ -88,6 +88,7 @@ START_TEST(test_cc_oci_vm_resume) {
 START_TEST(test_cc_oci_vm_shutdown) {
 	ck_assert (! cc_oci_vm_shutdown (NULL, -1));
 	ck_assert (! cc_oci_vm_shutdown (NULL, 0));
+	ck_assert (! cc_oci_vm_shutdown ("/path/to/nothingness", 1));
 
 	//ck_assert (cc_oci_vm_shutdown (socket_path, pid));
 } END_TEST

@@ -619,7 +619,7 @@ cc_oci_vm_conn_new (const gchar *socket_path, GPid pid)
 
 	if (! g_file_test (socket_path, G_FILE_TEST_EXISTS)) {
 		g_critical ("socket path does not exist: %s", socket_path);
-		return NULL;
+		goto err;
 	}
 
 	conn = g_new0 (struct cc_oci_vm_conn, 1);
@@ -667,7 +667,9 @@ cc_oci_vm_conn_new (const gchar *socket_path, GPid pid)
 	return conn;
 
 err:
-	cc_oci_vm_conn_free (conn);
+	if (conn) {
+		cc_oci_vm_conn_free (conn);
+	}
 
 	return NULL;
 }
