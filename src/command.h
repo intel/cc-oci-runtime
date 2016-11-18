@@ -100,7 +100,6 @@ gboolean handle_option_user (const gchar *option_name,
 		gpointer data,
 		GError **error);
 
-extern struct subcommand command_attach;
 extern struct subcommand command_checkpoint;
 extern struct subcommand command_create;
 extern struct subcommand command_delete;

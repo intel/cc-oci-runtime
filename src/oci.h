@@ -571,8 +571,6 @@ struct cc_oci_config {
 	struct cc_proxy *proxy;
 };
 
-gboolean cc_oci_attach(struct cc_oci_config *config,
-		struct oci_state *state);
 gchar *cc_oci_config_file_path (const gchar *bundle_path);
 gboolean cc_oci_create (struct cc_oci_config *config);
 gboolean cc_oci_start (struct cc_oci_config *config,

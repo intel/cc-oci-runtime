@@ -176,7 +176,6 @@ common_sources = \
 	src/spec_handler.c src/spec_handler.h \
 	src/common.h \
 	src/command.c src/command.h \
-	src/commands/attach.c \
 	src/commands/create.c \
 	src/commands/delete.c \
 	src/commands/exec.c \
