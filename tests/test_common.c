@@ -122,20 +122,8 @@ GNode *node_find_child(GNode* node, const gchar* data) {
 	return NULL;
 }
 
-void test_spec_handler(struct spec_handler* handler, struct spec_handler_test* tests) {
-	GNode* node;
-	GNode* handler_node;
-	GNode test_node;
-	struct cc_oci_config *config = NULL;
-	struct spec_handler_test* test;
+void create_fake_test_files(void) {
 	int fd;
-
-	config = cc_oci_config_create ();
-	ck_assert (config);
-
-	ck_assert(! handler->handle_section(NULL, NULL));
-	ck_assert(! handler->handle_section(&test_node, NULL));
-	ck_assert(! handler->handle_section(NULL, config));
 
 	/**
 	 * Create fake files for Kernel and image so
@@ -161,6 +149,37 @@ void test_spec_handler(struct spec_handler* handler, struct spec_handler_test* t
 	} else {
 		close(fd);
 	}
+}
+
+void remove_fake_test_files(void) {
+	if (g_remove("CONTAINER-KERNEL") < 0) {
+		g_critical ("failed to remove file CONTAINER-KERNEL");
+	}
+
+	if (g_remove ("CLEAR-CONTAINERS.img") < 0) {
+		g_critical ("failed to remove file CLEAR-CONTAINERS.img");
+	}
+
+	if (g_remove ("QEMU-LITE") < 0) {
+		g_critical ("failed to remove file QEMU-LITE");
+	}
+}
+
+void test_spec_handler(struct spec_handler* handler, struct spec_handler_test* tests) {
+	GNode* node;
+	GNode* handler_node;
+	GNode test_node;
+	struct cc_oci_config *config = NULL;
+	struct spec_handler_test* test;
+
+	config = cc_oci_config_create ();
+	ck_assert (config);
+
+	ck_assert(! handler->handle_section(NULL, NULL));
+	ck_assert(! handler->handle_section(&test_node, NULL));
+	ck_assert(! handler->handle_section(NULL, config));
+
+	create_fake_test_files();
 
 	cc_oci_config_free(config);
 
@@ -177,17 +196,7 @@ void test_spec_handler(struct spec_handler* handler, struct spec_handler_test* t
 		g_free_node(node);
 	}
 
-	if (g_remove("CONTAINER-KERNEL") < 0) {
-		g_critical ("failed to remove file CONTAINER-KERNEL");
-	}
-
-	if (g_remove ("CLEAR-CONTAINERS.img") < 0) {
-		g_critical ("failed to remove file CLEAR-CONTAINERS.img");
-	}
-
-	if (g_remove ("QEMU-LITE") < 0) {
-		g_critical ("failed to remove file QEMU-LITE");
-	}
+	remove_fake_test_files();
 }
 
 /**

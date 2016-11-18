@@ -389,6 +389,7 @@ libtest_la_CFLAGS = \
 	$(JSON_GLIB_CFLAGS) \
 	$(LIBMNL_CFLAGS) \
 	$(UUID_CFLAGS) \
+	-DTEST_DATA_DIR=\"$(abs_srcdir)/tests/data\" \
 	-DUNIT_TESTING
 
 libtest_la_LIBS = \
@@ -434,6 +435,7 @@ TESTS = \
 	mount_test \
 	annotation_test \
 	network_test \
+	spec_handler_test \
 	sh_annotations_test \
 	sh_linux_test \
 	sh_vm_test \
@@ -614,7 +616,7 @@ annotation_test_CFLAGS = \
 annotation_test_LDADD = \
 	$(TEST_COMMON_LDADD)
 
-## annotation.c test ##
+## network.c test ##
 network_test_SOURCES = \
 	$(TEST_COMMON_SOURCES) \
 	tests/network_test.c
@@ -623,6 +625,17 @@ network_test_CFLAGS = \
 	$(TEST_COMMON_CFLAGS)
 
 network_test_LDADD = \
+	$(TEST_COMMON_LDADD)
+
+## spec_handler.c ##
+spec_handler_test_SOURCES = \
+	$(TEST_COMMON_SOURCES) \
+	tests/spec_handler_test.c
+
+spec_handler_test_CFLAGS = \
+	$(TEST_COMMON_CFLAGS)
+
+spec_handler_test_LDADD = \
 	$(TEST_COMMON_LDADD)
 
 ## spec_handlers/annotations.c test ##

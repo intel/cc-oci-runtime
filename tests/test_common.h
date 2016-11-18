@@ -117,3 +117,5 @@ gboolean test_helper_create_state_file (const char *name,
 		const char *root_dir,
 		struct cc_oci_config *config);
 pid_t run_qmp_vm(char **socket_path);
+void create_fake_test_files(void);
+void remove_fake_test_files(void);

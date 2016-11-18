@@ -21,6 +21,7 @@
 #include "spec_handler.h"
 #include "util.h"
 #include "json.h"
+#include "common.h"
 
 
 /*!
@@ -41,10 +42,17 @@ get_spec_vm_from_cfg_file (struct cc_oci_config* config)
 	GNode* vm_node= NULL;
 	gchar* sys_json_file = NULL;
 
+	if (! config) {
+		return false;
+	}
+
 	if (config->vm) {
 		/* If vm spec data exist, do nothing */
 		goto out;
 	}
+#ifdef UNIT_TESTING
+	sys_json_file = g_strdup (TEST_DATA_DIR"/vm.json");
+#else
 	sys_json_file = g_build_path ("/", SYSCONFDIR,
 		CC_OCI_VM_CONFIG, NULL);
 	if (! g_file_test (sys_json_file, G_FILE_TEST_EXISTS)) {
@@ -52,6 +60,7 @@ get_spec_vm_from_cfg_file (struct cc_oci_config* config)
 		sys_json_file = g_build_path ("/", DEFAULTSDIR,
 		CC_OCI_VM_CONFIG, NULL);
 	}
+#endif // UNIT_TESTING
 	g_debug ("Reading VM configuration from %s",
 		sys_json_file);
 	if (! cc_oci_json_parse(&vm_config, sys_json_file)) {
