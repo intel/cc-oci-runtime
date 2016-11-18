@@ -44,6 +44,7 @@ START_TEST(test_cc_oci_vm_pause) {
 	ck_assert (! cc_oci_vm_pause (NULL, pid));
 	ck_assert (! cc_oci_vm_pause (NULL, 0));
 	ck_assert (! cc_oci_vm_pause (socket_path, 0));
+	ck_assert (! cc_oci_vm_pause ("/path/to/nothingness", pid));
 
 	ck_assert (cc_oci_vm_pause (socket_path, pid));
 
@@ -70,6 +71,7 @@ START_TEST(test_cc_oci_vm_resume) {
 	ck_assert (! cc_oci_vm_resume (NULL, pid));
 	ck_assert (! cc_oci_vm_resume (NULL, 0));
 	ck_assert (! cc_oci_vm_resume (socket_path, 0));
+	ck_assert (! cc_oci_vm_resume ("/path/to/nothingness", pid));
 
 	ck_assert (cc_oci_vm_pause (socket_path, pid));
 	ck_assert (cc_oci_vm_resume (socket_path, pid));
