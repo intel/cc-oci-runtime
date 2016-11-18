@@ -219,12 +219,16 @@ func TestBye(t *testing.T) {
 	err := rig.Client.Hello(testContainerID, ctlSocketPath, ioSocketPath)
 	assert.Nil(t, err)
 
+	// Bye with a bad containerID
+	err = rig.Client.Bye("foo")
+	assert.NotNil(t, err)
+
 	// Bye!
-	err = rig.Client.Bye()
+	err = rig.Client.Bye(testContainerID)
 	assert.Nil(t, err)
 
 	// A second Bye (client not attached anymore) should return an error
-	err = rig.Client.Bye()
+	err = rig.Client.Bye(testContainerID)
 	assert.NotNil(t, err)
 
 	// Bye should unregister the vm object
@@ -263,7 +267,7 @@ func TestAttach(t *testing.T) {
 	// attached, we issue a bye that would error out if not attatched.
 	err = rig.Client.Attach(testContainerID)
 	assert.Nil(t, err)
-	err = rig.Client.Bye()
+	err = rig.Client.Bye(testContainerID)
 	assert.Nil(t, err)
 
 	// This test shouldn't send anything with hyperstart

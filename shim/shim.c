@@ -160,7 +160,7 @@ get_proxy_ctl_msg(const char *json, size_t *len) {
 
 	set_big_endian_32((uint8_t*)proxy_ctl_msg + PROXY_CTL_HEADER_LENGTH_OFFSET, 
 				(uint32_t)(json_len));
-	strcpy(proxy_ctl_msg + PROXY_CTL_HEADER_SIZE, json);
+	strncpy(proxy_ctl_msg + PROXY_CTL_HEADER_SIZE, json, json_len);
 
 	return proxy_ctl_msg;
  }
@@ -223,13 +223,12 @@ send_proxy_hyper_message(int fd, const char *hyper_cmd, const char *json) {
 
 /*!
  * Read signals received and send message in the hyperstart protocol
- * format to outfd
+ * format to the proxy ctl socket.
  *
- * \param container_id Container id
- * \param outfd File descriptor to send the message to
+ * \param shim \ref cc_shim
  */
 void
-handle_signals(char *container_id, int outfd) {
+handle_signals(struct cc_shim *shim) {
 	int                sig;
 	char              *buf;
 	int                ret;
@@ -237,12 +236,12 @@ handle_signals(char *container_id, int outfd) {
 	struct winsize     ws;
 	static char*       cmds[] = { "winsize", "killcontainer"};
 
-	if (! container_id || outfd < 0) {
+	if ( !(shim && shim->container_id) || shim->proxy_sock_fd < 0) {
 		return;
 	}
 
 	while (read(signal_pipe_fd[0], &sig, sizeof(sig)) != -1) {
-		printf("Handling signal : %d on fd %d\n", sig, signal_pipe_fd[0]);
+		shim_debug("Handling signal : %d on fd %d\n", sig, signal_pipe_fd[0]);
 		if (sig == SIGWINCH ) {
 			cmd = cmds[0];
 			if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) == -1) {
@@ -250,58 +249,89 @@ handle_signals(char *container_id, int outfd) {
 					strerror(errno));
 				continue;
 			}
-			ret = asprintf(&buf, "{\"container_id\":\"%s\", \"row\":\"%d\", \"col\":\"%d\"}",
-                                                        container_id, ws.ws_row, ws.ws_col);
+			ret = asprintf(&buf, "{\"seq\":%"PRIu64", \"row\":%d, \"col\":%d}",
+					shim->io_seq_no, ws.ws_row, ws.ws_col);
 			shim_debug("handled SIGWINCH for container %s (row=%d, col=%d)\n",
-				container_id, ws.ws_row, ws.ws_col);
+				shim->container_id, ws.ws_row, ws.ws_col);
+
 		} else {
 			cmd = cmds[1];
-			ret = asprintf(&buf, "{\"container_id\":\"%s\", \"signal\":\"%d\"}",
-                                                        container_id, sig);
-			shim_debug("Killed container %s with signal %d\n", container_id, sig);
+			ret = asprintf(&buf, "{\"container\":\"%s\", \"signal\":%d}",
+                                                        shim->container_id, sig);
+			shim_debug("Killed container %s with signal %d\n", shim->container_id, sig);
 		}
 		if (ret == -1) {
 			abort();
 		}
 
-		send_proxy_hyper_message(outfd, cmd, buf);
+		send_proxy_hyper_message(shim->proxy_sock_fd, cmd, buf);
 		free(buf);
         }
 }
 
 /*!
- * Read data from infd and write to outfd
+ * Read data from stdin(with tty set in raw mode)
+ * and send it to proxy I/O channel
+ * Reference : https://github.com/hyperhq/runv/blob/master/hypervisor/tty.go#L448
  *
- * \param infd File descriptor to read from
- * \param outfd File descriptor to write to
+ * \param shim \ref cc_shim
  */
 void
 handle_stdin(struct cc_shim *shim)
 {
-	ssize_t    nread;
-	char       buf[BUFSIZ-12];
-	char       wbuf[BUFSIZ];
-	int        ret;
-	ssize_t     len;
+	ssize_t      nread;
+	int          ret;
+	ssize_t      len;
+	static char  buf[BUFSIZ-STREAM_HEADER_SIZE] = {0};
+	static char  wbuf[BUFSIZ] = {0};
+	static bool  cr  = false;
+	static bool  emit = false;
+	static int   cnt = 0;
+	char         ch;
 
 	if (! shim || shim->proxy_io_fd < 0) {
 		return;
 	}
 
-	// write data to I/O fd
-	while ((nread = read(STDIN_FILENO, buf, BUFSIZ-12)) != -1) {
+	nread = read(STDIN_FILENO , &ch, 1);
+	if (nread <= 0) {
+		shim_warning("Error while reading stdin char :%s\n", strerror(errno));
+		return;
+	}
+
+	if (ch == '\n') {
+		emit = !cr;
+		cr = false;
+		if (emit) {
+			buf[cnt++] = ch;
+		}
+	} else if  (ch == '\r') {
+		emit = true;
+		cr = true;
+		buf[cnt++] = '\n';
+	} else {
+		cr = false;
+		buf[cnt++] = ch;
+	}
+	if (emit || cnt == (BUFSIZ-STREAM_HEADER_SIZE)) {
+		len = cnt + STREAM_HEADER_SIZE;
 		set_big_endian_64 ((uint8_t*)wbuf, shim->io_seq_no);
-		len = nread + STREAM_HEADER_SIZE;
-		set_big_endian_32 ((uint8_t*)wbuf, (uint32_t)len);
-		strncpy(wbuf, buf, (size_t)nread);
+		set_big_endian_32 ((uint8_t*)wbuf + STREAM_HEADER_LENGTH_OFFSET, (uint32_t)len);
+		strncpy(wbuf + STREAM_HEADER_SIZE, buf, (size_t)cnt);
 
 		// TODO: handle write in the poll loop to account for write blocking
-		ret = (int)write(shim->proxy_io_fd, wbuf, (size_t)nread);
+		ret = (int)write(shim->proxy_io_fd, wbuf, (size_t)len);
 		if (ret == -1) {
 			shim_warning("Error writing from fd %d to fd %d: %s\n",
 				STDIN_FILENO, shim->proxy_io_fd, strerror(errno));
 			return;
 		}
+
+		memset(buf, 0, BUFSIZ-STREAM_HEADER_SIZE);
+		memset(wbuf, 0, BUFSIZ);
+		cnt = 0;
+		cr = false;
+		emit = false;
 	}
 }
 
@@ -427,7 +457,8 @@ handle_proxy_output(struct cc_shim *shim)
 		shim->exiting = true;
 		goto out;
 	} else if (shim->exiting && stream_len == (STREAM_HEADER_SIZE+1)) {
-		code = atoi(buf + STREAM_HEADER_SIZE); 	// hyperstart has sent the exit status
+		code = *(buf + STREAM_HEADER_SIZE); 	// hyperstart has sent the exit status
+		shim_debug("Exit status for container: %d\n", code);
 		free(buf);
 		exit(code);
 	}
@@ -645,20 +676,22 @@ main(int argc, char **argv)
 		err_exit("sigaction");
 	}
 
-	if ( !set_fd_nonblocking(STDIN_FILENO)) {
-		exit(EXIT_FAILURE);
-	}
-
-	add_pollfd(poll_fds, &nfds, STDIN_FILENO, POLLIN | POLLPRI);
-
 	add_pollfd(poll_fds, &nfds, shim.proxy_io_fd, POLLIN | POLLPRI);
 
 	add_pollfd(poll_fds, &nfds, shim.proxy_sock_fd, POLLIN | POLLPRI);
 
+	/* Add stdin only if it is attached to a terminal.
+	 * If we add stdin in the non-interactive case, since stdin is closed by docker
+	 * this causes continuous close events to be generated on the poll loop.
+	 */
+	if (isatty(STDIN_FILENO)) {
+		add_pollfd(poll_fds, &nfds, STDIN_FILENO, POLLIN | POLLPRI);
+	}
+
 	/*	0 =>signal_pipe_fd[0]
-		1 =>stdin
-		2 =>proxy_io_fd
-		3 =>sockfd
+		1 =>proxy_io_fd
+		2 =>sockfd
+		3 =>stdin
 	*/
 
 	while (1) {
@@ -670,22 +703,22 @@ main(int argc, char **argv)
 
 		/* check if signal was received first */
 		if (poll_fds[0].revents != 0) {
-			handle_signals(shim.container_id, shim.proxy_sock_fd);
-		}
-
-		// check stdin fd
-		if (poll_fds[1].revents != 0) {
-			handle_stdin(&shim);
+			handle_signals(&shim);
 		}
 
 		//check proxy_io_fd
-		if (poll_fds[2].revents != 0) {
+		if (poll_fds[1].revents != 0) {
 			handle_proxy_output(&shim);
 		}
 
 		// check for proxy sockfd
-		if (poll_fds[3].revents != 0) {
+		if (poll_fds[2].revents != 0) {
 			handle_proxy_ctl(&shim);
+		}
+
+		// check stdin fd
+		if (poll_fds[3].revents != 0) {
+			handle_stdin(&shim);
 		}
 	}
 

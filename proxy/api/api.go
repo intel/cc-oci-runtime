@@ -53,13 +53,17 @@ type Attach struct {
 }
 
 // The Bye payload does the opposite of what hello does, indicating to the
-// proxy it should release resources created by hello. This command has no
-// parameter.
+// proxy it should release resources created by hello for the container
+// identified by containerId.
 //
 //  {
-//    "id": "bye"
+//    "id": "bye",
+//    "data": {
+//      "containerId": "756535dc6e9ab9b560f84c8..."
+//    }
 //  }
 type Bye struct {
+	ContainerID string `json:"containerId"`
 }
 
 // The AllocateIo payload asks the proxy to allocate IO stream sequence numbers

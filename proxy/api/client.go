@@ -169,8 +169,12 @@ func (client *Client) Hyper(hyperName string, hyperMessage interface{}) error {
 }
 
 // Bye wraps the Bye payload (see payload description for more details)
-func (client *Client) Bye() error {
-	resp, err := client.sendPayload("bye", nil)
+func (client *Client) Bye(containerID string) error {
+	bye := Bye{
+		ContainerID: containerID,
+	}
+
+	resp, err := client.sendPayload("bye", &bye)
 	if err != nil {
 		return err
 	}
