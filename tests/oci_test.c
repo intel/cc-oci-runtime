@@ -36,6 +36,7 @@
 #include "../src/runtime.h"
 #include "../src/state.h"
 #include "../src/oci.h"
+#include "../src/util.h"
 
 gboolean cc_oci_vm_running (const struct oci_state *state);
 gboolean cc_oci_create_container_workload (struct cc_oci_config *config);
@@ -1096,6 +1097,22 @@ START_TEST(test_cc_oci_exec) {
 	ck_assert(! cc_oci_exec(&config, &state, 2, argv));
 } END_TEST
 
+START_TEST(test_cc_oci_toggle) {
+	struct cc_oci_config* config = cc_oci_config_create();
+	struct oci_state state = { 0 };
+
+	ck_assert (! cc_oci_toggle (NULL, NULL, false));
+	ck_assert (! cc_oci_toggle (config, NULL, false));
+	ck_assert (! cc_oci_toggle (NULL, &state, false));
+
+	state.status = OCI_STATUS_RUNNING;
+	ck_assert (cc_oci_toggle (config, &state, false));
+
+	state.status = OCI_STATUS_RUNNING;
+	ck_assert (! cc_oci_toggle (config, &state, true));
+	cc_oci_config_free (config);
+} END_TEST
+
 Suite* make_oci_suite(void) {
 	Suite* s = suite_create(__FILE__);
 
@@ -1109,6 +1126,7 @@ Suite* make_oci_suite(void) {
 	ADD_TEST (test_set_env_home, s);
 	ADD_TEST (test_cc_oci_process_to_json, s);
 	ADD_TEST (test_cc_oci_exec, s);
+	ADD_TEST (test_cc_oci_toggle, s);
 
 	return s;
 }

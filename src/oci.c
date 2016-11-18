@@ -1229,8 +1229,9 @@ cc_oci_toggle (struct cc_oci_config *config,
 	enum oci_status   dest_status;
 	gboolean          ret;
 
-	g_assert (config);
-	g_assert (state);
+	if (! (config && state)) {
+		return false;
+	}
 
 	dest_status = pause ? OCI_STATUS_PAUSED : OCI_STATUS_RUNNING;
 
