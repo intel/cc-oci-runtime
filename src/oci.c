@@ -279,11 +279,11 @@ error:
 private gboolean
 cc_oci_vm_running (const struct oci_state *state)
 {
-	if (! (state && state->pid)) {
+	if (! (state && state->vm && state->vm->pid)) {
 		return false;
 	}
 
-	return kill (state->pid, 0) == 0;
+	return kill (state->vm->pid, 0) == 0;
 }
 
 /*!
@@ -1177,7 +1177,7 @@ cc_oci_stop (struct cc_oci_config *config,
 
 	if (cc_oci_vm_running (state)) {
 		gboolean ret;
-		ret = cc_oci_vm_shutdown (state->comms_path, state->pid);
+		ret = cc_oci_vm_shutdown (state->comms_path, state->vm->pid);
 		if (! ret) {
 			return false;
 		}

@@ -793,17 +793,25 @@ START_TEST(test_cc_oci_vm_running) {
 
 	ck_assert (! cc_oci_vm_running (NULL));
 
-	/* no pid */
+	/* no vm */
 	ck_assert (! cc_oci_vm_running (&state));
 
-	/* our pid */
-	state.pid = getpid ();
+	state.vm = g_malloc0(sizeof(struct cc_oci_vm_cfg));
+	ck_assert(state.vm);
+
+	/* no pid for vm */
+	ck_assert (! cc_oci_vm_running (&state));
+
+	/* our pid provided as hypervisor pid*/
+	state.vm->pid = getpid ();
 	ck_assert (cc_oci_vm_running (&state));
 
 	/* invalid pid (we hope: this is potential an unreliable test).
 	 */
-	state.pid = (pid_t)INT_MAX;
+	state.vm->pid = (pid_t)INT_MAX;
 	ck_assert (! cc_oci_vm_running (&state));
+
+	g_free(state.vm);
 
 } END_TEST
 
