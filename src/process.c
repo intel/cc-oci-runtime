@@ -1552,10 +1552,6 @@ cc_oci_vm_connect (struct cc_oci_config *config)
 		/* failed */
 		goto out;
 	}
-
-#else
-	g_critical ("not implemented yet");
-	goto out;
 #endif
 
 	ret = true;

@@ -1225,6 +1225,14 @@ cc_oci_exec (struct cc_oci_config *config,
 		goto out;
 	}
 
+	if (start_data.pid_file) {
+		ret = cc_oci_create_pidfile (start_data.pid_file,
+				config->state.workload_pid);
+		if (! ret) {
+			goto out;
+		}
+	}
+
 	ret = true;
 out:
 	return ret;
