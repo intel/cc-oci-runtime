@@ -1358,7 +1358,7 @@ exit:
  * \return \c true on success, else \c false.
  */
 gboolean
-cc_oci_exec_shim (struct cc_oci_config *config) {
+cc_oci_exec_shim (struct cc_oci_config *config, int ioBase, int proxy_io_fd) {
 
 	gboolean           ret = false;
 	GSocketConnection *shim_socket_connection = NULL;
@@ -1368,13 +1368,13 @@ cc_oci_exec_shim (struct cc_oci_config *config) {
 	ssize_t            bytes;
 	char               err_buffer[2] = { '\0' };
 	int                proxy_fd = -1;
-	int                proxy_io_fd = -1;
-	int                ioBase = -1;
 	GError            *error = NULL;
 
 	if(! config){
 		return false;
 	}
+
+	/* FIXME: Close proxy_fd before launch shim to avoid race conditions */
 
 	if (! cc_shim_launch (config, &shim_err_fd, &shim_args_fd, &shim_socket_fd)) {
 		goto out;
@@ -1400,11 +1400,6 @@ cc_oci_exec_shim (struct cc_oci_config *config) {
 	 * 2. The child blocks waiting for a write ioBase to shim_args_fd.
 	*/
 
-	if (! cc_proxy_cmd_allocate_io(config->proxy,
-			&proxy_io_fd, &ioBase, process->terminal)) {
-		goto out;
-	}
-
 	bytes = write (shim_args_fd, &ioBase, sizeof (ioBase));
 	if (bytes < 0) {
 		g_critical ("failed to send proxy ioBase to shim child: %s",
@@ -1412,9 +1407,6 @@ cc_oci_exec_shim (struct cc_oci_config *config) {
 		goto out;
 	}
 
-	/* save ioBase */
-	config->oci.process.stdio_stream = ioBase;
-	config->oci.process.stderr_stream = ioBase + 1;
 
 	/*
 	 * 3. The child blocks waiting for a write proxy IO fd to shim_socket_fd.
@@ -1481,6 +1473,8 @@ gboolean
 cc_oci_vm_connect (struct cc_oci_config *config)
 {
 	gboolean    ret = false;
+	int         ioBase = -1;
+	int         proxy_io_fd = -1;
 #if 0
 	GError     *err = NULL;
 	GPid        pid;
@@ -1504,11 +1498,28 @@ cc_oci_vm_connect (struct cc_oci_config *config)
 		goto out;
 	}
 
-	if (! cc_oci_exec_shim (config)) {
+	if (! cc_proxy_cmd_allocate_io(config->proxy,
+			&proxy_io_fd, &ioBase, config->oci.process.terminal)) {
 		goto out;
 	}
 
+	/* save ioBase */
+	config->oci.process.stdio_stream = ioBase;
+	if ( config->oci.process.terminal) {
+		/* For tty, pass stderr seq as 0, so that stdout and
+		 * and stderr are redirected to the terminal
+		 */
+		config->oci.process.stderr_stream = 0;
+	} else {
+		config->oci.process.stderr_stream = ioBase + 1;
+	}
+
+	g_debug("exec command");
 	if (! cc_proxy_hyper_exec_command (config)) {
+		goto out;
+	}
+
+	if (! cc_oci_exec_shim (config, ioBase, proxy_io_fd)) {
 		goto out;
 	}
 

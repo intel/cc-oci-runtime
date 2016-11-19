@@ -187,6 +187,9 @@ handler_exec (const struct subcommand *sub,
 		goto out;
 	}
 
+	g_free_if_set(config->console);
+	config->console = g_strdup(start_data.console);
+
 	ret = cc_oci_exec (config, state, process_json);
 	if (! ret) {
 		goto out;
