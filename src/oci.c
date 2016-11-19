@@ -1193,8 +1193,10 @@ cc_oci_stop (struct cc_oci_config *config,
 				state->id, state->pid);
 	}
 
+	cc_proxy_connect(config->proxy);
+
 	/* Allow the proxy to clean up resources */
-	if (! cc_proxy_cmd_bye (config->proxy)) {
+	if (! cc_proxy_cmd_bye (config->proxy, config->optarg_container_id)) {
 		return false;
 	}
 
