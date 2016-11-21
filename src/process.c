@@ -819,6 +819,18 @@ out:
 }
 
 /*!
+ * Function called when a data element in GPtrArray is destroyed
+ */
+private void
+cc_free_pointer(gpointer str)
+{
+	if (! str) {
+		return;
+	}
+	g_free(str);
+}
+
+/*!
  * Start the hypervisor as a child process.
  *
  * Due to the way networking is handled in Docker, the logic here
@@ -866,7 +878,7 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 		goto out;
 	}
 
-        additional_args = g_ptr_array_new ();
+        additional_args = g_ptr_array_new_with_free_func(cc_free_pointer);
 
 	config->state.status = OCI_STATUS_CREATED;
 
@@ -973,26 +985,6 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 			goto child_failed;
 		}
 
-		if (setup_networking) {
-			hndl = netlink_init();
-			if (hndl == NULL) {
-				g_critical("failed to setup netlink socket");
-				goto child_failed;
-			}
-
-			if (! cc_oci_vm_netcfg_get (config, hndl)) {
-				g_critical("failed to discover network configuration");
-				goto child_failed;
-			}
-
-			if (! cc_oci_network_create(config, hndl)) {
-				g_critical ("failed to create network");
-				goto child_failed;
-			}
-			g_debug ("network configuration complete");
-
-		}
-
 		g_debug ("running command:");
 		for (p = args; p && *p; p++) {
 			g_debug ("arg: '%s'", *p);
@@ -1082,7 +1074,27 @@ child_failed:
 	// - oci_state()
 	// - cc_oci_update_options()
 
-	cc_oci_populate_extra_args(config, &additional_args);
+	if (setup_networking) {
+		hndl = netlink_init();
+		if (hndl == NULL) {
+			g_critical("failed to setup netlink socket");
+			goto child_failed;
+		}
+
+		if (! cc_oci_vm_netcfg_get (config, hndl)) {
+			g_critical("failed to discover network configuration");
+			goto child_failed;
+		}
+
+		if (! cc_oci_network_create(config, hndl)) {
+			g_critical ("failed to create network");
+			goto child_failed;
+		}
+		g_debug ("network configuration complete");
+
+	}
+
+	cc_oci_populate_extra_args(config, additional_args);
 	ret = cc_oci_vm_args_get (config, &args, additional_args);
 	if (! (ret && args)) {
 		goto out;
