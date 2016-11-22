@@ -234,7 +234,6 @@ out:
  * \note \p exit_code may be \c NULL to avoid returning the
  * child exit code.
  */
-#if 0
 static void
 cc_oci_child_watcher (GPid pid, gint status,
 		gpointer exit_code) {
@@ -248,7 +247,6 @@ cc_oci_child_watcher (GPid pid, gint status,
 
 	g_main_loop_quit (main_loop);
 }
-#endif
 
 /*!
  * Close spawned hook and stop the hook loop.
@@ -1460,6 +1458,23 @@ out:
 	return ret;
 }
 
+gboolean
+cc_oci_is_attach_mode (struct cc_oci_config *config){
+	/* XXX: If running stand-alone, wait for the hypervisor to
+	 * finish. But if running under containerd, don't wait.
+	 *
+	 * A simple way to determine if we're being called
+	 * under containerd is to check if stdin is closed.
+	 *
+	 * Do not wait when console is empty.
+	 */
+	if ((isatty (STDIN_FILENO) && ! config->detached_mode)) {
+		g_debug("running in attach mode");
+		return true;
+	}
+		g_debug("running in deattach mode");
+	return false;
+}
 
 /*!
  * Create a connection to the VM, run a command and disconnect.
@@ -1475,16 +1490,7 @@ cc_oci_vm_connect (struct cc_oci_config *config)
 	gboolean    ret = false;
 	int         ioBase = -1;
 	int         proxy_io_fd = -1;
-#if 0
-	GError     *err = NULL;
-	GPid        pid;
 	gint        exit_code = -1;
-	GSpawnFlags flags = (G_SPAWN_CHILD_INHERITS_STDIN |
-			     /* XXX: required for g_child_watch_add! */
-			     G_SPAWN_DO_NOT_REAP_CHILD |
-			     G_SPAWN_SEARCH_PATH);
-	guint i;
-#endif
 
 	if(! config){
 		goto out;
@@ -1523,36 +1529,26 @@ cc_oci_vm_connect (struct cc_oci_config *config)
 		goto out;
 	}
 
-	//if (cc_oci_exec_have_to_wait()) {
-		/* FIXME: wait exec-shim or qemu finish */
-	//}
+	if (cc_oci_is_attach_mode(config)) {
+		main_loop = g_main_loop_new (NULL, 0);
+		if (! main_loop) {
+			g_critical ("cannot create main loop for client");
+			goto out;
+		}
+		g_child_watch_add (config->state.workload_pid, cc_oci_child_watcher,
+				&exit_code);
 
-#if 0
-	/* create a new main loop */
-	main_loop = g_main_loop_new (NULL, 0);
-	if (! main_loop) {
-		g_critical ("cannot create main loop for client");
-		goto out;
+		/* wait for child to finish */
+		g_main_loop_run (main_loop);
+
+		g_debug ("child pid %u exited with code %d",
+				(unsigned )config->state.workload_pid, (int)exit_code);
+
+		if (exit_code) {
+			/* failed */
+			goto out;
+		}
 	}
-
-	/* FIXME: launch shim */
-
-	g_debug ("shim process ('%s') running with pid %u",
-			args[0], (unsigned)pid);
-
-	g_child_watch_add (pid, cc_oci_child_watcher, &exit_code);
-
-	/* wait for child to finish */
-	g_main_loop_run (main_loop);
-
-	g_debug ("child pid %u exited with code %d",
-			(unsigned )pid, (int)exit_code);
-
-	if (exit_code) {
-		/* failed */
-		goto out;
-	}
-#endif
 
 	ret = true;
 out:
