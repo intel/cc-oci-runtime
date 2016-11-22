@@ -31,6 +31,8 @@
 SCRIPT_PATH=$(dirname "$(readlink -f "$0")")
 SCRIPT_NAME=${0##*/}
 
+[ -z "$GOPATH" ] && echo >&2 "${SCRIPT_NAME}: Please set GOPATH Env variable first." && exit 1
+
 # Default values:
 QEMU_PATH="/usr/bin/qemu-lite-system-x86_64"
 IMAGE_PATH="/usr/share/clear-containers/clear-containers.img"
@@ -89,6 +91,7 @@ shift "$((OPTIND - 1))"
 LOG_DIR="${SCRIPT_PATH}/test_logs"
 AUTOGEN_LOG_FILE="${LOG_DIR}/autogen.log"
 MAKE_LOG_FILE="${LOG_DIR}/make.log"
+MAKE_INSTALL_LOG_FILE="${LOG_DIR}/make_install.log"
 UNIT_TESTS_LOG_FILE="${LOG_DIR}/unit_tests.log"
 FUNCTIONAL_TESTS_LOG_FILE="${LOG_DIR}/functional_tests.log"
 VALGRIND_LOG_FILE="${LOG_DIR}/valgrind_tests.log"
@@ -101,6 +104,7 @@ SUMMARY_LOG_FILE="${LOG_DIR}/test_summary.log"
 # Set return codes to 1
 AUTOGEN_RC=1
 MAKE_RC=1
+MAKE_INSTALL_RC=1
 UNIT_TESTS_RC=1
 FUNCTIONAL_TESTS_RC=1
 VALGRIND_TESTS_RC=1
@@ -135,6 +139,12 @@ function run_make(){
 	( exit "${PIPESTATUS[0]}" ) && MAKE_RC=0
 }
 
+function run_make_install(){
+	echo "make execution"
+	sudo make install 2>&1 | tee "$MAKE_INSTALL_LOG_FILE"
+	( exit "${PIPESTATUS[0]}" ) && MAKE_INSTALL_RC=0
+}
+
 function run_test(){
 	test_name=$1
 	test_log=$2
@@ -146,12 +156,13 @@ function run_test(){
 function run_docker_tests(){
 	echo 'docker tests verification:'
 	pushd "${SCRIPT_PATH}/../integration/docker"
-	prove -m -Q --formatter=TAP::Formatter::HTML ./*.bats >> "$DOCKER_TESTS_LOG_FILE" \
+	sudo prove -m -Q --formatter=TAP::Formatter::HTML ./*.bats >> "$DOCKER_TESTS_LOG_FILE" \
 	&& DOCKER_TESTS_RC=0
 	total_tests=$(awk '/^[0-9]* tests/ {print $1}' "$DOCKER_TESTS_LOG_FILE")
 	passed=$(awk '/^[0-9]* ok/ {print $1}' "$DOCKER_TESTS_LOG_FILE")
 	failed=$(awk '/^[0-9]* failed/ {print $1}' "$DOCKER_TESTS_LOG_FILE")
 	skipped=$(awk '/^[0-9]* skipped/ {print $1}' "$DOCKER_TESTS_LOG_FILE")
+	passed=$((passed-skipped))
 	echo -e "\nSummary for Docker Tests:" | tee -a "$SUMMARY_LOG_FILE"
 	echo "Total Tests:  ${total_tests}" | tee -a "$SUMMARY_LOG_FILE"
 	echo "Passed Tests: ${passed}" | tee -a "$SUMMARY_LOG_FILE"
@@ -183,6 +194,7 @@ function check_functional_tests(){
 	passed=$(grep -c "^ok" "$log_file")
 	failed=$(grep -c "^not ok" "$log_file")
 	skipped=$(grep -c "# skip" "$log_file")
+	passed=$((passed-skipped))
 	echo -e "\nSummary for ${test_name}" | tee -a "$SUMMARY_LOG_FILE"
 	echo "Total Tests:  ${total_tests}" | tee -a "$SUMMARY_LOG_FILE"
 	echo "Passed Tests: ${passed}" | tee -a "$SUMMARY_LOG_FILE"
@@ -208,6 +220,7 @@ mkdir "$LOG_DIR"
 # Execute Tests
 run_autogen
 run_make
+run_make_install
 run_test "check-TESTS" "$UNIT_TESTS_LOG_FILE" && UNIT_TESTS_RC=0
 check_tests "$UNIT_TESTS_LOG_FILE"
 run_test "functional-tests" "$FUNCTIONAL_TESTS_LOG_FILE" && FUNCTIONAL_TESTS_RC=0
@@ -224,6 +237,7 @@ run_docker_tests
 echo -e "\nReturn Codes of executed checks:" | tee -a "$SUMMARY_LOG_FILE"
 echo "autogen return code: $AUTOGEN_RC" | tee -a "$SUMMARY_LOG_FILE"
 echo "make return code: $MAKE_RC" | tee -a "$SUMMARY_LOG_FILE"
+echo "make install return code: $MAKE_INSTALL_RC" | tee -a "$SUMMARY_LOG_FILE"
 echo "unit tests return code: $UNIT_TESTS_RC" | tee -a "$SUMMARY_LOG_FILE"
 echo "functional tests return code: $FUNCTIONAL_TESTS_RC" | tee -a "$SUMMARY_LOG_FILE"
 echo "valgrind tests return code: $VALGRIND_TESTS_RC" | tee -a "$SUMMARY_LOG_FILE"
