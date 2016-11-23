@@ -189,7 +189,7 @@ function verify_runtime_dirs()
 
 	else
 		log_msg "Invalid state: '$state'"
-		exit 1
+		false
 	fi
 
 	return 0
@@ -210,7 +210,7 @@ function testcontainer() {
 	local got=0
 	local cmd="$COR list --format table"
 	[ "$timeout_cmd"  -eq "$timeout_cmd" ] || \
-	{ log_msg "timeout is not a number"; exit 1; }
+	{ log_msg "timeout is not a number"; false; }
 
 	# The status passed to this function needs to be "simplified"
 	# in the case of "killed" to match the acceptable OCI states
@@ -239,7 +239,7 @@ function testcontainer() {
 		sleep 1
 		i=$((i+1))
 	done
-	[ "$got" -eq 1 ] || { log_msg "FAILED"; exit 1; }
+	[ "$got" -eq 1 ] || { log_msg "FAILED"; false; }
 	log_msg "SUCCESS"
 
 	# Pass full status to the verify function
