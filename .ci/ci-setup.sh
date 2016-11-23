@@ -124,7 +124,9 @@ function compile {
 	then
 		args="$configure_opts"
 	else
-		args="--disable-silent-rules"
+		args=""
+		args+=" --disable-silent-rules"
+		args+=" --prefix=\"${prefix_dir}\""
 	fi
 
 	eval CC=${CC:-cc} chronic ./configure "$args"
@@ -133,8 +135,7 @@ function compile {
 	popd
 }
 
-mkdir cor-dependencies
-pushd cor-dependencies
+pushd "$deps_dir"
 
 # Build glib
 glib_major=`echo $glib_version | cut -d. -f1`
@@ -157,7 +158,7 @@ compile check check-${check_version}.tar.gz check-${check_version}
 # Install bats
 git clone https://github.com/sstephenson/bats.git
 pushd bats
-sudo ./install.sh /usr/local
+sudo ./install.sh "$prefix_dir"
 popd
 
 if [ "$nested" != "Y" ]
@@ -179,13 +180,12 @@ gcc_opts+=" --disable-multilib"
 gcc_opts+=" --disable-libstdcxx"
 gcc_opts+=" --disable-bootstrap"
 gcc_opts+=" --disable-nls"
-gcc_opts+=" --prefix=\"/usr/local/${gcc_dir}\""
+gcc_opts+=" --prefix=\"${prefix_dir}\""
 
 compile gcc "$gcc_file" "$gcc_dir" "$gcc_opts"
 
 # Use built version of gcc
-export PATH="/usr/local/${gcc_dir}/bin:$PATH"
-export CC="/usr/local/${gcc_dir}/bin/gcc"
+export CC="${prefix_dir}/bin/gcc"
 
 # build qemu-lite
 qemu_lite_site="https://github.com/01org/qemu-lite/archive/"
@@ -235,10 +235,10 @@ qemu_lite_opts+=" --enable-kvm"
 qemu_lite_opts+=" --enable-virtfs"
 qemu_lite_opts+=" --target-list=x86_64-softmmu"
 qemu_lite_opts+=" --extra-cflags=\"-fno-semantic-interposition -O3 -falign-functions=32\""
-qemu_lite_opts+=" --prefix=/usr/local"
-qemu_lite_opts+=" --datadir=/usr/local/share/qemu-lite"
-qemu_lite_opts+=" --libdir=/usr/local/lib64/qemu-lite"
-qemu_lite_opts+=" --libexecdir=/usr/local/libexec/qemu-lite"
+qemu_lite_opts+=" --prefix=\"${prefix_dir}\""
+qemu_lite_opts+=" --datadir=\"${prefix_dir}/share/qemu-lite\""
+qemu_lite_opts+=" --libdir=\"${prefix_dir}/lib64/qemu-lite\""
+qemu_lite_opts+=" --libexecdir=\"${prefix_dir}/libexec/qemu-lite\""
 
 curl -L -O "${qemu_lite_url}"
 

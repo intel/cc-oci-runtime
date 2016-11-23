@@ -21,3 +21,16 @@ nested=$(cat /sys/module/kvm_intel/parameters/nested 2>/dev/null \
     || echo N)
 
 echo "INFO: Nested kvm available: $nested"
+
+if [ -n "$SEMAPHORE_CACHE_DIR" ]
+then
+    # Running under SemaphoreCI
+    prefix_dir="$SEMAPHORE_CACHE_DIR/cor"
+else
+    prefix_dir="$HOME/.cache/cor"
+fi
+
+deps_dir="${prefix_dir}/dependencies"
+mkdir -p "$deps_dir"
+
+export PATH="${prefix_dir}/bin:${prefix_dir}/sbin:$PATH"
