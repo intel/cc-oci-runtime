@@ -47,7 +47,13 @@ configure_opts+=" --enable-valgrind"
 configure_opts+=" --disable-valgrind-helgrind"
 configure_opts+=" --disable-valgrind-drd"
 configure_opts+=" --disable-silent-rules"
-configure_opts+=" --disable-docker-tests"
+
+if [ "$nested" = "Y" ]
+then
+    configure_opts+=" --enable-docker-tests"
+else
+    configure_opts+=" --disable-docker-tests"
+fi
 
 (cd ci_build && \
  eval ../"$tarball_dir"/configure "$configure_opts" \
