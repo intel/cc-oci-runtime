@@ -127,7 +127,7 @@ function compile {
 		args="--disable-silent-rules"
 	fi
 
-	eval chronic ./configure "$args"
+	eval CC=${CC:-cc} chronic ./configure "$args"
 	chronic make -j5
 	chronic sudo make install
 	popd
