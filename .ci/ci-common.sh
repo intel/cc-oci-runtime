@@ -44,3 +44,16 @@ export PATH="${prefix_dir}/bin:${prefix_dir}/sbin:$PATH"
 # Install Clear Containers assets into same directory as used on Clear
 # Linux to avoid having to reconfigure the runtime to look elsewhere.
 clr_assets_dir=/usr/share/clear-containers
+
+# Run configure and "make check" in an exploded "make dist" tarball to
+# make sure the distribution provides the necessary files for both
+# building and testing. Also do an out of tree build to check srcdir vs
+# builddir discrepancies.
+if [ -n "$SEMAPHORE_PROJECT_DIR" ]
+then
+    ci_build_dir="$SEMAPHORE_PROJECT_DIR/ci_build"
+else
+    ci_build_dir="$TRAVIS_BUILD_DIR/ci_build"
+fi
+
+mkdir -p "$ci_build_dir"

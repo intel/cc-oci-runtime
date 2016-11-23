@@ -35,11 +35,6 @@ tarball=`ls -1 cc-oci-runtime-*.tar.xz`
 chronic tar xvf "$tarball"
 tarball_dir=${tarball%.tar.xz}
 
-# We run configure and make check in an exploded make dist tarball to make sure
-# we distribute the necessary files for both building and testing.
-# We also do an out of tree build to check srcdir vs builddir discrepancy.
-mkdir ci_build
-
 configure_opts=""
 configure_opts+=" --sysconfdir=/etc"
 configure_opts+=" --localstatedir=/var"
@@ -62,7 +57,7 @@ else
     configure_opts+=" --disable-functional-tests"
 fi
 
-(cd ci_build && \
+(cd "$ci_build_dir" && \
  eval ../"$tarball_dir"/configure "$configure_opts" \
  && make -j5 CFLAGS="-Werror -Wno-error=pedantic" \
  && make check)
