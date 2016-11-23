@@ -97,7 +97,7 @@
  *  - Reacts to signals.
  *  - Exits with return code of real workload process.
  */
-#define CC_OCI_SHIM 			"cc-shim"
+#define CC_OCI_SHIM                     LIBEXECDIR"/cc-shim"
 
 /** Full path to socket used to talk to \ref CC_OCI_PROXY. */
 #define CC_OCI_PROXY_SOCKET 		CC_OCI_RUNTIME_DIR_PREFIX \
