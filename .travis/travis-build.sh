@@ -17,6 +17,8 @@
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+./autogen.sh
+
 # We run the travis script from an exploded `make dist` tarball to ensure
 # `make dist` has the necessary files to compile and run the tests.
 #
@@ -42,3 +44,16 @@ mkdir travis_build
      --disable-docker-tests \
  && make -j5 CFLAGS=-Werror \
  && make check)
+
+# go checks
+export go_packages=$(go list ./... | grep -v cc-oci-runtime/vendor |\
+    sed -e 's#.*/cc-oci-runtime/#./#')
+
+go list -f '{{.Dir}}/*.go' $go_packages |\
+    xargs -I % bash -c "misspell -error %"
+go vet $go_packages
+go list -f '{{.Dir}}' $go_packages |\
+    xargs gofmt -s -l | wc -l |\
+    xargs -I % bash -c "test % -eq 0"
+
+for p in $go_packages; do golint -set_exit_status $p; done
