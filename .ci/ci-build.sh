@@ -17,6 +17,8 @@
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+source $(dirname "$0")/ci-common.sh
+
 ./autogen.sh
 
 # We run the travis script from an exploded `make dist` tarball to ensure

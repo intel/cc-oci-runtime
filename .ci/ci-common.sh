@@ -17,14 +17,7 @@
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-set -e
+nested=$(cat /sys/module/kvm_intel/parameters/nested 2>/dev/null \
+    || echo N)
 
-source $(dirname "$0")/ci-common.sh
-
-printf "=== Build failed ===\n"
-
-for f in $(ls *_test*.log)
-do
-    printf "\n=== Log file: '$f' ===\n\n"
-    cat "$f"
-done
+echo "INFO: Nested kvm available: $nested"
