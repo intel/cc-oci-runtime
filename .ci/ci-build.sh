@@ -60,6 +60,7 @@ fi
 (cd "$ci_build_dir" && \
  eval ../"$tarball_dir"/configure "$configure_opts" \
  && make -j5 CFLAGS="-Werror -Wno-error=pedantic" \
+ && sudo make install \
  && make check)
 
 # go checks
