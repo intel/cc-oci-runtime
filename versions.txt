@@ -6,3 +6,5 @@ docker_fedora_version=24
 docker_ubuntu_version=16.04
 docker_engine_fedora_version=1.12.1
 docker_engine_ubuntu_version=1.12.1-0~xenial
+clear_vm_image_version=11840
+clear_vm_kernel_version=4.5-50
