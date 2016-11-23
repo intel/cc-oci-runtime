@@ -312,3 +312,33 @@ fi
 popd
 
 popd
+
+if [ "$SEMAPHORE" = true ]
+then
+    distro=$(lsb_release -c|awk '{print $2}' || :)
+    if [ "$distro" = trusty ]
+    then
+        # Configure docker to use the runtime
+        docker_opts=""
+        docker_opts+=" --add-runtime cor=cc-oci-runtime"
+        docker_opts+=" --default-runtime=cor"
+
+        sudo initctl stop docker
+
+        # Remove first as apt-get doesn't like downgrading this package
+        # on trusty.
+        sudo apt-get -qq purge docker-engine
+
+        sudo apt-get -qq install \
+            docker-engine="$docker_engine_semaphoreci_ubuntu_version"
+
+        echo "DOCKER_OPTS=\"$docker_opts\"" |\
+            sudo tee -a /etc/default/docker
+
+        sudo initctl restart docker
+
+    else
+        echo "ERROR: unhandled Semaphore distro: $distro"
+        exit 1
+    fi
+fi
