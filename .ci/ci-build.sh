@@ -34,7 +34,7 @@ tarball_dir=${tarball%.tar.xz}
 # We run configure and make check in an exploded make dist tarball to make sure
 # we distribute the necessary files for both building and testing.
 # We also do an out of tree build to check srcdir vs builddir discrepancy.
-mkdir travis_build
+mkdir ci_build
 
 configure_opts=""
 configure_opts+=" --sysconfdir=/etc"
@@ -47,7 +47,7 @@ configure_opts+=" --disable-valgrind-drd"
 configure_opts+=" --disable-silent-rules"
 configure_opts+=" --disable-docker-tests"
 
-(cd travis_build && \
+(cd ci_build && \
  eval ../"$tarball_dir"/configure "$configure_opts" \
  && make -j5 CFLAGS=-Werror \
  && make check)

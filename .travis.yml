@@ -22,13 +22,13 @@ env:
     - coverity_scan_run_condition='"$CC" = gcc'
 
 before_script:
-- ./.travis/travis-setup.sh
+- ./.ci/ci-setup.sh
 
 script:
-- ./.travis/travis-build.sh
+- ./.ci/ci-build.sh
 
 after_failure:
-- ./.travis/travis-teardown.sh
+- ./.ci/ci-teardown.sh
 
 notifications:
   email:
