@@ -40,3 +40,7 @@ export GOROOT=$HOME/go
 export GOPATH=$HOME/gopath
 export PATH=$GOROOT/bin:$GOPATH/bin:$PATH
 export PATH="${prefix_dir}/bin:${prefix_dir}/sbin:$PATH"
+
+# Install Clear Containers assets into same directory as used on Clear
+# Linux to avoid having to reconfigure the runtime to look elsewhere.
+clr_assets_dir=/usr/share/clear-containers

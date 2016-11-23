@@ -245,4 +245,63 @@ curl -L -O "${qemu_lite_url}"
 compile qemu-lite "$qemu_lite_file" \
 "$qemu_lite_dir" "$qemu_lite_opts"
 
+# install kernel + Clear Containers image
+mkdir -p assets
+pushd assets
+clr_dl_site="https://download.clearlinux.org"
+clr_release=$(curl -L "${clr_dl_site}/latest")
+clr_kernel_base_url="${clr_dl_site}/releases/${clr_release}/clear/x86_64/os/Packages"
+
+sudo mkdir -p "$clr_assets_dir"
+
+# find newest containers kernel
+clr_kernel=$(curl -l -s -L "${clr_kernel_base_url}" |\
+    grep -o "linux-container-[0-9][0-9.-]*\.x86_64.rpm" |\
+    sort -u)
+
+# download kernel
+if [ ! -e "${clr_assets_dir}/${clr_kernel}" ]
+then
+    curl -L -O "${clr_kernel_base_url}/${clr_kernel}"
+
+    # install kernel
+    # (note: cpio on trusty does not support "-D")
+    rpm2cpio "${clr_kernel}"| (cd / && sudo cpio -idv)
+fi
+
+clr_image_url="${clr_dl_site}/current/clear-${clr_release}-containers.img.xz"
+clr_image_compressed=$(basename "$clr_image_url")
+
+# uncompressed image name
+clr_image=${clr_image_compressed/.xz/}
+
+# download image
+if [ ! -e "${clr_assets_dir}/${clr_image}" ]
+then
+    for file in "${clr_image_url}-SHA512SUMS" "${clr_image_url}"
+    do
+        curl -L -O "$file"
+    done
+
+    # verify image
+    sha512sum -c "${clr_image_compressed}-SHA512SUMS"
+
+    # unpack image
+    unxz "${clr_image_compressed}"
+
+    # install image
+    sudo install "${clr_image}" "${clr_assets_dir}"
+fi
+
+# change kernel+image ownership
+sudo chown -R "$USER" "${clr_assets_dir}"
+
+# create image symlink (kernel will already have one)
+clr_image_link=clear-containers.img
+if [ ! -e "${clr_assets_dir}/${clr_image_link}" ]
+then
+    (cd "${clr_assets_dir}" && sudo ln -s "${clr_image}" "${clr_image_link}")
+fi
+popd
+
 popd
