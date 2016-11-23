@@ -303,11 +303,6 @@ bats_test_sources = \
 documentation_extra_dist =	\
 	documentation/high-level-overview.png
 
-mock_extra_dist = \
-	tests/mock/hyperstart.go \
-	tests/mock/misc.go \
-	tests/mock/rand.go
-
 EXTRA_DIST = \
 	LICENSE \
 	CONTRIBUTING.md \
