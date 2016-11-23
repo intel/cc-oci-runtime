@@ -33,4 +33,10 @@ fi
 deps_dir="${prefix_dir}/dependencies"
 mkdir -p "$deps_dir"
 
+export LD_LIBRARY_PATH="${prefix_dir}/lib:$LD_LIBRARY_PATH"
+export PKG_CONFIG_PATH="${prefix_dir}/lib/pkgconfig:$PKG_CONFIG_PATH"
+export ACLOCAL_FLAGS="-I \"${prefix_dir}/share/aclocal\" $ACLOCAL_FLAG"
+export GOROOT=$HOME/go
+export GOPATH=$HOME/gopath
+export PATH=$GOROOT/bin:$GOPATH/bin:$PATH
 export PATH="${prefix_dir}/bin:${prefix_dir}/sbin:$PATH"

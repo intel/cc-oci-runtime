@@ -61,7 +61,7 @@ fi
 
 (cd ci_build && \
  eval ../"$tarball_dir"/configure "$configure_opts" \
- && make -j5 CFLAGS=-Werror \
+ && make -j5 CFLAGS="-Werror -Wno-error=pedantic" \
  && make check)
 
 # go checks
