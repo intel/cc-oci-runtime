@@ -119,7 +119,15 @@ function compile {
 
 	chronic tar -xvf ${tarball}
 	pushd ${directory}
-	eval chronic ./configure --disable-silent-rules "$configure_opts"
+
+	if [ -n "$configure_opts" ]
+	then
+		args="$configure_opts"
+	else
+		args="--disable-silent-rules"
+	fi
+
+	eval chronic ./configure "$args"
 	chronic make -j5
 	chronic sudo make install
 	popd
