@@ -19,8 +19,8 @@
 
 set -e -x
 
-root=$(cd `dirname "$0"/..`; pwd -P)
-source $root/versions.txt
+root=$(cd `dirname "$0"`/..; pwd -P)
+source "$root/versions.txt"
 source $(dirname "$0")/ci-common.sh
 
 #
