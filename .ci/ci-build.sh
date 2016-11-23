@@ -54,6 +54,9 @@ if [ "$nested" = "Y" ]
 then
     configure_opts+=" --enable-docker-tests"
     configure_opts+=" --enable-functional-tests"
+    configure_opts+=" --with-cc-image=\"${clr_assets_dir}/clear-containers.img\""
+    configure_opts+=" --with-cc-kernel=\"${clr_assets_dir}/vmlinux.container\""
+    configure_opts+=" --with-qemu-path=\"${prefix_dir}/bin/qemu-system-x86_64\""
 else
     configure_opts+=" --disable-docker-tests"
     configure_opts+=" --disable-functional-tests"
