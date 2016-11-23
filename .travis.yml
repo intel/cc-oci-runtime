@@ -25,6 +25,7 @@ before_script:
 - ./.travis/travis-setup.sh
 - go get github.com/client9/misspell/cmd/misspell
 - go get github.com/golang/lint/golint
+- go get github.com/sameo/virtcontainers/hyperstart/mock
 
 script:
 - ./autogen.sh
