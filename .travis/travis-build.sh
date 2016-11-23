@@ -35,13 +35,20 @@ tarball_dir=${tarball%.tar.xz}
 # we distribute the necessary files for both building and testing.
 # We also do an out of tree build to check srcdir vs builddir discrepancy.
 mkdir travis_build
+
+configure_opts=""
+configure_opts+=" --sysconfdir=/etc"
+configure_opts+=" --localstatedir=/var"
+configure_opts+=" --prefix=/usr"
+configure_opts+=" --enable-cppcheck"
+configure_opts+=" --enable-valgrind"
+configure_opts+=" --disable-valgrind-helgrind"
+configure_opts+=" --disable-valgrind-drd"
+configure_opts+=" --disable-silent-rules"
+configure_opts+=" --disable-docker-tests"
+
 (cd travis_build && \
- ../"$tarball_dir"/configure \
-     --sysconfdir=/etc --localstatedir=/var --prefix=/usr \
-     --enable-cppcheck \
-     --enable-valgrind --disable-valgrind-helgrind --disable-valgrind-drd \
-     --disable-silent-rules \
-     --disable-docker-tests \
+ eval ../"$tarball_dir"/configure "$configure_opts" \
  && make -j5 CFLAGS=-Werror \
  && make check)
 
