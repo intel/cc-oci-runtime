@@ -39,6 +39,13 @@ fi
 
 source $(dirname "$0")/ci-common.sh
 
+if [ "$nested" = "Y" ]
+then
+    # Ensure the user can access the kvm device
+    sudo chmod g+rw /dev/kvm
+    sudo chgrp "$USER" /dev/kvm
+fi
+
 #
 # Install go
 #
