@@ -51,8 +51,10 @@ configure_opts+=" --disable-silent-rules"
 if [ "$nested" = "Y" ]
 then
     configure_opts+=" --enable-docker-tests"
+    configure_opts+=" --enable-functional-tests"
 else
     configure_opts+=" --disable-docker-tests"
+    configure_opts+=" --disable-functional-tests"
 fi
 
 (cd ci_build && \
