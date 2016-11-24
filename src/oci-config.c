@@ -187,7 +187,6 @@ cc_oci_config_free (struct cc_oci_config *config)
 	}
 
 	g_free_if_set (config->net.hostname);
-	g_free_if_set (config->net.gateway);
 	g_free_if_set (config->net.dns_ip1);
 	g_free_if_set (config->net.dns_ip2);
 

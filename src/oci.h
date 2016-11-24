@@ -311,9 +311,6 @@ struct cc_oci_net_cfg {
 	/** Network gateway (xxx.xxx.xxx.xxx). */
 	gchar  *hostname;
 
-	/** Network gateway (xxx.xxx.xxx.xxx). */
-	gchar  *gateway;
-
 	/** TODO: Do not limit number of DNS servers */
 
 	/** DNS IP (xxx.xxx.xxx.xxx). */
