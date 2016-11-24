@@ -8,4 +8,4 @@ docker_engine_fedora_version=1.12.1
 docker_engine_ubuntu_version=1.12.1-0~xenial
 docker_engine_semaphoreci_ubuntu_version=1.12.1-0~trusty
 gcc_version=6.2.0
-qemu_lite_version=3f889234fcd31ac4119aae57559b1286e09e1568
+qemu_lite_version=da5004e3ffc6a79df82d1b9d8f8533c4045f193c
