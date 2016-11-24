@@ -196,6 +196,11 @@ cc_oci_config_free (struct cc_oci_config *config)
                 (GDestroyNotify)cc_oci_net_interface_free);
 	}
 
+	if (config->net.routes) {
+		g_slist_free_full(config->net.routes,
+                (GDestroyNotify)cc_oci_net_ipv4_route_free);
+	}
+
 	cc_proxy_free (config->proxy);
 
 	g_free (config);
