@@ -165,7 +165,6 @@ cc_proxy_connect (struct cc_proxy *proxy)
 
 out:
 	return ret;
-
 out_connect:
 	g_clear_object (&proxy->socket);
 out_socket:
@@ -751,8 +750,7 @@ cc_proxy_cmd_bye (struct cc_proxy *proxy, const char *container_id)
 		return false;
 	}
 
-	if (! cc_proxy_connected (proxy)) {
-		g_critical ("not connected to proxy");
+	if (! cc_proxy_connect(proxy)) {
 		return ret;
 	}
 
@@ -1311,6 +1309,95 @@ out:
 	if (config && config->proxy) {
 		cc_proxy_disconnect (config->proxy);
 	}
+
+	return ret;
+}
+
+/**
+ * Request \ref CC_OCI_PROXY to kill a container
+ *
+ * \param config \ref cc_oci_config.
+ * \param signum signal number
+ *
+ * \return \c true on success, else \c false.
+ */
+gboolean
+cc_proxy_hyper_kill_container (struct cc_oci_config *config, int signum)
+{
+	JsonObject *killcontainer_payload;
+	char       *signum_str = NULL;
+	gboolean    ret = false;
+
+	if (! (config && config->proxy)) {
+		return false;
+	}
+	if (! cc_proxy_connect (config->proxy)) {
+		return false;
+	}
+	if (! cc_proxy_attach (config->proxy, config->optarg_container_id)) {
+		return false;
+	}
+
+	signum_str = g_strdup_printf("%d", signum);
+
+	killcontainer_payload = json_object_new ();
+
+	json_object_set_string_member (killcontainer_payload, "container",
+		config->optarg_container_id);
+	json_object_set_string_member (killcontainer_payload, "signal",
+		signum_str);
+
+	if (! cc_proxy_run_hyper_cmd (config, "killcontainer", killcontainer_payload)) {
+		g_critical("failed to run cmd killcontainer");
+		goto out;
+	}
+
+	ret = true;
+out:
+	g_free_if_set(signum_str);
+
+	json_object_unref (killcontainer_payload);
+
+	cc_proxy_disconnect (config->proxy);
+
+	return ret;
+}
+
+/**
+ * Request \ref CC_OCI_PROXY to destroy the POD
+ *
+ * \param config \ref cc_oci_config.
+ *
+ * \return \c true on success, else \c false.
+ */
+gboolean
+cc_proxy_hyper_destroy_pod (struct cc_oci_config *config)
+{
+	JsonObject *destroypod_payload;
+	gboolean ret = false;
+
+	if (! (config && config->proxy)) {
+		return false;
+	}
+	if (! cc_proxy_connect (config->proxy)) {
+		return false;
+	}
+	if (! cc_proxy_attach (config->proxy, config->optarg_container_id)) {
+		return false;
+	}
+
+	destroypod_payload = json_object_new ();
+
+	if (! cc_proxy_run_hyper_cmd (config, "destroypod", destroypod_payload)) {
+		g_critical("failed to run cmd destroypod");
+		goto out;
+	}
+
+	ret = true;
+out:
+	json_object_unref (destroypod_payload);
+
+	cc_proxy_disconnect (config->proxy);
 
 	return ret;
 }
