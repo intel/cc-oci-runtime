@@ -1,4 +1,5 @@
 #!/bin/bash
+
 #  This file is part of cc-oci-runtime.
 #
 #  Copyright (C) 2016 Intel Corporation
@@ -17,12 +18,27 @@
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-set -e
+DOCKER_EXE="docker"
+DOCKER_SERVICE="docker-cor"
 
-printf "=== Build failed ===\n"
+#Cleaning test environment
+function cleanDockerPs(){
+	"$DOCKER_EXE" ps -q | xargs -r "$DOCKER_EXE" kill
+	"$DOCKER_EXE" ps -aq | xargs -r "$DOCKER_EXE" rm -f
+}
 
-for f in $(ls *_test*.log)
-do
-    printf "\n=== Log file: '$f' ===\n\n"
-    cat "$f"
-done
+#Restarting test environment
+function startDockerService(){
+	systemctl status "$DOCKER_SERVICE" | grep 'running'
+	if [ "$?" -eq 0 ]; then
+		systemctl restart "$DOCKER_SERVICE"
+	fi
+}
+
+#Checking that default runtime is cor
+function runtimeDocker(){
+	default_runtime=`$DOCKER_EXE info 2>/dev/null | grep "^Default Runtime" | cut -d: -f2 | tr -d '[[:space:]]'`
+	if [ "$default_runtime" != "cor" ]; then
+		skip "Tests need to run with cor as default runtime"
+	fi
+}

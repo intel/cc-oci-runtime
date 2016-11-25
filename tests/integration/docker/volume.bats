@@ -21,8 +21,10 @@
 
 #Based on docker commands
 
+SRC="${BATS_TEST_DIRNAME}/../../integration/lib/"
+
 setup() {
-	load common
+	source $SRC/common.bash
 	cleanDockerPs
 	runtimeDocker
 	volName='volume1'
