@@ -19,7 +19,13 @@
 
 set -e
 
+source $(dirname "$0")/ci-common.sh
+
+[ "$SEMAPHORE_THREAD_RESULT" = "passed" ] && exit 0
+
 printf "=== Build failed ===\n"
+
+cd "$ci_build_dir"
 
 for f in $(ls *_test*.log)
 do
