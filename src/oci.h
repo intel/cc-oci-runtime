@@ -523,6 +523,23 @@ struct cc_proxy {
 	gchar *vm_console_socket;
 };
 
+/**
+ * Tracks the relationship between a container and
+ * a pod: Is this container part of a Pod ? Is it
+ * a sandbox ? What is the sandbox ID this container
+ * belongs to ?
+ */
+struct cc_pod {
+	/** If \c true, this is a sandbox container. */
+	gboolean sandbox;
+
+	/**
+	 * The sandbox name holds the container ID for the
+	 * sandbox container.
+	 */
+	gchar    *sandbox_name;
+};
+
 /** The main object holding all configuration data.
  *
  * \note The main user of this object is "start" - other commands
@@ -544,6 +561,9 @@ struct cc_oci_config {
 
 	/** Container-specific state. */
 	struct cc_oci_container_state  state;
+
+	/** Pod-specific configuration. */
+	struct cc_pod                  *pod;
 
 	/** Path to directory containing OCI bundle to run. */
 	gchar *bundle_path;

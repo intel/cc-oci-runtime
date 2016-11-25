@@ -18,7 +18,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+#include <string.h>
+
 #include "spec_handler.h"
+#include "pod.h"
 
 static void
 handle_annotation (GNode* root, struct cc_oci_config* config)
@@ -47,6 +50,13 @@ handle_annotation (GNode* root, struct cc_oci_config* config)
 	a->key = g_strdup (key);
 	if (value && *value) {
 		a->value = g_strdup (value);
+	}
+
+	g_debug ("New annotation: [%s]:[%s]", a->key, a->value ? a->value : "N/A");
+
+	if (cc_pod_handle_annotations(config, a) < 0) {
+		g_critical("Could not handle pod annotation [%s]:[%s]",
+			   a->key, a->value);
 	}
 
 	config->oci.annotations = g_slist_prepend

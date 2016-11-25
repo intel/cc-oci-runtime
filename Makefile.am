@@ -174,6 +174,7 @@ common_sources = \
 	src/json.c src/json.h \
 	src/proxy.c src/proxy.h \
 	src/spec_handler.c src/spec_handler.h \
+	src/pod.c src/pod.h \
 	src/common.h \
 	src/command.c src/command.h \
 	src/commands/create.c \
