@@ -27,6 +27,7 @@
 #include <check.h>
 #include <glib.h>
 #include <glib/gstdio.h>
+#include <fcntl.h>
 
 #include "test_common.h"
 #include "../src/logging.h"
@@ -233,18 +234,34 @@ START_TEST(test_cc_run_hook) {
 
 START_TEST(test_cc_oci_setup_shim) {
 	struct cc_oci_config config = { { 0 } };
+	char tmpf1[] = "/tmp/.tmpXXXXXX";
+	char tmpf2[] = "/tmp/.tmpXXXXXX";
+	int tmpf1_fd = -1;
+	int tmpf2_fd = -1;
 
 	ck_assert (! cc_oci_setup_shim (NULL, -1, -1));
 	ck_assert (! cc_oci_setup_shim (NULL, STDIN_FILENO, -1));
 	ck_assert (! cc_oci_setup_shim (NULL, -1, STDIN_FILENO));
 
+	tmpf1_fd = g_mkstemp (tmpf1);
+	ck_assert (tmpf1_fd >= 0);
+
+	tmpf2_fd = g_mkstemp (tmpf2);
+	ck_assert (tmpf2_fd >= 0);
+
 	config.oci.process.terminal = false;
-	ck_assert (cc_oci_setup_shim (&config, STDIN_FILENO, STDIN_FILENO));
+	ck_assert (cc_oci_setup_shim (&config, tmpf1_fd, tmpf2_fd));
+
+	tmpf1_fd = open (tmpf1, O_RDWR);
+	tmpf2_fd = open (tmpf2, O_RDWR);
 
 	config.oci.process.terminal = true;
-	config.console = g_strdup ("/dev/ptmx");
-	ck_assert (cc_oci_setup_shim (&config, STDIN_FILENO, STDIN_FILENO));
+	config.console = g_strdup("/dev/ptmx");
+	ck_assert (! cc_oci_setup_shim (&config, tmpf1_fd, tmpf2_fd));
+
 	g_free (config.console);
+	cc_oci_rm_rf (tmpf1);
+	cc_oci_rm_rf (tmpf2);
 } END_TEST
 
 START_TEST(test_socket_connection_from_fd) {
