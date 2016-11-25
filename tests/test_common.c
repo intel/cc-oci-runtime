@@ -340,9 +340,9 @@ pid_t run_qmp_vm(char **socket_path) {
 
 	tmpdir = g_dir_make_tmp(NULL, &error);
 	if (! tmpdir) {
-		fprintf (stderr, "failed to create tmp directory\n");
+		g_critical ("failed to create tmp directory\n");
 		if (error) {
-			fprintf (stderr, "error: %s\n", error->message);
+			g_critical ("error: %s\n", error->message);
 			g_error_free(error);
 		}
 		return -1;
@@ -352,13 +352,13 @@ pid_t run_qmp_vm(char **socket_path) {
 	g_free(tmpdir);
 
 	if (pipe2 (err_pipe, O_CLOEXEC) < 0) {
-		fprintf (stderr, "failed to create err pipes\n");
+		g_critical ("failed to create err pipes\n");
 		goto fail;
 	}
 
 	pid = fork ();
 	if (pid < 0) {
-		fprintf (stderr, "failed to fork parent\n");
+		g_critical ("failed to fork parent\n");
 		goto fail;
 	} else if (! pid) {
 		/* child */
@@ -389,7 +389,7 @@ pid_t run_qmp_vm(char **socket_path) {
 		close(STDERR_FILENO);
 
 		if (execvp (argv[0], argv) < 0) {
-			fprintf (stderr, "failed to exec child %s: %s\n",
+			g_critical ("failed to exec child %s: %s\n",
 					argv[0],
 					strerror (errno));
 		}
@@ -405,7 +405,7 @@ pid_t run_qmp_vm(char **socket_path) {
 	/* waiting for child */
 	bytes = read (err_pipe[0], &buf, sizeof(buf));
 	if (bytes > 0) {
-		fprintf (stderr, "failed to exec hypervisor\n");
+		g_critical ("failed to exec hypervisor\n");
 		goto fail;
 	}
 
