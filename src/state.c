@@ -61,6 +61,7 @@ static void handle_state_mounts_section(GNode*, struct handler_data*);
 static void handle_state_console_section(GNode*, struct handler_data*);
 static void handle_state_vm_section(GNode*, struct handler_data*);
 static void handle_state_proxy_section(GNode*, struct handler_data*);
+static void handle_state_pod_section(GNode*, struct handler_data*);
 static void handle_state_annotations_section(GNode*, struct handler_data*);
 static void handle_state_process_section(GNode* node, struct handler_data* data);
 
@@ -92,6 +93,7 @@ static struct state_handler {
 	{ "console"     , handle_state_console_section     , 0 , 0 },
 	{ "vm"          , handle_state_vm_section          , 6 , 0 },
 	{ "proxy"       , handle_state_proxy_section       , 2 , 0 },
+	{ "pod"         , handle_state_pod_section         , 0 , 0 },
 	{ "annotations" , handle_state_annotations_section , 0 , 0 },
 
 	/* terminator */
@@ -407,6 +409,52 @@ handle_state_proxy_section(GNode* node, struct handler_data* data) {
 }
 
 /*!
+ * handler for pod section.
+ *
+ * \param node \c GNode.
+ * \param data \ref handler_data.
+ */
+static void
+handle_state_pod_section(GNode* node, struct handler_data* data) {
+	struct cc_pod *pod;
+
+	if (! (node && node->data)) {
+		return;
+	}
+	if (! (node->children && node->children->data)) {
+		g_critical("%s missing value", (char*)node->data);
+		return;
+	}
+
+	if (! (data && data->state)) {
+		g_critical("Missing handler data");
+		return;
+	}
+
+	if (! data->state->pod) {
+		data->state->pod = g_malloc0 (sizeof(struct cc_pod));
+		if (! data->state->pod) {
+			g_critical("Could not allocate pod");
+			return;
+		}
+	}
+
+	pod = data->state->pod;
+
+	if (g_strcmp0(node->data, "sandbox") == 0) {
+		pod->sandbox = !g_strcmp0 ((gchar *)node->children->data, "true")
+			? true : false;
+		(*(data->subelements_count))++;
+	} else if (g_strcmp0(node->data, "sandbox_name") == 0) {
+		pod->sandbox_name =
+			g_strdup ((gchar *)node->children->data);
+		(*(data->subelements_count))++;
+	} else {
+		g_critical("unknown pod option: %s", (char*)node->data);
+	}
+}
+
+/*!
  * handler for annotations section
  *
  * \param node \c GNode.
@@ -663,6 +711,11 @@ cc_oci_state_free (struct oci_state *state)
 		g_free (state->proxy);
 	}
 
+	if (state->pod) {
+		g_free_if_set (state->pod->sandbox_name);
+		g_free (state->pod);
+	}
+
 	g_free (state);
 }
 
@@ -687,6 +740,7 @@ cc_oci_state_file_create (struct cc_oci_config *config,
 	JsonObject  *annotation_obj = NULL;
 	JsonArray   *mounts = NULL;
 	JsonObject  *process = NULL;
+	JsonObject  *pod = NULL;
 	gchar       *str = NULL;
 	gsize        str_len = 0;
 	GError      *err = NULL;
@@ -837,6 +891,20 @@ cc_oci_state_file_create (struct cc_oci_config *config,
 			config->proxy->vm_console_socket : "");
 
 	json_object_set_object_member (obj, "proxy", proxy);
+
+	if (config->pod != NULL) {
+		/* Add an object containing CRI-O/ocid details */
+		pod = json_object_new ();
+
+		json_object_set_boolean_member (pod, "sandbox",
+						config->pod->sandbox);
+
+		json_object_set_string_member (pod, "sandbox_name",
+					       config->pod->sandbox_name ?
+					       config->pod->sandbox_name : "");
+
+		json_object_set_object_member (obj, "pod", pod);
+	}
 
 	if (config->oci.annotations) {
 		/* Add an object containing annotations */

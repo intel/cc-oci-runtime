@@ -432,6 +432,7 @@ struct oci_state {
 
 	struct cc_oci_vm_cfg *vm;
 	struct cc_proxy      *proxy;
+	struct cc_pod        *pod;
 
 	/* Needed by start to create a new container workload  */
 	struct oci_cfg_process *process;
