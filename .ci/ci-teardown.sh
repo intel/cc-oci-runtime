@@ -27,7 +27,7 @@ printf "=== Build failed ===\n"
 
 cd "$ci_build_dir"
 
-for f in $(ls *_test*.log)
+for f in test-suite.log $(ls *_test*.log)
 do
     printf "\n=== Log file: '$f' ===\n\n"
     cat "$f"
