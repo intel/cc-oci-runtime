@@ -202,7 +202,7 @@ func allocateIoHandler(data []byte, userData interface{}, response *handlerRespo
 		return
 	}
 
-	ioBase := vm.AllocateIo(allocateIo.NStreams, c1)
+	ioBase := vm.AllocateIo(allocateIo.NStreams, client.id, c1)
 
 	client.infof(1, "-> %d streams allocated, ioBase=%d", allocateIo.NStreams, ioBase)
 

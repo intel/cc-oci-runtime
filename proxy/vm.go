@@ -49,6 +49,9 @@ type ioSession struct {
 	nStreams int
 	ioBase   uint64
 
+	// id  of the client owning that ioSession
+	clientID uint64
+
 	// socket connected to the fd sent over to the client
 	client net.Conn
 
@@ -196,7 +199,7 @@ func (vm *vm) ioClientToHyper(session *ioSession) {
 	session.wg.Done()
 }
 
-func (vm *vm) AllocateIo(n int, c net.Conn) uint64 {
+func (vm *vm) AllocateIo(n int, clientID uint64, c net.Conn) uint64 {
 	// Allocate ioBase
 	vm.Lock()
 	ioBase := vm.nextIoBase
@@ -205,6 +208,7 @@ func (vm *vm) AllocateIo(n int, c net.Conn) uint64 {
 	session := &ioSession{
 		nStreams: n,
 		ioBase:   ioBase,
+		clientID: clientID,
 		client:   c,
 	}
 
