@@ -268,7 +268,7 @@ func (proxy *proxy) init() error {
 		if err != nil {
 			return fmt.Errorf("couldn't create AF_UNIX socket: %v", err)
 		}
-		if err = os.Chmod(socketPath, 0666|os.ModeSocket); err != nil {
+		if err = os.Chmod(socketPath, 0660|os.ModeSocket); err != nil {
 			return fmt.Errorf("couldn't set mode on socket: %v", err)
 		}
 	}
