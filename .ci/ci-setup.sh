@@ -64,6 +64,7 @@ cp -r vendor/* "$GOPATH/src"
 mkdir -p "$GOPATH/src/github.com/01org/"
 ln -s $PWD "$GOPATH/src/github.com/01org/"
 
+go get github.com/fzipp/gocyclo
 go get github.com/client9/misspell/cmd/misspell
 go get github.com/golang/lint/golint
 
