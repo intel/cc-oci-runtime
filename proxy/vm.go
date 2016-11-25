@@ -16,11 +16,13 @@ package main
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"net"
 	"os"
 	"sync"
 
+	"github.com/golang/glog"
 	"github.com/sameo/virtcontainers/hyperstart"
 )
 
@@ -71,6 +73,39 @@ func newVM(id, ctlSerial, ioSerial string) *vm {
 	}
 }
 
+func (vm *vm) shortName() string {
+	length := 8
+	if len(vm.containerID) < 8 {
+		length = len(vm.containerID)
+	}
+	return vm.containerID[0:length]
+}
+
+func (vm *vm) info(lvl glog.Level, channel string, msg string) {
+	if !glog.V(lvl) {
+		return
+	}
+	glog.Infof("[vm %s %s] %s", vm.shortName(), channel, msg)
+}
+
+func (vm *vm) infof(lvl glog.Level, channel string, fmt string, a ...interface{}) {
+	if !glog.V(lvl) {
+		return
+	}
+	a = append(a, 0, 0)
+	copy(a[2:], a[0:])
+	a[0] = vm.shortName()
+	a[1] = channel
+	glog.Infof("[vm %s %s] "+fmt, a...)
+}
+
+func (vm *vm) dump(lvl glog.Level, data []byte) {
+	if !glog.V(lvl) {
+		return
+	}
+	glog.Infof("\n%s", hex.Dump(data))
+}
+
 // Returns one chunk of data belonging to the seq stream
 func readIoMessage(conn net.Conn) (seq uint64, data []byte, err error) {
 	needRead := 12
@@ -104,15 +139,11 @@ func readIoMessage(conn net.Conn) (seq uint64, data []byte, err error) {
 
 }
 
-func (vm *vm) findClientConn(seq uint64) net.Conn {
+func (vm *vm) findSession(seq uint64) *ioSession {
 	vm.Lock()
 	defer vm.Unlock()
 
-	session := vm.ioSessions[seq]
-	if session == nil {
-		return nil
-	}
-	return vm.ioSessions[seq].client
+	return vm.ioSessions[seq]
 }
 
 // This function runs in a goroutine, reading data from the io channel and
@@ -131,13 +162,17 @@ func (vm *vm) ioHyperToClients() {
 		binary.BigEndian.PutUint32(data[8:], uint32(length))
 		copy(data[12:], ttyMsg.Message)
 
-		client := vm.findClientConn(ttyMsg.Session)
-		if client == nil {
+		session := vm.findSession(ttyMsg.Session)
+		if session == nil {
 			fmt.Fprintf(os.Stderr,
 				"couldn't find client with seq number %d\n", ttyMsg.Session)
 			continue
 		}
-		n, err := client.Write(data)
+
+		vm.infof(1, "io", "<- writing %d bytes to client #%d", len(data), session.clientID)
+		vm.dump(2, data)
+
+		n, err := session.client.Write(data)
 		if err != nil || n != len(data) {
 			fmt.Fprintf(os.Stderr,
 				"error writing I/O data to client: %v (%d bytes written)\n", err, n)
@@ -187,6 +222,9 @@ func (vm *vm) ioClientToHyper(session *ioSession) {
 			session.client.Close()
 			break
 		}
+
+		vm.infof(1, "io", "-> writing %d bytes to hyper from #%d", len(data), session.clientID)
+		vm.dump(2, data)
 
 		err = vm.hyperHandler.SendIoMessage(seq, data[12:])
 		if err != nil {
