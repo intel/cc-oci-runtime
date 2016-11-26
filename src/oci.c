@@ -1180,12 +1180,13 @@ gboolean
 cc_oci_stop (struct cc_oci_config *config,
 		struct oci_state *state)
 {
-	g_assert (config);
-	g_assert (state);
+	if (! (config && state)){
+		return false;
+	}
 
 	if (cc_oci_vm_running (state)) {
 		gboolean ret;
-		ret = cc_oci_vm_shutdown (state->comms_path, state->vm->pid);
+		ret = cc_proxy_hyper_destroy_pod(config);
 		if (! ret) {
 			return false;
 		}
