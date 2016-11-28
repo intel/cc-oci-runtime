@@ -31,7 +31,13 @@
 #include <errno.h>
 #include <string.h>
 
+#include <glib.h>
+#include <gio/gunixconnection.h>
+
 #include "pod.h"
+#include "process.h"
+#include "proxy.h"
+#include "state.h"
 
 /**
  * Handle pod related OCI annotations.
@@ -97,4 +103,154 @@ cc_pod_free (struct cc_pod *pod) {
 	g_free_if_set (pod->sandbox_name);
 
 	g_free (pod);
+}
+
+/*!
+ * Start a container within a pod.
+ *
+ * \param config \ref cc_oci_config.
+ *
+ * \return \c true on success, else \c false.
+ */
+gboolean
+cc_pod_new_container (struct cc_oci_config *config)
+{
+	gboolean           ret = false;
+	ssize_t            bytes;
+	char               buffer[2] = { '\0' };
+	g_autofree gchar  *timestamp = NULL;
+	int                shim_err_fd = -1;
+	int                shim_args_fd = -1;
+	int                shim_socket_fd = -1;
+	int                proxy_fd = -1;
+	int                proxy_io_fd = -1;
+	int                ioBase = -1;
+	GSocketConnection *shim_socket_connection = NULL;
+	GError            *error = NULL;
+
+	if (! (config && config->pod && config->proxy)) {
+		return false;
+	}
+
+	timestamp = cc_oci_get_iso8601_timestamp ();
+	if (! timestamp) {
+		goto out;
+	}
+
+	config->state.status = OCI_STATUS_CREATED;
+
+	/* Connect and attach to the proxy first */
+	if (! cc_proxy_connect (config->proxy)) {
+		goto out;
+	}
+
+	if (! cc_proxy_attach (config->proxy, config->pod->sandbox_name)) {
+		goto out;
+	}
+
+	/* Launch the shim child before the state file is created.
+	 *
+	 * Required since the state file must contain the workloads pid,
+	 * and for our purposes the workload pid is the pid of the shim.
+	 *
+	 * The child blocks waiting for a write to shim_args_fd.
+	 */
+	if (! cc_shim_launch (config, &shim_err_fd, &shim_args_fd, &shim_socket_fd, true)) {
+		goto out;
+	}
+
+	proxy_fd = g_socket_get_fd (config->proxy->socket);
+	if (proxy_fd < 0) {
+		g_critical ("invalid proxy fd: %d", proxy_fd);
+		goto out;
+	}
+
+	bytes = write (shim_args_fd, &proxy_fd, sizeof (proxy_fd));
+	if (bytes < 0) {
+		g_critical ("failed to send proxy fd to shim child: %s",
+			strerror (errno));
+		goto out;
+	}
+
+	if (! cc_proxy_cmd_allocate_io(config->proxy,
+				&proxy_io_fd, &ioBase,
+				config->oci.process.terminal)) {
+		goto out;
+	}
+
+	bytes = write (shim_args_fd, &ioBase, sizeof (ioBase));
+	if (bytes < 0) {
+		g_critical ("failed to send proxy ioBase to shim child: %s",
+			strerror (errno));
+		goto out;
+	}
+
+	/* send proxy IO fd to cc-shim child */
+	shim_socket_connection = cc_oci_socket_connection_from_fd(shim_socket_fd);
+	if (! shim_socket_connection) {
+		g_critical("failed to create a socket connection to send proxy IO fd");
+		goto out;
+	}
+
+	ret = g_unix_connection_send_fd (G_UNIX_CONNECTION (shim_socket_connection),
+		proxy_io_fd, NULL, &error);
+
+	if (! ret) {
+		g_critical("failed to send proxy IO fd");
+		goto out;
+	}
+
+	/* save ioBase */
+	config->oci.process.stdio_stream = ioBase;
+	config->oci.process.stderr_stream = ioBase + 1;
+
+	close (shim_args_fd);
+	shim_args_fd = -1;
+
+	g_debug ("checking shim setup (blocking)");
+
+	bytes = read (shim_err_fd,
+			buffer,
+			sizeof (buffer));
+	if (bytes > 0) {
+		g_critical ("shim setup failed");
+		ret = false;
+		goto out;
+	}
+
+	/* Create the state file now that all information is
+	 * available.
+	 */
+	g_debug ("recreating state file");
+
+	ret = cc_oci_state_file_create (config, timestamp);
+	if (! ret) {
+		g_critical ("failed to recreate state file");
+		goto out;
+	}
+
+	if (! cc_proxy_run_hyper_new_container (config,
+						config->optarg_container_id, "")) {
+		goto out;
+	}
+
+	/* We can now disconnect from the proxy (but the shim
+	 * remains connected).
+	 */
+	ret = cc_proxy_disconnect (config->proxy);
+
+	/* Finally, create the pid file. */
+	if (config->pid_file) {
+		ret = cc_oci_create_pidfile (config->pid_file,
+				config->state.workload_pid);
+		if (! ret) {
+			goto out;
+		}
+	}
+out:
+	if (shim_err_fd != -1) close (shim_err_fd);
+	if (shim_args_fd != -1) close (shim_args_fd);
+	if (shim_socket_fd != -1) close (shim_socket_fd);
+
+	return ret;
 }

@@ -30,5 +30,6 @@
 
 int cc_pod_handle_annotations(struct cc_oci_config *config, struct oci_cfg_annotation *annotation);
 void cc_pod_free (struct cc_pod *pod);
+gboolean cc_pod_new_container (struct cc_oci_config *config);
 
 #endif /* _CC_POD_H */

@@ -537,9 +537,18 @@ cc_oci_create (struct cc_oci_config *config)
 		return true;
 	}
 
-	if (! cc_oci_vm_launch (config)) {
-		g_critical ("failed to launch VM");
-		goto out;
+	/* Either start a standalone container or a pod sandbox */
+	if (! config->pod || config->pod->sandbox == true) {
+		if (! cc_oci_vm_launch (config)) {
+			g_critical ("failed to launch VM");
+			goto out;
+		}
+	} else {
+		/* We want to start a container within a pod */
+		if (! cc_pod_new_container (config)) {
+			g_critical ("failed to launch pod container");
+			goto out;
+		}
 	}
 
 	ret = true;

@@ -1252,38 +1252,25 @@ out:
 }
 
 /**
- * Request \ref CC_OCI_PROXY to start a new container
- * using intial worload from \ref cc_oci_config
+ * Prepare an hyperstart newcontainer command using
+ * the initial worload from \ref cc_oci_config and
+ * then request \ref CC_OCI_PROXY to send it.
  *
- * \param config
+ * \param config \ref cc_oci_config.
+ * \param container_id container ID
+ * \param rootfs container rootfs path
  *
  * \return \c true on success, else \c false.
  */
 gboolean
-cc_proxy_hyper_new_container (struct cc_oci_config *config)
+cc_proxy_run_hyper_new_container (struct cc_oci_config *config,
+				  const char *container_id,
+				  char *rootfs)
 {
 	JsonObject *newcontainer_payload= NULL;
 	JsonObject *process = NULL;
 	JsonArray *args= NULL;
 	JsonArray *envs= NULL;
-	gboolean ret = false;
-
-	if (! (config && config->proxy)) {
-		goto out;
-	}
-
-	if (! cc_proxy_connect (config->proxy)) {
-		goto out;
-	}
-	if (! cc_proxy_attach (config->proxy, config->optarg_container_id)) {
-		goto out;
-	}
-
-	if (config->oci.process.stdio_stream < 0  ||
-			config->oci.process.stderr_stream < 0 ) {
-		g_critical("invalid io stream number");
-		goto out;
-	}
 
 	/* json stanza for NEWCONTAINER*/
 	/*
@@ -1312,17 +1299,18 @@ cc_proxy_hyper_new_container (struct cc_oci_config *config)
 	   }
 	 * */
 
+	if (! config) {
+		return false;
+	}
+
 	newcontainer_payload = json_object_new ();
 	process  = json_object_new ();
 	args     = json_array_new ();
 	envs     = json_array_new ();
 
 	json_object_set_string_member (newcontainer_payload, "id",
-			config->optarg_container_id);
-	/*
-	 * FIXME ADD rootfs
-	 */
-	json_object_set_string_member (newcontainer_payload, "rootfs", "");
+				container_id);
+	json_object_set_string_member (newcontainer_payload, "rootfs", rootfs);
 
 	json_object_set_string_member (newcontainer_payload, "image", "");
 	/*json_object_set_string_member (newcontainer_payload, "image",
@@ -1351,7 +1339,8 @@ cc_proxy_hyper_new_container (struct cc_oci_config *config)
 		char *e = g_strstr_len (var, -1, "=");
 		if (! e ){
 			g_critical("failed to split enviroment variable value");
-			goto out;
+			json_object_unref (newcontainer_payload);
+			return false;
 		}
 		*e = '\0';
 		e++;
@@ -1379,15 +1368,50 @@ cc_proxy_hyper_new_container (struct cc_oci_config *config)
 	if (! cc_proxy_run_hyper_cmd (config, "newcontainer",
 				newcontainer_payload)) {
 		g_critical("failed to run new container");
+		json_object_unref (newcontainer_payload);
+		return false;
+	}
+
+	return true;
+}
+
+/**
+ * Request \ref CC_OCI_PROXY to start a new container
+ * using intial worload from \ref cc_oci_config
+ *
+ * \param config
+ *
+ * \return \c true on success, else \c false.
+ */
+gboolean
+cc_proxy_hyper_new_container (struct cc_oci_config *config)
+{
+	gboolean ret = false;
+
+	if (! (config && config->proxy)) {
+		goto out;
+	}
+
+	if (! cc_proxy_connect (config->proxy)) {
+		goto out;
+	}
+	if (! cc_proxy_attach (config->proxy, config->optarg_container_id)) {
+		goto out;
+	}
+
+	if (config->oci.process.stdio_stream < 0  ||
+			config->oci.process.stderr_stream < 0 ) {
+		g_critical("invalid io stream number");
+		goto out;
+	}
+
+	if (! cc_proxy_run_hyper_new_container (config,
+						config->optarg_container_id, "")) {
 		goto out;
 	}
 
 	ret = true;
 out:
-	if (newcontainer_payload) {
-		json_object_unref (newcontainer_payload);
-	}
-
 	if (config && config->proxy) {
 		cc_proxy_disconnect (config->proxy);
 	}
