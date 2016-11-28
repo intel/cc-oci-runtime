@@ -142,7 +142,7 @@ function verify_runtime_dirs()
 
 	if [ "$state" = "killed" ]
 	then
-		# If the container was kiled, the hypervisor
+		# If the container was killed, the hypervisor
 		# should have written an error to stderr.
 		#
 		# XXX: this presuposes that the kill signal was *NOT*
