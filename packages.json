@@ -1,4 +1,9 @@
 {
+	"github.com/davecgh/go-spew": {
+		"url": "https://github.com/davecgh/go-spew.git",
+		"version": "6d212800",
+		"license": "ISC"
+	},
 	"github.com/hyperhq/runv": {
 		"url": "https://github.com/hyperhq/runv.git",
 		"version": "28d48ac6",
@@ -9,10 +14,10 @@
 		"version": "792786c7",
 		"license": "BSD"
 	},
-	"github.com/davecgh/go-spew": {
-		"url": "https://github.com/davecgh/go-spew.git",
-		"version": "6d212800",
-		"license": "ISC"
+	"github.com/sameo/virtcontainers": {
+		"url": "https://github.com/sameo/virtcontainers.git",
+		"version": "v0.1.0",
+		"license": "Apache 2.0"
 	},
 	"github.com/stretchr/testify": {
 		"url": "https://github.com/stretchr/testify.git",
