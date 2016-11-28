@@ -301,6 +301,7 @@ then
     qemu_lite_opts+=" --enable-cap-ng"
     qemu_lite_opts+=" --enable-kvm"
     qemu_lite_opts+=" --enable-virtfs"
+    qemu_lite_opts+=" --enable-vhost-net"
     qemu_lite_opts+=" --target-list=x86_64-softmmu"
     qemu_lite_opts+=" --extra-cflags=\"-fno-semantic-interposition -O3 -falign-functions=32\""
     qemu_lite_opts+=" --prefix=\"${prefix_dir}\""
