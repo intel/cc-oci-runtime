@@ -809,7 +809,8 @@ out:
 gboolean
 cc_proxy_cmd_allocate_io (struct cc_proxy *proxy,
 	int *proxy_io_fd,
-	int *ioBase )
+	int *ioBase,
+	bool tty)
 {
 	JsonObject        *obj = NULL;
 	JsonObject        *data = NULL;
@@ -834,8 +835,15 @@ cc_proxy_cmd_allocate_io (struct cc_proxy *proxy,
 
 	json_object_set_string_member (obj, "id", proxy_cmd);
 
-	json_object_set_int_member (data, "nStreams",
-		n_streams);
+	/* If run interactively, allocate just 1 stream since
+	 * stdout and stderr are both connected to the terminal
+	 */
+	if (tty) {
+		json_object_set_int_member (data, "nStreams", 1);
+	} else {
+		json_object_set_int_member (data, "nStreams",
+			n_streams);
+	}
 
 	json_object_set_object_member (obj, "data", data);
 
