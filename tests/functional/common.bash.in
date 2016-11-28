@@ -163,13 +163,8 @@ function verify_runtime_dirs()
 		# at create time, only state.json should exist
 		[ "$output" = "state.json" ]
 
-	elif [ "$state" = "running" \
-		-o "$state" = "paused" \
-		-o "$state" = "killed" ]
+	elif [ "$state" = "running" -o "$state" = "paused" ]
 	then
-		# Note that state is retained when the container
-		# is forcibly killed.
-
 		[ "${lines[0]}" = "console.sock" ]
 		[ "${lines[1]}" = "ga-ctl.sock" ]
 		[ "${lines[2]}" = "ga-tty.sock" ]
@@ -178,15 +173,16 @@ function verify_runtime_dirs()
 		[ "${lines[5]}" = "state.json" ]
 		[ "${lines[6]}" = "" ]
 
-		if [ "$state" != "killed" ]
-		then
-			[ -S "$console_sock" ]
-			[ -S "$ga_ctl_sock" ]
-			[ -S "$ga_tty_sock" ]
-			[ -S "$hypervisor_sock" ]
-			[ -S "$process_sock" ]
-		fi
-
+		[ -S "$console_sock" ]
+		[ -S "$ga_ctl_sock" ]
+		[ -S "$ga_tty_sock" ]
+		[ -S "$hypervisor_sock" ]
+		[ -S "$process_sock" ]
+	elif [ "$state" = "killed" ]
+	then
+		# No further checks can be run reliably if the container
+		# has been killed.
+		return 0
 	else
 		log_msg "Invalid state: '$state'"
 		false
