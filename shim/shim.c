@@ -279,59 +279,31 @@ handle_signals(struct cc_shim *shim) {
 void
 handle_stdin(struct cc_shim *shim)
 {
-	ssize_t      nread;
-	int          ret;
-	ssize_t      len;
-	static char  buf[BUFSIZ-STREAM_HEADER_SIZE] = {0};
-	static char  wbuf[BUFSIZ] = {0};
-	static bool  cr  = false;
-	static bool  emit = false;
-	static int   cnt = 0;
-	char         ch;
+	ssize_t        nread;
+	int            ret;
+	ssize_t        len;
+	static uint8_t buf[BUFSIZ+STREAM_HEADER_SIZE];
 
 	if (! shim || shim->proxy_io_fd < 0) {
 		return;
 	}
 
-	nread = read(STDIN_FILENO , &ch, 1);
+	nread = read(STDIN_FILENO , buf+STREAM_HEADER_SIZE, BUFSIZ);
 	if (nread <= 0) {
 		shim_warning("Error while reading stdin char :%s\n", strerror(errno));
 		return;
 	}
 
-	if (ch == '\n') {
-		emit = !cr;
-		cr = false;
-		if (emit) {
-			buf[cnt++] = ch;
-		}
-	} else if  (ch == '\r') {
-		emit = true;
-		cr = true;
-		buf[cnt++] = '\n';
-	} else {
-		cr = false;
-		buf[cnt++] = ch;
-	}
-	if (emit || cnt == (BUFSIZ-STREAM_HEADER_SIZE)) {
-		len = cnt + STREAM_HEADER_SIZE;
-		set_big_endian_64 ((uint8_t*)wbuf, shim->io_seq_no);
-		set_big_endian_32 ((uint8_t*)wbuf + STREAM_HEADER_LENGTH_OFFSET, (uint32_t)len);
-		strncpy(wbuf + STREAM_HEADER_SIZE, buf, (size_t)cnt);
+	len = nread + STREAM_HEADER_SIZE;
+	set_big_endian_64 (buf, shim->io_seq_no);
+	set_big_endian_32 (buf + STREAM_HEADER_LENGTH_OFFSET, (uint32_t)len);
 
-		// TODO: handle write in the poll loop to account for write blocking
-		ret = (int)write(shim->proxy_io_fd, wbuf, (size_t)len);
-		if (ret == -1) {
-			shim_warning("Error writing from fd %d to fd %d: %s\n",
-				STDIN_FILENO, shim->proxy_io_fd, strerror(errno));
-			return;
-		}
-
-		memset(buf, 0, BUFSIZ-STREAM_HEADER_SIZE);
-		memset(wbuf, 0, BUFSIZ);
-		cnt = 0;
-		cr = false;
-		emit = false;
+	// TODO: handle write in the poll loop to account for write blocking
+	ret = (int)write(shim->proxy_io_fd, buf, (size_t)len);
+	if (ret == -1) {
+		shim_warning("Error writing from fd %d to fd %d: %s\n",
+			     STDIN_FILENO, shim->proxy_io_fd, strerror(errno));
+		return;
 	}
 }
 
@@ -685,6 +657,17 @@ main(int argc, char **argv)
 	 * this causes continuous close events to be generated on the poll loop.
 	 */
 	if (isatty(STDIN_FILENO)) {
+		/*
+		 * Set raw mode on the slave side of the PTY. The local pty
+		 * (ie. the one on the host side) is configured in raw mode to
+		 * be a dumb pipe and forward data to the pty on the VM side.
+		 */
+		struct termios term_settings;
+
+		tcgetattr(STDIN_FILENO, &term_settings);
+		cfmakeraw(&term_settings);
+		tcsetattr(STDIN_FILENO, TCSAFLUSH, &term_settings);
+
 		add_pollfd(poll_fds, &nfds, STDIN_FILENO, POLLIN | POLLPRI);
 	}
 
