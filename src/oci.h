@@ -539,6 +539,14 @@ struct cc_pod {
 	 * sandbox container.
 	 */
 	gchar    *sandbox_name;
+
+	/**
+	 * The sandbox workloads is where all pod containers rootfs
+	 * will be bind mounted.
+	 * A container rootfs will be bind mounted under
+	 * /sandbox_workloads/<container_id>/rootfs.
+	 */
+	gchar    sandbox_workloads[PATH_MAX];
 };
 
 /** The main object holding all configuration data.
@@ -600,6 +608,7 @@ gboolean cc_oci_run (struct cc_oci_config *config);
 void cc_oci_config_free (struct cc_oci_config *config);
 gchar *cc_oci_get_bundlepath_file (const gchar *bundle_path,
 		const gchar *file);
+gchar *cc_oci_get_workload_dir (struct cc_oci_config *config);
 gboolean cc_oci_get_config_and_state (gchar **config_file,
 		struct cc_oci_config *config,
 		struct oci_state **state);

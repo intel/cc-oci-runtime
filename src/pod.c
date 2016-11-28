@@ -18,6 +18,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+/* Sandbox rootfs */
+#define CC_POD_SANDBOX_ROOTFS "workloads"
+
 /* CRI-O/ocid namespaces */
 #define CC_POD_OCID_NAMESPACE "ocid/"
 #define CC_POD_OCID_NAMESPACE_SIZE 5
@@ -77,6 +80,20 @@ cc_pod_handle_annotations(struct cc_oci_config *config, struct oci_cfg_annotatio
 		if (g_strcmp0(annotation->value, CC_POD_OCID_SANDBOX) == 0) {
 			config->pod->sandbox = true;
 			config->pod->sandbox_name = g_strdup(config->optarg_container_id);
+
+			g_snprintf (config->pod->sandbox_workloads,
+				    sizeof (config->pod->sandbox_workloads),
+				    "%s/%s/%s",
+				    CC_OCI_RUNTIME_DIR_PREFIX,
+				    config->optarg_container_id,
+				    CC_POD_SANDBOX_ROOTFS);
+
+			if (g_mkdir_with_parents (config->pod->sandbox_workloads, CC_OCI_DIR_MODE)) {
+				g_critical ("failed to create directory %s: %s",
+					    config->pod->sandbox_workloads, strerror (errno));
+
+				return -errno;
+			}
 		}
 	} else if (g_strcmp0(annotation->key, CC_POD_OCID_SANDBOX_NAME) == 0) {
 		if (config->pod->sandbox_name) {

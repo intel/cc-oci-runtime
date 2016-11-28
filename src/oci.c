@@ -130,6 +130,29 @@ cc_oci_get_bundlepath_file (const gchar *bundle_path,
 	return g_build_path ("/", bundle_path, file, NULL);
 }
 
+/**
+ * Get the workload directory for a given container.
+ * For pod sandboxes, this is the sandbox workloads directory,
+ * while for regular containers this is the OCI root path.
+ *
+ * \param config Container configuration.
+ *
+ * \return The container workload full path.
+ */
+gchar *
+cc_oci_get_workload_dir (struct cc_oci_config *config)
+{
+	if (! config) {
+		return NULL;
+	}
+
+	if (config->pod && config->pod->sandbox) {
+		return config->pod->sandbox_workloads;
+	}
+
+	return config->oci.root.path;
+}
+
 /*!
  * Determine the containers config file, its configuration
  * and state.
