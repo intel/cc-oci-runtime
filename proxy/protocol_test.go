@@ -58,7 +58,10 @@ func (server *mockServer) Serve() {
 }
 
 func (server *mockServer) ServeWithUserData(userData interface{}) {
-	server.proto.Serve(server.serverConn, userData)
+	if err := server.proto.Serve(server.serverConn, userData); err != nil {
+		server.serverConn.Close()
+	}
+
 }
 
 func setupMockServer(t *testing.T, proto *protocol) (client net.Conn, server *mockServer) {
