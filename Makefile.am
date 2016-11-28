@@ -108,7 +108,8 @@ AM_CPPFLAGS = -I $(top_srcdir)/src -DG_LOG_DOMAIN=\"$(PACKAGE_NAME)\" \
 	-DSYSCONFDIR=\"$(SYSCONFDIR)\" \
 	-DDEFAULTSDIR=\"$(DEFAULTSDIR)\" \
 	-DLOCALSTATEDIR=\"$(localstatedir)\" \
-	-DGIT_COMMIT=\"$(STORED_COMMIT)\"
+	-DGIT_COMMIT=\"$(STORED_COMMIT)\" \
+	-DLIBEXECDIR=\"$(libexecdir)\"
 
 defaultsdir = $(datadir)/defaults/$(PACKAGE_NAME)
 defaults_DATA = data/vm.json data/hypervisor.args data/kernel-cmdline
