@@ -66,8 +66,6 @@ ln -s $PWD "$GOPATH/src/github.com/01org/"
 
 go get github.com/client9/misspell/cmd/misspell
 go get github.com/golang/lint/golint
-go get github.com/sameo/virtcontainers/hyperstart
-go get github.com/sameo/virtcontainers/hyperstart/mock
 
 #
 # Install cc-oci-runtime dependencies
