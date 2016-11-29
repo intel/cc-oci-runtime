@@ -34,7 +34,7 @@ gboolean cc_proxy_wait_until_ready (struct cc_oci_config *config);
 gboolean cc_proxy_hyper_pod_create (struct cc_oci_config *config);
 gboolean cc_proxy_cmd_bye (struct cc_proxy *proxy, const char *container_id);
 gboolean cc_proxy_cmd_allocate_io (struct cc_proxy *proxy, int *proxy_io_fd,
-		int *ioBase);
+		int *ioBase, bool tty);
 gboolean cc_proxy_hyper_new_container (struct cc_oci_config *config);
 void cc_proxy_free (struct cc_proxy *proxy);
 

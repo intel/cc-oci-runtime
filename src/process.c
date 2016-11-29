@@ -767,8 +767,10 @@ cc_shim_launch (struct cc_oci_config *config,
 		args[6] = g_strdup_printf ("%d", proxy_io_fd);
 		args[7] = g_strdup ("-s");
 		args[8] = g_strdup_printf ("%d", proxy_io_base);
-		args[9] = g_strdup ("-e");
-		args[10] = g_strdup_printf ("%d", proxy_io_base + 1);
+		if ( ! config->oci.process.terminal) {
+			args[9] = g_strdup ("-e");
+			args[10] = g_strdup_printf ("%d", proxy_io_base + 1);
+		}
 
 		g_debug ("running command:");
 		for (gchar** p = args; p && *p; p++) {
@@ -1171,7 +1173,7 @@ child_failed:
 	}
 
 	if (! cc_proxy_cmd_allocate_io(config->proxy,
-			&proxy_io_fd, &ioBase)) {
+			&proxy_io_fd, &ioBase, config->oci.process.terminal)) {
 		goto out;
 	}
 
@@ -1199,7 +1201,14 @@ child_failed:
 
 	/* save ioBase */
 	config->oci.process.stdio_stream = ioBase;
-	config->oci.process.stderr_stream = ioBase + 1;
+	if ( config->oci.process.terminal) {
+		/* For tty, pass stderr seq as 0, so that stdout and
+		 * and stderr are redirected to the terminal
+		 */
+		config->oci.process.stderr_stream = 0;
+	} else {
+		config->oci.process.stderr_stream = ioBase + 1;
+	}
 
 	close (shim_args_fd);
 	shim_args_fd = -1;
