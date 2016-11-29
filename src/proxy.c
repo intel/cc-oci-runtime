@@ -1091,7 +1091,7 @@ cc_proxy_hyper_pod_create (struct cc_oci_config *config)
 	JsonObject                   *route_data = NULL;
 	struct cc_oci_net_ipv4_route *route = NULL;
 
-	if (! (config && config->proxy)) {
+	if (! (config && config->proxy && config->net.hostname)) {
 		return false;
 	}
 
@@ -1099,7 +1099,7 @@ cc_proxy_hyper_pod_create (struct cc_oci_config *config)
 	data = json_object_new ();
 
 	json_object_set_string_member (data, "hostname",
-		config->optarg_container_id);
+		config->net.hostname);
 
 	/* FIXME: missing routes, dns,
 	 * portmappingWhiteLists, externalNetworks ?
@@ -1108,9 +1108,6 @@ cc_proxy_hyper_pod_create (struct cc_oci_config *config)
 	array = json_array_new();
 
 	json_object_set_array_member(data, "containers", array);
-
-	json_object_set_string_member (data, "hostname",
-		config->optarg_container_id);
 
 	json_object_set_string_member (data, "shareDir", "rootfs");
 
