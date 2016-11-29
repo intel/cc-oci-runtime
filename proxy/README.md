@@ -112,3 +112,26 @@ handled by systemd and can be viewed with:
 ```
 journalctl -u cc-proxy -f
 ```
+
+## Debugging
+
+`cc-proxy` uses [glog](https://github.com/golang/glog) for its log messages.
+
+`glog` can be configured through command line parameters, try the `-h` option
+for more details. Contrary to the `glog` defaults, `cc-proxy` defaults to
+writing log messages to stderr .
+
+```
+$ sudo ./cc-proxy -v 2
+```
+
+Additionally, the `CC_PROXY_LOG_LEVEL` environment variable can be used to set
+the log level. The command line parameter `-v` takes precedence over the
+environment variable.
+
+```
+$ sudo CC_PROXY_LOG_LEVEL=1 ./cc-proxy
+```
+
+There are 2 verbosity levels. The second one will dump the raw data going over
+the I/O channel.

@@ -17,6 +17,7 @@ package main
 import (
 	"encoding/binary"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"net"
@@ -71,6 +72,9 @@ func (rig *testRig) SetFork(fork bool) {
 }
 
 func (rig *testRig) Start() {
+	initLogging()
+	flag.Parse()
+
 	// Start hyperstart go routine
 	rig.Hyperstart = mock.NewHyperstart(rig.t)
 	rig.Hyperstart.Start()

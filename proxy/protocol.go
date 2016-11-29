@@ -107,7 +107,7 @@ func (proto *protocol) handleRequest(ctx *clientCtx, req *api.Request, hr *handl
 	}
 }
 
-func (proto *protocol) Serve(conn net.Conn, userData interface{}) {
+func (proto *protocol) Serve(conn net.Conn, userData interface{}) error {
 	ctx := &clientCtx{
 		conn:     conn,
 		userData: userData,
@@ -122,8 +122,7 @@ func (proto *protocol) Serve(conn net.Conn, userData interface{}) {
 		if err != nil {
 			// EOF or the client isn't even sending proper JSON,
 			// just kill the connection
-			conn.Close()
-			return
+			return err
 		}
 
 		// Execute the corresponding handler
@@ -133,15 +132,13 @@ func (proto *protocol) Serve(conn net.Conn, userData interface{}) {
 		if err = api.WriteMessage(conn, resp); err != nil {
 			// Something made us unable to write the response back
 			// to the client (could be a disconnection, ...).
-			fmt.Fprintf(os.Stderr, "couldn't encode response: %v\n", err)
-			conn.Close()
-			return
+			return err
 		}
 
 		// And send a fd if the handler associated a file with the response
 		if hr.file != nil {
 			if err = api.WriteFd(conn.(*net.UnixConn), int(hr.file.Fd())); err != nil {
-				fmt.Fprintf(os.Stderr, "error sending fd: %v\n", err)
+				return err
 			}
 			hr.file.Close()
 		}

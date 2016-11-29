@@ -16,12 +16,17 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"sync"
+	"sync/atomic"
 
 	"github.com/01org/cc-oci-runtime/proxy/api"
+
+	"github.com/golang/glog"
 )
 
 // Main struct holding the proxy state
@@ -40,10 +45,28 @@ type proxy struct {
 // Represents a client, either a cc-oci-runtime or cc-shim process having
 // opened a socket to the proxy
 type client struct {
+	id    uint64
 	proxy *proxy
 	vm    *vm
 
 	conn net.Conn
+}
+
+func (c *client) info(lvl glog.Level, msg string) {
+	if !glog.V(lvl) {
+		return
+	}
+	glog.Infof("[client #%d] %s", c.id, msg)
+}
+
+func (c *client) infof(lvl glog.Level, fmt string, a ...interface{}) {
+	if !glog.V(lvl) {
+		return
+	}
+	a = append(a, 0)
+	copy(a[1:], a[0:])
+	a[0] = c.id
+	glog.Infof("[client #%d] "+fmt, a...)
 }
 
 // "hello"
@@ -69,6 +92,10 @@ func helloHandler(data []byte, userData interface{}, response *handlerResponse) 
 			hello.ContainerID)
 		return
 	}
+
+	client.infof(1, "hello(containerId=%s,ctlSerial=%s,ioSerial=%s", hello.ContainerID,
+		hello.CtlSerial, hello.IoSerial)
+
 	vm := newVM(hello.ContainerID, hello.CtlSerial, hello.IoSerial)
 	proxy.vms[hello.ContainerID] = vm
 	proxy.Unlock()
@@ -104,6 +131,8 @@ func attachHandler(data []byte, userData interface{}, response *handlerResponse)
 		return
 	}
 
+	client.infof(1, "attach(containerId=%s)", attach.ContainerID)
+
 	client.vm = vm
 }
 
@@ -126,6 +155,8 @@ func byeHandler(data []byte, userData interface{}, response *handlerResponse) {
 		response.SetErrorf("unknown containerID: %s", bye.ContainerID)
 		return
 	}
+
+	client.info(1, "bye()")
 
 	proxy.Lock()
 	delete(proxy.vms, vm.containerID)
@@ -156,6 +187,8 @@ func allocateIoHandler(data []byte, userData interface{}, response *handlerRespo
 		return
 	}
 
+	client.infof(1, "allocateIo(nStreams=%d)", allocateIo.NStreams)
+
 	// We'll send c0 to the client, keep c1
 	c0, c1, err := Socketpair()
 	if err != nil {
@@ -169,7 +202,9 @@ func allocateIoHandler(data []byte, userData interface{}, response *handlerRespo
 		return
 	}
 
-	ioBase := vm.AllocateIo(allocateIo.NStreams, c1)
+	ioBase := vm.AllocateIo(allocateIo.NStreams, client.id, c1)
+
+	client.infof(1, "-> %d streams allocated, ioBase=%d", allocateIo.NStreams, ioBase)
 
 	response.AddResult("ioBase", ioBase)
 	response.SetFile(f0)
@@ -194,6 +229,8 @@ func hyperHandler(data []byte, userData interface{}, response *handlerResponse) 
 		response.SetErrorMsg("client not attached to a vm")
 		return
 	}
+
+	client.infof(1, "cmd=%s, data=%s)", hyper.HyperName, hyper.Data)
 
 	err := vm.SendMessage(hyper.HyperName, hyper.Data)
 	response.SetError(err)
@@ -241,13 +278,28 @@ func (proxy *proxy) init() error {
 	return nil
 }
 
+var nextClientID = uint64(1)
+
 func (proxy *proxy) serveNewClient(proto *protocol, newConn net.Conn) {
 	newClient := &client{
+		id:    nextClientID,
 		proxy: proxy,
 		conn:  newConn,
 	}
 
-	proto.Serve(newConn, newClient)
+	atomic.AddUint64(&nextClientID, 1)
+
+	// Unfortunately it's hard to find out information on the peer
+	// at the other end of a unix socket. We use a per-client ID to
+	// identify connections.
+	newClient.info(1, "client connected")
+
+	if err := proto.Serve(newConn, newClient); err != nil && err != io.EOF {
+		newClient.infof(1, "error serving client: %v", err)
+	}
+
+	newConn.Close()
+	newClient.info(1, "connection closed")
 }
 
 func (proxy *proxy) serve() {
@@ -259,6 +311,8 @@ func (proxy *proxy) serve() {
 	proto.Handle("bye", byeHandler)
 	proto.Handle("allocateIO", allocateIoHandler)
 	proto.Handle("hyper", hyperHandler)
+
+	glog.V(1).Info("proxy started")
 
 	for {
 		conn, err := proxy.listener.Accept()
@@ -280,6 +334,22 @@ func proxyMain() {
 	proxy.serve()
 }
 
+func initLogging() {
+	// We print logs on stderr by default.
+	flag.Set("logtostderr", "true")
+
+	// It can be practical to use an environment variable to trigger a verbose output
+	level := os.Getenv("CC_PROXY_LOG_LEVEL")
+	if level != "" {
+		flag.Set("v", level)
+	}
+}
+
 func main() {
+	initLogging()
+
+	flag.Parse()
+	defer glog.Flush()
+
 	proxyMain()
 }
