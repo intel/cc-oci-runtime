@@ -748,6 +748,7 @@ cc_shim_launch (struct cc_oci_config *config,
 		 */
 		while(proxy_socket_fd < 3) {
 			int fd = dup(proxy_socket_fd);
+			close(proxy_socket_fd);
 			if (fd < 0) {
 				g_critical("dup failed: %s", strerror(errno));
 				goto child_failed;
@@ -757,6 +758,7 @@ cc_shim_launch (struct cc_oci_config *config,
 
 		while(proxy_io_fd < 3) {
 			int fd = dup(proxy_io_fd);
+			close(proxy_io_fd);
 			if (fd < 0) {
 				g_critical("dup failed: %s", strerror(errno));
 				goto child_failed;
