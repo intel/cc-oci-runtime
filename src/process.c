@@ -260,7 +260,9 @@ cc_oci_setup_shim (struct cc_oci_config *config,
 	ret = true;
 
 out:
-	close (tty_fd);
+	if (tty_fd > 2) {
+		close (tty_fd);
+	}
 
 	return ret;
 }
@@ -745,11 +747,23 @@ cc_shim_launch (struct cc_oci_config *config,
 		 * proxy fds are assigned >= 3
 		 */
 		while(proxy_socket_fd < 3) {
-			proxy_socket_fd = dup(proxy_socket_fd);
+			int fd = dup(proxy_socket_fd);
+			close(proxy_socket_fd);
+			if (fd < 0) {
+				g_critical("dup failed: %s", strerror(errno));
+				goto child_failed;
+			}
+			proxy_socket_fd = fd;
 		}
 
 		while(proxy_io_fd < 3) {
-			proxy_io_fd = dup(proxy_io_fd);
+			int fd = dup(proxy_io_fd);
+			close(proxy_io_fd);
+			if (fd < 0) {
+				g_critical("dup failed: %s", strerror(errno));
+				goto child_failed;
+			}
+			proxy_io_fd = fd;
 		}
 
 		cc_oci_fd_toggle_cloexec(proxy_socket_fd, false);
