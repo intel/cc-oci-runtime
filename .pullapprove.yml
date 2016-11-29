@@ -18,9 +18,9 @@ group_defaults:
     approve_regex: '^(LGTM|lgtm|Approved|\+1|:\+1:)'
     reject_regex: '^(Rejected|-1|:-1:)'
   reset_on_push:
-    enabled: true
+    enabled: false
   reset_on_reopened:
-    enabled: true
+    enabled: false
   author_approval:
     ignored: true
 
@@ -30,7 +30,7 @@ groups:
     teams:
       - clear-containers-intel
   qa:
-    required: 1
+    required: 0
     users:
       - chavafg
       - gabyct
