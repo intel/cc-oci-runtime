@@ -30,7 +30,7 @@ groups:
     teams:
       - clear-containers-intel
   qa:
-    required: 1
+    required: 0
     users:
       - chavafg
       - gabyct
