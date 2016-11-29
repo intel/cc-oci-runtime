@@ -41,6 +41,7 @@
 #include "oci.h"
 #include "util.h"
 #include "network.h"
+#include "common.h"
 
 /** Size of buffer to use to receive network data */
 #define CC_OCI_NET_BUF_SIZE 2048
@@ -313,7 +314,7 @@ cc_oci_qmp_msg_send (struct cc_oci_vm_conn *conn,
 		gsize expected_resp_count,
 		gboolean expect_empty)
 {
-	static gboolean   initialised = false;
+	private gboolean   initialised = false;
 	const  gchar      capabilities[] = "{ \"execute\": \"qmp_capabilities\" }";
 	GError           *error = NULL;
 	gssize            size;
@@ -612,8 +613,14 @@ cc_oci_vm_conn_new (const gchar *socket_path, GPid pid)
 	GError                  *error = NULL;
 	gboolean                 ret = false;
 
-	g_assert (socket_path);
-	g_assert (pid);
+	if (! (socket_path && pid > 0)) {
+		return NULL;
+	}
+
+	if (! g_file_test (socket_path, G_FILE_TEST_EXISTS)) {
+		g_critical ("socket path does not exist: %s", socket_path);
+		goto err;
+	}
 
 	conn = g_new0 (struct cc_oci_vm_conn, 1);
 	if (! conn) {
@@ -625,7 +632,7 @@ cc_oci_vm_conn_new (const gchar *socket_path, GPid pid)
 
 	conn->socket_addr = g_unix_socket_address_new (socket_path);
 	if (! conn->socket_addr) {
-		g_critical ("socket path does not exist: %s", socket_path);
+		g_critical ("failed to create a new socket addres: %s", socket_path);
 		goto err;
 	}
 
@@ -660,7 +667,9 @@ cc_oci_vm_conn_new (const gchar *socket_path, GPid pid)
 	return conn;
 
 err:
-	cc_oci_vm_conn_free (conn);
+	if (conn) {
+		cc_oci_vm_conn_free (conn);
+	}
 
 	return NULL;
 }
@@ -679,8 +688,9 @@ cc_oci_vm_shutdown (const gchar *socket_path, GPid pid)
 	gboolean                 ret = false;
 	struct cc_oci_vm_conn  *conn = NULL;
 
-	g_assert (socket_path);
-	g_assert (pid);
+	if (! (socket_path != NULL && pid > 0)) {
+		return false;
+	}
 
 	conn = cc_oci_vm_conn_new (socket_path, pid);
 	if (! conn) {
@@ -714,8 +724,9 @@ cc_oci_vm_pause (const gchar *socket_path, GPid pid)
 	gboolean                 ret = false;
 	struct cc_oci_vm_conn  *conn = NULL;
 
-	g_assert (socket_path);
-	g_assert (pid);
+	if (! (socket_path != NULL && pid > 0)) {
+		return false;
+	}
 
 	conn = cc_oci_vm_conn_new (socket_path, pid);
 	if (! conn) {
@@ -728,7 +739,9 @@ cc_oci_vm_pause (const gchar *socket_path, GPid pid)
 	}
 
 out:
-	cc_oci_vm_conn_free (conn);
+	if (conn) {
+		cc_oci_vm_conn_free (conn);
+	}
 
 	return ret;
 }
@@ -747,8 +760,9 @@ cc_oci_vm_resume (const gchar *socket_path, GPid pid)
 	gboolean                 ret = false;
 	struct cc_oci_vm_conn  *conn = NULL;
 
-	g_assert (socket_path);
-	g_assert (pid);
+	if (! (socket_path != NULL && pid > 0)) {
+		return false;
+	}
 
 	conn = cc_oci_vm_conn_new (socket_path, pid);
 	if (! conn) {
@@ -761,7 +775,9 @@ cc_oci_vm_resume (const gchar *socket_path, GPid pid)
 	}
 
 out:
-	cc_oci_vm_conn_free (conn);
+	if (conn) {
+		cc_oci_vm_conn_free (conn);
+	}
 
 	return ret;
 }

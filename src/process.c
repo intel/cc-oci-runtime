@@ -183,9 +183,13 @@ cc_oci_close_fds (GArray *fds) {
  *
  * \return \c true on success, else \c false.
  */
-static gboolean
+private gboolean
 cc_oci_setup_child (struct cc_oci_config *config)
 {
+	if (! config) {
+		return false;
+	}
+
 	/* become session leader */
 	setsid ();
 
@@ -207,7 +211,7 @@ cc_oci_setup_child (struct cc_oci_config *config)
  *
  * \return \c true on success, else \c false.
  */
-static gboolean
+private gboolean
 cc_oci_setup_shim (struct cc_oci_config *config,
 			int proxy_fd,
 			int proxy_io_fd)
@@ -550,7 +554,7 @@ exit:
  *
  * \return \c true on success, else \c false.
  */
-static gboolean
+private gboolean
 cc_oci_vm_netcfg_get (struct cc_oci_config *config,
 		      struct netlink_handle *hndl)
 {
@@ -574,7 +578,7 @@ cc_oci_vm_netcfg_get (struct cc_oci_config *config,
  *
  * \return a GSocketConnection on success, else NULL.
  */
-static GSocketConnection *
+private GSocketConnection *
 socket_connection_from_fd (int fd)
 {
 	GError            *error = NULL;
@@ -625,7 +629,7 @@ out:
  *
  * \return \c true on success, else \c false.
  */
-static gboolean
+private gboolean
 cc_shim_launch (struct cc_oci_config *config,
 		int *child_err_fd,
 		int *shim_args_fd,

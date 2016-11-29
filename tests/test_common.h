@@ -33,6 +33,13 @@
 	tcase_add_test(tc_##test, test); \
 	suite_add_tcase(suite, tc_##test);
 
+#define ADD_TEST_TIMEOUT(test,suite,timeout) \
+	TCase *tc_##test; \
+	tc_##test = tcase_create(#test); \
+	tcase_add_test(tc_##test, test); \
+	suite_add_tcase(suite, tc_##test); \
+	tcase_set_timeout(tc_##test, timeout);
+
 /**
  * Run the block following this macro with stdout and stderr redirected
  * to a temporary file.
@@ -109,3 +116,6 @@ void test_spec_handler(struct spec_handler* handler,
 gboolean test_helper_create_state_file (const char *name,
 		const char *root_dir,
 		struct cc_oci_config *config);
+pid_t run_qmp_vm(char **socket_path);
+void create_fake_test_files(void);
+void remove_fake_test_files(void);

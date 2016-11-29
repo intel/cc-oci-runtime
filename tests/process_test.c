@@ -20,18 +20,35 @@
 
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 #include <check.h>
 #include <glib.h>
+#include <glib/gstdio.h>
+#include <fcntl.h>
 
 #include "test_common.h"
 #include "../src/logging.h"
 #include "../src/process.h"
+#include "../src/netlink.h"
+#include "../src/util.h"
 
 gboolean cc_oci_cmd_is_shell (const char *cmd);
 gboolean cc_run_hook (struct oci_cfg_hook* hook,
 		const gchar* state,
 		gsize state_length);
+gboolean cc_oci_setup_shim (struct cc_oci_config *config,
+		int proxy_fd,
+		int proxy_io_fd);
+GSocketConnection *socket_connection_from_fd (int fd);
+gboolean cc_oci_setup_child (struct cc_oci_config *config);
+gboolean cc_oci_vm_netcfg_get (struct cc_oci_config *config,
+		struct netlink_handle *hndl);
+gboolean
+cc_shim_launch (struct cc_oci_config *config, int *child_err_fd,
+		int *shim_args_fd, int *shim_socket_fd);
 
 extern GMainLoop *hook_loop;
 
@@ -215,11 +232,70 @@ START_TEST(test_cc_run_hook) {
 
 } END_TEST
 
+START_TEST(test_cc_oci_setup_shim) {
+	struct cc_oci_config config = { { 0 } };
+	char tmpf1[] = "/tmp/.tmpXXXXXX";
+	char tmpf2[] = "/tmp/.tmpXXXXXX";
+	int tmpf1_fd = -1;
+	int tmpf2_fd = -1;
+
+	ck_assert (! cc_oci_setup_shim (NULL, -1, -1));
+	ck_assert (! cc_oci_setup_shim (NULL, STDIN_FILENO, -1));
+	ck_assert (! cc_oci_setup_shim (NULL, -1, STDIN_FILENO));
+
+	tmpf1_fd = g_mkstemp (tmpf1);
+	ck_assert (tmpf1_fd >= 0);
+
+	tmpf2_fd = g_mkstemp (tmpf2);
+	ck_assert (tmpf2_fd >= 0);
+
+	config.oci.process.terminal = false;
+	ck_assert (cc_oci_setup_shim (&config, tmpf1_fd, tmpf2_fd));
+
+	tmpf1_fd = open (tmpf1, O_RDWR);
+	tmpf2_fd = open (tmpf2, O_RDWR);
+
+	config.oci.process.terminal = true;
+	config.console = g_strdup("/dev/ptmx");
+	ck_assert (! cc_oci_setup_shim (&config, tmpf1_fd, tmpf2_fd));
+
+	g_free (config.console);
+	cc_oci_rm_rf (tmpf1);
+	cc_oci_rm_rf (tmpf2);
+} END_TEST
+
+START_TEST(test_socket_connection_from_fd) {
+	int sockets[2] = { -1, -1 };
+	GSocketConnection *conn = NULL;
+	ck_assert (! socket_connection_from_fd (-1));
+	ck_assert (! socket_connection_from_fd (STDIN_FILENO));
+
+	ck_assert (socketpair(PF_UNIX, SOCK_STREAM, 0, sockets) == 0);
+	close (sockets[0]);
+
+	conn = socket_connection_from_fd (sockets[1]);
+	ck_assert (conn);
+	g_object_unref (conn);
+	close(sockets[1]);
+} END_TEST
+
+START_TEST(test_cc_oci_setup_child) {
+	struct cc_oci_config config = { { 0 } };
+	ck_assert (! cc_oci_setup_child (NULL));
+	ck_assert (cc_oci_setup_child (&config));
+
+	config.detached_mode = true;
+	ck_assert (cc_oci_setup_child (&config));
+} END_TEST
+
 Suite* make_process_suite(void) {
 	Suite* s = suite_create(__FILE__);
 
 	ADD_TEST(test_cc_oci_cmd_is_shell, s);
 	ADD_TEST(test_cc_run_hook, s);
+	ADD_TEST(test_cc_oci_setup_shim, s);
+	ADD_TEST(test_socket_connection_from_fd, s);
+	ADD_TEST(test_cc_oci_setup_child, s);
 
 	return s;
 }

@@ -204,6 +204,7 @@ AC_CACHE_CHECK(
 )
 
 AC_SUBST([QEMU_PATH], [$ac_cv_path_QEMU])
+AC_DEFINE_UNQUOTED([QEMU_PATH], ["$QEMU_PATH"], "Path to qemu with pc-lite support")
 
 #Read Kernel parameters
 AC_SUBST([CMDLINE], [$(cat $srcdir/data/kernel-cmdline)])

@@ -1236,8 +1236,9 @@ cc_oci_toggle (struct cc_oci_config *config,
 	enum oci_status   dest_status;
 	gboolean          ret;
 
-	g_assert (config);
-	g_assert (state);
+	if (! (config && state)) {
+		return false;
+	}
 
 	dest_status = pause ? OCI_STATUS_PAUSED : OCI_STATUS_RUNNING;
 
@@ -1276,10 +1277,9 @@ cc_oci_exec (struct cc_oci_config *config,
 		int argc,
 		char *const argv[])
 {
-	g_assert (config);
-	g_assert (state);
-	g_assert (argc);
-	g_assert (argv);
+	if (! (config && state && argc && argv)) {
+		return false;
+	}
 
 	if (! cc_oci_vm_connect (config, argc, argv)) {
 		g_critical ("failed to connect to VM");

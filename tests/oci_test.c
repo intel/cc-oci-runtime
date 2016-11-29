@@ -29,12 +29,14 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <json-glib/json-glib.h>
+#include <json-glib/json-gobject.h>
 
 #include "test_common.h"
 #include "../src/logging.h"
 #include "../src/runtime.h"
 #include "../src/state.h"
 #include "../src/oci.h"
+#include "../src/util.h"
 
 gboolean cc_oci_vm_running (const struct oci_state *state);
 gboolean cc_oci_create_container_workload (struct cc_oci_config *config);
@@ -1014,6 +1016,103 @@ START_TEST(test_cc_oci_kill) {
 
 } END_TEST
 
+START_TEST(test_cc_oci_process_to_json) {
+	struct oci_cfg_process *process = NULL;
+	JsonObject* process_obj = NULL;\
+
+	ck_assert (! cc_oci_process_to_json(process));
+
+	process = calloc(1, sizeof(*process));
+
+	ck_assert (! cc_oci_process_to_json(process));
+
+	process->args = calloc(3, sizeof(*process->args));
+	process->args[0] = "_hello";
+	process->args[1] = "_world";
+
+	ck_assert (! cc_oci_process_to_json(process));
+
+	process->cwd[0] = '/';
+
+	process_obj = cc_oci_process_to_json(process);
+	ck_assert (process_obj);
+	json_object_unref(process_obj);
+
+	process->env = calloc(3, sizeof(*process->env));
+	process->env[0] = "var1=beer";
+	process->env[1] = "var1=wine";
+
+	process_obj = cc_oci_process_to_json(process);
+	ck_assert (process_obj);
+	json_object_unref(process_obj);
+
+	process->terminal = false;
+
+	process_obj = cc_oci_process_to_json(process);
+	ck_assert (process_obj);
+	json_object_unref(process_obj);
+
+	process->terminal = false;
+
+	process_obj = cc_oci_process_to_json(process);
+	ck_assert (process_obj);
+	json_object_unref(process_obj);
+
+	process->user.additionalGids = 0;
+	process->user.gid = 0;
+	process->user.uid = 0;
+
+	process_obj = cc_oci_process_to_json(process);
+	ck_assert (process_obj);
+	json_object_unref(process_obj);
+
+	process->stdio_stream = 0;
+	process->stderr_stream = 1;
+
+	process_obj = cc_oci_process_to_json(process);
+	ck_assert (process_obj);
+
+	ck_assert (json_object_has_member(process_obj, "cwd"));
+	ck_assert (json_object_has_member(process_obj, "terminal"));
+	ck_assert (json_object_has_member(process_obj, "user"));
+	ck_assert (json_object_has_member(process_obj, "args"));
+	ck_assert (json_object_has_member(process_obj, "env"));
+	ck_assert (json_object_has_member(process_obj, "stdio_stream"));
+	ck_assert (json_object_has_member(process_obj, "stderr_stream"));
+
+	json_object_unref(process_obj);
+
+	free(process->args);
+	free(process->env);
+	free(process);
+} END_TEST
+
+START_TEST(test_cc_oci_exec) {
+	struct cc_oci_config config;
+	struct oci_state state;
+	char *argv[] = { "hello", "world" };
+	ck_assert(! cc_oci_exec(NULL, NULL, 0, NULL));
+	ck_assert(! cc_oci_exec(&config, &state, 0, NULL));
+	ck_assert(! cc_oci_exec(&config, &state, 2, NULL));
+	ck_assert(! cc_oci_exec(&config, &state, 2, argv));
+} END_TEST
+
+START_TEST(test_cc_oci_toggle) {
+	struct cc_oci_config* config = cc_oci_config_create();
+	struct oci_state state = { 0 };
+
+	ck_assert (! cc_oci_toggle (NULL, NULL, false));
+	ck_assert (! cc_oci_toggle (config, NULL, false));
+	ck_assert (! cc_oci_toggle (NULL, &state, false));
+
+	state.status = OCI_STATUS_RUNNING;
+	ck_assert (cc_oci_toggle (config, &state, false));
+
+	state.status = OCI_STATUS_RUNNING;
+	ck_assert (! cc_oci_toggle (config, &state, true));
+	cc_oci_config_free (config);
+} END_TEST
+
 Suite* make_oci_suite(void) {
 	Suite* s = suite_create(__FILE__);
 
@@ -1025,6 +1124,9 @@ Suite* make_oci_suite(void) {
 	ADD_TEST (test_cc_oci_kill, s);
 	ADD_TEST (test_get_user_home_dir, s);
 	ADD_TEST (test_set_env_home, s);
+	ADD_TEST (test_cc_oci_process_to_json, s);
+	ADD_TEST (test_cc_oci_exec, s);
+	ADD_TEST (test_cc_oci_toggle, s);
 
 	return s;
 }
