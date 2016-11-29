@@ -236,6 +236,13 @@ cc_oci_kill (struct cc_oci_config *config,
 		goto error;
 	}
 
+#ifndef UNIT_TESTING
+	if (! cc_proxy_hyper_kill_container(config, signum)) {
+		g_critical("failed to kill container");
+		goto error;
+	}
+#else
+	//FIXME: should we kill to cc-shim?
 	if (kill (state->pid, signum) < 0) {
 		g_critical ("failed to stop container %s "
 				"running with pid %u: %s",
@@ -249,6 +256,7 @@ cc_oci_kill (struct cc_oci_config *config,
 		}
 		return false;
 	}
+#endif //UNIT_TESTING
 
 	last_status = config->state.status;
 
@@ -1172,12 +1180,13 @@ gboolean
 cc_oci_stop (struct cc_oci_config *config,
 		struct oci_state *state)
 {
-	g_assert (config);
-	g_assert (state);
+	if (! (config && state)){
+		return false;
+	}
 
 	if (cc_oci_vm_running (state)) {
 		gboolean ret;
-		ret = cc_oci_vm_shutdown (state->comms_path, state->vm->pid);
+		ret = cc_proxy_hyper_destroy_pod(config);
 		if (! ret) {
 			return false;
 		}
@@ -1192,8 +1201,6 @@ cc_oci_stop (struct cc_oci_config *config,
 				"not running",
 				state->id, state->pid);
 	}
-
-	cc_proxy_connect(config->proxy);
 
 	/* Allow the proxy to clean up resources */
 	if (! cc_proxy_cmd_bye (config->proxy, config->optarg_container_id)) {
