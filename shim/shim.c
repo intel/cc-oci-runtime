@@ -249,9 +249,9 @@ handle_signals(struct cc_shim *shim) {
 					strerror(errno));
 				continue;
 			}
-			ret = asprintf(&buf, "{\"seq\":%"PRIu64", \"row\":%d, \"col\":%d}",
+			ret = asprintf(&buf, "{\"seq\":%"PRIu64", \"row\":%d, \"column\":%d}",
 					shim->io_seq_no, ws.ws_row, ws.ws_col);
-			shim_debug("handled SIGWINCH for container %s (row=%d, col=%d)\n",
+			shim_debug("handled SIGWINCH for container %s (row=%d, column=%d)\n",
 				shim->container_id, ws.ws_row, ws.ws_col);
 
 		} else {
