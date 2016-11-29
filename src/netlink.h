@@ -21,6 +21,8 @@
 #ifndef _CC_OCI_NETLINK_H
 #define _CC_OCI_NETLINK_H
 
+#include "oci.h"
+
 struct netlink_handle {
 	guint seq;
 	struct mnl_socket *nl;
@@ -43,7 +45,8 @@ gboolean netlink_link_set_addr(struct netlink_handle *const hndl,
 			       const gchar *const interface, gulong size, 
 			       const guchar *const hwaddr);
 
-gchar * netlink_get_default_gw(struct netlink_handle *const hndl,
+gboolean netlink_get_routes(struct cc_oci_config *config, 
+				struct netlink_handle *const hndl,
 				guchar family);
 
 #endif /* _CC_OCI_NETLINK_H */

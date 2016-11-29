@@ -56,12 +56,11 @@ cc_oci_expand_net_cmdline(struct cc_oci_config *config) {
 		return NULL;
 	}
 
-	if (! (config->net.gateway && config->net.hostname)) {
+	if (! config->net.hostname) {
 		return NULL;
 	}
 
-	return ( g_strdup_printf("ip=:::%s:::%s::off::",
-		config->net.gateway,
+	return ( g_strdup_printf("ip=::::::%s::off::",
 		config->net.hostname));
 }
 

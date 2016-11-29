@@ -311,9 +311,6 @@ struct cc_oci_net_cfg {
 	/** Network gateway (xxx.xxx.xxx.xxx). */
 	gchar  *hostname;
 
-	/** Network gateway (xxx.xxx.xxx.xxx). */
-	gchar  *gateway;
-
 	/** TODO: Do not limit number of DNS servers */
 
 	/** DNS IP (xxx.xxx.xxx.xxx). */
@@ -325,9 +322,23 @@ struct cc_oci_net_cfg {
 	/** Network interfaces. */
 	GSList  *interfaces;
 
-	/** TODO: Add support for routes */
+	/** Network routes. */
+	GSList   *routes;
 };
 
+/** cc-specific network route data for ipv4 family. */
+struct cc_oci_net_ipv4_route {
+	/** IPv4 address (xxx.xxx.xxx.xxx).
+	 *  Set to the string "default" in case of default gateway */
+	gchar *dest;
+
+	/** Name of network interface (veth) within the namespace
+	 * This should also be the name of the interface within the VM */
+	gchar *ifname;
+
+	/** IPv4 address (xxx.xxx.xxx.xxx).*/
+	gchar *gateway;
+};
 
 /** cc-specific network interface configuration data. */
 struct cc_oci_net_if_cfg {

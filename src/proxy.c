@@ -1087,6 +1087,9 @@ cc_proxy_hyper_pod_create (struct cc_oci_config *config)
 	gsize                         len;
 	JsonObject                   *ipaddr_obj = NULL;
 	JsonArray                    *ipaddr_arr = NULL;
+	JsonArray                    *routes_array = NULL;
+	JsonObject                   *route_data = NULL;
+	struct cc_oci_net_ipv4_route *route = NULL;
 
 	if (! (config && config->proxy)) {
 		return false;
@@ -1149,6 +1152,33 @@ cc_proxy_hyper_pod_create (struct cc_oci_config *config)
 	}
 
 	json_object_set_array_member(data, "interfaces", iface_array);
+
+	routes_array = json_array_new ();
+
+	for (guint i = 0; i < g_slist_length(config->net.routes); i++) {
+		route = (struct cc_oci_net_ipv4_route *)
+	                g_slist_nth_data(config->net.routes, i);
+
+		if ( !route->dest) {
+			continue;
+		}
+		route_data = json_object_new ();
+
+		json_object_set_string_member (route_data, "dest",
+			route->dest);
+
+		if (route->gateway) {
+			json_object_set_string_member (route_data, "gateway",
+				route->gateway);
+		}
+		if (route->ifname) {
+			json_object_set_string_member (route_data, "device",
+				route->ifname);
+		}
+		json_array_add_object_element(routes_array, route_data);
+	}
+
+	json_object_set_array_member(data, "routes", routes_array);
 
 	if (! cc_proxy_run_hyper_cmd (config, "startpod", data)) {
 		g_critical("failed to run pod create");
