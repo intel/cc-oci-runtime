@@ -73,5 +73,6 @@ go vet $go_packages
 go list -f '{{.Dir}}' $go_packages |\
     xargs gofmt -s -l | wc -l |\
     xargs -I % bash -c "test % -eq 0"
+go list -f '{{.Dir}}' $go_packages | xargs gocyclo -over 15
 
 for p in $go_packages; do golint -set_exit_status $p; done
