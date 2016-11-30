@@ -559,6 +559,36 @@ cc_oci_enable_networking (void)
 	return enable;
 }
 
+/**
+ * Perform global signal handling setup.
+ */
+gboolean
+cc_oci_handle_signals (void)
+{
+	struct sigaction old_act = { {0} };
+	struct sigaction new_act = { {0} };
+
+	new_act.sa_handler = SIG_IGN;
+	sigemptyset (&new_act.sa_mask);
+	new_act.sa_flags = 0;
+
+	/* Ignore SIGPIPE to avoid being terminated unceremoniously
+	 * when a pipe/socket write(2) fails.
+	 *
+	 * This could happen if the other end of the pipe dies,
+	 * but also if it is no longer running (for example a very
+	 * short-running hook that doesn't expect to be passed state
+	 * on its stdin).
+	 */
+	if (sigaction (SIGPIPE, &new_act, &old_act) < 0) {
+		g_critical ("failed to ignore SIGPIPE: %s",
+				strerror (errno));
+		return false;
+	}
+
+	return true;
+}
+
 #ifdef DEBUG
 static gboolean
 cc_oci_node_dump_aux(GNode* node, gpointer data) {
