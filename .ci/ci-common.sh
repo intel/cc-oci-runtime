@@ -17,6 +17,13 @@
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+# Return true if currently running in a recognised CI environment
+cor_ci_env()
+{
+    # Set by TravisCI and SemaphoreCI
+    [ "$CI" = true ]
+}
+
 nested=$(cat /sys/module/kvm_intel/parameters/nested 2>/dev/null \
     || echo N)
 
