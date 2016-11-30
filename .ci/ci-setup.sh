@@ -362,7 +362,7 @@ then
     sha512sum -c "${clr_image_compressed}-SHA512SUMS"
 
     # unpack image
-    unxz "${clr_image_compressed}"
+    unxz --force "${clr_image_compressed}"
 
     # install image
     sudo install "${clr_image}" "${clr_assets_dir}"
