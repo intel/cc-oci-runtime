@@ -21,11 +21,11 @@
 
 #Based on docker commands
 
-SRC="${BATS_TEST_DIRNAME}/../../integration/lib/"
+SRC="${BATS_TEST_DIRNAME}/../../lib/"
 
 setup() {
-	source $SRC/common.bash
-	runtimeDocker
+	source $SRC/test-common.bash
+	runtime_docker
 }
 
 @test "Run shell echo" {

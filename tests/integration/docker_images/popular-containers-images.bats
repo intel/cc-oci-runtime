@@ -21,12 +21,12 @@
 
 # Tests for the most popular images from docker hub
 
-SRC="${BATS_TEST_DIRNAME}/../../integration/lib/"
+SRC="${BATS_TEST_DIRNAME}/../../lib/"
 
 setup() {
-	source $SRC/common.bash
-	cleanDockerPs
-	runtimeDocker
+	source $SRC/test-common.bash
+	clean_docker_ps
+	runtime_docker
 }
 
 @test "create a directory in an aerospike container" {
