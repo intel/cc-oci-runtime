@@ -38,7 +38,7 @@ else
 fi
 
 deps_dir="${prefix_dir}/dependencies"
-mkdir -p "$deps_dir"
+cor_ci_env && mkdir -p "$deps_dir"
 
 export LD_LIBRARY_PATH="${prefix_dir}/lib:$LD_LIBRARY_PATH"
 export PKG_CONFIG_PATH="${prefix_dir}/lib/pkgconfig:$PKG_CONFIG_PATH"
@@ -63,4 +63,4 @@ else
     ci_build_dir="$TRAVIS_BUILD_DIR/ci_build"
 fi
 
-mkdir -p "$ci_build_dir"
+cor_ci_env && mkdir -p "$ci_build_dir"
