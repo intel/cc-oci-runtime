@@ -33,6 +33,7 @@
 
 #include <errno.h>
 #include <string.h>
+#include <sys/mount.h>
 
 #include <glib.h>
 #include <gio/gunixconnection.h>
@@ -41,6 +42,65 @@
 #include "process.h"
 #include "proxy.h"
 #include "state.h"
+
+/**
+ * Creates a mount point structure for a
+ * pod container rootfs.
+ *
+ * \param config \ref cc_oci_config.
+ *
+ * \return cc_oci_mount on success, and a \c NULL on failure.
+ */
+static gboolean
+add_container_mount(struct cc_oci_config *config) {
+	struct cc_oci_mount *m;
+
+	if (! (config && config->pod && ! config->pod->sandbox)) {
+		return false;
+	}
+
+	m = g_malloc0 (sizeof (struct cc_oci_mount));
+	if (! m) {
+		goto error;
+	}
+
+	m->flags = MS_BIND;
+
+	/* Destination */
+	m->mnt.mnt_dir = g_malloc0(PATH_MAX);
+	if (! m->mnt.mnt_dir) {
+		goto error;
+	}
+
+	g_snprintf(m->mnt.mnt_dir, PATH_MAX, "/%s/rootfs",
+		   config->optarg_container_id);
+
+	/* Source */
+	m->mnt.mnt_fsname = g_strdup(config->oci.root.path);
+	if (! m->mnt.mnt_fsname) {
+		goto error;
+	}
+
+	/* Type */
+	m->mnt.mnt_type = g_strdup("bind");
+	if (! m->mnt.mnt_type) {
+		goto error;
+	}
+
+	/* Add our pod container mount to the list of all mount points */
+	config->oci.mounts = g_slist_append(config->oci.mounts, m);
+
+	return true;
+
+error:
+	g_free_if_set(m->mnt.mnt_dir);
+	g_free_if_set(m->mnt.mnt_fsname);
+	g_free_if_set(m->mnt.mnt_type);
+	g_free_if_set(m);
+
+	return false;
+}
+
 
 /**
  * Handle pod related OCI annotations.
@@ -87,19 +147,23 @@ cc_pod_handle_annotations(struct cc_oci_config *config, struct oci_cfg_annotatio
 				    CC_OCI_RUNTIME_DIR_PREFIX,
 				    config->optarg_container_id,
 				    CC_POD_SANDBOX_ROOTFS);
-
-			if (g_mkdir_with_parents (config->pod->sandbox_workloads, CC_OCI_DIR_MODE)) {
-				g_critical ("failed to create directory %s: %s",
-					    config->pod->sandbox_workloads, strerror (errno));
-
-				return -errno;
-			}
 		}
 	} else if (g_strcmp0(annotation->key, CC_POD_OCID_SANDBOX_NAME) == 0) {
 		if (config->pod->sandbox_name) {
 			g_free(config->pod->sandbox_name);
 		}
 		config->pod->sandbox_name = g_strdup(annotation->value);
+
+		g_snprintf (config->pod->sandbox_workloads,
+			    sizeof (config->pod->sandbox_workloads),
+			    "%s/%s/%s",
+			    CC_OCI_RUNTIME_DIR_PREFIX,
+			    config->pod->sandbox_name,
+			    CC_POD_SANDBOX_ROOTFS);
+
+		if (! add_container_mount(config)) {
+			return -ENOMEM;
+		}
 	}
 
 	return 0;
@@ -176,6 +240,15 @@ cc_pod_new_container (struct cc_oci_config *config)
 		goto out;
 	}
 
+	/* Create the pid file. */
+	if (config->pid_file) {
+		ret = cc_oci_create_pidfile (config->pid_file,
+				config->state.workload_pid);
+		if (! ret) {
+			goto out;
+		}
+	}
+
 	proxy_fd = g_socket_get_fd (config->proxy->socket);
 	if (proxy_fd < 0) {
 		g_critical ("invalid proxy fd: %d", proxy_fd);
@@ -238,16 +311,17 @@ cc_pod_new_container (struct cc_oci_config *config)
 	/* Create the state file now that all information is
 	 * available.
 	 */
-	g_debug ("recreating state file");
+	g_debug ("Creating state file for the pod container");
 
 	ret = cc_oci_state_file_create (config, timestamp);
 	if (! ret) {
-		g_critical ("failed to recreate state file");
+		g_critical ("failed to create state file");
 		goto out;
 	}
 
 	if (! cc_proxy_run_hyper_new_container (config,
-						config->optarg_container_id, "")) {
+						config->optarg_container_id,
+						"rootfs", config->optarg_container_id)) {
 		goto out;
 	}
 
@@ -256,14 +330,6 @@ cc_pod_new_container (struct cc_oci_config *config)
 	 */
 	ret = cc_proxy_disconnect (config->proxy);
 
-	/* Finally, create the pid file. */
-	if (config->pid_file) {
-		ret = cc_oci_create_pidfile (config->pid_file,
-				config->state.workload_pid);
-		if (! ret) {
-			goto out;
-		}
-	}
 out:
 	if (shim_err_fd != -1) close (shim_err_fd);
 	if (shim_args_fd != -1) close (shim_args_fd);

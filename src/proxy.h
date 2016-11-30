@@ -56,7 +56,7 @@ cc_proxy_hyper_kill_container (struct cc_oci_config *config, int signum);
 gboolean cc_proxy_hyper_destroy_pod (struct cc_oci_config *config);
 gboolean cc_proxy_run_hyper_new_container (struct cc_oci_config *config,
 					const char *container_id,
-					char *rootfs);
+					const char *rootfs, const char *image);
 gboolean cc_proxy_hyper_new_container (struct cc_oci_config *config);
 void cc_proxy_free (struct cc_proxy *proxy);
 gboolean cc_proxy_attach (struct cc_proxy *proxy, const char *container_id);
