@@ -342,12 +342,12 @@ read_IO_message(struct cc_shim *shim, uint64_t *seq, ssize_t *stream_len) {
 
 		ret = read(shim->proxy_io_fd, buf+bytes_read, (size_t)want);
 		if (ret == -1) {
-			shim_warning("Error reading from proxy I/O fd: %s\n", strerror(errno));
-			goto err;
+			free(buf);
+			err_exit("Error reading from proxy I/O fd: %s\n", strerror(errno));
 		} else if (ret == 0) {
 			/* EOF received on proxy I/O fd*/
-			shim_warning("EOF received on proxy I/O fd\n");
-			goto err;
+			free(buf);
+			err_exit("EOF received on proxy I/O fd\n");
 		}
 
 		bytes_read += ret;
