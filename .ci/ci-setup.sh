@@ -359,13 +359,16 @@ then
     done
 
     # verify image
-    sha512sum -c "${clr_image_compressed}-SHA512SUMS"
+    checksum_file="${clr_image_compressed}-SHA512SUMS"
+    sha512sum -c "${checksum_file}"
 
     # unpack image
     unxz --force "${clr_image_compressed}"
 
     # install image
     sudo install "${clr_image}" "${clr_assets_dir}"
+
+    rm -f "${checksum_file}" "${clr_image}" "${clr_image_compressed}"
 fi
 
 # change kernel+image ownership
