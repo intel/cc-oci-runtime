@@ -18,8 +18,6 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-#Based on runc tests/integration/helpers.bash
-
 COR_BINARY="${BATS_TEST_DIRNAME}/../../cc-oci-runtime"
 
 # Make temporal tests directory
