@@ -359,13 +359,16 @@ then
     done
 
     # verify image
-    sha512sum -c "${clr_image_compressed}-SHA512SUMS"
+    checksum_file="${clr_image_compressed}-SHA512SUMS"
+    sha512sum -c "${checksum_file}"
 
     # unpack image
-    unxz "${clr_image_compressed}"
+    unxz --force "${clr_image_compressed}"
 
     # install image
     sudo install "${clr_image}" "${clr_assets_dir}"
+
+    rm -f "${checksum_file}" "${clr_image}" "${clr_image_compressed}"
 fi
 
 # change kernel+image ownership
@@ -373,10 +376,9 @@ sudo chown -R "$USER" "${clr_assets_dir}"
 
 # create image symlink (kernel will already have one)
 clr_image_link=clear-containers.img
-if [ ! -e "${clr_assets_dir}/${clr_image_link}" ]
-then
-    (cd "${clr_assets_dir}" && sudo ln -s "${clr_image}" "${clr_image_link}")
-fi
+sudo rm -f "${clr_assets_dir}/${clr_image_link}"
+(cd "${clr_assets_dir}" && sudo ln -s "${clr_image}" "${clr_image_link}")
+
 popd
 
 popd
