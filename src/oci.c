@@ -236,13 +236,9 @@ cc_oci_kill (struct cc_oci_config *config,
 		goto error;
 	}
 
-#ifndef UNIT_TESTING
-	if (! cc_proxy_hyper_kill_container(config, signum)) {
-		g_critical("failed to kill container");
-		goto error;
-	}
-#else
-	//FIXME: should we kill to cc-shim?
+	/* send signal to cc-shim because it
+	 * will send killcontainer to hyperstart
+	 */
 	if (kill (state->pid, signum) < 0) {
 		g_critical ("failed to stop container %s "
 				"running with pid %u: %s",
@@ -255,6 +251,18 @@ cc_oci_kill (struct cc_oci_config *config,
 			g_critical ("failed to recreate state file");
 		}
 		return false;
+	}
+
+#ifndef UNIT_TESTING
+	/* cc-shim is not able to catch SIGKILL and SIGSTOP
+	 * signals for this reason we must kill the container
+	 * using hyperstart's API
+	 */
+	if (signum == SIGKILL || signum == SIGSTOP) {
+		if (! cc_proxy_hyper_kill_container (config, signum)) {
+			g_critical ("failed to kill container");
+			return false;
+		}
 	}
 #endif //UNIT_TESTING
 
