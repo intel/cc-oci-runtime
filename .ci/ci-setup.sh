@@ -376,10 +376,9 @@ sudo chown -R "$USER" "${clr_assets_dir}"
 
 # create image symlink (kernel will already have one)
 clr_image_link=clear-containers.img
-if [ ! -e "${clr_assets_dir}/${clr_image_link}" ]
-then
-    (cd "${clr_assets_dir}" && sudo ln -s "${clr_image}" "${clr_image_link}")
-fi
+sudo rm -f "${clr_assets_dir}/${clr_image_link}"
+(cd "${clr_assets_dir}" && sudo ln -s "${clr_image}" "${clr_image_link}")
+
 popd
 
 popd
