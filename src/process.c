@@ -46,6 +46,7 @@
 #include <sys/socket.h>
 #include <termios.h>
 #include <sys/ioctl.h>
+#include <sys/file.h>
 
 #include <glib.h>
 #include <glib/gprintf.h>
@@ -214,13 +215,14 @@ cc_oci_setup_child (struct cc_oci_config *config)
 private gboolean
 cc_oci_setup_shim (struct cc_oci_config *config,
 			int proxy_fd,
-			int proxy_io_fd)
+			int proxy_io_fd,
+			int shim_flock_fd)
 {
 	gboolean        ret = false;
 	int             tty_fd = -1;
 	GArray         *fds = NULL;
 
-	if (! config || proxy_fd < 0 || proxy_io_fd < 0) {
+	if (! config || proxy_fd < 0 || proxy_io_fd < 0 || shim_flock_fd < 0) {
 		return false;
 	}
 
@@ -253,9 +255,10 @@ cc_oci_setup_shim (struct cc_oci_config *config,
 		}
 	}
 
-	fds = g_array_sized_new(FALSE, FALSE, sizeof(int), 2);
+	fds = g_array_sized_new(FALSE, FALSE, sizeof(int), 3);
 	g_array_append_val (fds, proxy_fd);
 	g_array_append_val (fds, proxy_io_fd);
+	g_array_append_val (fds, shim_flock_fd);
 
 	cc_oci_close_fds (fds);
 
@@ -652,6 +655,8 @@ cc_shim_launch (struct cc_oci_config *config,
 	int       child_err_pipe[2] = {-1, -1};
 	int       shim_args_pipe[2] = {-1, -1};
 	int       shim_socket[2] = {-1, -1};
+	int       shim_flock_fd = -1;
+	char     *shim_flock_path = NULL;
 
 	if (! (config && config->proxy)) {
 		return false;
@@ -676,6 +681,16 @@ cc_shim_launch (struct cc_oci_config *config,
 	if (socketpair(PF_UNIX, SOCK_STREAM, 0, shim_socket) < 0) {
 		g_critical ("failed to create shim socket: %s",
 				strerror (errno));
+		goto out;
+	}
+
+	shim_flock_path = g_strdup_printf ("%s/%s", config->state.runtime_path,
+		CC_OCI_SHIM_LOCK_FILE);
+	shim_flock_fd = open(shim_flock_path, O_RDONLY|O_CREAT, S_IRUSR);
+	g_free (shim_flock_path);
+	if (shim_flock_fd < 0) {
+		g_critical ("failed to create shim flock file: %s",
+			strerror (errno));
 		goto out;
 	}
 
@@ -780,9 +795,26 @@ cc_shim_launch (struct cc_oci_config *config,
 			proxy_io_fd = fd;
 		}
 
+		while(shim_flock_fd < 3) {
+			int fd = dup(shim_flock_fd);
+			if (fd < 0) {
+				g_critical("dup failed: %s", strerror(errno));
+				goto child_failed;
+			}
+			shim_flock_fd = fd;
+		}
+
 		cc_oci_fd_toggle_cloexec(proxy_socket_fd, false);
 
 		cc_oci_fd_toggle_cloexec(proxy_io_fd, false);
+
+		cc_oci_fd_toggle_cloexec(shim_flock_fd, false);
+
+		if (flock (shim_flock_fd, LOCK_EX) < 0) {
+			g_critical("failed to lock %s: %s",
+				CC_OCI_SHIM_LOCK_FILE, strerror(errno));
+			goto child_failed;
+		}
 
 		/* +1 for for NULL terminator */
 		args = g_new0 (gchar *, 11+1);
@@ -805,7 +837,8 @@ cc_shim_launch (struct cc_oci_config *config,
 			g_debug ("arg: '%s'", *p);
 		}
 
-		if (! cc_oci_setup_shim (config, proxy_socket_fd, proxy_io_fd)) {
+		if (! cc_oci_setup_shim (config, proxy_socket_fd, proxy_io_fd,
+				shim_flock_fd)) {
 			goto child_failed;
 		}
 
@@ -844,6 +877,7 @@ out:
 	close (child_err_pipe[1]);
 	close (shim_args_pipe[0]);
 	close (shim_socket[0]);
+	close (shim_flock_fd);
 
 	return ret;
 }
