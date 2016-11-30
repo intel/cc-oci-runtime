@@ -418,6 +418,12 @@ cc_run_hook(struct oci_cfg_hook* hook, const gchar* state,
 	if (write(std_in, container_state, state_length) < 0) {
 		g_critical ("failed to send container state to hook: %s",
 				strerror (errno));
+		/* Ignore signal since hook was probably not expecting
+		 * state to be passed via its stdin and has now exited.
+		 */
+		if (errno == EPIPE) {
+			result = true;
+		}
 		goto exit;
 	}
 
@@ -425,6 +431,9 @@ cc_run_hook(struct oci_cfg_hook* hook, const gchar* state,
 	if (write(std_in, "\n", 1) < 0) {
 		g_critical ("failed to commit container state: %s",
 				strerror (errno));
+		if (errno == EPIPE) {
+			result = true;
+		}
 		goto exit;
 	}
 

@@ -89,5 +89,6 @@ int cc_oci_get_signum (const gchar *signame);
 gchar *cc_oci_resolve_path (const gchar *path);
 gboolean cc_oci_fd_set_cloexec (int fd);
 gboolean cc_oci_enable_networking (void);
+gboolean cc_oci_handle_signals (void);
 
 #endif /* _CC_OCI_UTIL_H */

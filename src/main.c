@@ -390,6 +390,15 @@ out:
 }
 
 /**
+ * Handle global setup.
+ */
+static gboolean
+setup (void)
+{
+	return cc_oci_handle_signals ();
+}
+
+/**
  * Handle cleanup.
  *
  * \param options \ref cc_log_options.
@@ -410,9 +419,15 @@ main (int argc, char **argv)
 {
 	gboolean ret;
 
+	ret = setup ();
+	if (! ret) {
+		goto out;
+	}
+
 	ret = handle_arguments (argc, argv);
 
 	cleanup (&cc_log_options);
 
+out:
 	exit (ret ? EXIT_SUCCESS : EXIT_FAILURE);
 }
