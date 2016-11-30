@@ -260,8 +260,8 @@ func (h *Hyperstart) writeCtlMessage(m *hyper.DecodedMessage) error {
 	return nil
 }
 
-// ReadIoMessage returns data coming from the IO channel.
-func (h *Hyperstart) ReadIoMessage() (*hyper.TtyMessage, error) {
+// ReadIoMessageWithConn returns data coming from the specified IO channel.
+func ReadIoMessageWithConn(conn net.Conn) (*hyper.TtyMessage, error) {
 	needRead := ttyHdrSize
 	length := 0
 	read := 0
@@ -272,7 +272,7 @@ func (h *Hyperstart) ReadIoMessage() (*hyper.TtyMessage, error) {
 		if want > 512 {
 			want = 512
 		}
-		nr, err := h.io.Read(buf[:want])
+		nr, err := conn.Read(buf[:want])
 		if err != nil {
 			return nil, err
 		}
@@ -294,9 +294,14 @@ func (h *Hyperstart) ReadIoMessage() (*hyper.TtyMessage, error) {
 	}, nil
 }
 
-// SendIoMessage sends data to the IO channel.
-func (h *Hyperstart) SendIoMessage(seq uint64, data []byte) error {
-	length := len(data) + ttyHdrSize
+// ReadIoMessage returns data coming from the IO channel.
+func (h *Hyperstart) ReadIoMessage() (*hyper.TtyMessage, error) {
+	return ReadIoMessageWithConn(h.io)
+}
+
+// SendIoMessageWithConn sends data to the specified IO channel.
+func SendIoMessageWithConn(conn net.Conn, ttyMsg *hyper.TtyMessage) error {
+	length := len(ttyMsg.Message) + ttyHdrSize
 	// XXX: Support sending messages by chunks to support messages over
 	// 10240 bytes. That limit is from hyperstart src/init.c,
 	// hyper_channel_ops, rbuf_size.
@@ -304,16 +309,25 @@ func (h *Hyperstart) SendIoMessage(seq uint64, data []byte) error {
 		return fmt.Errorf("message too long %d", length)
 	}
 	msg := make([]byte, length)
-	binary.BigEndian.PutUint64(msg[:], seq)
+	binary.BigEndian.PutUint64(msg[:], ttyMsg.Session)
 	binary.BigEndian.PutUint32(msg[ttyHdrLenOffset:], uint32(length))
-	copy(msg[ttyHdrSize:], data)
+	copy(msg[ttyHdrSize:], ttyMsg.Message)
 
-	_, err := h.io.Write(msg)
+	n, err := conn.Write(msg)
 	if err != nil {
 		return err
 	}
 
+	if n != length {
+		return fmt.Errorf("%d bytes written out of %d expected", n, length)
+	}
+
 	return nil
+}
+
+// SendIoMessage sends data to the IO channel.
+func (h *Hyperstart) SendIoMessage(ttyMsg *hyper.TtyMessage) error {
+	return SendIoMessageWithConn(h.io, ttyMsg)
 }
 
 func codeFromCmd(cmd string) (uint32, error) {

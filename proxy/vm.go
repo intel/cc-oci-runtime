@@ -15,7 +15,6 @@
 package main
 
 import (
-	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"net"
@@ -106,39 +105,6 @@ func (vm *vm) dump(lvl glog.Level, data []byte) {
 	glog.Infof("\n%s", hex.Dump(data))
 }
 
-// Returns one chunk of data belonging to the seq stream
-func readIoMessage(conn net.Conn) (seq uint64, data []byte, err error) {
-	needRead := 12
-	length := 0
-	read := 0
-	buf := make([]byte, 512)
-	res := []byte{}
-	for read < needRead {
-		want := needRead - read
-		if want > 512 {
-			want = 512
-		}
-		nr, err := conn.Read(buf[:want])
-		if err != nil {
-			return 0, nil, err
-		}
-
-		res = append(res, buf[:nr]...)
-		read = read + nr
-
-		if length == 0 && read >= 12 {
-			length = int(binary.BigEndian.Uint32(res[8:12]))
-			if length > 12 {
-				needRead = length
-			}
-		}
-	}
-
-	seq = binary.BigEndian.Uint64(res[:8])
-	return seq, res, nil
-
-}
-
 func (vm *vm) findSession(seq uint64) *ioSession {
 	vm.Lock()
 	defer vm.Unlock()
@@ -151,34 +117,27 @@ func (vm *vm) findSession(seq uint64) *ioSession {
 // There's only one instance of this goroutine per-VM
 func (vm *vm) ioHyperToClients() {
 	for {
-		ttyMsg, err := vm.hyperHandler.ReadIoMessage()
+		msg, err := vm.hyperHandler.ReadIoMessage()
 		if err != nil {
 			// VM process is gone
 			break
 		}
-		length := len(ttyMsg.Message) + 12
-		data := make([]byte, length)
-		binary.BigEndian.PutUint64(data[:], uint64(ttyMsg.Session))
-		binary.BigEndian.PutUint32(data[8:], uint32(length))
-		copy(data[12:], ttyMsg.Message)
 
-		session := vm.findSession(ttyMsg.Session)
+		session := vm.findSession(msg.Session)
 		if session == nil {
 			fmt.Fprintf(os.Stderr,
-				"couldn't find client with seq number %d\n", ttyMsg.Session)
+				"couldn't find client with seq number %d\n", msg.Session)
 			continue
 		}
 
-		vm.infof(1, "io", "<- writing %d bytes to client #%d", len(data), session.clientID)
-		vm.dump(2, data)
+		vm.infof(1, "io", "<- writing to client #%d", session.clientID)
+		vm.dump(2, msg.Message)
 
-		n, err := session.client.Write(data)
-		if err != nil || n != len(data) {
+		err = hyperstart.SendIoMessageWithConn(session.client, msg)
+		if err != nil {
 			fmt.Fprintf(os.Stderr,
-				"error writing I/O data to client: %v (%d bytes written)\n", err, n)
-
+				"error writing I/O data to client: %v\n", err)
 			break
-
 		}
 	}
 
@@ -211,22 +170,22 @@ func (vm *vm) SendMessage(cmd string, data []byte) error {
 // There's one instance of this goroutine per client having done an allocateIO.
 func (vm *vm) ioClientToHyper(session *ioSession) {
 	for {
-		seq, data, err := readIoMessage(session.client)
+		msg, err := hyperstart.ReadIoMessageWithConn(session.client)
 		if err != nil {
 			// client process is gone
 			break
 		}
 
-		if seq != session.ioBase {
-			fmt.Fprintf(os.Stderr, "stdin seq not matching ioBase %d\n", seq)
+		if msg.Session != session.ioBase {
+			fmt.Fprintf(os.Stderr, "stdin seq %d not matching ioBase %d\n", msg.Session, session.ioBase)
 			session.client.Close()
 			break
 		}
 
-		vm.infof(1, "io", "-> writing %d bytes to hyper from #%d", len(data), session.clientID)
-		vm.dump(2, data)
+		vm.infof(1, "io", "-> writing to hyper from #%d", session.clientID)
+		vm.dump(2, msg.Message)
 
-		err = vm.hyperHandler.SendIoMessage(seq, data[12:])
+		err = vm.hyperHandler.SendIoMessage(msg)
 		if err != nil {
 			fmt.Fprintf(os.Stderr,
 				"error writing I/O data to hyperstart: %v\n", err)
