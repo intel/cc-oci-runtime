@@ -27,7 +27,9 @@ cor_ci_env()
 nested=$(cat /sys/module/kvm_intel/parameters/nested 2>/dev/null \
     || echo N)
 
-echo "INFO: Nested kvm available: $nested"
+# Do not display output if this file is sourced via a BATS test since it
+# will cause the test to fail.
+[ -z "$BATS_TEST_DIRNAME" ] && echo "INFO: Nested kvm available: $nested"
 
 if [ -n "$SEMAPHORE_CACHE_DIR" ]
 then
@@ -38,7 +40,7 @@ else
 fi
 
 deps_dir="${prefix_dir}/dependencies"
-cor_ci_env && mkdir -p "$deps_dir"
+cor_ci_env && mkdir -p "$deps_dir" || :
 
 export LD_LIBRARY_PATH="${prefix_dir}/lib:$LD_LIBRARY_PATH"
 export PKG_CONFIG_PATH="${prefix_dir}/lib/pkgconfig:$PKG_CONFIG_PATH"
@@ -63,4 +65,4 @@ else
     ci_build_dir="$TRAVIS_BUILD_DIR/ci_build"
 fi
 
-cor_ci_env && mkdir -p "$ci_build_dir"
+cor_ci_env && mkdir -p "$ci_build_dir" || :

@@ -18,6 +18,8 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+source "@srcdir@/.ci/ci-common.sh"
+
 COR_BINARY="${BATS_TEST_DIRNAME}/../../cc-oci-runtime"
 
 # Make temporal tests directory
@@ -295,6 +297,7 @@ function run_cmd(){
 		then
 			log_msg "See $TEST_LOG_FILE"
 			cat "$COR_LOG_FILE" >> "$TEST_LOG_FILE"
+			cor_ci_env && cat "$TEST_LOG_FILE"
 		fi
 	fi
 	#Restore -e from bats enviroment
