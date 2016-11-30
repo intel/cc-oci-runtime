@@ -292,7 +292,14 @@ cc_pod_new_container (struct cc_oci_config *config)
 
 	/* save ioBase */
 	config->oci.process.stdio_stream = ioBase;
-	config->oci.process.stderr_stream = ioBase + 1;
+	if ( config->oci.process.terminal) {
+		/* For tty, pass stderr seq as 0, so that stdout and
+		 * and stderr are redirected to the terminal
+		 */
+		config->oci.process.stderr_stream = 0;
+	} else {
+		config->oci.process.stderr_stream = ioBase + 1;
+	}
 
 	close (shim_args_fd);
 	shim_args_fd = -1;
