@@ -231,7 +231,7 @@ func hyperHandler(data []byte, userData interface{}, response *handlerResponse) 
 		return
 	}
 
-	client.infof(1, "cmd=%s, data=%s)", hyper.HyperName, hyper.Data)
+	client.infof(1, "hyper(cmd=%s, data=%s)", hyper.HyperName, hyper.Data)
 
 	err := vm.SendMessage(hyper.HyperName, hyper.Data)
 	response.SetError(err)
