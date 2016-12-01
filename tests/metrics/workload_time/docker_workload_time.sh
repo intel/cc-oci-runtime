@@ -28,7 +28,7 @@ set -e
 [ $# -ne 4 ] && ( echo >&2 "Usage: $0 <cmd to run> <image> <runtime> <times to run>"; exit 1 )
 
 SCRIPT_PATH=$(dirname "$(readlink -f "$0")")
-source "${SCRIPT_PATH}/../common/test.common"
+source "${SCRIPT_PATH}/../../lib/test-common.bash"
 
 CMD="$1"
 IMAGE="$2"

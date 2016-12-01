@@ -30,7 +30,7 @@ set -e
 [ $# -ne 2 ] && ( echo >&2 "Usage: $0 <times to run> <wait time>"; exit 1 )
 
 SCRIPT_PATH=$(dirname "$(readlink -f "$0")")
-source "${SCRIPT_PATH}/../common/test.common"
+source "${SCRIPT_PATH}/../../lib/test-common.bash"
 
 TEST_NAME="Qemu CPU % usage"
 IMAGE='ubuntu'
