@@ -85,20 +85,11 @@ START_TEST(test_cc_oci_vm_resume) {
 	g_free(diname);
 } END_TEST
 
-START_TEST(test_cc_oci_vm_shutdown) {
-	ck_assert (! cc_oci_vm_shutdown (NULL, -1));
-	ck_assert (! cc_oci_vm_shutdown (NULL, 0));
-	ck_assert (! cc_oci_vm_shutdown ("/path/to/nothingness", 1));
-
-	//ck_assert (cc_oci_vm_shutdown (socket_path, pid));
-} END_TEST
-
 Suite* make_oci_suite(void) {
 	Suite* s = suite_create(__FILE__);
 
 	ADD_TEST_TIMEOUT (test_cc_oci_vm_pause, s, 10);
 	ADD_TEST_TIMEOUT (test_cc_oci_vm_resume, s, 10);
-	ADD_TEST_TIMEOUT (test_cc_oci_vm_shutdown, s, 10);
 
 	return s;
 }

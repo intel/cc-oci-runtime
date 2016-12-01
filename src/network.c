@@ -453,37 +453,6 @@ out:
 }
 
 /*!
- * Send a QMP shutdown message to the hypervisor.
- *
- * \param conn \ref cc_oci_vm_conn to use.
- * \param pid \c GPid of hypervisor process.
- *
- * \warning \p pid is only required for the temporary shutdown
- * behaviour - remove once ACPI support is available!!
- *
- * \return \c true on success, else \c false.
- */
-static gboolean
-cc_oci_qmp_shutdown (struct cc_oci_vm_conn *conn, GPid pid)
-{
-	g_assert (conn);
-	g_assert (pid);
-
-	/* this command requires ACPI support */
-	const char shutdown_msg[] = "{ \"execute\": \"system_powerdown\" }";
-
-	/*
-	 * Expected messages:
-	 *
-	 * 1) {"return": {}}
-	 * 2) {"timestamp": {"seconds": X, "microseconds": X}, "event": "POWERDOWN"}
-	 * 3) {"timestamp": {"seconds": X, "microseconds": X}, "event": "SHUTDOWN"}
-	 */
-	return cc_oci_qmp_msg_send (conn, shutdown_msg,
-			sizeof(shutdown_msg)-1, 3, false);
-}
-
-/*!
  * Send a QMP pause message to the hypervisor.
  *
  * \param conn \ref cc_oci_vm_conn to use.
@@ -672,42 +641,6 @@ err:
 	}
 
 	return NULL;
-}
-
-/*!
- * Request the running hypervisor shutdown.
- *
- * \param socket_path Path to \ref CC_OCI_HYPERVISOR_SOCKET.
- * \param pid \c GPid of hypervisor process.
- *
- * \return \c true on success, else \c false.
- */
-gboolean
-cc_oci_vm_shutdown (const gchar *socket_path, GPid pid)
-{
-	gboolean                 ret = false;
-	struct cc_oci_vm_conn  *conn = NULL;
-
-	if (! (socket_path != NULL && pid > 0)) {
-		return false;
-	}
-
-	conn = cc_oci_vm_conn_new (socket_path, pid);
-	if (! conn) {
-		goto out;
-	}
-
-	ret = cc_oci_qmp_shutdown (conn, pid);
-	if (! ret) {
-		goto out;
-	}
-
-out:
-	if (conn) {
-		cc_oci_vm_conn_free (conn);
-	}
-
-	return ret;
 }
 
 /*!

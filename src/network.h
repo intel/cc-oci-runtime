@@ -23,6 +23,5 @@
 
 gboolean cc_oci_vm_pause (const gchar *socket_path, GPid pid);
 gboolean cc_oci_vm_resume (const gchar *socket_path, GPid pid);
-gboolean cc_oci_vm_shutdown (const gchar *socket_path, GPid pid);
 
 #endif /* _CC_OCI_NETWORK_H */
