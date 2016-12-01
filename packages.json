@@ -21,7 +21,7 @@
 	},
 	"github.com/sameo/virtcontainers": {
 		"url": "https://github.com/sameo/virtcontainers.git",
-		"version": "v0.1.0",
+		"version": "v0.2.0",
 		"license": "Apache 2.0"
 	},
 	"github.com/stretchr/testify": {

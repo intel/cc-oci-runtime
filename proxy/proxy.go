@@ -21,6 +21,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"path/filepath"
 	"sync"
 	"sync/atomic"
 
@@ -261,6 +262,10 @@ func (proxy *proxy) init() error {
 			return fmt.Errorf("couldn't listen on socket: %v", err)
 		}
 	} else {
+		socketDir := filepath.Dir(socketPath)
+		if err = os.MkdirAll(socketDir, 0750); err != nil {
+			return fmt.Errorf("couldn't create socket directory: %v", err)
+		}
 		if err = os.Remove(socketPath); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("couldn't remove exiting socket: %v", err)
 		}
@@ -268,7 +273,7 @@ func (proxy *proxy) init() error {
 		if err != nil {
 			return fmt.Errorf("couldn't create AF_UNIX socket: %v", err)
 		}
-		if err = os.Chmod(socketPath, 0666|os.ModeSocket); err != nil {
+		if err = os.Chmod(socketPath, 0660|os.ModeSocket); err != nil {
 			return fmt.Errorf("couldn't set mode on socket: %v", err)
 		}
 	}
