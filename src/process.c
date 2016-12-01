@@ -495,12 +495,14 @@ cc_run_hook(struct oci_cfg_hook* hook, const gchar* state,
 	container_state = g_strdup(state);
 	g_strdelimit(container_state, "\n", ' ');
 	if (write(std_in, container_state, state_length) < 0) {
+		int saved = errno;
+
 		g_critical ("failed to send container state to hook: %s",
-				strerror (errno));
+				strerror (saved));
 		/* Ignore signal since hook was probably not expecting
 		 * state to be passed via its stdin and has now exited.
 		 */
-		if (errno == EPIPE) {
+		if (saved == EPIPE) {
 			result = true;
 		}
 		goto exit;
@@ -508,9 +510,10 @@ cc_run_hook(struct oci_cfg_hook* hook, const gchar* state,
 
 	/* commit container state to stdin */
 	if (write(std_in, "\n", 1) < 0) {
+		int saved = errno;
 		g_critical ("failed to commit container state: %s",
-				strerror (errno));
-		if (errno == EPIPE) {
+				strerror (saved));
+		if (saved == EPIPE) {
 			result = true;
 		}
 		goto exit;
