@@ -172,7 +172,7 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 	gchar           **arg;
 	gchar            *bytes = NULL;
 	gchar            *console_device = NULL;
-	g_autofree gchar *hypervisor_console = NULL;
+	gchar		 *hypervisor_console = NULL;
 	g_autofree gchar *procsock_device = NULL;
 
 	gboolean          ret = false;
@@ -254,6 +254,8 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 	procsock_device = g_strdup_printf ("socket,id=procsock,path=%s,server,nowait", config->state.procsock_path);
 
 	proxy = config->proxy;
+
+	proxy->vm_console_socket = hypervisor_console;
 
 	proxy->agent_ctl_socket = g_build_path ("/", config->state.runtime_path,
 			CC_OCI_AGENT_CTL_SOCKET, NULL);

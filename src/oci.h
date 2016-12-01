@@ -514,6 +514,13 @@ struct cc_proxy {
 	 * to/from the agent running in the VM.
 	 */
 	gchar *agent_tty_socket;
+
+	/** Full path to socket connected to the VM console.
+	 *
+	 * We give the console socket the proxy to it can grab debugging output
+	 * from hyperstart when asked for it.
+	 */
+	gchar *vm_console_socket;
 };
 
 /** The main object holding all configuration data.

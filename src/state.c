@@ -397,6 +397,10 @@ handle_state_proxy_section(GNode* node, struct handler_data* data) {
 		proxy->agent_tty_socket =
 			g_strdup ((gchar *)node->children->data);
 		(*(data->subelements_count))++;
+	} else if (g_strcmp0(node->data, "consoleSocket") == 0) {
+		proxy->vm_console_socket =
+			g_strdup ((gchar *)node->children->data);
+		(*(data->subelements_count))++;
 	} else {
 		g_critical("unknown proxy option: %s", (char*)node->data);
 	}
@@ -655,6 +659,7 @@ cc_oci_state_free (struct oci_state *state)
 	if (state->proxy) {
 		g_free_if_set(state->proxy->agent_ctl_socket);
 		g_free_if_set(state->proxy->agent_tty_socket);
+		g_free_if_set(state->proxy->vm_console_socket);
 		g_free (state->proxy);
 	}
 
@@ -826,6 +831,10 @@ cc_oci_state_file_create (struct cc_oci_config *config,
 	json_object_set_string_member (proxy, "ioSocket",
 			config->proxy->agent_tty_socket ?
 			config->proxy->agent_tty_socket : "");
+
+	json_object_set_string_member (proxy, "consoleSocket",
+			config->proxy->vm_console_socket ?
+			config->proxy->vm_console_socket : "");
 
 	json_object_set_object_member (obj, "proxy", proxy);
 

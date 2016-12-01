@@ -72,6 +72,7 @@ cc_proxy_free (struct cc_proxy *proxy) {
 
 	g_free_if_set (proxy->agent_ctl_socket);
 	g_free_if_set (proxy->agent_tty_socket);
+	g_free_if_set (proxy->vm_console_socket);
 
 	if (proxy->socket) {
 		g_object_unref (proxy->socket);
@@ -614,6 +615,9 @@ cc_proxy_cmd_hello (struct cc_proxy *proxy, const char *container_id)
 
 	json_object_set_string_member (data, "ioSerial",
 			proxy->agent_tty_socket);
+
+	json_object_set_string_member (data, "console",
+			proxy->vm_console_socket);
 
 	json_object_set_object_member (obj, "data", data);
 
