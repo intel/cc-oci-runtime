@@ -328,6 +328,7 @@ EXTRA_DIST = \
 	data/dockerFiles/Dockerfile.clearlinux \
 	$(bats_test_sources) \
 	tests/integration \
+	tests/lib \
 	tests/metrics/density/docker_cpu_usage.sh.in \
 	tests/metrics/density/docker_memory_usage.sh.in \
 	tests/metrics/workload_time/cor_create_time.sh.in
