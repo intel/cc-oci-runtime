@@ -26,6 +26,7 @@
 #include "oci.h"
 #include "json.h"
 #include "common.h"
+#include "pod.h"
 #include "proxy.h"
 #include "util.h"
 #include "networking.h"
@@ -1433,14 +1434,21 @@ cc_proxy_hyper_kill_container (struct cc_oci_config *config, int signum)
 	JsonObject *killcontainer_payload;
 	char       *signum_str = NULL;
 	gboolean    ret = false;
+	const gchar *container_id;
 
 	if (! (config && config->proxy)) {
 		return false;
 	}
+
+	container_id = cc_pod_container_id(config);
+	if (! container_id) {
+		return false;
+	}
+
 	if (! cc_proxy_connect (config->proxy)) {
 		return false;
 	}
-	if (! cc_proxy_attach (config->proxy, config->optarg_container_id)) {
+	if (! cc_proxy_attach (config->proxy, container_id)) {
 		return false;
 	}
 

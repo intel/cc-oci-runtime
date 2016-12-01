@@ -147,6 +147,8 @@ cc_pod_handle_annotations(struct cc_oci_config *config, struct oci_cfg_annotatio
 				    CC_OCI_RUNTIME_DIR_PREFIX,
 				    config->optarg_container_id,
 				    CC_POD_SANDBOX_ROOTFS);
+		} else if (g_strcmp0(annotation->value, CC_POD_OCID_CONTAINER) == 0) {
+			config->pod->sandbox = false;
 		}
 	} else if (g_strcmp0(annotation->key, CC_POD_OCID_SANDBOX_NAME) == 0) {
 		if (config->pod->sandbox_name) {
@@ -186,7 +188,7 @@ cc_pod_free (struct cc_pod *pod) {
 	g_free (pod);
 }
 
-/*!
+/**
  * Start a container within a pod.
  *
  * \param config \ref cc_oci_config.
@@ -343,4 +345,30 @@ out:
 	if (shim_socket_fd != -1) close (shim_socket_fd);
 
 	return ret;
+}
+
+/**
+ * Returns the pod container ID for any container.
+ * For a pod or for a standalone container, it
+ * simply returns config->optarg_container_id.
+ * For a container running within a pod, this will
+ * return the pod container ID.
+ *
+ * \param config \ref cc_oci_config.
+ *
+ * \return the pod container ID on success, else \c NULL.
+ */
+const gchar *
+cc_pod_container_id(struct cc_oci_config *config)
+{
+	if (! config) {
+		return NULL;
+	}
+
+	/* This is a container running within a pod */
+	if (config->pod && ! config->pod->sandbox) {
+		return config->pod->sandbox_name;
+	}
+
+	return config->optarg_container_id;
 }
