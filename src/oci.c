@@ -574,14 +574,14 @@ cc_oci_create (struct cc_oci_config *config)
 	}
 
 	/* Either start a standalone container or a pod sandbox */
-	if (! config->pod || config->pod->sandbox == true) {
+	if (! config->pod || config->pod->sandbox) {
 		if (! cc_oci_vm_launch (config)) {
 			g_critical ("failed to launch VM");
 			goto out;
 		}
 	} else {
 		/* We want to start a container within a pod */
-		if (! cc_pod_new_container (config)) {
+		if (! cc_pod_container_create (config)) {
 			g_critical ("failed to launch pod container");
 			goto out;
 		}
@@ -727,10 +727,16 @@ cc_oci_start (struct cc_oci_config *config,
 		}
 	}
 
-	if (((! config->pod) || (config->pod && ! config->pod->sandbox)) &&
-	    (! cc_proxy_hyper_new_container (config))) {
-	    ret = false;
-	    goto out;
+	if (! config->pod) {
+		if (! cc_proxy_hyper_new_container (config)) {
+			ret = false;
+			goto out;
+		}
+	} else if (config->pod && ! config->pod->sandbox) {
+		if (! cc_pod_container_start (config)) {
+			ret = false;
+			goto out;
+		}
 	}
 
 	/* Now the VM is running */

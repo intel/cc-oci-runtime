@@ -189,14 +189,14 @@ cc_pod_free (struct cc_pod *pod) {
 }
 
 /**
- * Start a container within a pod.
+ * Create a container within a pod.
  *
  * \param config \ref cc_oci_config.
  *
  * \return \c true on success, else \c false.
  */
 gboolean
-cc_pod_new_container (struct cc_oci_config *config)
+cc_pod_container_create (struct cc_oci_config *config)
 {
 	gboolean           ret = false;
 	ssize_t            bytes;
@@ -328,12 +328,6 @@ cc_pod_new_container (struct cc_oci_config *config)
 		goto out;
 	}
 
-	if (! cc_proxy_run_hyper_new_container (config,
-						config->optarg_container_id,
-						"rootfs", config->optarg_container_id)) {
-		goto out;
-	}
-
 	/* We can now disconnect from the proxy (but the shim
 	 * remains connected).
 	 */
@@ -345,6 +339,35 @@ out:
 	if (shim_socket_fd != -1) close (shim_socket_fd);
 
 	return ret;
+}
+
+/**
+ * Start a container within a pod.
+ *
+ * \param config \ref cc_oci_config.
+ *
+ * \return \c true on success, else \c false.
+ */
+gboolean
+cc_pod_container_start (struct cc_oci_config *config)
+{
+	const gchar *pod_id;
+
+	if (! (config && config->pod && ! config->pod->sandbox)) {
+		return false;
+	}
+
+	pod_id = cc_pod_container_id(config);
+	if (! pod_id) {
+		return false;
+	}
+
+	g_debug("Attaching to pod %s", pod_id);
+
+	return cc_proxy_hyper_new_pod_container(config,
+						config->optarg_container_id,
+						pod_id,
+						"rootfs", config->optarg_container_id);
 }
 
 /**
