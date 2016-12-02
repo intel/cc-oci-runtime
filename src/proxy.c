@@ -259,10 +259,6 @@ cc_proxy_msg_read (GIOChannel *source, GIOCondition condition,
 		return false;
 	}
 
-	memcpy(buf_len, iov_buffer, sizeof(p_msg.length));
-	p_msg.length = cc_oci_get_big_endian_32(buf_len);
-	g_debug("msg length: %d", p_msg.length);
-
 	if (proxy_data->oob_fd) {
 		/* check if oob data was received */
 		cmsg = CMSG_FIRSTHDR(&msg);
@@ -277,13 +273,27 @@ cc_proxy_msg_read (GIOChannel *source, GIOCondition condition,
 		}
 	}
 
+	/* only out-of-band data was received */
+	if (bytes_read < sizeof (buf_len) || iov_buffer[0] == 'F' ) {
+		goto out1;
+	}
+
+	/* cc-proxy sends a fd as out-of-band data
+	 * followed by an 'F'.
+	 * *DO NOT* copy these bytes to msg_received
+	 */
+	memcpy (buf_len, iov_buffer, sizeof (buf_len));
+	p_msg.length = cc_oci_get_big_endian_32 (buf_len);
+	g_debug ("msg length: %d", p_msg.length);
+
 	/* ensure DO NOT copy extra bytes */
-	bytes_to_copy = MIN((size_t)bytes_read-data_offset, (size_t)p_msg.length);
-	g_string_append_len(proxy_data->msg_received,
+	bytes_to_copy = MIN ((size_t)bytes_read-data_offset, (size_t)p_msg.length);
+	g_string_append_len (proxy_data->msg_received,
 		iov_buffer+data_offset, (ssize_t)bytes_to_copy);
 
+	/* all message was read */
 	if (bytes_read >= p_msg.length+data_offset) {
-		goto out;
+		goto out2;
 	}
 
 	/* read missing bytes */
@@ -313,10 +323,12 @@ cc_proxy_msg_read (GIOChannel *source, GIOCondition condition,
 			iov_buffer, bytes_read);
 	}
 
-out:
-	g_debug("message read from proxy socket: %s",
+out2:
+	if (proxy_data->msg_received->len > 0) {
+		g_debug("message read from proxy socket: %s",
 			proxy_data->msg_received->str);
-
+	}
+out1:
 	if (proxy_data->oob_fd && !fd_read) {
 		g_debug("waiting for oob fd");
 		return true;
