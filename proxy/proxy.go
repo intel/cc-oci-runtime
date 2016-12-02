@@ -41,6 +41,9 @@ type proxy struct {
 
 	// vms are hashed by their containerID
 	vms map[string]*vm
+
+	// Output the VM console on stderr
+	enableVMConsole bool
 }
 
 // Represents a client, either a cc-oci-runtime or cc-shim process having
@@ -94,12 +97,16 @@ func helloHandler(data []byte, userData interface{}, response *handlerResponse) 
 		return
 	}
 
-	client.infof(1, "hello(containerId=%s,ctlSerial=%s,ioSerial=%s", hello.ContainerID,
-		hello.CtlSerial, hello.IoSerial)
+	client.infof(1, "hello(containerId=%s,ctlSerial=%s,ioSerial=%s,console=%s)", hello.ContainerID,
+		hello.CtlSerial, hello.IoSerial, hello.Console)
 
 	vm := newVM(hello.ContainerID, hello.CtlSerial, hello.IoSerial)
 	proxy.vms[hello.ContainerID] = vm
 	proxy.Unlock()
+
+	if hello.Console != "" && proxy.enableVMConsole {
+		vm.setConsole(hello.Console)
+	}
 
 	if err := vm.Connect(); err != nil {
 		proxy.Lock()
@@ -251,6 +258,11 @@ func (proxy *proxy) init() error {
 	var l net.Listener
 	var err error
 
+	// flags
+	v := flag.Lookup("v").Value.(flag.Getter).Get().(glog.Level)
+	proxy.enableVMConsole = v >= 3
+
+	// Open the proxy socket
 	fds := listenFds()
 
 	if len(fds) > 1 {

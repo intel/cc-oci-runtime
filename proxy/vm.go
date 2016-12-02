@@ -15,6 +15,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/hex"
 	"fmt"
 	"net"
@@ -32,6 +33,12 @@ type vm struct {
 	containerID string
 
 	hyperHandler *hyperstart.Hyperstart
+
+	// Socket to the VM console
+	console struct {
+		socketPath string
+		conn       net.Conn
+	}
 
 	// Used to allocate globally unique IO sequence numbers
 	nextIoBase uint64
@@ -70,6 +77,11 @@ func newVM(id, ctlSerial, ioSerial string) *vm {
 		nextIoBase:   1,
 		ioSessions:   make(map[uint64]*ioSession),
 	}
+}
+
+// setConsole() will make the proxy output the console data on stderr
+func (vm *vm) setConsole(path string) {
+	vm.console.socketPath = path
 }
 
 func (vm *vm) shortName() string {
@@ -144,7 +156,34 @@ func (vm *vm) ioHyperToClients() {
 	vm.wg.Done()
 }
 
+// Stream the VM console to stderr
+func (vm *vm) consoleToLog() {
+	reader := bufio.NewReader(vm.console.conn)
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			break
+		}
+
+		vm.infof(3, "hyperstart", line)
+	}
+
+	vm.wg.Done()
+}
+
 func (vm *vm) Connect() error {
+	if vm.console.socketPath != "" {
+		var err error
+
+		vm.console.conn, err = net.Dial("unix", vm.console.socketPath)
+		if err != nil {
+			return err
+		}
+
+		vm.wg.Add(1)
+		go vm.consoleToLog()
+	}
+
 	if err := vm.hyperHandler.OpenSockets(); err != nil {
 		return err
 	}
@@ -243,6 +282,9 @@ func (vm *vm) CloseIo(seq uint64) {
 
 func (vm *vm) Close() {
 	vm.hyperHandler.CloseSockets()
+	if vm.console.conn != nil {
+		vm.console.conn.Close()
+	}
 
 	// Wait for per-client goroutines
 	vm.Lock()
