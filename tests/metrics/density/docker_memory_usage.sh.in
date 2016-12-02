@@ -53,8 +53,8 @@ function get_docker_memory_usage(){
 }
 
 echo "Executing Test: ${TEST_NAME}"
-if [ ! -f $SMEM_BIN ]; then
-	die "${SMEM_BIN} is not installed in your system, skipping test"
+if [ "$SMEM_BIN" == "" ]; then
+	die "smem is not installed in your system, skipping test"
 fi
 backup_old_file "$TEST_RESULT_FILE"
 write_csv_header "$TEST_RESULT_FILE"
