@@ -133,5 +133,9 @@ environment variable.
 $ sudo CC_PROXY_LOG_LEVEL=1 ./cc-proxy
 ```
 
-There are 2 verbosity levels. The second one will dump the raw data going over
-the I/O channel.
+There are 3 verbosity levels:
+
+  - Level 1 will show the important events happening at the proxy interfaces
+  - Level 2 will dump the raw data going over the I/O channel
+  - Level 3 will display the VM console logs. With clear VM images, this will
+    show hyperstart's stdout and stderr.
