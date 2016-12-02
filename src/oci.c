@@ -238,6 +238,19 @@ cc_oci_kill (struct cc_oci_config *config,
 	/* save current status */
 	last_status = config->state.status;
 
+	/* A sandbox is not a running container, nothing to kill here */
+	if (cc_pod_is_sandbox(config)) {
+		config->state.status = OCI_STATUS_STOPPED;
+
+		/* update state file */
+		if (! cc_oci_state_file_create (config, state->create_time)) {
+			g_critical ("failed to recreate state file");
+			goto error;
+		}
+
+		return true;
+	}
+
 	/* stopping container */
 	config->state.status = OCI_STATUS_STOPPING;
 

@@ -372,3 +372,21 @@ cc_pod_container_id(struct cc_oci_config *config)
 
 	return config->optarg_container_id;
 }
+
+/**
+ * cc_pod_sandbox tells if a container is a pod
+ * sandbox or not.
+ *
+ * \param config \ref cc_oci_config.
+ *
+ * \return \c true if the container is a pod sanbox, \c fals otherwise
+ */
+gboolean
+cc_pod_is_sandbox(struct cc_oci_config *config)
+{
+	if (config && config->pod && config->pod->sandbox) {
+		return true;
+	}
+
+	return false;
+}

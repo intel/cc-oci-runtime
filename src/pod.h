@@ -33,5 +33,6 @@ struct cc_oci_mount *cc_pod_mount_point(struct cc_oci_config *config);
 void cc_pod_free (struct cc_pod *pod);
 gboolean cc_pod_new_container (struct cc_oci_config *config);
 const gchar *cc_pod_container_id(struct cc_oci_config *config);
+gboolean cc_pod_is_sandbox(struct cc_oci_config *config);
 
 #endif /* _CC_POD_H */
