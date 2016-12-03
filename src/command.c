@@ -197,10 +197,6 @@ handle_command_stop (const struct subcommand *sub,
 
 	g_free_node(root);
 
-	/* move the mounts to the config object to allow unmounting */
-	config->oci.mounts = state->mounts;
-	state->mounts = NULL;
-
 	ret = cc_oci_stop (config, state);
 	if (! ret) {
 		goto out;

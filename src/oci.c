@@ -732,6 +732,11 @@ cc_oci_start (struct cc_oci_config *config,
 			ret = false;
 			goto out;
 		}
+	} else if (cc_pod_is_sandbox(config)) {
+		cc_proxy_hyper_new_pod_container(config,
+						config->optarg_container_id,
+						config->optarg_container_id,
+						"rootfs", config->optarg_container_id);
 	} else if (config->pod && ! config->pod->sandbox) {
 		if (! cc_pod_container_start (config)) {
 			ret = false;
@@ -902,8 +907,21 @@ cc_oci_stop (struct cc_oci_config *config,
 				state->id, state->pid);
 	}
 
+	/*
+	 * We need to update our config so that both
+	 * the pod and mount pointers are accurate.
+	 * OTOH we can't update our config before calling
+	 * cc_oci_vm_running() as config_update() clears
+	 * the state pointer and cc_oci_vm_running would
+	 * always return false.
+	 */
+	if (! cc_oci_config_update (config, state)) {
+		return false;
+	}
+
 	/* Allow the proxy to clean up resources */
-	if (! cc_proxy_cmd_bye (config->proxy, config->optarg_container_id)) {
+	if (cc_pod_is_vm (config) &&
+	    ! cc_proxy_cmd_bye (config->proxy, config->optarg_container_id)) {
 		return false;
 	}
 

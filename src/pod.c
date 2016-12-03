@@ -55,7 +55,7 @@ static gboolean
 add_container_mount(struct cc_oci_config *config) {
 	struct cc_oci_mount *m;
 
-	if (! (config && config->pod && ! config->pod->sandbox)) {
+	if (! (config && config->pod)) {
 		return false;
 	}
 
@@ -140,6 +140,10 @@ cc_pod_handle_annotations(struct cc_oci_config *config, struct oci_cfg_annotatio
 		if (g_strcmp0(annotation->value, CC_POD_OCID_SANDBOX) == 0) {
 			config->pod->sandbox = true;
 			config->pod->sandbox_name = g_strdup(config->optarg_container_id);
+
+			if (! add_container_mount(config)) {
+				return -ENOMEM;
+			}
 
 			g_snprintf (config->pod->sandbox_workloads,
 				    sizeof (config->pod->sandbox_workloads),
@@ -402,7 +406,7 @@ cc_pod_container_id(struct cc_oci_config *config)
  *
  * \param config \ref cc_oci_config.
  *
- * \return \c true if the container is a pod sanbox, \c fals otherwise
+ * \return \c true if the container is a pod sanbox, \c false otherwise
  */
 gboolean
 cc_pod_is_sandbox(struct cc_oci_config *config)
@@ -412,4 +416,24 @@ cc_pod_is_sandbox(struct cc_oci_config *config)
 	}
 
 	return false;
+}
+
+/**
+ * cc_pod_sandbox tells if a container is a virtual machine
+ * or an intra pod container.
+ * This is equivalent to being a sandbox or not except for
+ * the standalone case where a container is a VM.
+ *
+ * \param config \ref cc_oci_config.
+ *
+ * \return \c true if the container is a virtual machine, \c false otherwise
+ */
+gboolean
+cc_pod_is_vm(struct cc_oci_config *config)
+{
+	if (config && config->pod && ! config->pod->sandbox) {
+		return false;
+	}
+
+	return true;
 }
