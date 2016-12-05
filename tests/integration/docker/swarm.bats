@@ -21,7 +21,7 @@
 
 # Swarm testing
 
-SRC="${BATS_TEST_DIRNAME}/../../integration/lib/"
+SRC="${BATS_TEST_DIRNAME}/../../lib/"
 # maximum number of replicas that will be launch
 number_of_replicas=15
 url=http://127.0.0.1:8080/hostname
@@ -31,9 +31,9 @@ number_of_attemps=5
 declare -a REPLICAS
 
 setup() {
-	source $SRC/common.bash
-	cleanDockerPs
-	runtimeDocker
+	source $SRC/test-common.bash
+	clean_docker_ps
+	runtime_docker
 	$DOCKER_EXE swarm init
 }
 
