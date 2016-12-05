@@ -33,6 +33,8 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <pwd.h>
+#include <fcntl.h>
+#include <sys/file.h>
 
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -88,21 +90,6 @@ struct socket_watcher_data
 	GIOChannel* socket_io;
 	struct oci_state *state;
 	gboolean setup_success;
-};
-
-/**
- * Used by watcher_runtime_dir(), handle_process_socket() and
- * handle_socket_close() to determine when the VM has finished starting
- * and also when it has shutdown.
- */
-struct process_watcher_data
-{
-	struct cc_oci_config  *config;
-	GMainLoop              *loop;
-	GSocket                *socket;
-	GSocketAddress         *src_address;
-	GIOChannel             *channel;
-	gboolean                failed;
 };
 
 /**
@@ -801,120 +788,6 @@ out:
 	return ret;
 }
 
-/*!
- * Called when the \ref CC_OCI_PROCESS_SOCKET file is closed by the VM,
- * denoting process shutdown.
- *
- * \param source \c GIOChannel.
- * \param condition \c GIOCondition.
- * \param data \ref process_watcher_data.
- *
- * \return \c false on success, else \c true.
- */
-static gboolean
-handle_socket_close (GIOChannel              *source,
-		GIOCondition                  condition,
-		struct process_watcher_data  *data)
-{
-	(void)source;
-	(void)condition;
-
-	g_assert (data);
-	g_assert (data->loop);
-
-	g_main_loop_quit (data->loop);
-
-	/* signify success */
-	return false;
-}
-
-/**
- * Connect to \ref CC_OCI_PROCESS_SOCKET and set a watch to trigger
- * when the socket is closed (denoting the VM has shutdown).
- *
- * \param data \ref process_watcher_data.
- *
- * \return \c true on success, else \c false.
- */
-static gboolean
-handle_process_socket (struct process_watcher_data *data)
-{
-	gboolean         ret = false;
-	int              socket_fd;
-	GError          *error = NULL;
-	const gchar     *path;
-
-	if (! data || ! data->loop || ! data->config) {
-		return false;
-	}
-
-	if (! data->config->state.procsock_path[0]) {
-		return false;
-	}
-
-	path = data->config->state.procsock_path;
-
-	data->socket = g_socket_new (G_SOCKET_FAMILY_UNIX,
-			G_SOCKET_TYPE_STREAM, 0, &error);
-	if (! data->socket) {
-		g_critical("failed to create unix socket: %s",
-				error->message);
-		g_error_free (error);
-		goto fail1;
-	}
-
-	data->src_address = g_unix_socket_address_new_with_type (path,
-			-1,
-			G_UNIX_SOCKET_ADDRESS_PATH);
-	if (! data->src_address) {
-		g_critical("failed to create socket address: %s",
-				data->config->state.procsock_path);
-		goto fail2;
-	}
-
-	ret = g_socket_connect(data->socket, data->src_address,
-			NULL, &error);
-	if (! ret) {
-		g_critical("failed to connect to hypervisor process socket %s: %s",
-				path,
-				error->message);
-		g_error_free (error);
-		goto fail3;
-	}
-
-	/* ensure non-blocking mode */
-	g_socket_set_blocking (data->socket, false);
-
-	/* get socket fd to create GIOChannel */
-	socket_fd = g_socket_get_fd (data->socket);
-
-	data->channel = g_io_channel_unix_new (socket_fd);
-	if (! data->channel) {
-		g_critical ("failed to create io channel");
-		goto fail4;
-	}
-
-	g_io_add_watch (data->channel,
-			G_IO_HUP|G_IO_ERR,
-			(GIOFunc)handle_socket_close,
-			data);
-
-	return true;
-
-fail4:
-	g_io_channel_shutdown (data->channel, true, NULL);
-	g_io_channel_unref (data->channel);
-fail3:
-	g_object_unref (data->src_address);
-fail2:
-	g_object_unref (data->socket);
-fail1:
-	g_main_loop_unref (data->loop);
-	data->loop = NULL;
-
-	return false;
-}
-
 /**
  * Determine when \ref CC_OCI_PROCESS_SOCKET is created.
  *
@@ -922,7 +795,7 @@ fail1:
  * \param file \c GFile (unused).
  * \param other_file \c GFile (unused).
  * \param event_type \c GFileMonitorEvent (unused).
- * \param data \ref process_watcher_data.
+ * \param loop GMainLoop.
  */
 static void
 cc_oci_procsock_monitor_callback(
@@ -930,24 +803,22 @@ cc_oci_procsock_monitor_callback(
 		GFile                        *file,
 		GFile                        *other_file,
 		GFileMonitorEvent             event_type,
-		struct process_watcher_data  *data)
+		GMainLoop                   **loop)
 {
 	(void)file;
 	(void)other_file;
 	(void)event_type;
 
-	g_assert (data);
+	g_assert (loop);
 
 	/* CC_OCI_PROCESS_SOCKET has now been created, so delete the
 	 * monitor.
 	 */
 	g_object_unref (monitor);
 
-	/* Now that the socket has been created, connect to it */
-	if (! handle_process_socket (data)) {
-		data->failed = true;
-		g_critical ("failed to handle process socket");
-	}
+	g_main_loop_quit (*loop);
+	g_main_loop_unref (*loop);
+	*loop = NULL;
 }
 
 /*!
@@ -967,9 +838,11 @@ cc_oci_start (struct cc_oci_config *config,
 	GFile         *file = NULL;
 	GError        *error = NULL;
 	gboolean       wait = false;
-	struct process_watcher_data data = { 0 };
 	gchar         *config_file = NULL;
 	struct stat    st;
+	int            shim_flock_fd = -1;
+	char          *shim_flock_path = NULL;
+	GMainLoop     *loop = NULL;
 
 	if (! config || ! state) {
 		return false;
@@ -1017,18 +890,16 @@ cc_oci_start (struct cc_oci_config *config,
 	}
 
 	if (wait) {
-		data.config = config;
-		data.loop = g_main_loop_new (NULL, 0);
-		if (! data.loop) {
-			g_critical ("cannot create main loop for client");
-			return false;
-		}
-
 		/* Create a file monitor if CC_OCI_PROCESS_SOCKET does not exist */
 		if (stat(config->state.procsock_path, &st)) {
+			loop = g_main_loop_new (NULL, 0);
+			if (! loop) {
+				g_critical ("cannot create main loop for client");
+				return false;
+			}
 			file = g_file_new_for_path (config->state.procsock_path);
 			if (! file) {
-				g_main_loop_unref (data.loop);
+				g_main_loop_unref (loop);
 				return false;
 			}
 
@@ -1040,20 +911,14 @@ cc_oci_start (struct cc_oci_config *config,
 						error->message);
 				g_error_free (error);
 				g_object_unref (file);
-				g_main_loop_unref (data.loop);
+				g_main_loop_unref (loop);
 
 				return false;
 			}
 
 			g_signal_connect (monitor, "changed",
 				G_CALLBACK (cc_oci_procsock_monitor_callback),
-				&data);
-		} else {
-			/* procsock exists, connect to it */
-			if (! handle_process_socket (&data)) {
-				data.failed = true;
-				g_critical ("failed to handle process socket");
-			}
+				&loop);
 		}
 	}
 
@@ -1078,7 +943,28 @@ cc_oci_start (struct cc_oci_config *config,
 	              config->state.state_file_path, false);
 
 	if (wait) {
-		g_main_loop_run (data.loop);
+		if (loop) {
+			/* waiting for CC_OCI_PROCESS_SOCKET
+			 * this socket indicates that VM is running
+			 */
+			g_main_loop_run (loop);
+		}
+
+		/* try to lock shim flock file
+		 * when flock returns means that shim finished
+		 */
+		shim_flock_path = g_strdup_printf ("%s/%s", config->state.runtime_path,
+			CC_OCI_SHIM_LOCK_FILE);
+		shim_flock_fd = open (shim_flock_path, O_RDONLY);
+		if (shim_flock_fd < 0) {
+			g_critical ("failed to open shim flock file: %s", strerror(errno));
+			goto out;
+		}
+
+		if (flock (shim_flock_fd, LOCK_EX) < 0) {
+			g_critical ("failed to flock shim file: %s", strerror(errno));
+			goto out;
+		}
 
 		/* Read state file to detect if the VM was stopped */
 		ret = cc_oci_get_config_and_state (&config_file, config,
@@ -1087,13 +973,12 @@ cc_oci_start (struct cc_oci_config *config,
 			goto out;
 		}
 
+		/*FIXME: should start delete the container? */
+
 		/* If the VM was stopped then *do not* cleanup */
 		if (config->state.status != OCI_STATUS_STOPPED &&
 			config->state.status != OCI_STATUS_STOPPING) {
 			ret = cc_oci_cleanup (config);
-			if (data.failed) {
-				ret = false;
-			}
 		}
 	} else {
 		ret = true;
@@ -1104,21 +989,16 @@ out:
 		if (file) {
 			g_object_unref (file);
 		}
-		if (data.channel) {
-			g_io_channel_shutdown (data.channel, true, NULL);
-			g_io_channel_unref (data.channel);
-		}
-		if (data.src_address) {
-			g_object_unref (data.src_address);
-		}
-		if (data.socket) {
-			g_object_unref (data.socket);
-		}
-		if (data.loop) {
-			g_main_loop_unref (data.loop);
-			data.loop = NULL;
+		if (loop) {
+			g_main_loop_unref (loop);
+			loop = NULL;
 		}
 		g_free_if_set (config_file);
+	}
+
+	g_free_if_set (shim_flock_path);
+	if (shim_flock_fd >= 0) {
+		close (shim_flock_fd);
 	}
 
 	return ret;

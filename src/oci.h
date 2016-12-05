@@ -70,6 +70,9 @@
 /** Name of hypervisor socket used as a console device. */
 #define CC_OCI_AGENT_TTY_SOCKET		"ga-tty.sock"
 
+/** Name of shim lock file used to determine if shim is running */
+#define CC_OCI_SHIM_LOCK_FILE      ".shim-flock"
+
 /** File generated below \ref CC_OCI_RUNTIME_DIR_PREFIX at runtime that
  * contains metadata about the running instance.
  */
