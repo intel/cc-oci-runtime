@@ -18,7 +18,7 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-#Based on runc tests/integration/helpers.bash
+source "@srcdir@/.ci/ci-common.sh"
 
 COR_BINARY="${BATS_TEST_DIRNAME}/../../cc-oci-runtime"
 
@@ -297,6 +297,7 @@ function run_cmd(){
 		then
 			log_msg "See $TEST_LOG_FILE"
 			cat "$COR_LOG_FILE" >> "$TEST_LOG_FILE"
+			cor_ci_env && cat "$TEST_LOG_FILE"
 		fi
 	fi
 	#Restore -e from bats enviroment
@@ -308,6 +309,26 @@ function log_msg()
 {
 	local msg="$*"
 	echo "$msg" >&2
+}
+
+# Display the name of a logfile, but if running in a CI environment,
+# also show the log file contents.
+#
+# Param 1: prefix - a human-readable string to be used to introduce
+#   the file to be logged.
+# Param 2: file - path to file to be logged.
+function log_show_file()
+{
+	local prefix="$1"
+	local file="$2"
+
+	[ -z "$prefix" ] && prefix="See"
+
+	log_msg "${prefix}: ${file}"
+
+	# CI systems don't all allow remote access, so display
+	# the file to make debugging easier.
+	cor_ci_env && cat "${file}"
 }
 
 # Common setup for all the tests
@@ -367,11 +388,25 @@ function setup_common(){
 function cleanup_common(){
 	if [ "$BATS_ERROR_STATUS" -ne 0 ]
 	then
-		echo >&2 "Test logs: $COR_ROOT_DIR"
-		echo >&2 "Global log file: $COR_LOG_FILE"
-		echo >&2 "Hypervisor log dir: $COR_HYPERVISOR_LOG_DIR"
-		echo >&2 "bats status: $status"
-		echo >&2 "bats output (lines array contains ${#lines[*]} lines):"
+		log_msg "Test logs: $COR_ROOT_DIR"
+
+		if cor_ci_env
+		then
+			(cd "$COR_ROOT_DIR" && for file in *; do echo "== $file =="; cat "$file"; done)
+		fi
+
+		log_show_file "Global log file" "$COR_LOG_FILE"
+
+		log_msg "Hypervisor log dir: $COR_HYPERVISOR_LOG_DIR"
+
+		if cor_ci_env
+		then
+			(cd "$COR_HYPERVISOR_LOG_DIR" && for file in *.std*; do echo "== $file =="; cat "$file"; done)
+		fi
+
+		log_msg "bats status: $status"
+		log_msg "bats output (lines array contains ${#lines[*]} lines):"
+
 		local i=0
 		local line
 

@@ -70,6 +70,7 @@ $(GENERATED_FILES): %: %.in Makefile
 	@mkdir -p `dirname $@`
 	$(AM_V_GEN)$(SED) \
 		-e 's|[@]bindir[@]|$(bindir)|g' \
+		-e 's|[@]srcdir[@]|$(srcdir)|g' \
 		-e 's|[@]libexecdir[@]|$(libexecdir)|' \
 		-e "s|[@]localstatedir[@]|$(localstatedir)|" \
 		-e 's|[@]BUNDLE_TEST_PATH[@]|$(BUNDLE_TEST_PATH)|g' \
@@ -305,6 +306,7 @@ documentation_extra_dist =	\
 	documentation/high-level-overview.png
 
 EXTRA_DIST = \
+	.ci \
 	LICENSE \
 	CONTRIBUTING.md \
 	DESIGN.rst \
