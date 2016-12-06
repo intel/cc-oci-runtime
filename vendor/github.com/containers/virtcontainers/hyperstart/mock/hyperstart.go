@@ -151,12 +151,16 @@ func (h *Hyperstart) logData(data []byte) {
 
 const ctlHeaderSize = 8
 
-func (h *Hyperstart) writeCtl(data []byte) {
+func (h *Hyperstart) writeCtl(data []byte) error {
 	h.wgConnected.Wait()
 
 	n, err := h.ctl.Write(data)
-	assert.Nil(h.t, err)
+	if err != nil {
+		return fmt.Errorf("Connection broken, cannot send data")
+	}
 	assert.Equal(h.t, n, len(data))
+
+	return nil
 }
 
 // SendMessage makes hyperstart send the hyper command cmd along with optional
@@ -167,7 +171,11 @@ func (h *Hyperstart) SendMessage(cmd int, data []byte) {
 
 	binary.BigEndian.PutUint32(header[:], uint32(cmd))
 	binary.BigEndian.PutUint32(header[4:], uint32(length))
-	h.writeCtl(header)
+
+	err := h.writeCtl(header)
+	if err != nil {
+		return
+	}
 
 	if len(data) == 0 {
 		return
@@ -251,6 +259,7 @@ func (h *Hyperstart) handleCtl() {
 		// XXX: may be interesting to be able to configure the mock
 		// hyperstart to fail and test the reaction of proxy/clients
 		h.logf("ctl: <-- command %s executed successfully\n", cmdName)
+
 		h.SendMessage(hyper.INIT_ACK, nil)
 
 	}
