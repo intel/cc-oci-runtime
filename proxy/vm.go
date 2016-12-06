@@ -21,8 +21,8 @@ import (
 	"os"
 	"sync"
 
+	"github.com/containers/virtcontainers/hyperstart"
 	"github.com/golang/glog"
-	"github.com/sameo/virtcontainers/hyperstart"
 )
 
 // Represents a single qemu/hyperstart instance on the system
