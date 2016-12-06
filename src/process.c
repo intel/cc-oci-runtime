@@ -596,7 +596,8 @@ private gboolean
 cc_shim_launch (struct cc_oci_config *config,
 		int *child_err_fd,
 		int *shim_args_fd,
-		int *shim_socket_fd)
+		int *shim_socket_fd,
+		gboolean initial_workload)
 {
 	GPid      pid = -1;
 	int       child_err_pipe[2] = {-1, -1};
@@ -753,7 +754,7 @@ cc_shim_launch (struct cc_oci_config *config,
 
 		cc_oci_fd_toggle_cloexec(shim_flock_fd, false);
 
-		if (flock (shim_flock_fd, LOCK_EX) < 0) {
+		if (initial_workload && flock (shim_flock_fd, LOCK_EX) < 0) {
 			g_critical("failed to lock %s: %s",
 				CC_OCI_SHIM_LOCK_FILE, strerror(errno));
 			goto child_failed;
@@ -1035,7 +1036,8 @@ child_failed:
 	 *
 	 * The child blocks waiting for a write to shim_args_fd.
 	 */
-	if (! cc_shim_launch (config, &shim_err_fd, &shim_args_fd, &shim_socket_fd)) {
+	if (! cc_shim_launch (config, &shim_err_fd, &shim_args_fd,
+				&shim_socket_fd, true)) {
 		goto out;
 	}
 
@@ -1352,11 +1354,14 @@ exit:
  *
  * \param config \ref cc_oci_config.
  * \param process \ref oci_cfg_process
+ * \param initial_workload \ref true if shim to be be launched is an initial
+ * 	workload,  false to launch an exec shim
  *
  * \return \c true on success, else \c false.
  */
 gboolean
-cc_oci_exec_shim (struct cc_oci_config *config, int ioBase, int proxy_io_fd) {
+cc_oci_exec_shim (struct cc_oci_config *config, int ioBase, int proxy_io_fd,
+		gboolean initial_workload) {
 
 	gboolean           ret = false;
 	GSocketConnection *shim_socket_connection = NULL;
@@ -1374,7 +1379,8 @@ cc_oci_exec_shim (struct cc_oci_config *config, int ioBase, int proxy_io_fd) {
 
 	/* FIXME: Close proxy_fd before launch shim to avoid race conditions */
 
-	if (! cc_shim_launch (config, &shim_err_fd, &shim_args_fd, &shim_socket_fd)) {
+	if (! cc_shim_launch (config, &shim_err_fd, &shim_args_fd,
+				&shim_socket_fd, initial_workload)) {
 		goto out;
 	}
 
@@ -1525,7 +1531,7 @@ cc_oci_vm_connect (struct cc_oci_config *config)
 		goto out;
 	}
 
-	if (! cc_oci_exec_shim (config, ioBase, proxy_io_fd)) {
+	if (! cc_oci_exec_shim (config, ioBase, proxy_io_fd, false)) {
 		goto out;
 	}
 
