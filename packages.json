@@ -19,9 +19,9 @@
 		"version": "792786c7",
 		"license": "BSD"
 	},
-	"github.com/sameo/virtcontainers": {
-		"url": "https://github.com/sameo/virtcontainers.git",
-		"version": "v0.2.0",
+	"github.com/containers/virtcontainers": {
+		"url": "https://github.com/containers/virtcontainers.git",
+		"version": "v0.2.1",
 		"license": "Apache 2.0"
 	},
 	"github.com/stretchr/testify": {

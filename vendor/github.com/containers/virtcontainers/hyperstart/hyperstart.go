@@ -402,10 +402,6 @@ func (h *Hyperstart) SendCtlMessage(cmd string, data []byte) (*hyper.DecodedMess
 		return nil, err
 	}
 
-	if code == hyper.INIT_DESTROYPOD {
-		return nil, nil
-	}
-
 	// Wait for answer
 	resp, err := h.expectReadingCmd(hyper.INIT_ACK)
 	if err != nil {
