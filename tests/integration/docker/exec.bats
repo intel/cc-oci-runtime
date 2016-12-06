@@ -30,7 +30,6 @@ setup() {
 }
 
 @test "modifying a container with exec" {
-	skip "exec is still not working (see https://github.com/01org/cc-oci-runtime/issues/18)"
 	$DOCKER_EXE run --name containertest -d ubuntu bash -c "sleep 50"
 	$DOCKER_EXE ps -a | grep "sleep 50"
 	$DOCKER_EXE exec -d containertest bash -c "echo 'hello world' > file"
@@ -38,34 +37,31 @@ setup() {
 }
 
 @test "exec a container with privileges" {
-	skip "exec is still not working (see https://github.com/01org/cc-oci-runtime/issues/18)"
 	$DOCKER_EXE run -d --name containertest ubuntu bash -c "sleep 30"
 	$DOCKER_EXE exec -i --privileged containertest bash -c "mount -t tmpfs none /mnt"
 	$DOCKER_EXE exec containertest bash -c "df -h | grep "/mnt""
 }
 
 @test "copying file from host to container using exec" {
-	skip "exec is still not working (see https://github.com/01org/cc-oci-runtime/issues/18)"
+	skip "Read from external pipe does not work (https://github.com/01org/cc-oci-runtime/issues/506)"
 	content="hello world"
 	$DOCKER_EXE run --name containertest -d ubuntu bash -c "sleep 30"
 	echo $content | $DOCKER_EXE exec -i containertest bash -c "cat > /home/file.txt"
-	$DOCKER_EXE exec -i containertest bash -c "cat /home/file.txt" | grep "hello world"
+	$DOCKER_EXE exec -i containertest bash -c "cat /home/file.txt" | grep "$content"
 }
 
 @test "stdout forwarded using exec" {
-	skip "exec is still not working (see https://github.com/01org/cc-oci-runtime/issues/18 and https://github.com/01org/cc-oci-runtime/issues/171)"
 	$DOCKER_EXE run --name containertest -d ubuntu bash -c "sleep 30"
-	$DOCKER_EXE exec containertest ls /etc/resolv.conf 2>/dev/null | grep "/etc/resolv.conf" 
+	$DOCKER_EXE exec -ti containertest ls /etc/resolv.conf 2>/dev/null | grep "/etc/resolv.conf" 
 }
 
 @test "stderr forwarded using exec" {
-        skip "exec is still not working (see https://github.com/01org/cc-oci-runtime/issues/18 and https://github.com/01org/cc-oci-runtime/issues/171)"
+        skip "stderr forwarded does not work"
         $DOCKER_EXE run --name containertest -d ubuntu bash -c "sleep 30"
         if $DOCKER_EXE exec containertest ls /etc/foo >/dev/null; then false; else true; fi	
 }
 
 @test "check exit code using exec" {
-	skip "exec is still not working (see https://github.com/01org/cc-oci-runtime/issues/18)"
 	$DOCKER_EXE run --name containertest -d ubuntu bash -c "sleep 30"
 	run $DOCKER_EXE exec containertest bash -c "exit 42"
 	[ "$status" -eq 42 ]

@@ -126,9 +126,6 @@
 /** Shell to use for \ref CC_OCI_WORKLOAD_FILE. */
 #define CC_OCI_WORKLOAD_SHELL		"/bin/sh"
 
-/** Command to use to allow "exec" to connect to the container. */
-#define CC_OCI_EXEC_CMD               "ssh"
-
 /** File that contains vm spec configuration, used if vm node
  * in CC_OCI_CONFIG_FILE bundle file
 */
@@ -594,7 +591,7 @@ gboolean cc_oci_toggle (struct cc_oci_config *config,
 		struct oci_state *state, gboolean pause);
 gboolean cc_oci_exec (struct cc_oci_config *config,
 		struct oci_state *state,
-		int argc, char *const args[]);
+		const gchar *process_json);
 gboolean cc_oci_list (struct cc_oci_config *config,
 		const gchar *format, gboolean show_all);
 gboolean cc_oci_delete (struct cc_oci_config *config,

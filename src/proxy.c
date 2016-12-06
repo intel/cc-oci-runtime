@@ -675,7 +675,7 @@ out:
  *
  * \return \c true on success, else \c false.
  */
-static gboolean
+gboolean
 cc_proxy_attach (struct cc_proxy *proxy, const char *container_id)
 {
 
@@ -1442,5 +1442,90 @@ out:
 
 	cc_proxy_disconnect (config->proxy);
 
+	return ret;
+}
+
+/**
+ * Request \ref CC_OCI_PROXY to execute a workload in a container.
+ *
+ * \param config \ref cc_oci_config.
+ * \param process \ref oci_cfg_process.
+ *
+ * \return \c true on success, else \c false.
+ */
+gboolean
+cc_proxy_hyper_exec_command (struct cc_oci_config *config)
+{
+	JsonObject *payload= NULL;
+	JsonObject *process_node = NULL;
+	JsonArray *args= NULL;
+	JsonArray *envs= NULL;
+	gboolean ret = false;
+	struct oci_cfg_process *process = &config->oci.process;
+
+	if (! (config && config->proxy)) {
+		goto out;
+	}
+
+	if (process->stdio_stream < 0  ||
+			process->stderr_stream < 0 ) {
+		g_critical("invalid io stream number");
+		goto out;
+	}
+
+	payload = json_object_new ();
+	process_node  = json_object_new ();
+	args     = json_array_new ();
+	envs     = json_array_new ();
+
+	json_object_set_string_member (payload, "container",
+			config->optarg_container_id);
+
+	/* execcmd.process */
+	json_object_set_boolean_member(process_node, "terminal",
+			config->oci.process.terminal);
+
+	json_object_set_int_member (process_node, "stdio",
+			process->stdio_stream);
+	json_object_set_int_member (process_node, "stderr",
+			process->stderr_stream);
+
+	for (gchar** p = process->args; p && *p; p++) {
+		json_array_add_string_element (args, *p);
+	}
+
+	set_env_home(config);
+	for (gchar** p = process->env; p && *p; p++) {
+		JsonObject *env_var = json_object_new ();
+		g_autofree char *var = g_strdup(*p);
+
+		char *e = g_strstr_len (var, -1, "=");
+		if (! e ){
+			g_critical("failed to split enviroment variable value");
+			goto out;
+		}
+		*e = '\0';
+		e++;
+		json_object_set_string_member (env_var, "value", e);
+		json_object_set_string_member (env_var, "env", var);
+		json_array_add_object_element (envs, env_var);
+	}
+
+	json_object_set_string_member (process_node, "workdir", process->cwd);
+	json_object_set_array_member (process_node, "args", args);
+	json_object_set_array_member (process_node, "envs", envs);
+	json_object_set_object_member (payload,
+			"process", process_node);
+
+	if (! cc_proxy_run_hyper_cmd (config, "execcmd", payload)) {
+		g_critical("failed to run execcmd");
+		goto out;
+	}
+
+	ret = true;
+out:
+	if (payload) {
+		json_object_unref (payload);
+	}
 	return ret;
 }

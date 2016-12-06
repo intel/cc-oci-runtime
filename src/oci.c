@@ -1147,6 +1147,49 @@ cc_oci_toggle (struct cc_oci_config *config,
 
 	return cc_oci_state_file_create (config, state->create_time);
 }
+/*!
+ * Parse the \c GNode representation of \c process_json file
+ * and save values in the provided \ref oci_cfg_process.
+ *
+ * \param process_json json file with a oci process node.
+ *
+ * \param process \ref oci_cfg_process.
+ *
+ * \return \c true on success, else \c false.
+ */
+static gboolean
+cc_oci_process_exec_file (const gchar *process_json,
+		struct oci_cfg_process *process)
+{
+	/*
+	 * use \ref cc_oci_config to parse
+	 * the json file from --process option
+	 **/
+	struct cc_oci_config process_config = { { 0 } };
+	GNode *root = NULL;
+	gboolean ret = false;
+
+	if (! (process_json && process)){
+		goto out;
+	}
+	if (! cc_oci_json_parse (&root, process_json)) {
+		goto out;
+	}
+
+#ifdef DEBUG
+	cc_oci_node_dump (root);
+#endif /*DEBUG*/
+
+	process_config.oci.process = *process;
+	process_spec_handler.handle_section(root, &process_config);
+	*process = process_config.oci.process;
+
+	ret = true;
+out:
+	g_free_node(root);
+
+	return ret;
+}
 
 /*!
  * Run the command specified by \p argv in the hypervisor
@@ -1154,27 +1197,45 @@ cc_oci_toggle (struct cc_oci_config *config,
  *
  * \param config \ref cc_oci_config.
  * \param state \ref oci_state.
- * \param argc Argument count.
- * \param argv Argument vector.
+ * \param process \ref oci_cfg_process.
+ * \param process_json json file with a oci process node.
  *
  * \return \c true on success, else \c false.
  */
 gboolean
 cc_oci_exec (struct cc_oci_config *config,
 		struct oci_state *state,
-		int argc,
-		char *const argv[])
+		const gchar *process_json)
 {
-	if (! (config && state && argc && argv)) {
+	gboolean ret = false;
+
+	if (! (config && state)) {
 		return false;
 	}
 
-	if (! cc_oci_vm_connect (config, argc, argv)) {
+	if (process_json){
+		if(! cc_oci_process_exec_file(process_json,
+					&config->oci.process)) {
+			goto out;
+		}
+	}
+
+	if (! cc_oci_vm_connect (config)) {
 		g_critical ("failed to connect to VM");
-		return false;
+		goto out;
 	}
 
-	return true;
+	if (start_data.pid_file) {
+		ret = cc_oci_create_pidfile (start_data.pid_file,
+				config->state.workload_pid);
+		if (! ret) {
+			goto out;
+		}
+	}
+
+	ret = true;
+out:
+	return ret;
 }
 
 /*!
