@@ -257,12 +257,17 @@ out:
  *
  * \param fields_a Fields of first SemVer version string.
  * \param fields_b Fields of second SemVer version string.
+ * \param compatible If \c true, compare \ref fields_a and \ref fields_b
+ *   for SemVer backwards-compatible differences only. This is a less
+ *   restrictive comparison that only checks the major numbers.
  *
  * \return \c strcmp(3)-like values based on whether \p fields_a > \p
  * fields_b.
  */
 static gint
-cc_oci_semver_cmp_fields (const gchar **fields_a, const gchar **fields_b)
+cc_oci_semver_cmp_fields (const gchar **fields_a,
+		const gchar **fields_b,
+		gboolean compatible)
 {
 	glong maj_a, min_a;
 	glong maj_b, min_b;
@@ -288,6 +293,13 @@ cc_oci_semver_cmp_fields (const gchar **fields_a, const gchar **fields_b)
 		return 1;
 	} else if (maj_a < maj_b) {
 		return -1;
+	} else if (compatible) {
+
+		/* Major numbers are identical so SemVer mandates that
+		 * all other fields must refer to backwards compatible
+		 * changes.
+		 */
+		return 0;
 	}
 
 	g_assert (maj_a == maj_b);
@@ -308,12 +320,15 @@ cc_oci_semver_cmp_fields (const gchar **fields_a, const gchar **fields_b)
  *
  * \param version_a First SemVer string.
  * \param version_b Second SemVer string.
+ * \param compatible If \c true \ref version_a and \ref version_b are
+ *   compared for backwards-compatibility differences only.
  *
  * \return \c 0 if \p version_a == \p version_b, \c <0 if \p version_a <
  * \p version_b or \c >0 if \p version_a > \p version_b.
  */
 static gint
-cc_oci_semver_2_0_0_cmp (const char *version_a, const char *version_b)
+cc_oci_semver_2_0_0_cmp (const char *version_a, const char *version_b,
+		gboolean compatible)
 {
 	gint ret;
 	gchar **fields_a = NULL;
@@ -339,7 +354,7 @@ cc_oci_semver_2_0_0_cmp (const char *version_a, const char *version_b)
 	g_assert (fields_b);
 
 	ret = cc_oci_semver_cmp_fields ((const gchar **)fields_a,
-			(const gchar **)fields_b);
+			(const gchar **)fields_b, compatible);
 
 	g_strfreev (fields_a);
 	g_strfreev (fields_b);
@@ -348,7 +363,27 @@ cc_oci_semver_2_0_0_cmp (const char *version_a, const char *version_b)
 }
 
 /*!
- * Compare two Semantic version (SemVer) strings.
+ * Fully compare two Semantic version (SemVer) strings.
+ *
+ * \param version_a First SemVer string.
+ * \param version_b Second SemVer string.
+ *
+ * Return values match those of \c strcmp(3).
+ *
+ * \note Handles SemVer 2.0.0-format strings.
+ *
+ * \return \c 0 if \p version_a == \p version_b, \c <0 if \p version_a <
+ * \p version_b or \c >0 if \p version_a > \p version_b.
+ */
+gint
+cc_oci_semver_cmp_full (const char *version_a, const char *version_b)
+{
+	return cc_oci_semver_2_0_0_cmp (version_a, version_b, false);
+}
+
+/*!
+ * Compare two Semantic version (SemVer) strings for
+ * backwards-compatibility.
  *
  * \param version_a First SemVer string.
  * \param version_b Second SemVer string.
@@ -363,5 +398,5 @@ cc_oci_semver_2_0_0_cmp (const char *version_a, const char *version_b)
 gint
 cc_oci_semver_cmp (const char *version_a, const char *version_b)
 {
-	return cc_oci_semver_2_0_0_cmp (version_a, version_b);
+	return cc_oci_semver_2_0_0_cmp (version_a, version_b, true);
 }
