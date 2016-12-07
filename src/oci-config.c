@@ -73,14 +73,16 @@ cc_oci_config_check (const struct cc_oci_config *config)
 		return false;
 	}
 
+	g_debug ("OCI spec versions: config=%s, runtime=%s",
+			config->oci.oci_version,
+			CC_OCI_SUPPORTED_SPEC_VERSION);
+
 	ret = cc_oci_semver_cmp (CC_OCI_SUPPORTED_SPEC_VERSION,
 			config->oci.oci_version);
 
 	if (ret < 0) {
-		g_critical ("cannot handle config version %s "
-				"(supported version is %s)",
-				config->oci.oci_version,
-				CC_OCI_SUPPORTED_SPEC_VERSION);
+		g_critical ("cannot handle config version %s",
+				config->oci.oci_version);
 		return false;
 	}
 

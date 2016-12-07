@@ -28,33 +28,44 @@
 #include "../src/semver.h"
 
 START_TEST(test_cc_oci_semver_cmp) {
-	ck_assert (cc_oci_semver_cmp ("1.9.0", "1.10.0") < 0);
-	ck_assert (cc_oci_semver_cmp ("1.9.0", "1.11.0") < 0);
-	ck_assert (cc_oci_semver_cmp ("1.10.0", "1.11.0") < 0);
+	ck_assert (cc_oci_semver_cmp_full ("1.9.0", "1.10.0") < 0);
+	ck_assert (cc_oci_semver_cmp_full ("1.9.0", "1.11.0") < 0);
+	ck_assert (cc_oci_semver_cmp_full ("1.10.0", "1.11.0") < 0);
 
-	ck_assert (cc_oci_semver_cmp ("1.10.0", "1.9.0") > 0);
-	ck_assert (cc_oci_semver_cmp ("1.11.0", "1.10.0") > 0);
-	ck_assert (cc_oci_semver_cmp ("1.11.0", "1.9.0") > 0);
+	ck_assert (cc_oci_semver_cmp_full ("1.10.0", "1.9.0") > 0);
+	ck_assert (cc_oci_semver_cmp_full ("1.11.0", "1.10.0") > 0);
+	ck_assert (cc_oci_semver_cmp_full ("1.11.0", "1.9.0") > 0);
 
-	ck_assert (cc_oci_semver_cmp ("1.0.0-alpha", "1.0.0") < 0);
+	ck_assert (cc_oci_semver_cmp_full ("1.0.0-alpha", "1.0.0") < 0);
 
-	ck_assert (cc_oci_semver_cmp ("0.0-alpha", "1.0.0-alpha.1") < 0);
-	ck_assert (cc_oci_semver_cmp ("1.0.0-alpha.1", "1.0.0-alpha.beta") < 0);
-	ck_assert (cc_oci_semver_cmp ("1.0.0-alpha.beta", "1.0.0-beta") < 0);
-	ck_assert (cc_oci_semver_cmp ("1.0.0-beta", "1.0.0-beta.2") < 0);
-	ck_assert (cc_oci_semver_cmp ("1.0.0-beta.2", "1.0.0-beta.11") < 0);
-	ck_assert (cc_oci_semver_cmp ("1.0.0-beta.11", "1.0.0-rc.1") < 0);
-	ck_assert (cc_oci_semver_cmp ("1.0.0-rc.1", "1.0.0") < 0);
-	ck_assert (cc_oci_semver_cmp ("1.0.0-a.b.c.d", "1.0.0") < 0);
-	ck_assert (cc_oci_semver_cmp ("1.0.0-9.8.7.6foo", "1.0.0") < 0);
-	ck_assert (cc_oci_semver_cmp ("0.0-alpha", "1.0.0") < 0);
+	ck_assert (cc_oci_semver_cmp_full ("0.0-alpha", "1.0.0-alpha.1") < 0);
+	ck_assert (cc_oci_semver_cmp_full ("1.0.0-alpha.1", "1.0.0-alpha.beta") < 0);
+	ck_assert (cc_oci_semver_cmp_full ("1.0.0-alpha.beta", "1.0.0-beta") < 0);
+	ck_assert (cc_oci_semver_cmp_full ("1.0.0-beta", "1.0.0-beta.2") < 0);
+	ck_assert (cc_oci_semver_cmp_full ("1.0.0-beta.2", "1.0.0-beta.11") < 0);
+	ck_assert (cc_oci_semver_cmp_full ("1.0.0-beta.11", "1.0.0-rc.1") < 0);
+	ck_assert (cc_oci_semver_cmp_full ("1.0.0-rc.1", "1.0.0") < 0);
+	ck_assert (cc_oci_semver_cmp_full ("1.0.0-a.b.c.d", "1.0.0") < 0);
+	ck_assert (cc_oci_semver_cmp_full ("1.0.0-9.8.7.6foo", "1.0.0") < 0);
+	ck_assert (cc_oci_semver_cmp_full ("0.0-alpha", "1.0.0") < 0);
 
-	ck_assert (cc_oci_semver_cmp ("0.0.0", "0.0.0") == 0);
-	ck_assert (cc_oci_semver_cmp ("1.0.0", "1.0.0") == 0);
-	ck_assert (cc_oci_semver_cmp ("1.1.0", "1.1.0") == 0);
-	ck_assert (cc_oci_semver_cmp ("1.1.1", "1.1.1") == 0);
-	ck_assert (cc_oci_semver_cmp ("1.0.0-rc1", "1.0.0-rc1") == 0);
+	ck_assert (cc_oci_semver_cmp_full ("0.0.0", "0.0.0") == 0);
+	ck_assert (cc_oci_semver_cmp_full ("1.0.0", "1.0.0") == 0);
+	ck_assert (cc_oci_semver_cmp_full ("1.1.0", "1.1.0") == 0);
+	ck_assert (cc_oci_semver_cmp_full ("1.1.1", "1.1.1") == 0);
+	ck_assert (cc_oci_semver_cmp_full ("1.0.0-rc1", "1.0.0-rc1") == 0);
 
+} END_TEST
+
+START_TEST(test_cc_oci_semver_cmp_compat) {
+	ck_assert (cc_oci_semver_cmp ("1.9.0", "1.10.0") == 0);
+	ck_assert (cc_oci_semver_cmp ("1.9.7", "1.10.5") == 0);
+	ck_assert (cc_oci_semver_cmp ("1.99.7", "1.0.99") == 0);
+	ck_assert (cc_oci_semver_cmp ("1.10.0", "1.9.0") == 0);
+	ck_assert (cc_oci_semver_cmp ("0.99.99-rc2", "1.0.0-rc1") < 0);
+	ck_assert (cc_oci_semver_cmp ("1.99.0", "2.1.0") < 0);
+	ck_assert (cc_oci_semver_cmp ("2.1.7", "1.30.9") > 0);
+	ck_assert (cc_oci_semver_cmp ("2.0.0", "0.0.1") > 0);
 } END_TEST
 
 START_TEST(test_cc_oci_string_is_numeric) {
@@ -69,6 +80,7 @@ Suite* make_semver_suite(void) {
 	Suite* s = suite_create(__FILE__);
 
 	ADD_TEST(test_cc_oci_semver_cmp, s);
+	ADD_TEST(test_cc_oci_semver_cmp_compat, s);
 	ADD_TEST(test_cc_oci_string_is_numeric, s);
 
 	return s;

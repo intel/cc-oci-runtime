@@ -24,6 +24,7 @@
 #include <glib.h>
 
 gint cc_oci_semver_cmp (const char *version_a, const char *version_b);
+gint cc_oci_semver_cmp_full (const char *version_a, const char *version_b);
 gboolean cc_oci_string_is_numeric (const char *str);
 
 #endif /* _CC_OCI_SEMVER_H */
