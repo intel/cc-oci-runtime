@@ -1088,7 +1088,7 @@ START_TEST(test_cc_oci_process_to_json) {
 } END_TEST
 
 START_TEST(test_cc_oci_exec) {
-	struct cc_oci_config config;
+	struct cc_oci_config config = { { 0 } };
 	struct oci_state state;
 	char  *process_json = NULL;
 	ck_assert(! cc_oci_exec(NULL, NULL, NULL));
