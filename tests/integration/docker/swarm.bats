@@ -23,27 +23,51 @@
 
 SRC="${BATS_TEST_DIRNAME}/../../lib/"
 # maximum number of replicas that will be launch
-number_of_replicas=15
+number_of_replicas=4
 url=http://127.0.0.1:8080/hostname
 # number of attemps to obtain the hostname
 # of the replicas using curl
 number_of_attemps=5
+# saves the hostname of the replicas
 declare -a REPLICAS
+# saves the process id of the replicas
+declare -a REPLICAS_UP
+# saves the name of the replicas
+declare -a NAMES_IPS_REPLICAS
+# saves the ip of the replicas
+declare -a IPS_REPLICAS
+
 
 setup() {
 	source $SRC/test-common.bash
 	clean_docker_ps
 	runtime_docker
 	$DOCKER_EXE swarm init
-}
-
-@test "check that the replicas' names are different" {
 	# currently using mcastelino/nginx but it will be
 	# modified when nginx image is working
 	$DOCKER_EXE service create --name testswarm --replicas $number_of_replicas --publish 8080:80 mcastelino/nginx /bin/bash -c "hostname > /usr/share/nginx/html/hostname; nginx -g \"daemon off;\"" 2> /dev/null
-	while [ `docker ps -a | tail -n +2 | egrep "Up [0-9]*"|  wc -l`  -lt  $number_of_replicas ]; do
+	while [ `$DOCKER_EXE ps --filter status=running --filter ancestor=mcastelino/nginx:latest -q | wc -l` -lt $number_of_replicas ]; do
 		sleep 1
 	done
+}
+
+@test "ping among replicas on their overlay ip" {
+	# this test takes time as it performs pings in all the replicas
+	name_network=`$DOCKER_EXE network ls --filter driver=overlay -q`
+	NAMES_REPLICAS=(`$DOCKER_EXE network inspect $name_network --format='{{ range .Containers}} {{println .Name}} {{end}}' | head -n -2`)
+	IPS_REPLICAS=(`$DOCKER_EXE network inspect $name_network --format='{{ range .Containers}} {{ println .IPv4Address}}{{end}}' | head -n -2 | cut -d'/' -f1`)
+	for i in `seq 0 $((number_of_replicas-1))`; do
+		for j in `seq 0 $((number_of_replicas-1))`; do
+			if [ "$i" != "$j" ]; then
+				# here we are performing a ping with the list
+				# of the overlay ips obtained from the replicas
+				$DOCKER_EXE exec ${NAMES_REPLICAS[$i]} bash -c "ping -c $number_of_attemps ${IPS_REPLICAS[$j]}"
+			fi
+		done
+	done
+}
+
+@test "check that the replicas' names are different" {
 	# this will help to obtain the hostname of 
 	# the replicas from the curl
         unset http_proxy
@@ -54,9 +78,9 @@ setup() {
 			set +e
 		        REPLICAS[$i]="$(curl $url 2> /dev/null)"
 	                set -e
-                done
+               done
 		non_empty_elements="$(echo ${REPLICAS[@]} | egrep -o "[[:space:]]+" | wc -l)"
-                if [ "$non_empty_elements" == "$((number_of_replicas-1))" ]; then
+               if [ "$non_empty_elements" == "$((number_of_replicas-1))" ]; then
                 	break
                 fi
 		# this will give enough time between attemps
@@ -72,6 +96,56 @@ setup() {
 			fi
 		done
 	done 
+}
+
+@test "check that replicas has two interfaces" {
+	REPLICAS_UP=(`$DOCKER_EXE ps -a -q`)
+	for i in ${REPLICAS_UP[@]}; do
+		# here we are checking that each replica has two interfaces 
+		# and they should be always eth0 and eth1
+		$DOCKER_EXE exec $i bash -c "ip route show | grep -E eth0 && ip route show | grep -E eth1"
+	done
+}
+
+@test "check service ip among the replicas" {
+	service_name=`$DOCKER_EXE service ls --filter name=testswarm -q`
+	ip_service=`$DOCKER_EXE service inspect $service_name --format='{{range .Endpoint.VirtualIPs}}{{.Addr}}{{end}}' | cut -d'/' -f1`
+	REPLICAS_UP=(`$DOCKER_EXE ps -a -q`)
+	for i in ${REPLICAS_UP[@]}; do
+		# here we are checking that all the 
+		# replicas have the service ip
+		$DOCKER_EXE exec $i bash -c "ip a | grep $ip_service"
+	done
+}
+
+@test "ping among replicas on their gateway ip" {
+	REPLICAS_UP=(`$DOCKER_EXE ps -a | tail -n +2 | awk '{ print $1 }'`)
+	IPS_REPLICAS=(`$DOCKER_EXE network inspect docker_gwbridge --format='{{range .Containers}} {{ println .IPv4Address}}{{end}}' | head -n -2 | cut -d'/' -f1`)
+	for i in ${REPLICAS_UP[@]}; do
+		for j in ${IPS_REPLICAS[@]}; do
+			# here we are checking that the replica can not perform
+			# a ping among the gateway ips
+			run $DOCKER_EXE exec $i bash -c "ip a | grep $j; if [ $? -ne 0 ]; then ping -c $number_of_attemps $j; else exit 1; fi"
+			[ $status -ne 0 ]
+		done
+	done
+}
+
+@test "quick ping among replicas on their overlay ip" {
+	# this test makes a ping in each replica
+	name_network=`$DOCKER_EXE network ls --filter driver=overlay -q`
+	NAMES_REPLICAS=(`$DOCKER_EXE network inspect $name_network --format='{{ range .Containers}} {{println .Name}} {{end}}' | head -n -2`)
+	IPS_REPLICAS=(`$DOCKER_EXE network inspect $name_network --format='{{ range .Containers}} {{ println .IPv4Address}}{{end}}' | head -n -2 | cut -d'/' -f1`)
+	for i in `seq 0 $((number_of_replicas-1))`; do
+		for j in `seq 0 $((number_of_replicas-1))`; do
+			if [ "$i" != "$j" ]; then
+				# here we are performing a ping with the list
+				# of the overlay ips obtained from the replicas
+				$DOCKER_EXE exec ${NAMES_REPLICAS[$i]} bash -c "ping -c $number_of_attemps ${IPS_REPLICAS[$j]}"
+				break
+			fi
+		done
+	done
 }
 
 teardown () {
