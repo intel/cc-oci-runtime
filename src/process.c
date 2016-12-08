@@ -183,7 +183,7 @@ cc_oci_setup_shim (struct cc_oci_config *config,
 	setsid ();
 
 	// In the console case, the terminal needs to be dup'ed to stdio
-	if (config->oci.process.terminal) {
+	if (config->oci.process.terminal && config->console) {
 		tty_fd = open(config->console, O_RDWR |  O_NOCTTY);
 
 		if (tty_fd == -1) {
