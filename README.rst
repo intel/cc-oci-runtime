@@ -328,7 +328,12 @@ the OCI_ CLI and the runc_ CLI interfaces.
 
 Details of the runc_ command line options can be found in the `runc manpage`_.
 
-Note: The ``--global-log`` and ``--hypervisor-log-dir`` arguments are unique to the runtime at present.
+Note: Next arguments are unique to the runtime at present:
+- ``--global-log``
+- ``--hypervisor-log-dir``
+- ``--shim-path``
+- ``--proxy-socket-path``
+
 
 Extensions
 ~~~~~~~~~~

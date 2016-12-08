@@ -79,6 +79,10 @@ struct start_data {
 	gboolean dry_run_mode;
 	gboolean  allocate_tty;
 	struct oci_cfg_user  user;
+	/* Path to cc-shim binary */
+	gchar *shim_path;
+	/* Path to cc-proxy's socket */
+	gchar *proxy_socket_path;
 };
 
 gboolean handle_command_toggle (const struct subcommand *sub,

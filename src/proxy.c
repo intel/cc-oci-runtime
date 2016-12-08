@@ -29,6 +29,9 @@
 #include "proxy.h"
 #include "util.h"
 #include "networking.h"
+#include "command.h"
+
+extern struct start_data start_data;
 
 struct watcher_proxy_data
 {
@@ -107,6 +110,7 @@ cc_proxy_connect (struct cc_proxy *proxy)
 	gboolean ret = false;
 	const gchar *path = NULL;
 	int fd = -1;
+	const gchar *proxy_socket_path = NULL;
 
 	if (! proxy) {
 		return false;
@@ -117,12 +121,17 @@ cc_proxy_connect (struct cc_proxy *proxy)
 		return false;
 	}
 
+	proxy_socket_path = start_data.proxy_socket_path;
+	if (! proxy_socket_path) {
+		proxy_socket_path = CC_OCI_PROXY_SOCKET;
+	}
+
 	g_debug ("connecting to proxy %s", CC_OCI_PROXY);
 
-	addr = g_unix_socket_address_new (CC_OCI_PROXY_SOCKET);
+	addr = g_unix_socket_address_new (proxy_socket_path);
 	if (! addr) {
 		g_critical ("socket path does not exist: %s",
-				CC_OCI_PROXY_SOCKET);
+				proxy_socket_path);
 		goto out_addr;
 	}
 
