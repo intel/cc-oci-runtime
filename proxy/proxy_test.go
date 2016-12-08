@@ -149,7 +149,7 @@ func TestLaunchProxy(t *testing.T) {
 	}
 
 	// used in proxy.go for the non socket-activated case
-	socketPath = os.Getenv("CC_TEST_SOCKET_PATH")
+	DefaultSocketPath = os.Getenv("CC_TEST_SOCKET_PATH")
 
 	proxyMain()
 }

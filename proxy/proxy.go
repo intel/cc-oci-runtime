@@ -250,13 +250,21 @@ func newProxy() *proxy {
 	}
 }
 
-// This variable is populated at link time with the value of:
+// DefaultSocketPath is populated at link time with the value of:
 //   ${locatestatedir}/run/cc-oci-runtime/proxy
-var socketPath string
+var DefaultSocketPath string
+
+// ArgSocketPath is populated at runtime from the option -socket-path
+var ArgSocketPath = flag.String("socket-path", "", "specify path to socket file")
 
 func (proxy *proxy) init() error {
 	var l net.Listener
 	var err error
+	var socketPath = DefaultSocketPath
+
+	if len(*ArgSocketPath) != 0 {
+		socketPath = *ArgSocketPath
+	}
 
 	// flags
 	v := flag.Lookup("v").Value.(flag.Getter).Get().(glog.Level)
