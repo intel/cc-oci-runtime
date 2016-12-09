@@ -47,6 +47,6 @@ struct cc_log_options
 
 gboolean cc_oci_log_init (const struct cc_log_options *options);
 void cc_oci_log_free (struct cc_log_options *options);
-void cc_oci_setup_hypervisor_logs (struct cc_oci_config *config);
+gboolean cc_oci_setup_hypervisor_logs (struct cc_oci_config *config);
 
 #endif /* _CC_OCI_LOGGING_H */

@@ -498,9 +498,13 @@ cc_oci_log_init (const struct cc_log_options *options)
  * provided hypervisor output won't be logged therefore will be ignored
  *
  * \param config \ref cc_oci_config.
+ *
+ * \return \c true on success, else \c false.
  */
-void cc_oci_setup_hypervisor_logs (struct cc_oci_config *config)
+gboolean
+cc_oci_setup_hypervisor_logs (struct cc_oci_config *config)
 {
+	gboolean ret = false;
 	const struct qemu_log_file {
 		const gchar *path;
 		const int std_fd;
@@ -510,24 +514,25 @@ void cc_oci_setup_hypervisor_logs (struct cc_oci_config *config)
 		{ NULL }
 	};
 
-	if (! config) {
-		return;
-	}
-
 	/* ensure that we have a directory for hypervisor logs */
 	if (! hypervisor_log_dir) {
-		return;
+		return true;
 	}
+
+	if (! (config && config->vm)) {
+		return false;
+	}
+
 
 	/* ensure that current pid is the hypervisor */
 	if (config->vm->pid != getpid ()) {
-		return;
+		return false;
 	}
 
 	if (g_mkdir_with_parents(hypervisor_log_dir, CC_OCI_DIR_MODE)) {
 		g_critical("failed to create hypervisor log directory '%s'",
 			hypervisor_log_dir);
-		return;
+		return false;
 	}
 
 	for (const struct qemu_log_file *i = qemu_log_files; i && i->path; ++i) {
@@ -543,17 +548,24 @@ void cc_oci_setup_hypervisor_logs (struct cc_oci_config *config)
 
 		if (std_file_fd < 0) {
 			g_critical("failed to create file: %s", std_file_path);
-			return;
+			return false;
 		}
 
 		/* redirecting stdout/stderr to a file */
 		if (dup2(std_file_fd, i->std_fd) < 0) {
 			g_critical("failed to dup %s : %s", std_file_path, strerror(errno));
+			close (std_file_fd);
+			goto out;
 		}
 
 		/* Close unused file descriptor */
 		close (std_file_fd);
 	}
+
+	ret  = true;
+out:
+	return ret;
+
 }
 
 /**
