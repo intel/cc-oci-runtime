@@ -65,6 +65,9 @@
 #include "logging.h"
 #include "netlink.h"
 #include "proxy.h"
+#include "command.h"
+
+extern struct start_data start_data;
 
 static GMainLoop* main_loop = NULL;
 private GMainLoop* hook_loop = NULL;
@@ -762,7 +765,13 @@ cc_shim_launch (struct cc_oci_config *config,
 
 		/* +1 for for NULL terminator */
 		args = g_new0 (gchar *, 11+1);
-		args[0] = g_strdup (CC_OCI_SHIM);
+
+		/* cc-shim path can be specified via command line */
+		if (start_data.shim_path) {
+			args[0] = g_strdup (start_data.shim_path);
+		} else {
+			args[0] = g_strdup (CC_OCI_SHIM);
+		}
 		args[1] = g_strdup ("-c");
 		args[2] = g_strdup (config->optarg_container_id);
 		args[3] = g_strdup ("-p");

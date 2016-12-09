@@ -62,7 +62,9 @@ function teardown() {
 @test "start then pause and resume" {
 	workload_cmd "sh"
 
-	cmd="$COR run --console --bundle $BUNDLE_DIR $container_id"
+	# 'run' runs in background since it will
+	# update the state file once shim ends
+	cmd="$COR run --console --bundle $BUNDLE_DIR $container_id &"
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
 	testcontainer "$container_id" "running"
 
@@ -74,7 +76,11 @@ function teardown() {
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
 	testcontainer "$container_id" "running"
 
-	#Kill container after test
-	cmd="$COR attach $container_id"
-	echo "exit" |  run_cmd "$cmd" "0" "$COR_TIMEOUT"
+	cmd="$COR kill $container_id"
+	run_cmd "$cmd" "0" "$COR_TIMEOUT"
+	testcontainer "$container_id" "killed"
+
+	cmd="$COR delete $container_id"
+	run_cmd "$cmd" "0" "$COR_TIMEOUT"
+	verify_runtime_dirs "$container_id" "deleted"
 }

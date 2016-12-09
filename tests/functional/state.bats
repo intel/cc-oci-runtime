@@ -40,16 +40,17 @@ function check_state() {
 	#COR must store resolved paths to cc components
 	cc_kernel_path=$(readlink -e "${CONTAINER_KERNEL}")
 	cc_image_path=$(readlink -e "${CONTAINERS_IMG}")
+	bundle_path=$(readlink -e "${BUNDLE_DIR}")
+	hypervisor_path=$(readlink -e "${HYPERVISOR_PATH}")
 
 	state_cmd="$COR state $container_id_state"
-	echo $state_cmd >&2
-	output=$(run_cmd "$state_cmd" "0" "$COR_TIMEOUT")
-	echo "$output" | grep "\"id\" : \"$container_id_state\""
-	echo "$output" | grep "\"bundlePath\" : \"$BUNDLE_DIR\""
-	echo "$output" | grep "\"status\" : \"$status\""
-	echo "$output" | grep "\"hypervisor_path\" : \"$HYPERVISOR_PATH\""
-	echo "$output" | grep "\"image_path\" : \"$cc_image_path\""
-	echo "$output" | grep "\"kernel_path\" : \"$cc_kernel_path\""
+	local output=$(run_cmd "$state_cmd" "0" "$COR_TIMEOUT")
+	[ -n "$(echo "$output" | grep -o "\"id\" : \"${container_id_state}\"")" ]
+	[ -n "$(echo "$output" | grep -o "\"bundlePath\" : \"${bundle_path}\"")" ]
+	[ -n "$(echo "$output" | grep -o "\"status\" : \"${status}\"")" ]
+	[ -n "$(echo "$output" | grep -o "\"hypervisor_path\" : \"${hypervisor_path}\"")" ]
+	[ -n "$(echo "$output" | grep -o "\"image_path\" : \"${cc_image_path}\"")" ]
+	[ -n "$(echo "$output" | grep -o "\"kernel_path\" : \"${cc_kernel_path}\"")" ]
 }
 
 @test "start and kill state" {
@@ -60,7 +61,9 @@ function check_state() {
 	testcontainer "$container_id" "created"
 	check_state "$container_id" "created"
 
-	cmd="$COR start $container_id"
+	# 'start' runs in background since it will
+	# update the state file once shim ends
+	cmd="$COR start $container_id &"
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
 	testcontainer "$container_id" "running"
 	check_state "$container_id" "running"
@@ -69,11 +72,14 @@ function check_state() {
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
 	testcontainer "$container_id" "killed"
 	check_state "$container_id" "stopped"
+
+	cmd="$COR delete $container_id"
+	run_cmd "$cmd" "0" "$COR_TIMEOUT"
+	verify_runtime_dirs "$container_id" "deleted"
 }
 
 @test "state not existing container" {
 
 	state_cmd="$COR state $container_id"
-	output=$(run_cmd "$state_cmd" "1" "$COR_TIMEOUT")
-	echo $output | grep "failed to read state file"
+	run_cmd "$state_cmd" "1" "$COR_TIMEOUT"
 }

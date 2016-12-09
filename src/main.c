@@ -114,6 +114,18 @@ static GOptionEntry options_global[] =
 		"Show help options",
 		NULL
 	},
+	{
+		"shim-path", 0, G_OPTION_FLAG_NONE,
+		G_OPTION_ARG_STRING, &start_data.shim_path,
+		"specify path to cc-shim binary",
+		NULL
+	},
+	{
+		"proxy-socket-path", 0, G_OPTION_FLAG_NONE,
+		G_OPTION_ARG_STRING, &start_data.proxy_socket_path,
+		"specify path to cc-proxy's socket",
+		NULL
+	},
 	/* terminator */
 	{NULL}
 };
@@ -421,6 +433,8 @@ cleanup (struct cc_log_options *options)
 	cc_oci_log_free (options);
 	g_free_if_set (criu);
 	g_free_if_set (root_dir);
+	g_free_if_set (start_data.shim_path);
+	g_free_if_set (start_data.proxy_socket_path);
 }
 
 /** Entry point. */

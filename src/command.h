@@ -79,6 +79,10 @@ struct start_data {
 	gboolean dry_run_mode;
 	gboolean  allocate_tty;
 	struct oci_cfg_user  user;
+	/* Path to cc-shim binary */
+	gchar *shim_path;
+	/* Path to cc-proxy's socket */
+	gchar *proxy_socket_path;
 };
 
 gboolean handle_command_toggle (const struct subcommand *sub,
@@ -100,7 +104,6 @@ gboolean handle_option_user (const gchar *option_name,
 		gpointer data,
 		GError **error);
 
-extern struct subcommand command_attach;
 extern struct subcommand command_checkpoint;
 extern struct subcommand command_create;
 extern struct subcommand command_delete;

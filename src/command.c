@@ -32,7 +32,6 @@ extern struct start_data start_data;
 
 struct subcommand *subcommands[] =
 {
-	&command_attach,
 	&command_checkpoint,
 	&command_create,
 	&command_delete,

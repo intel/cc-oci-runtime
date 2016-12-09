@@ -176,7 +176,6 @@ common_sources = \
 	src/spec_handler.c src/spec_handler.h \
 	src/common.h \
 	src/command.c src/command.h \
-	src/commands/attach.c \
 	src/commands/create.c \
 	src/commands/delete.c \
 	src/commands/exec.c \
@@ -248,7 +247,7 @@ systemdservicedir   = $(systemdsystemunitdir)
 systemdservice_DATA = $(systemdservice_files)
 endif
 
-proxy_ldflags = "-X main.socketPath=$(localstatedir)/run/cc-oci-runtime/proxy.sock"
+proxy_ldflags = "-X main.DefaultSocketPath=$(localstatedir)/run/cc-oci-runtime/proxy.sock"
 cc-proxy: $(cc_proxy_sources)
 	$(AM_V_GO)go build -o $@ -ldflags=$(proxy_ldflags) $(srcdir)/proxy
 
@@ -345,18 +344,30 @@ endif
 
 if FUNCTIONAL_TESTS
 CHECK_DEPS += functional-tests
-FUNCTIONAL_TESTS_DEPS += cc-oci-runtime $(GENERATED_FILES)
+FUNCTIONAL_TESTS_DEPS += cc-oci-runtime cc-proxy cc-shim $(GENERATED_FILES)
 
 functional-tests: $(FUNCTIONAL_TESTS_DEPS)
 		$(AM_V_GEN)test -n "$(BUNDLE_TEST_PATH)" && \
 			echo "Using bundle '$(BUNDLE_TEST_PATH)'" || true
 		@if [ "$(builddir)" != "$(srcdir)" ]; then \
-		     rm -f $(builddir)/tests/functional/*.bats ; \
-                     for f in $(abs_top_srcdir)/tests/functional/*.bats; do \
-		         ln -s $$f $(builddir)/tests/functional/ ; \
-		     done; \
-		 fi
-		@bash $(builddir)/data/run-bats.sh $(builddir)/tests/functional/
+			rm -f $(builddir)/tests/functional/*.bats ; \
+			for f in $(abs_top_srcdir)/tests/functional/*.bats; do \
+				ln -s $$f $(builddir)/tests/functional/ ; \
+			done; \
+		fi
+		@echo -e \
+		"export PROXY_SOCKET_PATH=\"$(abs_top_srcdir)/tests/functional/proxy.sock\" \n" \
+		"export SHIM_PATH=\"$(abs_top_srcdir)/cc-shim\" \n" \
+		"echo 'Running a new instance of cc-proxy' \n" \
+		"$(abs_top_srcdir)/cc-proxy -socket-path=\"\$${PROXY_SOCKET_PATH}\" & \n" \
+		"p=\$$! \n" \
+		"sleep 1 \n" \
+		"bash $(builddir)/data/run-bats.sh $(builddir)/tests/functional/ \n" \
+		"echo 'killing own cc-proxy instance' \n" \
+		"kill -9 \$$p \n" \
+		"rm -f \$${PROXY_SOCKET_PATH} \n" > $(abs_top_srcdir)/tests/functional/run_functional_tests.sh
+		@bash -f $(abs_top_srcdir)/tests/functional/run_functional_tests.sh
+		@rm -f $(abs_top_srcdir)/tests/functional/run_functional_tests.sh
 endif
 
 if DOCKER_TESTS
