@@ -31,6 +31,7 @@
 #include <stdbool.h>
 #include <limits.h>
 #include <fcntl.h>
+#include <termios.h>
 
 #include "utils.h"
 #include "log.h"
@@ -42,6 +43,8 @@
 int signal_pipe_fd[2] = { -1, -1 };
 
 static char *program_name;
+
+struct termios *saved_term_settings;
 
 /*!
  * Add file descriptor to the array of polled descriptors
@@ -107,6 +110,17 @@ assign_all_signals(struct sigaction *sa)
         return true;
 }
 
+void restore_terminal(void) {
+	if ( isatty(STDIN_FILENO) && saved_term_settings) {
+		if (tcsetattr (STDIN_FILENO, TCSANOW, saved_term_settings)) {
+			shim_warning("Unable to restore terminal: %s\n",
+					strerror(errno));
+		}
+		free(saved_term_settings);
+		saved_term_settings = NULL;
+	}
+}
+
 /*!
  * Print formatted message to stderr and exit with EXIT_FAILURE
  *
@@ -125,6 +139,7 @@ err_exit(const char *format, ...)
 	va_start(args, format);
 	vfprintf(stderr, format, args);
 	va_end(args);
+	restore_terminal();
 	exit(EXIT_FAILURE);
 }
 
@@ -342,12 +357,12 @@ read_IO_message(struct cc_shim *shim, uint64_t *seq, ssize_t *stream_len) {
 
 		ret = read(shim->proxy_io_fd, buf+bytes_read, (size_t)want);
 		if (ret == -1) {
-			shim_warning("Error reading from proxy I/O fd: %s\n", strerror(errno));
-			goto err;
+			free(buf);
+			err_exit("Error reading from proxy I/O fd: %s\n", strerror(errno));
 		} else if (ret == 0) {
 			/* EOF received on proxy I/O fd*/
-			shim_warning("EOF received on proxy I/O fd\n");
-			goto err;
+			free(buf);
+			err_exit("EOF received on proxy I/O fd\n");
 		}
 
 		bytes_read += ret;
@@ -432,6 +447,7 @@ handle_proxy_output(struct cc_shim *shim)
 		code = *(buf + STREAM_HEADER_SIZE); 	// hyperstart has sent the exit status
 		shim_debug("Exit status for container: %d\n", code);
 		free(buf);
+		restore_terminal();
 		exit(code);
 	}
 
@@ -470,11 +486,9 @@ handle_proxy_ctl(struct cc_shim *shim)
 
 	ret = read(shim->proxy_sock_fd, buf, LINE_MAX-1);
 	if (ret == -1) {
-		shim_warning("Error reading from the proxy ctl socket: %s\n", strerror(errno));
-		exit(EXIT_FAILURE);
+		err_exit("Error reading from the proxy ctl socket: %s\n", strerror(errno));
 	} else if (ret == 0) {
-		shim_warning("EOF received on proxy ctl socket. Proxy has exited\n");
-		exit(EXIT_FAILURE);
+		err_exit("EOF received on proxy ctl socket. Proxy has exited\n");
 	}
 
 	//TODO: Parse the json and log error responses explicitly
@@ -665,10 +679,20 @@ main(int argc, char **argv)
 		struct termios term_settings;
 
 		tcgetattr(STDIN_FILENO, &term_settings);
+		saved_term_settings = calloc(1, sizeof(struct termios));
+		if ( !saved_term_settings) {
+			abort();
+		}
+		*saved_term_settings = term_settings;
 		cfmakeraw(&term_settings);
 		tcsetattr(STDIN_FILENO, TCSAFLUSH, &term_settings);
 
 		add_pollfd(poll_fds, &nfds, STDIN_FILENO, POLLIN | POLLPRI);
+	}
+
+	ret = atexit(restore_terminal);
+	if ( !ret) {
+		shim_debug("Could not register function for atexit");
 	}
 
 	/*	0 =>signal_pipe_fd[0]
