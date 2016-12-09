@@ -108,6 +108,11 @@ function verify_runtime_dirs()
 
 	[ -d "$COR_HYPERVISOR_LOG_DIR" ]
 
+	if [ "$state" = "deleted" ]; then
+	    [ ! -d "$id_dir" ]
+	    return 0
+	fi
+
 	if [ "$state" = "stopped" ]
 	then
 		[ -f "$stdout" ]
@@ -140,30 +145,14 @@ function verify_runtime_dirs()
 	[ -f "$stderr" ]
 	[ -r "$stderr" ]
 
-	if [ "$state" = "killed" ]
-	then
-		# If the container was killed, the hypervisor
-		# should have written an error to stderr.
-		#
-		# XXX: this presuposes that the kill signal was *NOT*
-		# SIGKILL since in that case, there is no guarantee of
-		# any output being logged.
-		[ -s "$stderr" ]
-	else
-		# no errors are expected under normal operation
-		[ ! -s "$stderr" ]
-	fi
-
 	run ls $id_dir
 	[ "$status" -eq 0 ]
 
 	# state-specific tests
-	if [ "$state" = "created" ]
-	then
-		# at create time, only state.json should exist
-		[ "$output" = "state.json" ]
-
-	elif [ "$state" = "running" -o "$state" = "paused" ]
+	# 'kill' does not kill the VM just kill the container
+	# inside it
+	if [ "$state" = "killed" -o "$state" = "created" -o \
+				  "$state" = "running" -o "$state" = "paused" ]
 	then
 		[ "${lines[0]}" = "console.sock" ]
 		[ "${lines[1]}" = "ga-ctl.sock" ]
@@ -178,11 +167,6 @@ function verify_runtime_dirs()
 		[ -S "$ga_tty_sock" ]
 		[ -S "$hypervisor_sock" ]
 		[ -S "$process_sock" ]
-	elif [ "$state" = "killed" ]
-	then
-		# No further checks can be run reliably if the container
-		# has been killed.
-		return 0
 	else
 		log_msg "Invalid state: '$state'"
 		false
