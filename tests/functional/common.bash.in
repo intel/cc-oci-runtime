@@ -220,9 +220,8 @@ function testcontainer() {
 
 	while [ "$i" -lt "$timeout_cmd" ]
 	do
-		local output=$(run_cmd "$cmd")
-		[[ ${output} =~ ID\ +PID\ +STATUS\ +BUNDLE\ +CREATED+ ]]
-		if [[ "${output}" == *"$container_id"*[0-9]*"${check_status}"*"$BUNDLE_DIR"* ]]
+		local output=$(run_cmd "$cmd | grep ${container_id} | grep ${check_status}")
+		if [ -n "${output}" ] 
 		then
 			got=1
 			#Wait at least one second, for vm bootime
