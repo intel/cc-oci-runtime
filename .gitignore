@@ -2,6 +2,7 @@
 *.a
 .deps
 .dirstamp
+.*.swp
 *.gcda
 *.gcno
 *.la
