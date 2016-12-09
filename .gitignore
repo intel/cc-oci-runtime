@@ -27,6 +27,9 @@ CONTAINER-KERNEL
 cscope.files
 cscope.in.out
 cscope.po.out
+cscope.out
+cscope.out.in
+cscope.out.po
 data/cc-oci-runtime.sh
 data/run-bats.sh
 data/config.json
