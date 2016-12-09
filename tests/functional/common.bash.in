@@ -374,6 +374,8 @@ function setup_common(){
 
 	COR_ARGS="$COR_ARGS --global-log $COR_LOG_FILE"
 	COR_ARGS="$COR_ARGS --hypervisor-log-dir $COR_HYPERVISOR_LOG_DIR"
+	COR_ARGS="$COR_ARGS --shim-path \"${SHIM_PATH}"\"
+	COR_ARGS="$COR_ARGS --proxy-socket-path \"${PROXY_SOCKET_PATH}"\"
 
 	COR="$COR_BINARY $COR_ARGS"
 
