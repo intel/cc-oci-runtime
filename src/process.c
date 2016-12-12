@@ -724,31 +724,20 @@ cc_shim_launch (struct cc_oci_config *config,
 		 * Since these need to be assigned to the terminal fd, make sure the
 		 * proxy fds are assigned >= 3
 		 */
-		while(proxy_socket_fd < 3) {
-			int fd = dup(proxy_socket_fd);
-			if (fd < 0) {
-				g_critical("dup failed: %s", strerror(errno));
-				goto child_failed;
-			}
-			proxy_socket_fd = fd;
+
+		if (! dup_over_stdio(&proxy_socket_fd)) {
+			g_critical("failed to dup proxy_socket_fd");
+			goto child_failed;
 		}
 
-		while(proxy_io_fd < 3) {
-			int fd = dup(proxy_io_fd);
-			if (fd < 0) {
-				g_critical("dup failed: %s", strerror(errno));
-				goto child_failed;
-			}
-			proxy_io_fd = fd;
+		if(! dup_over_stdio(&proxy_io_fd)) {
+			g_critical("failed to dup proxy_io_fd");
+			goto child_failed;
 		}
 
-		while(shim_flock_fd < 3) {
-			int fd = dup(shim_flock_fd);
-			if (fd < 0) {
-				g_critical("dup failed: %s", strerror(errno));
-				goto child_failed;
-			}
-			shim_flock_fd = fd;
+		if (! dup_over_stdio(&shim_flock_fd)) {
+			g_critical("failed to dup shim_flock_fd");
+			goto child_failed;
 		}
 
 		cc_oci_fd_toggle_cloexec(proxy_socket_fd, false);

@@ -89,5 +89,6 @@ gboolean cc_oci_fd_toggle_cloexec (int fd, gboolean set);
 gboolean cc_oci_enable_networking (void);
 guint32 cc_oci_get_big_endian_32(const guint8 *buf);
 gboolean cc_oci_handle_signals (void);
+gboolean dup_over_stdio(int *fdp);
 
 #endif /* _CC_OCI_UTIL_H */
