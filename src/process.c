@@ -149,12 +149,17 @@ cc_oci_setup_child (struct cc_oci_config *config)
 
 	/* Do not close fds when VM runs in detached mode*/
 	if (! config->detached_mode) {
-		cc_oci_close_fds (NULL);
+		if (! cc_oci_close_fds (NULL)) {
+			return false;
+		}
 	}
 
-	cc_oci_setup_hypervisor_logs(config);
+	if (! cc_oci_setup_hypervisor_logs(config)) {
+		return false;
+	}
 
 	return true;
+
 }
 
 /*! Perform setup on spawned shim process.
