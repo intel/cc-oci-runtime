@@ -313,6 +313,10 @@ struct cc_oci_net_if_cfg {
 	GSList  *ipv6_addrs;
 
 	/** TODO: Add support for routes */
+
+        gboolean vf_based;
+
+        gchar *bdf;
 };
 
 /** cc-specific IPv4 configuration data. */

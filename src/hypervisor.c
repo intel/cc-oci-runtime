@@ -132,6 +132,97 @@ out:
 	return g_strdup("");
 }
 
+gboolean 
+cc_oci_unbind_host(struct cc_oci_config *config, guint index) {
+        struct cc_oci_net_if_cfg *if_cfg = NULL;
+        FILE* f;
+
+        if_cfg = (struct cc_oci_net_if_cfg *)
+                g_slist_nth_data(config->net.interfaces, index);
+
+        if (if_cfg == NULL) {
+                goto out;
+        }
+
+        if ( if_cfg->vf_based == false) {
+                goto out;
+        }
+
+        gchar* device_path = g_strdup_printf("/sys/bus/pci/devices/%s/driver/unbind", if_cfg->bdf);
+        g_debug ("device_path %s", device_path);       
+ 
+        f = fopen("/sys/bus/pci/drivers/vfio-pci/new_id", "w");
+//        f = fopen("/sys/bus/pci/drivers/pci-stub/new_id", "w");
+        if (!f) {
+           g_debug ("cor: opening vfio-pci/new_id failed");
+           g_debug ("cor: file open error %d", errno);
+           return false;
+        }
+        fprintf(f, "8086 1515");
+        fclose(f); 
+
+        f = fopen(device_path, "w");
+        if (!f) {
+           g_debug ("cor: opening %s failed", device_path);
+           g_debug ("cor: file open error %d", errno);
+           return false;
+        }
+        fprintf(f, "%s", if_cfg->bdf);
+        fclose(f);
+
+        f = fopen("/sys/bus/pci/drivers/vfio-pci/bind", "w");
+//        f = fopen("/sys/bus/pci/drivers/pci-stub/bind", "w");
+        if (!f) {
+           g_debug ("cor: opening pci-stub/bind failed");
+           g_debug ("cor: file open error %d", errno);
+           return false;
+        }
+        fprintf(f, "%s", if_cfg->bdf);
+        fclose(f);
+
+out:
+       return true;
+}
+
+static gchar*
+cc_oci_expand_device_passthru(struct cc_oci_config *config, guint index) {
+        struct cc_oci_net_if_cfg *if_cfg = NULL;
+
+        if_cfg = (struct cc_oci_net_if_cfg *)
+                g_slist_nth_data(config->net.interfaces, index);
+
+        if (if_cfg == NULL) {
+                goto out;
+        }
+
+        if ( if_cfg->vf_based == false) {
+                goto out;
+        }
+
+        gchar** fields = g_strsplit (if_cfg->bdf, ":", 2);
+
+        return g_strdup_printf("vfio-pci,host=%s",fields[1]);
+//        return g_strdup_printf("pci-assign,host=%s",fields[1]);
+
+out:
+	return g_strdup("");
+}
+
+static gboolean
+config_net_check_vf(struct cc_oci_config *config, guint index) {
+        struct cc_oci_net_if_cfg *if_cfg = NULL;
+
+        if_cfg = (struct cc_oci_net_if_cfg *)
+                g_slist_nth_data(config->net.interfaces, index);
+
+        if (if_cfg == NULL) {
+                goto out;
+        }
+
+        return if_cfg->vf_based;
+out:
+        return false;
+}
 
 /*!
  * Replace any special tokens found in \p args with their expanded
@@ -169,6 +260,8 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 	gchar            *netdev_params = NULL;
 	gchar            *net_device_option = NULL;
 	gchar            *netdev_option = NULL;
+	gchar            *passthru_device = NULL;
+	gchar            *passthru_device_params = NULL;
 
 	if (! (config && args)) {
 		return false;
@@ -314,7 +407,7 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 
 	kernel_net_params = cc_oci_expand_net_cmdline(config);
 
-	if ( config->net.interfaces == NULL ) {
+	if ( config->net.interfaces == NULL || config_net_check_vf(config, 0) ) {
 		/* Support --net=none */
 		/* FIXME, no clean way to append args today
 		 * For multiple network we need to have a way to append
@@ -333,6 +426,14 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 		netdev_params = cc_oci_expand_netdev_cmdline(config, 0);
 		net_device_params = cc_oci_expand_net_device_cmdline(config, 0);
 	}
+
+        if ( config_net_check_vf(config, 0)) {
+                if (cc_oci_unbind_host(config, 0)) {
+                   passthru_device = g_strdup("-device");
+                   passthru_device_params = cc_oci_expand_device_passthru(config, 0);
+                    g_debug ("cor: device passthru command %s", passthru_device_params);
+                }
+        }
 
 	/* Note: @NETDEV@: For multiple network we need to have a way to append
 	 * args to the hypervisor command line vs substitution
@@ -358,6 +459,8 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 		{ "@NETDEVICE_PARAMS@"  , net_device_params          },
 		{ "@AGENT_CTL_SOCKET@"  , agent_ctl_socket           },
 		{ "@AGENT_TTY_SOCKET@"  , agent_tty_socket           },
+		{ "@PASSTHRU_DEVICE@"   , passthru_device            },
+        	{ "@PASSTHRU_DEVICE_PARAMS@"   , passthru_device_params },
 		{ NULL }
 	};
 
