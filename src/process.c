@@ -598,7 +598,7 @@ out:
  * \param shim_socket_fd Writable file descriptor caller should use to
  *   send the proxy IO fd to child before \ref CC_OCI_SHIM is launched.
  *
- * \return \c shim-pid  on success, else \c -1.
+ * \return \c true on success, else \c false.
  */
 private gboolean
 cc_shim_launch (struct cc_oci_config *config,
@@ -607,6 +607,7 @@ cc_shim_launch (struct cc_oci_config *config,
 		int *shim_socket_fd,
 		gboolean initial_workload)
 {
+	gboolean  ret = false;
 	GPid      pid = -1;
 	int       child_err_pipe[2] = {-1, -1};
 	int       shim_args_pipe[2] = {-1, -1};
@@ -818,6 +819,7 @@ child_failed:
 	*shim_args_fd = shim_args_pipe[1];
 	*shim_socket_fd = shim_socket[1];
 
+	ret = true;
 
 out:
 	close (child_err_pipe[1]);
@@ -825,7 +827,7 @@ out:
 	close (shim_socket[0]);
 	close (shim_flock_fd);
 
-	return pid;
+	return ret;
 }
 
 /*!
