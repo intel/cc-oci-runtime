@@ -487,6 +487,85 @@ cc_oci_vm_netcfg_get (struct cc_oci_config *config,
 	return true;
 }
 
+GHashTable* mac_hash;
+
+void
+hash_mac_and_store_bdf(GHashTable* hash, gpointer mac, gpointer bdf)
+{
+       g_hash_table_insert(hash, mac, bdf);
+}
+
+void
+build_mac_to_bdf_hash (void)
+{
+      gchar *sym_link = NULL;
+      GError *error = NULL;
+      gchar **tokens = NULL;
+      gchar **driver_tokens = NULL;
+
+      mac_hash = g_hash_table_new(g_str_hash, g_str_equal);
+
+      struct dirent *d = opendir("/sys/class/net");
+
+      struct dirent *dir;
+      if (d) {
+
+        while ((dir = readdir(d)) != NULL) {
+             g_debug("cor: %s", dir->d_name);
+             gchar *net_class_path = g_strdup_printf("/sys/class/net/%s/device", dir->d_name);
+             g_debug ("cor: device_path %s", net_class_path);
+             sym_link = g_file_read_link(net_class_path, &error);
+
+             if (!sym_link) {
+                g_debug ("symlink is null");
+                if (error) g_debug ("reading symlink returned error:%s", error->message);
+                //g_error_free (error);
+                continue;
+             }
+
+             if (sym_link) {
+                g_debug ("cor: device sym link path %s", sym_link);
+                tokens = g_strsplit (sym_link, "/", 4);
+             }
+
+             if (tokens && tokens[3]) {
+
+                 gchar *device_driver_path = g_strdup_printf("/sys/bus/pci/devices/%s/driver", tokens[3]);
+                 g_debug ("cor: driver_path %s", device_driver_path);
+                 sym_link = g_file_read_link(device_driver_path, &error);
+
+                 if (sym_link) {
+                        g_debug ("cor: driver path %s", sym_link);
+                        driver_tokens = g_strsplit (sym_link, "/", 8);
+                 }
+
+                 if (driver_tokens && driver_tokens[7]) { 
+                        g_debug ("hashing mac of iface with bdf %s", tokens[3]);
+                        gchar *content;
+                        gssize length;
+
+                        gchar *address_file_name =  g_strdup_printf("/sys/class/net/%s/address", dir->d_name);
+                        if ( g_file_get_contents (address_file_name, &content, &length, NULL)) {
+                               gchar **mac_from_file = g_strsplit (content, "\n", -1);
+                               g_debug ("mac address of the iface %s - %s", dir->d_name, mac_from_file[0]);
+                               gchar *mac = g_strdup (mac_from_file[0]);
+                               struct cc_oci_device *d_info = g_malloc0 (sizeof(struct cc_oci_device));
+                               d_info->bdf = g_strdup (tokens[3]);
+                               d_info->driver = g_strdup (driver_tokens[7]);
+                               hash_mac_and_store_bdf(mac_hash, mac, d_info);
+
+                        } else {
+                               g_debug("cor: reading address file for %s returned error", dir->d_name);
+                        }
+                 }
+             }
+        }
+        closedir(d);
+      }
+
+      g_debug ("num of mac entries in hash %d", g_hash_table_size(mac_hash));
+}
+
 /*!
  * Start the hypervisor (in a paused state) as a child process.
  *
@@ -559,6 +638,8 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 		g_critical ("failed to set close-exec bit on fd");
 		goto out;
 	}
+
+        build_mac_to_bdf_hash();
 
 	pid = config->state.workload_pid = fork ();
 	if (pid < 0) {
