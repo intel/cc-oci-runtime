@@ -141,6 +141,23 @@ cc_oci_net_interface_free (struct cc_oci_net_if_cfg *if_cfg)
 	g_free (if_cfg);
 }
 
+/*!
+ * Free the specified \ref cc_oci_net_ipv4_route.
+ *
+ * \param route \ref cc_oci_net_ipv4_route
+ */
+void cc_oci_net_ipv4_route_free(struct cc_oci_net_ipv4_route *route)
+{
+	if (! route) {
+		return;
+	}
+
+	g_free_if_set (route->dest);
+	g_free_if_set (route->ifname);
+	g_free_if_set (route->gateway);
+
+	g_free(route);
+}
 
 /*!
  * Request to create a named tap interface
@@ -431,6 +448,22 @@ out:
 	return macaddr;
 }
 
+/*
+ * Return the predicatable interface name based on pcie address
+ * Reference:
+ * https://www.freedesktop.org/wiki/Software/systemd/PredictableNetworkInterfaceNames/
+ *
+ * \param index Index into the array that was used for the qemu
+ * pcie address option as well
+ *
+ * \return Newly allocated string
+ */
+gchar *
+get_pcie_ifname(guint index)
+{
+	return g_strdup_printf("enp0s%d", index + PCI_OFFSET);
+}
+
 /*!
  * GCompareFunc for searching through the list 
  * of existing network interfaces
@@ -554,10 +587,7 @@ cc_oci_network_discover(struct cc_oci_config *const config,
 		net->hostname = g_strdup("");
 	}
 
-	net->gateway = netlink_get_default_gw(hndl, AF_INET);
-	if (net->gateway == NULL) {
-		net->gateway = g_strdup("");
-	}
+	netlink_get_routes(config, hndl, AF_INET);
 
 	/* TODO: Need to see if this needed, does resolv.conf handle this */
 	net->dns_ip1 = g_strdup("");

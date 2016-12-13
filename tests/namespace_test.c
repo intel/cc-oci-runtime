@@ -81,46 +81,50 @@ START_TEST(test_cc_oci_str_to_ns) {
 
 START_TEST(test_cc_oci_ns_setup) {
 
-	struct cc_oci_config config = { { 0 } };
+	struct cc_oci_config *config = NULL;
 	struct oci_cfg_namespace *ns = NULL;
 
 	ck_assert (! cc_oci_ns_setup (NULL));
 
+	config = cc_oci_config_create ();
+	ck_assert (config);
+
 	/* no namespaces, so successful (NOP) setup */
-	ck_assert (! config.oci.oci_linux.namespaces);
-	ck_assert (cc_oci_ns_setup (&config));
+	ck_assert (! config->oci.oci_linux.namespaces);
+	ck_assert (cc_oci_ns_setup (config));
 
 	ns = g_malloc0 (sizeof (struct oci_cfg_namespace));
 	ck_assert (ns);
 
-	config.oci.oci_linux.namespaces = g_slist_append (config.oci.oci_linux.namespaces, ns);
+	config->oci.oci_linux.namespaces =
+        g_slist_append (config->oci.oci_linux.namespaces, ns);
 
 	/* implicitly invalid namespaces are ignored */
-	ck_assert (cc_oci_ns_setup (&config));
+	ck_assert (cc_oci_ns_setup (config));
 
 	ns->type = OCI_NS_INVALID;
 
 	/* explicitly invalid namespaces are ignored */
-	ck_assert (cc_oci_ns_setup (&config));
+	ck_assert (cc_oci_ns_setup (config));
 
 	/* most namespaces are silently ignored */
 	ns->type = OCI_NS_CGROUP;
-	ck_assert (cc_oci_ns_setup (&config));
+	ck_assert (cc_oci_ns_setup (config));
 
 	ns->type = OCI_NS_IPC;
-	ck_assert (cc_oci_ns_setup (&config));
+	ck_assert (cc_oci_ns_setup (config));
 
 	ns->type = OCI_NS_MOUNT;
-	ck_assert (cc_oci_ns_setup (&config));
+	ck_assert (cc_oci_ns_setup (config));
 
 	ns->type = OCI_NS_PID;
-	ck_assert (cc_oci_ns_setup (&config));
+	ck_assert (cc_oci_ns_setup (config));
 
 	ns->type = OCI_NS_USER;
-	ck_assert (cc_oci_ns_setup (&config));
+	ck_assert (cc_oci_ns_setup (config));
 
 	ns->type = OCI_NS_UTS;
-	ck_assert (cc_oci_ns_setup (&config));
+	ck_assert (cc_oci_ns_setup (config));
 
 	/* net namespaces are honoured, but only run the tests
 	 * as a non-priv user just in case.
@@ -129,7 +133,7 @@ START_TEST(test_cc_oci_ns_setup) {
 		int saved;
 		gchar *tmpdir = g_dir_make_tmp (NULL, NULL);
 		ns->type = OCI_NS_NET;
-		ck_assert (! cc_oci_ns_setup (&config));
+		ck_assert (! cc_oci_ns_setup (config));
 
 		/* unshare(2) error */
 		ck_assert (errno == EPERM);
@@ -139,7 +143,7 @@ START_TEST(test_cc_oci_ns_setup) {
 		ck_assert (ns->path);
 		ck_assert (g_file_set_contents (ns->path, "", -1, NULL));
 
-		ck_assert (! cc_oci_ns_setup (&config));
+		ck_assert (! cc_oci_ns_setup (config));
 		/* setns(2) error */
 		saved = errno;
 
@@ -159,7 +163,7 @@ START_TEST(test_cc_oci_ns_setup) {
 		/* now we're passing a valid ns path, but non-priv users
 		 * can't call setns due to insufficient privs.
 		 */
-		ck_assert (! cc_oci_ns_setup (&config));
+		ck_assert (! cc_oci_ns_setup (config));
 		saved = errno;
 
 		ck_assert (saved == EPERM || saved == ENOSYS);
@@ -170,7 +174,7 @@ START_TEST(test_cc_oci_ns_setup) {
 	}
 
 	/* clean up */
-	cc_oci_config_free (&config);
+	cc_oci_config_free (config);
 
 } END_TEST
 

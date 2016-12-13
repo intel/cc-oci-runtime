@@ -82,14 +82,25 @@ cc_oci_error (const char *file,
 		const char *fmt,
 		...)
 {
-	gchar    buffer[CC_OCI_LOG_BUFSIZE];
-	va_list  ap;
-	int      ret;
+	gchar            buffer[CC_OCI_LOG_BUFSIZE];
+	va_list          ap;
+	int              ret;
+	static gboolean  initialised = FALSE;
 
 	g_assert (file);
 	g_assert (line_number >= 0);
 	g_assert (function);
 	g_assert (fmt);
+
+	if (! initialised) {
+		int syslog_options = (LOG_CONS | LOG_PID | LOG_PERROR |
+				LOG_NOWAIT);
+
+		/* setup the fallback logging */
+		openlog (G_LOG_DOMAIN, syslog_options, LOG_LOCAL0);
+
+		initialised = TRUE;
+	}
 
 	va_start (ap, fmt);
 
@@ -319,8 +330,7 @@ cc_oci_log_handler (const gchar *log_domain,
 	const gchar                  *level = NULL;;
 	gchar                        *final = NULL;
 	gchar                        *timestamp = NULL;
-	const struct cc_log_options *options;
-	static gboolean               initialised = FALSE;
+	const struct cc_log_options  *options;
 	gboolean                      ret;
 
 	g_assert (message);
@@ -342,16 +352,6 @@ cc_oci_log_handler (const gchar *log_domain,
 		 * still logged to that logfile.
 		 */
 		return;
-	}
-
-	if (! initialised) {
-		int syslog_options = (LOG_CONS | LOG_PID | LOG_PERROR |
-				LOG_NOWAIT);
-
-		/* setup the fallback logging */
-		openlog (G_LOG_DOMAIN, syslog_options, LOG_LOCAL0);
-
-		initialised = TRUE;
 	}
 
 	switch (log_level) {
@@ -396,32 +396,7 @@ cc_oci_log_handler (const gchar *log_domain,
 		goto out;
 	}
 
-	if (log_level == G_LOG_LEVEL_ERROR || log_level == G_LOG_LEVEL_CRITICAL) {
-		/* Ensure the message gets across.
-		 *
-		 * XXX: Note that writing to stderr cannot occur for
-		 * other log levels since this would invalidate JSON
-		 * output. However, in an error scenario all bets are
-		 * off so we do it anyway.
-		 */
-		fprintf (stderr, "%s\n", final);
-	}
-
-	if ((log_level == G_LOG_LEVEL_DEBUG) && (!options->enable_debug)) {
-		/* Debug calls are always added to the global log, but
-		 * only added to the main log if debug is enabled.
-		 */
-		goto update_global_log;
-	}
-
-	if (options->filename) {
-		ret = cc_oci_log_msg_write (options->filename, final);
-		if (! ret) {
-			goto out;
-		}
-	}
-
-update_global_log:
+	/* Update the global log first */
 	if (options->global_logfile) {
 		/* If we're logging in JSON, switch back to ASCII for
 		 * the global log write as we want all the metadata
@@ -437,6 +412,31 @@ update_global_log:
 		}
 		ret = cc_oci_log_msg_write (options->global_logfile,
 				final);
+		if (! ret) {
+			goto out;
+		}
+	}
+
+	if (log_level == G_LOG_LEVEL_ERROR || log_level == G_LOG_LEVEL_CRITICAL) {
+		/* Ensure the message gets across.
+		 *
+		 * XXX: Note that writing to stderr cannot occur for
+		 * other log levels since this would invalidate JSON
+		 * output. However, in an error scenario all bets are
+		 * off so we do it anyway.
+		 */
+		fprintf (stderr, "%s\n", final);
+	}
+
+	if ((log_level == G_LOG_LEVEL_DEBUG) && (!options->enable_debug)) {
+		/* Debug calls are always added to the global log, but
+		 * only added to the main log if debug is enabled.
+		 */
+		goto out;
+	}
+
+	if (options->filename) {
+		ret = cc_oci_log_msg_write (options->filename, final);
 		if (! ret) {
 			goto out;
 		}
@@ -519,8 +519,8 @@ void cc_oci_setup_hypervisor_logs (struct cc_oci_config *config)
 		return;
 	}
 
-	/* ensure that current pid is the hypervisor id */
-	if (config->state.workload_pid != getpid ()) {
+	/* ensure that current pid is the hypervisor */
+	if (config->vm->pid != getpid ()) {
 		return;
 	}
 

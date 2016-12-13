@@ -33,6 +33,8 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <pwd.h>
+#include <fcntl.h>
+#include <sys/file.h>
 
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -40,6 +42,7 @@
 #include <gio/gunixsocketaddress.h>
 #include <json-glib/json-glib.h>
 #include <json-glib/json-gobject.h>
+#include <sys/stat.h>
 
 #include "common.h"
 #include "oci.h"
@@ -53,6 +56,7 @@
 #include "runtime.h"
 #include "spec_handler.h"
 #include "command.h"
+#include "proxy.h"
 
 extern struct start_data start_data;
 
@@ -86,21 +90,6 @@ struct socket_watcher_data
 	GIOChannel* socket_io;
 	struct oci_state *state;
 	gboolean setup_success;
-};
-
-/**
- * Used by watcher_runtime_dir(), handle_process_socket() and
- * handle_socket_close() to determine when the VM has finished starting
- * and also when it has shutdown.
- */
-struct process_watcher_data
-{
-	struct cc_oci_config  *config;
-	GMainLoop              *loop;
-	GSocket                *socket;
-	GSocketAddress         *src_address;
-	GIOChannel             *channel;
-	gboolean                failed;
 };
 
 /**
@@ -234,6 +223,9 @@ cc_oci_kill (struct cc_oci_config *config,
 		goto error;
 	}
 
+	/* send signal to cc-shim because it
+	 * will send killcontainer to hyperstart
+	 */
 	if (kill (state->pid, signum) < 0) {
 		g_critical ("failed to stop container %s "
 				"running with pid %u: %s",
@@ -247,6 +239,19 @@ cc_oci_kill (struct cc_oci_config *config,
 		}
 		return false;
 	}
+
+#ifndef UNIT_TESTING
+	/* cc-shim is not able to catch SIGKILL and SIGSTOP
+	 * signals for this reason we must kill the container
+	 * using hyperstart's API
+	 */
+	if (signum == SIGKILL || signum == SIGSTOP) {
+		if (! cc_proxy_hyper_kill_container (config, signum)) {
+			g_critical ("failed to kill container");
+			return false;
+		}
+	}
+#endif //UNIT_TESTING
 
 	last_status = config->state.status;
 
@@ -277,255 +282,15 @@ error:
 private gboolean
 cc_oci_vm_running (const struct oci_state *state)
 {
-	if (! (state && state->pid)) {
+	if (! (state && state->vm && state->vm->pid)) {
 		return false;
 	}
 
-	return kill (state->pid, 0) == 0;
+	return kill (state->vm->pid, 0) == 0;
 }
 
 /*!
- * Watcher for socket stdin.
- *
- * \param  source GIOChannel.
- * \param  condition GIOCondition.
- * \param  buffer GString.
- *
- * \return \c false to ignore event.
- */
-static gboolean
-watcher_socket_stdin(GIOChannel* source, GIOCondition condition,
-    GString* buffer)
-{
-	gsize bytes_written;
-	GIOStatus status;
-
-	if (condition == G_IO_HUP) {
-		g_io_channel_unref(source);
-		goto out;
-	}
-	do {
-		status = g_io_channel_write_chars(source, buffer->str,
-				(gssize)buffer->len, &bytes_written, NULL);
-	}while(status == G_IO_STATUS_NORMAL && buffer->len != bytes_written );
-
-	g_io_channel_flush(source, NULL);
-
-out:
-	g_string_free(buffer, true);
-
-	/* unregister this watcher */
-	return false;
-}
-
-/*!
- * Watcher for socket stdout.
- *
- * \param  source GIOChannel.
- * \param  condition GIOCondition.
- * \param  data \ref socket_watcher_data.
- *
- * \return \c false to ignore event.
- */
-static gboolean
-watcher_socket_stdout(GIOChannel* source, GIOCondition condition,
-    struct socket_watcher_data *data)
-{
-	GIOStatus status;
-	gchar buffer[LINE_MAX];
-	gsize bytes_read;
-	gboolean ret = true;
-
-	if (condition == G_IO_HUP) {
-		g_io_channel_unref(source);
-		ret = false;
-		goto out;
-	}
-
-	/* read and print all chars */
-	while(true) {
-		status = g_io_channel_read_chars(source, buffer, sizeof(buffer),
-				&bytes_read, NULL);
-		if (status != G_IO_STATUS_NORMAL) {
-			break;
-		}
-		if (bytes_read < sizeof(buffer)) {
-			g_strlcpy(buffer+bytes_read, "", 1);
-		}
-		g_print("%s", buffer);
-	}
-out:
-	/* if vm is not running exit */
-	if (! cc_oci_vm_running(data->state)) {
-		if (data->loop) {
-			g_main_loop_quit(data->loop);
-			return false;
-		}
-	}
-
-	return ret;
-}
-
-/*!
- * Watcher for stdin.
- *
- * \param  source GIOChannel.
- * \param  condition GIOCondition.
- * \param  data \ref socket_watcher_data.
- *
- * \return \c false to ignore event.
- */
-static gboolean
-watcher_stdin(GIOChannel* source, GIOCondition condition,
-    struct socket_watcher_data *data)
-{
-	GIOStatus status;
-	GString* buffer;
-	gboolean ret = true;
-
-	if (condition == G_IO_HUP) {
-		g_io_channel_unref(source);
-		ret = false;
-		goto out;
-	}
-
-	buffer = g_string_new("");
-	status = g_io_channel_read_line_string(source, buffer, NULL, NULL);
-	if (status != G_IO_STATUS_NORMAL) {
-		if (buffer) {
-			g_string_free(buffer, true);
-		}
-		goto out;
-	}
-
-	/* buffer will be freed by watcher_socket_stdin */
-	g_io_add_watch(data->socket_io, G_IO_OUT | G_IO_HUP,
-		(GIOFunc)watcher_socket_stdin, buffer);
-out:
-	/* if vm is not running exit */
-	if (! cc_oci_vm_running(data->state)) {
-		if (data->loop) {
-			g_main_loop_quit(data->loop);
-			return false;
-		}
-	}
-
-	return ret;
-}
-
-/*!
- * Attach to the Hypervisor.
- *
- * \param config \ref cc_oci_config.
- * \param state \ref oci_state.
- *
- * \return \c true on success, else \c false.
- */
-gboolean
-cc_oci_attach (struct cc_oci_config *config,
-		struct oci_state *state)
-{
-	gboolean result = false;
-	GSocket* socket;
-	GSocketAddress* src_address;
-	GError *error = NULL;
-	int socket_fd;
-	GIOChannel* socket_io;
-	GIOChannel* std_in;
-	GMainLoop* loop;
-	struct socket_watcher_data data = { 0 };
-
-	loop = g_main_loop_new (NULL, false);
-	if (! loop) {
-		g_critical("failed to create main loop");
-		return false;
-	}
-
-	socket = g_socket_new(G_SOCKET_FAMILY_UNIX, G_SOCKET_TYPE_STREAM, 0, &error);
-	if (! socket) {
-		g_critical("failed to create unix socket");
-		if (error) {
-			g_critical("error: %s", error->message);
-			g_error_free (error);
-		}
-		goto fail1;
-	}
-
-	src_address = g_unix_socket_address_new_with_type(state->console, -1,
-			G_UNIX_SOCKET_ADDRESS_PATH);
-	if (! src_address) {
-		g_critical("failed to create socket address: %s", state->console);
-		goto fail2;
-	}
-
-	if (! g_socket_connect(socket, src_address, NULL, &error)) {
-		g_critical("failed to connect socket");
-		if (error) {
-			g_critical("error: %s", error->message);
-			g_error_free (error);
-		}
-		goto fail3;
-	}
-
-	/* ensure non-blocking mode */
-	g_socket_set_blocking(socket, false);
-
-	/* get socket fd to create GIOChannel */
-	socket_fd = g_socket_get_fd(socket);
-
-	/* add watcher to socket stdout */
-	socket_io = g_io_channel_unix_new(socket_fd);
-	if (! socket_io) {
-		g_critical("failed to create io channel");
-		goto fail3;
-	}
-
-	std_in = g_io_channel_unix_new(STDIN_FILENO);
-	if (! std_in) {
-		g_critical("failed to create io channel");
-		goto fail4;
-	}
-
-	data.loop = loop;
-	data.state = state;
-	data.socket_io = socket_io;
-
-	/* add stdin watcher */
-	g_io_add_watch(std_in, G_IO_IN | G_IO_HUP,
-	    (GIOFunc)watcher_stdin, &data);
-
-	/* add socket stdout watcher */
-	g_io_add_watch(socket_io, G_IO_IN | G_IO_HUP,
-	    (GIOFunc)watcher_socket_stdout, &data);
-
-	data.setup_success = true;
-
-	/* run main loop */
-	g_main_loop_run(loop);
-
-	result = true;
-
-	/* Free memory.
-	 *
-	 * Note that watcher_* functions handle freeing the channels
-	 * normally.
-	 */
-fail4:
-	g_io_channel_shutdown(socket_io, true, NULL);
-	if (! data.setup_success) {
-		 g_io_channel_unref (socket_io);
-	}
-fail3:
-	g_object_unref(src_address);
-fail2:
-	g_object_unref(socket);
-fail1:
-	g_main_loop_unref(loop);
-
-	return result;
-}
-
-/*!
+				state->console);
  * Get the home directory for the workload user
  *
  * \param config \ref cc_oci_config.
@@ -568,7 +333,7 @@ get_user_home_dir(struct cc_oci_config *config, gchar *passwd_path) {
  *
  * returns early if HOME is present in the environment configuration in \p config
  */
-private void
+void
 set_env_home(struct cc_oci_config *config)
 {
 	g_autofree gchar *user_home_dir = NULL;
@@ -614,132 +379,6 @@ set_env_home(struct cc_oci_config *config)
 
 	g_strfreev(config->oci.process.env);
 	config->oci.process.env = new_env;
-}
-
-
-/*!
- * Create the containers Clear Linux workload file
- * (\ref CC_OCI_WORKLOAD_FILE).
- *
- * \param config \ref cc_oci_config.
- *
- * \warning FIXME: Need to support running the workload as a different user/group.
- * Something like:
- *
- *      su -c "sg $group -c $cmd" $user
- *
- * \return \c true on success, else \c false.
- */
-private gboolean
-cc_oci_create_container_workload (struct cc_oci_config *config)
-{
-	GString           *contents = NULL;
-	GError            *err = NULL;
-	gchar             *workload_cmdline = NULL;
-	g_autofree gchar  *path = NULL;
-	g_autofree gchar   *cwd = NULL;
-	gboolean           ret = false;
-	gchar             **args = NULL;
-
-	if (! (config && config->oci.process.args)) {
-		return false;
-	}
-
-	if (! config->vm) {
-		g_critical ("No vm configuration");
-		goto out;
-	}
-
-	if (config->oci.process.env) {
-		g_autofree gchar  *envpath = NULL;
-		g_autofree gchar  *env = NULL;
-
-		envpath = g_build_path ("/", config->oci.root.path,
-				CC_OCI_ENV_FILE, NULL);
-		if (! envpath) {
-			return false;
-		}
-
-		set_env_home(config);
-
-		env = g_strjoinv ("\n", config->oci.process.env);
-		ret = g_file_set_contents (envpath, env, -1, &err);
-		if (! ret) {
-			g_critical ("failed to create environment file (%s): %s",
-					envpath, err->message);
-			g_error_free (err);
-			goto out;
-		}
-	}
-
-	path = g_build_path ("/", config->oci.root.path,
-			CC_OCI_WORKLOAD_FILE, NULL);
-	if (! path) {
-		return false;
-	}
-
-	cwd = g_shell_quote (config->oci.process.cwd);
-	if (! cwd) {
-		return false;
-	}
-
-	g_strlcpy (config->vm->workload_path, path,
-			sizeof (config->vm->workload_path));
-
-	args = config->oci.process.args;
-	while (*args != NULL) {
-		gchar *new_arg = g_shell_quote(*args);
-		g_free(*args);
-		*args = new_arg;
-		args++;
-	}
-
-	workload_cmdline = g_strjoinv (" ", config->oci.process.args);
-	if (! workload_cmdline) {
-		goto out;
-	}
-
-	contents = g_string_new("");
-	if (! contents) {
-		goto out;
-	}
-
-	/* TODO: we should probably force failure if the 'cd' fails */
-	g_string_printf(contents,
-			"#!%s\n"
-			"cd %s\n"
-			"%s\n",
-			CC_OCI_WORKLOAD_SHELL,
-			cwd,
-			workload_cmdline);
-
-	ret = g_file_set_contents (config->vm->workload_path,
-			contents->str, (gssize)contents->len, &err);
-
-	if (! ret) {
-		g_critical ("failed to create workload file (%s): %s",
-				config->vm->workload_path, err->message);
-		g_error_free (err);
-		goto out;
-	}
-
-	if (g_chmod (config->vm->workload_path, CC_OCI_SCRIPT_MODE) < 0) {
-		g_critical ("failed to set mode for file file %s",
-				config->vm->workload_path);
-		goto out;
-	}
-
-	g_debug ("created workload_path %s", config->vm->workload_path);
-
-	ret = true;
-
-out:
-	g_free_if_set (workload_cmdline);
-	if (contents) {
-		g_string_free(contents, true);
-	}
-
-	return ret;
 }
 
 /*!
@@ -891,20 +530,12 @@ cc_oci_create (struct cc_oci_config *config)
 		return false;
 	}
 
-	if (! cc_oci_create_container_workload (config)) {
-		g_critical ("failed to create workload");
-		return false;
-	}
-
 	// FIXME: consider dry-run mode.
 	if (config->dry_run_mode) {
 		g_debug ("dry-run mode: not launching VM");
 		return true;
 	}
 
-	/* start VM is a stopped state (containerd requires a
-	 * valid pid in the pidfile after a successful "create").
-	 */
 	if (! cc_oci_vm_launch (config)) {
 		g_critical ("failed to launch VM");
 		goto out;
@@ -916,168 +547,37 @@ out:
 	return ret;
 }
 
-/*!
- * Called when the \ref CC_OCI_PROCESS_SOCKET file is closed by the VM,
- * denoting process shutdown.
- *
- * \param source \c GIOChannel.
- * \param condition \c GIOCondition.
- * \param data \ref process_watcher_data.
- *
- * \return \c false on success, else \c true.
- */
-static gboolean
-handle_socket_close (GIOChannel              *source,
-		GIOCondition                  condition,
-		struct process_watcher_data  *data)
-{
-	(void)source;
-	(void)condition;
-
-	g_assert (data);
-	g_assert (data->loop);
-
-	g_main_loop_quit (data->loop);
-
-	/* signify success */
-	return false;
-}
-
-/**
- * Connect to \ref CC_OCI_PROCESS_SOCKET and set a watch to trigger
- * when the socket is closed (denoting the VM has shutdown).
- *
- * \param data \ref process_watcher_data.
- *
- * \return \c true on success, else \c false.
- */
-static gboolean
-handle_process_socket (struct process_watcher_data *data)
-{
-	gboolean         ret = false;
-	int              socket_fd;
-	GError          *error = NULL;
-	const gchar     *path;
-
-	if (! data || ! data->loop || ! data->config) {
-		return false;
-	}
-
-	if (! data->config->state.procsock_path[0]) {
-		return false;
-	}
-
-	path = data->config->state.procsock_path;
-
-	data->socket = g_socket_new (G_SOCKET_FAMILY_UNIX,
-			G_SOCKET_TYPE_STREAM, 0, &error);
-	if (! data->socket) {
-		g_critical("failed to create unix socket: %s",
-				error->message);
-		g_error_free (error);
-		goto fail1;
-	}
-
-	data->src_address = g_unix_socket_address_new_with_type (path,
-			-1,
-			G_UNIX_SOCKET_ADDRESS_PATH);
-	if (! data->src_address) {
-		g_critical("failed to create socket address: %s",
-				data->config->state.procsock_path);
-		goto fail2;
-	}
-
-	ret = g_socket_connect(data->socket, data->src_address,
-			NULL, &error);
-	if (! ret) {
-		g_critical("failed to connect to socket: %s",
-				error->message);
-		g_error_free (error);
-		goto fail3;
-	}
-
-	/* ensure non-blocking mode */
-	g_socket_set_blocking (data->socket, false);
-
-	/* get socket fd to create GIOChannel */
-	socket_fd = g_socket_get_fd (data->socket);
-
-	data->channel = g_io_channel_unix_new (socket_fd);
-	if (! data->channel) {
-		g_critical ("failed to create io channel");
-		goto fail4;
-	}
-
-	g_io_add_watch (data->channel,
-			G_IO_HUP|G_IO_ERR,
-			(GIOFunc)handle_socket_close,
-			data);
-
-	return true;
-
-fail4:
-	g_io_channel_shutdown (data->channel, true, NULL);
-	g_io_channel_unref (data->channel);
-fail3:
-	g_object_unref (data->src_address);
-fail2:
-	g_object_unref (data->socket);
-fail1:
-	g_main_loop_unref (data->loop);
-	data->loop = NULL;
-
-	return false;
-}
-
 /**
  * Determine when \ref CC_OCI_PROCESS_SOCKET is created.
  *
  * \param monitor \c GFileMonitor.
- * \param file \c GFile.
+ * \param file \c GFile (unused).
  * \param other_file \c GFile (unused).
- * \param event_type \c GFileMonitorEvent.
- * \param data \ref process_watcher_data.
+ * \param event_type \c GFileMonitorEvent (unused).
+ * \param loop GMainLoop.
  */
 static void
-watcher_runtime_dir (GFileMonitor            *monitor,
+cc_oci_procsock_monitor_callback(
+		GFileMonitor                 *monitor,
 		GFile                        *file,
 		GFile                        *other_file,
 		GFileMonitorEvent             event_type,
-		struct process_watcher_data  *data)
+		GMainLoop                   **loop)
 {
-	g_autofree gchar  *path = NULL;
-	g_autofree gchar  *name = NULL;
-
+	(void)file;
 	(void)other_file;
+	(void)event_type;
 
-	g_assert (data);
-
-	if (event_type != G_FILE_MONITOR_EVENT_CHANGES_DONE_HINT) {
-		return;
-	}
-
-	path = g_file_get_path (file);
-	if (! path) {
-		return;
-	}
-
-	name = g_path_get_basename (path);
-
-	/* ignore non-matching files */
-	if (g_strcmp0 (CC_OCI_PROCESS_SOCKET, name)) {
-		return;
-	}
+	g_assert (loop);
 
 	/* CC_OCI_PROCESS_SOCKET has now been created, so delete the
 	 * monitor.
 	 */
 	g_object_unref (monitor);
 
-	/* Now that the socket has been created, connect to it */
-	if (! handle_process_socket (data)) {
-		data->failed = true;
-		g_critical ("failed to handle process socket");
-	}
+	g_main_loop_quit (*loop);
+	g_main_loop_unref (*loop);
+	*loop = NULL;
 }
 
 /*!
@@ -1093,13 +593,15 @@ cc_oci_start (struct cc_oci_config *config,
 		struct oci_state *state)
 {
 	gboolean       ret = false;
-	GPid           pid;
 	GFileMonitor  *monitor = NULL;
 	GFile         *file = NULL;
 	GError        *error = NULL;
 	gboolean       wait = false;
-	struct process_watcher_data data = { 0 };
 	gchar         *config_file = NULL;
+	struct stat    st;
+	int            shim_flock_fd = -1;
+	char          *shim_flock_path = NULL;
+	GMainLoop     *loop = NULL;
 
 	if (! config || ! state) {
 		return false;
@@ -1134,8 +636,6 @@ cc_oci_start (struct cc_oci_config *config,
 		start_data.bundle = NULL;
 	}
 
-	pid = config->state.workload_pid;
-
 	/* XXX: If running stand-alone, wait for the hypervisor to
 	 * finish. But if running under containerd, don't wait.
 	 *
@@ -1144,66 +644,47 @@ cc_oci_start (struct cc_oci_config *config,
 	 *
 	 * Do not wait when console is empty.
 	 */
-	if ((isatty (STDIN_FILENO) && ! config->detached_mode) &&
-	    !config->use_socket_console) {
+	if ((isatty (STDIN_FILENO) && ! config->detached_mode)) {
 		wait = true;
 	}
 
 	if (wait) {
-		data.config = config;
-		data.loop = g_main_loop_new (NULL, 0);
-		if (! data.loop) {
-			g_critical ("cannot create main loop for client");
-			return false;
+		/* Create a file monitor if CC_OCI_PROCESS_SOCKET does not exist */
+		if (stat(config->state.procsock_path, &st)) {
+			loop = g_main_loop_new (NULL, 0);
+			if (! loop) {
+				g_critical ("cannot create main loop for client");
+				return false;
+			}
+			file = g_file_new_for_path (config->state.procsock_path);
+			if (! file) {
+				g_main_loop_unref (loop);
+				return false;
+			}
+
+			/* create inotify watch on file */
+			monitor = g_file_monitor(file, G_FILE_MONITOR_NONE, NULL, &error);
+			if (! monitor) {
+				g_critical ("failed to monitor %s: %s",
+						g_file_get_path (file),
+						error->message);
+				g_error_free (error);
+				g_object_unref (file);
+				g_main_loop_unref (loop);
+
+				return false;
+			}
+
+			g_signal_connect (monitor, "changed",
+				G_CALLBACK (cc_oci_procsock_monitor_callback),
+				&loop);
 		}
-
-		file = g_file_new_for_path (config->state.runtime_path);
-		if (! file) {
-			g_main_loop_unref (data.loop);
-			return false;
-		}
-
-		/* create inotify watch on runtime directory
-		 * (crucially before the VM is resumed).
-		 */
-		monitor = g_file_monitor_directory (file,
-				G_FILE_MONITOR_WATCH_MOVES,
-				NULL, &error);
-		if (! monitor) {
-			g_critical ("failed to monitor %s: %s",
-					g_file_get_path (file),
-					error->message);
-			g_error_free (error);
-			g_object_unref (file);
-			g_main_loop_unref (data.loop);
-
-			return false;
-		}
-
-		g_signal_connect (monitor, "changed",
-				G_CALLBACK (watcher_runtime_dir),
-				&data);
 	}
 
-	/* "create" left the VM in a stopped state, so now let it
-	 * continue.
-	 *
-	 * This will result in \ref CC_OCI_PROCESS_SOCKET being
-	 * created, however there will be a delay. Since we wish to
-	 * connect to this socket, the approach is to use an inotify
-	 * watch to wait for the socket file to exist, then connect to
-	 * it.
-	 */
-	if (kill (pid, SIGCONT) < 0) {
-		g_critical ("failed to start VM %s: %s",
-				config->optarg_container_id,
-				strerror (errno));
-		return false;
+	if (! cc_proxy_hyper_new_container (config)) {
+	    ret = false;
+	    goto out;
 	}
-
-	g_debug ("activated VM %s (pid %d)",
-			config->optarg_container_id,
-			(int)pid);
 
 	/* Now the VM is running */
 	config->state.status = OCI_STATUS_RUNNING;
@@ -1221,7 +702,28 @@ cc_oci_start (struct cc_oci_config *config,
 	              config->state.state_file_path, false);
 
 	if (wait) {
-		g_main_loop_run (data.loop);
+		if (loop) {
+			/* waiting for CC_OCI_PROCESS_SOCKET
+			 * this socket indicates that VM is running
+			 */
+			g_main_loop_run (loop);
+		}
+
+		/* try to lock shim flock file
+		 * when flock returns means that shim finished
+		 */
+		shim_flock_path = g_strdup_printf ("%s/%s", config->state.runtime_path,
+			CC_OCI_SHIM_LOCK_FILE);
+		shim_flock_fd = open (shim_flock_path, O_RDONLY);
+		if (shim_flock_fd < 0) {
+			g_critical ("failed to open shim flock file: %s", strerror(errno));
+			goto out;
+		}
+
+		if (flock (shim_flock_fd, LOCK_EX) < 0) {
+			g_critical ("failed to flock shim file: %s", strerror(errno));
+			goto out;
+		}
 
 		/* Read state file to detect if the VM was stopped */
 		ret = cc_oci_get_config_and_state (&config_file, config,
@@ -1230,13 +732,12 @@ cc_oci_start (struct cc_oci_config *config,
 			goto out;
 		}
 
+		/*FIXME: should start delete the container? */
+
 		/* If the VM was stopped then *do not* cleanup */
 		if (config->state.status != OCI_STATUS_STOPPED &&
 			config->state.status != OCI_STATUS_STOPPING) {
 			ret = cc_oci_cleanup (config);
-			if (data.failed) {
-				ret = false;
-			}
 		}
 	} else {
 		ret = true;
@@ -1247,21 +748,16 @@ out:
 		if (file) {
 			g_object_unref (file);
 		}
-		if (data.channel) {
-			g_io_channel_shutdown (data.channel, true, NULL);
-			g_io_channel_unref (data.channel);
-		}
-		if (data.src_address) {
-			g_object_unref (data.src_address);
-		}
-		if (data.socket) {
-			g_object_unref (data.socket);
-		}
-		if (data.loop) {
-			g_main_loop_unref (data.loop);
-			data.loop = NULL;
+		if (loop) {
+			g_main_loop_unref (loop);
+			loop = NULL;
 		}
 		g_free_if_set (config_file);
+	}
+
+	g_free_if_set (shim_flock_path);
+	if (shim_flock_fd >= 0) {
+		close (shim_flock_fd);
 	}
 
 	return ret;
@@ -1331,12 +827,13 @@ gboolean
 cc_oci_stop (struct cc_oci_config *config,
 		struct oci_state *state)
 {
-	g_assert (config);
-	g_assert (state);
+	if (! (config && state)){
+		return false;
+	}
 
 	if (cc_oci_vm_running (state)) {
 		gboolean ret;
-		ret = cc_oci_vm_shutdown (state->comms_path, state->pid);
+		ret = cc_proxy_hyper_destroy_pod(config);
 		if (! ret) {
 			return false;
 		}
@@ -1350,6 +847,11 @@ cc_oci_stop (struct cc_oci_config *config,
 		g_warning ("Cannot delete VM %s (pid %u) - "
 				"not running",
 				state->id, state->pid);
+	}
+
+	/* Allow the proxy to clean up resources */
+	if (! cc_proxy_cmd_bye (config->proxy, config->optarg_container_id)) {
+		return false;
 	}
 
 	/* The post-stop hooks are called after the container process is
@@ -1381,8 +883,9 @@ cc_oci_toggle (struct cc_oci_config *config,
 	enum oci_status   dest_status;
 	gboolean          ret;
 
-	g_assert (config);
-	g_assert (state);
+	if (! (config && state)) {
+		return false;
+	}
 
 	dest_status = pause ? OCI_STATUS_PAUSED : OCI_STATUS_RUNNING;
 
@@ -1403,6 +906,49 @@ cc_oci_toggle (struct cc_oci_config *config,
 
 	return cc_oci_state_file_create (config, state->create_time);
 }
+/*!
+ * Parse the \c GNode representation of \c process_json file
+ * and save values in the provided \ref oci_cfg_process.
+ *
+ * \param process_json json file with a oci process node.
+ *
+ * \param process \ref oci_cfg_process.
+ *
+ * \return \c true on success, else \c false.
+ */
+static gboolean
+cc_oci_process_exec_file (const gchar *process_json,
+		struct oci_cfg_process *process)
+{
+	/*
+	 * use \ref cc_oci_config to parse
+	 * the json file from --process option
+	 **/
+	struct cc_oci_config process_config = { { 0 } };
+	GNode *root = NULL;
+	gboolean ret = false;
+
+	if (! (process_json && process)){
+		goto out;
+	}
+	if (! cc_oci_json_parse (&root, process_json)) {
+		goto out;
+	}
+
+#ifdef DEBUG
+	cc_oci_node_dump (root);
+#endif /*DEBUG*/
+
+	process_config.oci.process = *process;
+	process_spec_handler.handle_section(root, &process_config);
+	*process = process_config.oci.process;
+
+	ret = true;
+out:
+	g_free_node(root);
+
+	return ret;
+}
 
 /*!
  * Run the command specified by \p argv in the hypervisor
@@ -1410,28 +956,45 @@ cc_oci_toggle (struct cc_oci_config *config,
  *
  * \param config \ref cc_oci_config.
  * \param state \ref oci_state.
- * \param argc Argument count.
- * \param argv Argument vector.
+ * \param process \ref oci_cfg_process.
+ * \param process_json json file with a oci process node.
  *
  * \return \c true on success, else \c false.
  */
 gboolean
 cc_oci_exec (struct cc_oci_config *config,
 		struct oci_state *state,
-		int argc,
-		char *const argv[])
+		const gchar *process_json)
 {
-	g_assert (config);
-	g_assert (state);
-	g_assert (argc);
-	g_assert (argv);
+	gboolean ret = false;
 
-	if (! cc_oci_vm_connect (config, argc, argv)) {
-		g_critical ("failed to connect to VM");
+	if (! (config && state)) {
 		return false;
 	}
 
-	return true;
+	if (process_json){
+		if(! cc_oci_process_exec_file(process_json,
+					&config->oci.process)) {
+			goto out;
+		}
+	}
+
+	if (! cc_oci_vm_connect (config)) {
+		g_critical ("failed to connect to VM");
+		goto out;
+	}
+
+	if (start_data.pid_file) {
+		ret = cc_oci_create_pidfile (start_data.pid_file,
+				config->state.workload_pid);
+		if (! ret) {
+			goto out;
+		}
+	}
+
+	ret = true;
+out:
+	return ret;
 }
 
 /*!
@@ -1547,30 +1110,40 @@ cc_oci_list_vm (const struct oci_state *state,
 static struct oci_state *
 cc_oci_vm_get_state (const gchar *name, const char *root_dir)
 {
-	struct cc_oci_config  config = { { 0 } };
+	struct cc_oci_config  *config = NULL;
 	struct oci_state      *state = NULL;
 	gchar                 *config_file = NULL;
 
-	g_assert (name);
+	if (! (name && root_dir)) {
+		return NULL;
+	}
 
-	config.optarg_container_id = name;
+	config = cc_oci_config_create ();
+	if (! config) {
+		return NULL;
+	}
+
+	config->optarg_container_id = name;
 
 	if (root_dir) {
-		config.root_dir = g_strdup (root_dir);
+		config->root_dir = g_strdup (root_dir);
 	}
 
-	if (! cc_oci_runtime_path_get (&config)) {
-		return NULL;
+	if (! cc_oci_runtime_path_get (config)) {
+		goto out;
 	}
 
-	if (! cc_oci_state_file_get (&config)) {
-		return NULL;
+	if (! cc_oci_state_file_get (config)) {
+		goto out;
 	}
 
-	state = cc_oci_state_file_read (config.state.state_file_path);
+	state = cc_oci_state_file_read (config->state.state_file_path);
 
+out:
 	g_free_if_set (config_file);
-	cc_oci_config_free (&config);
+	if (config) {
+		cc_oci_config_free (config);
+	}
 
 	return state;
 }
@@ -1816,16 +1389,25 @@ cc_oci_config_update (struct cc_oci_config *config,
 		state->mounts = NULL;
 	}
 
+	if(state->process && ! config->oci.process.args) {
+		config->oci.process = *state->process;
+		g_free_if_set (state->process);
+	}
+
 	if (state->console) {
 		config->console = state->console;
 		state->console = NULL;
 	}
 
-	config->use_socket_console = state->use_socket_console;
-
 	if (state->vm) {
 		config->vm = state->vm;
 		state->vm = NULL;
+	}
+
+	if (state->proxy) {
+		cc_proxy_free (config->proxy);
+		config->proxy = state->proxy;
+		state->proxy = NULL;
 	}
 
 	if (state->procsock_path) {
@@ -1836,4 +1418,52 @@ cc_oci_config_update (struct cc_oci_config *config,
 	}
 
 	return true;
+}
+
+/*!
+* Convert the config process to a JSON object.
+*
+* \param process \ref oci_cfg_process.
+*
+* \return \c JsonObject on success, else \c NULL.
+*/
+JsonObject *
+cc_oci_process_to_json(const struct oci_cfg_process *process)
+{
+	JsonObject *json_process = NULL;
+	JsonObject *user         = NULL;
+	JsonArray  *args         = NULL;
+	JsonArray  *envs         = NULL;
+
+	if (! (process && process->args && process->cwd[0])) {
+		goto out;
+	}
+
+	json_process = json_object_new ();
+	user         = json_object_new ();
+	args         = json_array_new ();
+	envs         = json_array_new ();
+
+
+	for (gchar** p = process->args; p && *p; p++) {
+		json_array_add_string_element (args, *p);
+	}
+
+	for (gchar** p = process->env; p && *p; p++) {
+		json_array_add_string_element (envs, *p);
+	}
+
+	json_object_set_string_member (json_process, "cwd", process->cwd);
+	json_object_set_boolean_member (json_process, "terminal",
+			process->terminal);
+	json_object_set_object_member (json_process, "user", user);
+	json_object_set_array_member (json_process, "args", args);
+	json_object_set_array_member (json_process, "env", envs);
+	json_object_set_int_member (json_process, "stdio_stream",
+			process->stdio_stream);
+	json_object_set_int_member (json_process, "stderr_stream",
+			process->stderr_stream);
+
+out:
+	return json_process;
 }

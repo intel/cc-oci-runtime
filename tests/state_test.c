@@ -39,10 +39,17 @@ const gchar *
 cc_oci_status_get (const struct cc_oci_config *config);
 
 START_TEST(test_cc_oci_state_file_get) {
-	struct cc_oci_config config = { { 0 } };
-	ck_assert(!cc_oci_state_file_get(&config));
-	g_snprintf(config.state.runtime_path, PATH_MAX, "/tmp");
-	ck_assert(cc_oci_state_file_get(&config));
+	struct cc_oci_config *config = NULL;
+
+	config = cc_oci_config_create ();
+	ck_assert (config);
+
+	ck_assert(!cc_oci_state_file_get(config));
+	g_snprintf(config->state.runtime_path, PATH_MAX, "/tmp");
+	ck_assert(cc_oci_state_file_get(config));
+
+	/* clean up */
+	cc_oci_config_free (config);
 } END_TEST
 
 
@@ -90,6 +97,15 @@ START_TEST(test_cc_oci_state_file_read) {
 
 	ck_assert(! cc_oci_state_file_read(TEST_DATA_DIR
 	                "/state-no-vm-object.json"));
+
+	ck_assert(! cc_oci_state_file_read(TEST_DATA_DIR
+	                "/state-no-proxy.json"));
+
+	ck_assert(! cc_oci_state_file_read(TEST_DATA_DIR
+	                "/state-no-proxy-ctlSocket.json"));
+
+	ck_assert(! cc_oci_state_file_read(TEST_DATA_DIR
+	                "/state-no-proxy-ioSocket.json"));
 
 	/* Annotations are optional*/
 	state = cc_oci_state_file_read(TEST_DATA_DIR
@@ -144,12 +160,15 @@ START_TEST(test_cc_oci_state_free) {
 } END_TEST
 
 START_TEST(test_cc_oci_state_file_create) {
-	struct cc_oci_config config = { { 0 } };
+	struct cc_oci_config *config = NULL;
 	const gchar *timestamp = "foo";
         struct oci_cfg_annotation* a = NULL;
 	struct cc_oci_mount *m = NULL;
 	g_autofree gchar *tmpdir = g_dir_make_tmp (NULL, NULL);
 	gboolean ret;
+
+	config = cc_oci_config_create ();
+	ck_assert (config);
 
 	ck_assert(! cc_oci_state_file_create (NULL, NULL));
 
@@ -162,143 +181,170 @@ START_TEST(test_cc_oci_state_file_create) {
 	 * - runtime_path
 	 *
 	 */
-	ck_assert(! cc_oci_state_file_create (&config, NULL));
-	ck_assert(! cc_oci_state_file_create (&config, timestamp));
+	ck_assert(! cc_oci_state_file_create (config, NULL));
+	ck_assert(! cc_oci_state_file_create (config, timestamp));
 
-	config.optarg_container_id = "";
+	config->optarg_container_id = "";
 
-	ck_assert(! cc_oci_state_file_create (&config, NULL));
-	ck_assert(! cc_oci_state_file_create (&config, timestamp));
+	ck_assert(! cc_oci_state_file_create (config, NULL));
+	ck_assert(! cc_oci_state_file_create (config, timestamp));
 
-	config.optarg_container_id = "foo";
+	config->optarg_container_id = "foo";
 
-	ck_assert(! cc_oci_state_file_create (&config, NULL));
-	ck_assert(! cc_oci_state_file_create (&config, timestamp));
+	ck_assert(! cc_oci_state_file_create (config, NULL));
+	ck_assert(! cc_oci_state_file_create (config, timestamp));
 
-	config.bundle_path = g_strdup ("/tmp/bundle");
+	config->bundle_path = g_strdup ("/tmp/bundle");
 
-	ck_assert(! cc_oci_state_file_create (&config, NULL));
-	ck_assert(! cc_oci_state_file_create (&config, timestamp));
+	ck_assert(! cc_oci_state_file_create (config, NULL));
+	ck_assert(! cc_oci_state_file_create (config, timestamp));
 
-	config.root_dir = g_strdup (tmpdir);
-	ck_assert (config.root_dir);
+	config->root_dir = g_strdup (tmpdir);
+	ck_assert (config->root_dir);
 
-	ck_assert (cc_oci_runtime_dir_setup (&config));
+	ck_assert (cc_oci_runtime_dir_setup (config));
 
-	ck_assert(! cc_oci_state_file_create (&config, NULL));
-	ck_assert(! cc_oci_state_file_create (&config, timestamp));
+	ck_assert(! cc_oci_state_file_create (config, NULL));
+	ck_assert(! cc_oci_state_file_create (config, timestamp));
 
-	g_snprintf(config.state.comms_path, PATH_MAX, "/tmp");
-	g_snprintf(config.state.procsock_path, PATH_MAX, "/tmp");
+	g_snprintf(config->state.comms_path, PATH_MAX, "/tmp");
+	g_snprintf(config->state.procsock_path, PATH_MAX, "/tmp");
 
-	ck_assert(! cc_oci_state_file_create (&config, NULL));
+	ck_assert(! cc_oci_state_file_create (config, NULL));
 
         a = g_new0(struct oci_cfg_annotation, 1);
         a->key = g_strdup("key1");
         a->value = g_strdup("val1");
 
-        config.oci.annotations = g_slist_append(config.oci.annotations, a);
+        config->oci.annotations =
+		g_slist_append(config->oci.annotations, a);
+
+	/* config->oci.process not set */
+	ck_assert(! cc_oci_state_file_create (config, timestamp));
+
+	snprintf(config->oci.process.cwd, sizeof(config->oci.process.cwd),
+				"%s", "/working_directory");
+
+	config->oci.process.args = g_strsplit("/bin/echo test", " ", -1);
 
 	/* config->vm not set */
-	ck_assert(! cc_oci_state_file_create (&config, timestamp));
+	ck_assert(! cc_oci_state_file_create (config, timestamp));
 
-	config.vm = g_malloc0 (sizeof(struct cc_oci_vm_cfg));
-	ck_assert (config.vm);
+	config->vm = g_malloc0 (sizeof(struct cc_oci_vm_cfg));
+	ck_assert (config->vm);
 
-	g_strlcpy (config.vm->hypervisor_path, "hypervisor-path",
-			sizeof (config.vm->hypervisor_path));
+	g_strlcpy (config->vm->hypervisor_path, "hypervisor-path",
+			sizeof (config->vm->hypervisor_path));
 
-	g_strlcpy (config.vm->image_path, "image-path",
-			sizeof (config.vm->image_path));
+	g_strlcpy (config->vm->image_path, "image-path",
+			sizeof (config->vm->image_path));
 
-	g_strlcpy (config.vm->kernel_path, "kernel-path",
-			sizeof (config.vm->kernel_path));
+	g_strlcpy (config->vm->kernel_path, "kernel-path",
+			sizeof (config->vm->kernel_path));
 
-	g_strlcpy (config.vm->workload_path, "workload-path",
-			sizeof (config.vm->workload_path));
+	g_strlcpy (config->vm->workload_path, "workload-path",
+			sizeof (config->vm->workload_path));
 
-	config.vm->kernel_params = g_strdup ("kernel params");
+	config->vm->kernel_params = g_strdup ("kernel params");
 
-	/* All required elements now set */
 	m = g_new0(struct cc_oci_mount, 1);
 	g_snprintf(m->dest, sizeof(m->dest), "/tmp/tmp/tmp");
 	m->directory_created = g_strdup("/tmp/tmp/");
 	m->ignore_mount = true;
-	config.oci.mounts = g_slist_append(config.oci.mounts, m);
+	config->oci.mounts = g_slist_append(config->oci.mounts, m);
 
-	ck_assert (cc_oci_state_file_create (&config, timestamp));
+	/* All required elements now set */
+	ck_assert (cc_oci_state_file_create (config, timestamp));
 
-	ret = g_file_test (config.state.state_file_path,
+	ret = g_file_test (config->state.state_file_path,
 			G_FILE_TEST_EXISTS);
 	ck_assert (ret);
 
-	ck_assert (! g_remove (config.state.state_file_path));
-	ck_assert (! g_remove (config.state.runtime_path));
+	ck_assert (! g_remove (config->state.state_file_path));
+	ck_assert (! g_remove (config->state.runtime_path));
 	ck_assert (! g_remove (tmpdir));
 
-	g_snprintf(config.state.runtime_path, PATH_MAX, "/abc/xyz/123");
-	ck_assert(!cc_oci_state_file_create (&config, timestamp));
+	g_snprintf(config->state.runtime_path, PATH_MAX, "/abc/xyz/123");
+	ck_assert(!cc_oci_state_file_create (config, timestamp));
 
 	/* clean up */
-	cc_oci_config_free (&config);
+	cc_oci_config_free (config);
 } END_TEST
 
 START_TEST(test_cc_oci_state_file_delete) {
 	struct stat st;
-	struct cc_oci_config config = { { 0 } };
+	struct cc_oci_config *config = NULL;
 	gint fd = 0;
 
-	g_snprintf(config.state.state_file_path, PATH_MAX, "/tmp/.fileXXXXXX");
+	config = cc_oci_config_create ();
+	ck_assert (config);
 
-	fd = g_mkstemp(config.state.state_file_path);
+	g_snprintf(config->state.state_file_path, PATH_MAX,
+			"/tmp/.fileXXXXXX");
+
+	fd = g_mkstemp(config->state.state_file_path);
 	ck_assert(fd != -1);
 	ck_assert(close(fd) != -1);
 
-	ck_assert(cc_oci_state_file_delete(&config));
+	ck_assert(cc_oci_state_file_delete(config));
 
-	ck_assert(stat(config.state.state_file_path, &st));
+	ck_assert(stat(config->state.state_file_path, &st));
 
+	/* clean up */
+	cc_oci_config_free (config);
 } END_TEST
 
 START_TEST(test_cc_oci_state_file_exists) {
-	struct cc_oci_config config = { { 0 } };
+	struct cc_oci_config *config = NULL;
+
+	config = cc_oci_config_create ();
+	ck_assert (config);
 
 	ck_assert(! cc_oci_state_file_exists(NULL));
-	ck_assert(! cc_oci_state_file_exists(&config));
+	ck_assert(! cc_oci_state_file_exists(config));
 
-	config.optarg_container_id = "2565";
-	ck_assert(! cc_oci_state_file_exists(&config));
+	config->optarg_container_id = "2565";
+	ck_assert(! cc_oci_state_file_exists(config));
+
+	/* clean up */
+	cc_oci_config_free (config);
 } END_TEST
 
 START_TEST(test_cc_oci_status_get) {
 	const gchar *status;
-	struct cc_oci_config config = { { 0 } };
+	struct cc_oci_config *config = NULL;
+
+	config = cc_oci_config_create ();
+	ck_assert (config);
 
 	status = cc_oci_status_get (NULL);
 	ck_assert (! status);
 
-	status = cc_oci_status_get (&config);
+	status = cc_oci_status_get (config);
 	ck_assert (! g_strcmp0 (status, "created"));
 
 	/* let's confirm our understanding of what it's doing */
-	config.state.status = OCI_STATUS_CREATED;
-	status = cc_oci_status_get (&config);
+	config->state.status = OCI_STATUS_CREATED;
+	status = cc_oci_status_get (config);
 	ck_assert (! g_strcmp0 (status, "created"));
 
-	config.state.status = OCI_STATUS_RUNNING;
-	status = cc_oci_status_get (&config);
+	config->state.status = OCI_STATUS_RUNNING;
+	status = cc_oci_status_get (config);
 	ck_assert (! g_strcmp0 (status, "running"));
 
-	config.state.status = OCI_STATUS_PAUSED;
-	status = cc_oci_status_get (&config);
+	config->state.status = OCI_STATUS_PAUSED;
+	status = cc_oci_status_get (config);
 	ck_assert (! g_strcmp0 (status, "paused"));
 
-	config.state.status = OCI_STATUS_STOPPED;
-	status = cc_oci_status_get (&config);
+	config->state.status = OCI_STATUS_STOPPED;
+	status = cc_oci_status_get (config);
 	ck_assert (! g_strcmp0 (status, "stopped"));
 
-	config.state.status = OCI_STATUS_INVALID;
-	ck_assert (! cc_oci_status_get (&config));
+	config->state.status = OCI_STATUS_INVALID;
+	ck_assert (! cc_oci_status_get (config));
+
+	/* clean up */
+	cc_oci_config_free (config);
 } END_TEST
 
 START_TEST(test_cc_oci_status_to_str) {

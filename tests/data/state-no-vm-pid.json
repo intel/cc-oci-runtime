@@ -11,13 +11,17 @@
       "path" : "/run/cc-oci-runtime/test/console.sock",
       "socket" : true
   },
+  "annotations" : {
+      "key1" : "value1",
+      "key2" : "value2"
+  },
   "mounts" : [
       {
-          "destination" : "/tmp/tmp/"
+          "destination" : "/tmp/tmp/",
+          "directory_created" : "/tmp/tmp"
       }
   ],
   "vm" : {
-	  "pid" : 999,
 	  "image_path" : "/path/to/clear-containers.img",
 	  "workload_path" : "/tmp/bundle//.containerexec",
 	  "kernel_path" : "/path/to/vmlinux",

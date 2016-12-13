@@ -24,6 +24,7 @@
 #include "spec_handler.h"
 
 gchar *cc_oci_config_file_path (const char *bundle_path);
+struct cc_oci_config *cc_oci_config_create (void);
 void cc_oci_config_free (struct cc_oci_config *config);
 
 gboolean

@@ -36,95 +36,103 @@
 START_TEST(test_cc_oci_get_priv_level) {
 	int                    argc = 2;
 	gchar                 *argv[] = { "IGNORED", "arg", NULL };
-	struct cc_oci_config  config = { {0} };
+	struct cc_oci_config  *config = NULL;
 	struct subcommand      sub;
 	gchar                 *tmpdir = g_dir_make_tmp (NULL, NULL);
 	gchar                 *tmpdir_enoent = g_build_path ("/", tmpdir, "foo", NULL);
 
+	config = cc_oci_config_create ();
+	ck_assert (config);
+
 	sub.name = "help";
-	ck_assert (cc_oci_get_priv_level (argc, argv, &sub, &config) == -1);
+	ck_assert (cc_oci_get_priv_level (argc, argv, &sub, config) == -1);
 
 	sub.name = "version";
-	ck_assert (cc_oci_get_priv_level (argc, argv, &sub, &config) == -1);
+	ck_assert (cc_oci_get_priv_level (argc, argv, &sub, config) == -1);
 
 	sub.name = "list";
 	argv[1] = "--help";
-	ck_assert (cc_oci_get_priv_level (argc, argv, &sub, &config) == -1);
+	ck_assert (cc_oci_get_priv_level (argc, argv, &sub, config) == -1);
 
 	sub.name = "list";
 	argv[1] = "-h";
-	ck_assert (cc_oci_get_priv_level (argc, argv, &sub, &config) == -1);
+	ck_assert (cc_oci_get_priv_level (argc, argv, &sub, config) == -1);
 
 	/* set to a non-"--help" value */
 	argv[1] = "foo";
 
 	/* root_dir not specified, so root required */
-	ck_assert (cc_oci_get_priv_level (argc, argv, &sub, &config) == 1);
+	ck_assert (cc_oci_get_priv_level (argc, argv, &sub, config) == 1);
 
-	config.root_dir = "/";
+	config->root_dir = g_strdup ("/");
 
-	if (access (config.root_dir, W_OK) < 0) {
+	if (access (config->root_dir, W_OK) < 0) {
 		/* user cannot write to root_dir */
-		ck_assert (cc_oci_get_priv_level (argc, argv, &sub, &config) == 1);
+		ck_assert (cc_oci_get_priv_level (argc, argv, &sub, config) == 1);
 	} else {
 		/* user can write to root_dir */
-		ck_assert (cc_oci_get_priv_level (argc, argv, &sub, &config) == 0);
+		ck_assert (cc_oci_get_priv_level (argc, argv, &sub, config) == 0);
 	}
 
-	config.root_dir = tmpdir;
+	g_free (config->root_dir);
+	config->root_dir = g_strdup (tmpdir);
 
-	ck_assert (cc_oci_get_priv_level (argc, argv, &sub, &config) == 0);
+	ck_assert (cc_oci_get_priv_level (argc, argv, &sub, config) == 0);
 
 	/* make directory inaccessible to non-root */
 	ck_assert (! g_chmod (tmpdir, 0));
 
 	if (getuid ()) {
-		ck_assert (cc_oci_get_priv_level (argc, argv, &sub, &config) == 1);
+		ck_assert (cc_oci_get_priv_level (argc, argv, &sub, config) == 1);
 	} else {
 		/* root can write to any directory */
-		ck_assert (cc_oci_get_priv_level (argc, argv, &sub, &config) == 0);
+		ck_assert (cc_oci_get_priv_level (argc, argv, &sub, config) == 0);
 	}
 
 	/* make directory accessible once again */
 	ck_assert (! g_chmod (tmpdir, 0755));
 
+	g_free (config->root_dir);
+
 	/* specify a non-existing directory */
-	config.root_dir = tmpdir_enoent;
+	config->root_dir = g_strdup (tmpdir_enoent);
 
 	if (getuid ()) {
 		/* parent directory does exist so no extra privs
 		 * required.
 		 */
-		ck_assert (cc_oci_get_priv_level (argc, argv, &sub, &config) == 0);
+		ck_assert (cc_oci_get_priv_level (argc, argv, &sub, config) == 0);
 	} else {
 		/* root can write to any directory */
-		ck_assert (cc_oci_get_priv_level (argc, argv, &sub, &config) == 0);
+		ck_assert (cc_oci_get_priv_level (argc, argv, &sub, config) == 0);
 	}
 
 	/* make parent directory inaccessible to non-root again */
 	ck_assert (! g_chmod (tmpdir, 0));
 
 	if (getuid ()) {
-		ck_assert (cc_oci_get_priv_level (argc, argv, &sub, &config) == 1);
+		ck_assert (cc_oci_get_priv_level (argc, argv, &sub, config) == 1);
 	} else {
 		/* root can write to any directory */
-		ck_assert (cc_oci_get_priv_level (argc, argv, &sub, &config) == 0);
+		ck_assert (cc_oci_get_priv_level (argc, argv, &sub, config) == 0);
 	}
 
 	/* make parent directory accessible once again */
 	ck_assert (! g_chmod (tmpdir, 0755));
 
 	if (getuid ()) {
-		ck_assert (cc_oci_get_priv_level (argc, argv, &sub, &config) == 0);
+		ck_assert (cc_oci_get_priv_level (argc, argv, &sub, config) == 0);
 	} else {
 		/* root can write to any directory */
-		ck_assert (cc_oci_get_priv_level (argc, argv, &sub, &config) == 0);
+		ck_assert (cc_oci_get_priv_level (argc, argv, &sub, config) == 0);
 	}
 
 	/* clean up */
 	ck_assert (! g_remove (tmpdir));
 	g_free (tmpdir);
 	g_free (tmpdir_enoent);
+	cc_oci_config_free (config);
+
 } END_TEST
 
 Suite* make_priv_suite(void) {

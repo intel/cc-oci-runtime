@@ -146,18 +146,6 @@ function teardown() {
 	[[ ${lines[0]} =~ Usage:+ ]]
 }
 
-@test "cor stop -h" {
-	run $COR stop -h
-	[ "$status" -eq 0 ]
-	[[ ${lines[0]} =~ Usage:+ ]]
-}
-
-@test "cor stop --help" {
-	run $COR stop --help
-	[ "$status" -eq 0 ]
-	[[ ${lines[0]} =~ Usage:+ ]]
-}
-
 @test "cor foo -h" {
 	run $COR foo -h
 	[ "$status" -ne 0 ]

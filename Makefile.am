@@ -108,7 +108,9 @@ CLEANFILES += $(GENERATED_FILES)
 AM_CPPFLAGS = -I $(top_srcdir)/src -DG_LOG_DOMAIN=\"$(PACKAGE_NAME)\" \
 	-DSYSCONFDIR=\"$(SYSCONFDIR)\" \
 	-DDEFAULTSDIR=\"$(DEFAULTSDIR)\" \
-	-DGIT_COMMIT=\"$(STORED_COMMIT)\"
+	-DLOCALSTATEDIR=\"$(localstatedir)\" \
+	-DGIT_COMMIT=\"$(STORED_COMMIT)\" \
+	-DLIBEXECDIR=\"$(libexecdir)\"
 
 defaultsdir = $(datadir)/defaults/$(PACKAGE_NAME)
 defaults_DATA = data/vm.json data/hypervisor.args data/kernel-cmdline
@@ -170,10 +172,10 @@ common_sources = \
 	src/oci-config.c src/oci-config.h \
 	src/hypervisor.c src/hypervisor.h \
 	src/json.c src/json.h \
+	src/proxy.c src/proxy.h \
 	src/spec_handler.c src/spec_handler.h \
 	src/common.h \
 	src/command.c src/command.h \
-	src/commands/attach.c \
 	src/commands/create.c \
 	src/commands/delete.c \
 	src/commands/exec.c \
@@ -245,7 +247,7 @@ systemdservicedir   = $(systemdsystemunitdir)
 systemdservice_DATA = $(systemdservice_files)
 endif
 
-proxy_ldflags = "-X main.socketPath=$(localstatedir)/run/cc-oci-runtime/proxy.sock"
+proxy_ldflags = "-X main.DefaultSocketPath=$(localstatedir)/run/cc-oci-runtime/proxy.sock"
 cc-proxy: $(cc_proxy_sources)
 	$(AM_V_GO)go build -o $@ -ldflags=$(proxy_ldflags) $(srcdir)/proxy
 
@@ -342,18 +344,30 @@ endif
 
 if FUNCTIONAL_TESTS
 CHECK_DEPS += functional-tests
-FUNCTIONAL_TESTS_DEPS += cc-oci-runtime $(GENERATED_FILES)
+FUNCTIONAL_TESTS_DEPS += cc-oci-runtime cc-proxy cc-shim $(GENERATED_FILES)
 
 functional-tests: $(FUNCTIONAL_TESTS_DEPS)
 		$(AM_V_GEN)test -n "$(BUNDLE_TEST_PATH)" && \
 			echo "Using bundle '$(BUNDLE_TEST_PATH)'" || true
 		@if [ "$(builddir)" != "$(srcdir)" ]; then \
-		     rm -f $(builddir)/tests/functional/*.bats ; \
-                     for f in $(abs_top_srcdir)/tests/functional/*.bats; do \
-		         ln -s $$f $(builddir)/tests/functional/ ; \
-		     done; \
-		 fi
-		@bash $(builddir)/data/run-bats.sh $(builddir)/tests/functional/
+			rm -f $(builddir)/tests/functional/*.bats ; \
+			for f in $(abs_top_srcdir)/tests/functional/*.bats; do \
+				ln -s $$f $(builddir)/tests/functional/ ; \
+			done; \
+		fi
+		@echo -e \
+		"export PROXY_SOCKET_PATH=\"$(abs_top_srcdir)/tests/functional/proxy.sock\" \n" \
+		"export SHIM_PATH=\"$(abs_top_srcdir)/cc-shim\" \n" \
+		"echo 'Running a new instance of cc-proxy' \n" \
+		"$(abs_top_srcdir)/cc-proxy -socket-path=\"\$${PROXY_SOCKET_PATH}\" & \n" \
+		"p=\$$! \n" \
+		"sleep 1 \n" \
+		"bash $(builddir)/data/run-bats.sh $(builddir)/tests/functional/ \n" \
+		"echo 'killing own cc-proxy instance' \n" \
+		"kill -9 \$$p \n" \
+		"rm -f \$${PROXY_SOCKET_PATH} \n" > $(abs_top_srcdir)/tests/functional/run_functional_tests.sh
+		@bash -f $(abs_top_srcdir)/tests/functional/run_functional_tests.sh
+		@rm -f $(abs_top_srcdir)/tests/functional/run_functional_tests.sh
 endif
 
 if DOCKER_TESTS
@@ -389,6 +403,7 @@ libtest_la_CFLAGS = \
 	$(JSON_GLIB_CFLAGS) \
 	$(LIBMNL_CFLAGS) \
 	$(UUID_CFLAGS) \
+	-DTEST_DATA_DIR=\"$(abs_srcdir)/tests/data\" \
 	-DUNIT_TESTING
 
 libtest_la_LIBS = \
@@ -425,6 +440,7 @@ TESTS = \
 	oci_config_test \
 	oci_test \
 	priv_test \
+	proxy_test \
 	process_test \
 	runtime_test \
 	semver_test \
@@ -432,6 +448,8 @@ TESTS = \
 	util_test \
 	mount_test \
 	annotation_test \
+	network_test \
+	spec_handler_test \
 	sh_annotations_test \
 	sh_linux_test \
 	sh_vm_test \
@@ -579,6 +597,17 @@ priv_test_CFLAGS = \
 priv_test_LDADD = \
 	$(TEST_COMMON_LDADD)
 
+## proxy.c test ##
+proxy_test_SOURCES = \
+	$(TEST_COMMON_SOURCES) \
+	tests/proxy_test.c
+
+proxy_test_CFLAGS = \
+	$(TEST_COMMON_CFLAGS)
+
+proxy_test_LDADD = \
+	$(TEST_COMMON_LDADD)
+
 ## mount.c test ##
 mount_test_SOURCES = \
 	$(TEST_COMMON_SOURCES) \
@@ -599,6 +628,28 @@ annotation_test_CFLAGS = \
 	$(TEST_COMMON_CFLAGS)
 
 annotation_test_LDADD = \
+	$(TEST_COMMON_LDADD)
+
+## network.c test ##
+network_test_SOURCES = \
+	$(TEST_COMMON_SOURCES) \
+	tests/network_test.c
+
+network_test_CFLAGS = \
+	$(TEST_COMMON_CFLAGS)
+
+network_test_LDADD = \
+	$(TEST_COMMON_LDADD)
+
+## spec_handler.c ##
+spec_handler_test_SOURCES = \
+	$(TEST_COMMON_SOURCES) \
+	tests/spec_handler_test.c
+
+spec_handler_test_CFLAGS = \
+	$(TEST_COMMON_CFLAGS)
+
+spec_handler_test_LDADD = \
 	$(TEST_COMMON_LDADD)
 
 ## spec_handlers/annotations.c test ##

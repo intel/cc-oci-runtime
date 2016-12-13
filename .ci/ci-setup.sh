@@ -115,6 +115,13 @@ pkgs+=" lcov"
 # chronic(1)
 pkgs+=" moreutils"
 
+# qemu-lite won't be built
+# some unit tests need qemu-system
+if [ "$nested" != "Y" ]
+then
+	pkgs+=" qemu-system-x86"
+fi
+
 eval sudo apt-get -qq install "$pkgs"
 
 function compile {

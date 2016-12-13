@@ -17,18 +17,30 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
+#define _GNU_SOURCE
 
 #include <stdbool.h>
 #include <fcntl.h>
+#include <errno.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <sys/stat.h>
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <check.h>
 
 #include "test_common.h"
 #include "../src/util.h"
+#include "../src/oci-config.h"
 #include "json.h"
 
 #include "../src/command.h"
+
+#define QEMU_ARGS 12
+#define QEMU_MEM "1M"
+#define QEMU_SMP "1"
+#define QMP_STAT_TRIES 20
+#define QMP_STAT_USLEEP 10000
 
 struct start_data start_data;
 
@@ -110,17 +122,8 @@ GNode *node_find_child(GNode* node, const gchar* data) {
 	return NULL;
 }
 
-void test_spec_handler(struct spec_handler* handler, struct spec_handler_test* tests) {
-	GNode* node;
-	GNode* handler_node;
-	GNode test_node;
-	struct cc_oci_config config;
-	struct spec_handler_test* test;
+void create_fake_test_files(void) {
 	int fd;
-
-	ck_assert(! handler->handle_section(NULL, NULL));
-	ck_assert(! handler->handle_section(&test_node, NULL));
-	ck_assert(! handler->handle_section(NULL, &config));
 
 	/**
 	 * Create fake files for Kernel and image so
@@ -146,18 +149,9 @@ void test_spec_handler(struct spec_handler* handler, struct spec_handler_test* t
 	} else {
 		close(fd);
 	}
+}
 
-	for (test=tests; test->file; test++) {
-		memset(&config, 0, sizeof(config));
-		cc_oci_json_parse(&node, test->file);
-		handler_node = node_find_child(node, handler->name);
-		ck_assert_msg(handler->handle_section(
-		    handler_node, &config) == test->test_result,
-		    test->file);
-		cc_oci_config_free(&config);
-		g_free_node(node);
-	}
-
+void remove_fake_test_files(void) {
 	if (g_remove("CONTAINER-KERNEL") < 0) {
 		g_critical ("failed to remove file CONTAINER-KERNEL");
 	}
@@ -169,6 +163,40 @@ void test_spec_handler(struct spec_handler* handler, struct spec_handler_test* t
 	if (g_remove ("QEMU-LITE") < 0) {
 		g_critical ("failed to remove file QEMU-LITE");
 	}
+}
+
+void test_spec_handler(struct spec_handler* handler, struct spec_handler_test* tests) {
+	GNode* node;
+	GNode* handler_node;
+	GNode test_node;
+	struct cc_oci_config *config = NULL;
+	struct spec_handler_test* test;
+
+	config = cc_oci_config_create ();
+	ck_assert (config);
+
+	ck_assert(! handler->handle_section(NULL, NULL));
+	ck_assert(! handler->handle_section(&test_node, NULL));
+	ck_assert(! handler->handle_section(NULL, config));
+
+	create_fake_test_files();
+
+	cc_oci_config_free(config);
+
+	for (test=tests; test->file; test++) {
+		config = cc_oci_config_create ();
+		ck_assert (config);
+
+		cc_oci_json_parse(&node, test->file);
+		handler_node = node_find_child(node, handler->name);
+		ck_assert_msg(handler->handle_section(
+		    handler_node, config) == test->test_result,
+		    test->file);
+		cc_oci_config_free(config);
+		g_free_node(node);
+	}
+
+	remove_fake_test_files();
 }
 
 /**
@@ -186,10 +214,12 @@ test_helper_create_state_file (const char *name,
 		struct cc_oci_config *config)
 {
 	g_autofree gchar *timestamp = NULL;
+	struct cc_proxy *proxy = NULL;
 
 	assert (name);
 	assert (root_dir);
 	assert (config);
+	assert (config->proxy);
 
 	timestamp = g_strdup_printf ("timestamp for %s", name);
 	assert (timestamp);
@@ -216,15 +246,31 @@ test_helper_create_state_file (const char *name,
 		  sizeof (config->state.procsock_path));
 
 	if (! cc_oci_runtime_dir_setup (config)) {
-		fprintf (stderr, "ERROR: failed to setup runtime dir "
-				"for vm %s", name);
+		fprintf (stderr, "ERROR: failed to setup "
+				"runtime dir for vm %s\n", name);
 		return false;
 	}
+
+	/* config->process not set */
+	if (cc_oci_state_file_create (config, timestamp)) {
+		fprintf (stderr, "ERROR: cc_oci_state_file_create "
+				"worked unexpectedly for vm %s (no config->process)\n", name);
+		return false;
+	}
+
+	if (snprintf(config->oci.process.cwd, sizeof(config->oci.process.cwd),
+				"%s", "/working_directory") < 0) {
+		fprintf (stderr, "ERROR: cc_oci_state_file_create "
+				"failed to copy process cwd for vm %s\n", name);
+	}
+
+	config->oci.process.args = g_strsplit("/bin/echo test", " ", -1);
 
 	/* config->vm not set */
 	if (cc_oci_state_file_create (config, timestamp)) {
 		fprintf (stderr, "ERROR: cc_oci_state_file_create "
-				"worked unexpectedly for vm %s", name);
+				"worked unexpectedly for vm %s "
+				"(no config->vm)\n", name);
 		return false;
 	}
 
@@ -245,10 +291,24 @@ test_helper_create_state_file (const char *name,
 
 	config->vm->kernel_params = g_strdup_printf ("kernel params for %s", name);
 
-	/* config->vm now set */
+	proxy = config->proxy;
+
+	proxy->socket = g_socket_new (G_SOCKET_FAMILY_UNIX,
+			G_SOCKET_TYPE_STREAM,
+			G_SOCKET_PROTOCOL_DEFAULT,
+			NULL);
+	ck_assert (proxy->socket);
+
+	proxy->agent_ctl_socket = g_strdup ("agent-ctl-socket");
+	proxy->agent_tty_socket = g_strdup ("agent-tty-socket");
+
+	/* set pid to ourselves so we know it's running */
+	config->vm->pid = getpid ();
+
+	/* config->vm and config->proxy now set */
 	if (! cc_oci_state_file_create (config, timestamp)) {
 		fprintf (stderr, "ERROR: cc_oci_state_file_create "
-				"failed unexpectedly");
+				"failed unexpectedly\n");
 		return false;
 
 	}
@@ -256,3 +316,119 @@ test_helper_create_state_file (const char *name,
 	return true;
 }
 
+/**
+ * Run a VM that can be used to test qmp
+ *
+ * \param[out] socket_path qmp socket path
+ *
+ * \return qemu's pid on success, else -1
+ */
+pid_t run_qmp_vm(char **socket_path) {
+	struct stat    st;
+	pid_t          pid;
+	int            err_pipe[2] = { -1, -1 };
+	char          *tmpdir = NULL;
+	char           buf;
+	ssize_t        bytes;
+	pid_t          ret = -1;
+	GError        *error = NULL;
+	int            i;
+
+	if (! socket_path) {
+		return -1;
+	}
+
+	tmpdir = g_dir_make_tmp(NULL, &error);
+	if (! tmpdir) {
+		g_critical ("failed to create tmp directory\n");
+		if (error) {
+			g_critical ("error: %s\n", error->message);
+			g_error_free(error);
+		}
+		return -1;
+	}
+
+	*socket_path = g_strdup_printf ("%s/hypervisor.sock", tmpdir);
+	g_free(tmpdir);
+
+	if (pipe2 (err_pipe, O_CLOEXEC) < 0) {
+		g_critical ("failed to create err pipes\n");
+		goto fail;
+	}
+
+	pid = fork ();
+	if (pid < 0) {
+		g_critical ("failed to fork parent\n");
+		goto fail;
+	} else if (! pid) {
+		/* child */
+		int i = 0;
+		close (err_pipe[0]);
+		err_pipe[0] = -1;
+
+		/* +1 NULL terminator */
+		char **argv = calloc(QEMU_ARGS+1, sizeof(char *));
+		argv[i++] = g_strdup(QEMU_PATH);
+		argv[i++] = g_strdup("-m");
+		argv[i++] = g_strdup(QEMU_MEM);
+		argv[i++] = g_strdup("-qmp");
+		argv[i++] = g_strdup_printf("unix:%s,server,nowait", *socket_path);
+		argv[i++] = g_strdup("-nographic");
+		argv[i++] = g_strdup("-vga");
+		argv[i++] = g_strdup("none");
+		argv[i++] = g_strdup("-net");
+		argv[i++] = g_strdup("none");
+		argv[i++] = g_strdup("-smp");
+		argv[i++] = g_strdup(QEMU_SMP);
+
+		g_free (*socket_path);
+
+		/* close stdio and stderr */
+		close(STDIN_FILENO);
+		close(STDOUT_FILENO);
+		close(STDERR_FILENO);
+
+		if (execvp (argv[0], argv) < 0) {
+			g_critical ("failed to exec child %s: %s\n",
+					argv[0],
+					strerror (errno));
+		}
+		write (err_pipe[1], "E", 1);
+		close (err_pipe[1]);
+		exit (EXIT_FAILURE);
+	}
+
+	/* parent */
+	close (err_pipe[1]);
+	err_pipe[1] = -1;
+
+	/* waiting for child */
+	bytes = read (err_pipe[0], &buf, sizeof(buf));
+	if (bytes > 0) {
+		g_critical ("failed to exec hypervisor\n");
+		goto fail;
+	}
+
+	/* waiting for qmp socket */
+	for (i=0; i<QMP_STAT_TRIES; ++i) {
+		if (! stat (*socket_path, &st) && S_ISSOCK (st.st_mode)) {
+			break;
+		}
+		usleep (QMP_STAT_USLEEP);
+	}
+
+	ret = pid;
+	goto out;
+
+fail:
+	g_free(*socket_path);
+	*socket_path = NULL;
+out:
+	if (err_pipe[0] != -1) {
+		close (err_pipe[0]);
+	}
+	if (err_pipe[1] != -1) {
+		close (err_pipe[1]);
+	}
+	return ret;
+}

@@ -52,35 +52,16 @@ cc_oci_expand_net_cmdline(struct cc_oci_config *config) {
          * <device>:<autoconf>:<dns0-ip>:<dns1-ip>
 	 */
 
-	/* TODO: Use cloud-init based network init
-	 * For now, just pick the first interface
-	 */
-	struct cc_oci_net_if_cfg *if_cfg = NULL;
-	struct cc_oci_net_ipv4_cfg *ipv4_cfg = NULL;
-
-	if_cfg = (struct cc_oci_net_if_cfg *)
-		g_slist_nth_data(config->net.interfaces, 0);
-
-	if (if_cfg == NULL) {
-		goto out;
+	if (! config) {
+		return NULL;
 	}
 
-	ipv4_cfg = (struct cc_oci_net_ipv4_cfg *)
-		g_slist_nth_data(if_cfg->ipv4_addrs, 0);
-
-	if (ipv4_cfg == NULL){
-		goto out;
+	if (! config->net.hostname) {
+		return NULL;
 	}
 
-	return ( g_strdup_printf("ip=%s::%s:%s:%s:%s:off::",
-		ipv4_cfg->ip_address,
-		config->net.gateway,
-		ipv4_cfg->subnet_mask,
-		config->net.hostname,
-		if_cfg->ifname));
-
-out:
-	return g_strdup("");
+	return ( g_strdup_printf("ip=::::::%s::off::",
+		config->net.hostname));
 }
 
 #define QEMU_FMT_NETDEV "tap,ifname=%s,script=no,downscript=no,id=%s,vhost=on"
@@ -105,7 +86,11 @@ out:
 	return g_strdup("");
 }
 
-#define QEMU_FMT_DEVICE "driver=virtio-net-pci,netdev=%s"
+/* "pcie.0" is the child pci bus available for device "pci-lite-host".
+ * Use a pci slot available on that bus after adding an offset to take 
+ * into account busy slots and the slots used earlier in our qemu options.
+ */
+#define QEMU_FMT_DEVICE "driver=virtio-net-pci,bus=/pci-lite-host/pcie.0,addr=%x,netdev=%s"
 #define QEMU_FMT_DEVICE_MAC QEMU_FMT_DEVICE ",mac=%s"
 
 static gchar *
@@ -119,11 +104,15 @@ cc_oci_expand_net_device_cmdline(struct cc_oci_config *config, guint index) {
 		goto out;
 	}
 
+	g_debug("PCI Offset used for network: %d", PCI_OFFSET);
+
 	if ( if_cfg->mac_address == NULL ) {
 		return g_strdup_printf(QEMU_FMT_DEVICE,
+			index + PCI_OFFSET,
 			if_cfg->tap_device);
 	} else {
 		return g_strdup_printf(QEMU_FMT_DEVICE_MAC,
+			index + PCI_OFFSET,
 			if_cfg->tap_device,
 			if_cfg->mac_address);
 	}
@@ -132,6 +121,37 @@ out:
 	return g_strdup("");
 }
 
+/*!
+ * Append qemu options for networking
+ *
+ * \param config \ref cc_oci_config.
+ * \param additional_args Array that will be appended
+ */
+static void
+cc_oci_append_network_args(struct cc_oci_config *config, 
+			GPtrArray *additional_args)
+{
+	gchar *netdev_params = NULL;
+	gchar *net_device_params = NULL;
+
+	if (! (config && additional_args)) {
+		return;
+	}
+
+	if ( config->net.interfaces == NULL ) {
+		g_ptr_array_add(additional_args, g_strdup("-net\nnone\n"));
+	} else {
+		for (guint index = 0; index < g_slist_length(config->net.interfaces); index++) {
+			netdev_params = cc_oci_expand_netdev_cmdline(config, index);
+			net_device_params = cc_oci_expand_net_device_cmdline(config, index);
+
+			g_ptr_array_add(additional_args, g_strdup("-netdev"));
+			g_ptr_array_add(additional_args, netdev_params);
+			g_ptr_array_add(additional_args, g_strdup("-device"));
+			g_ptr_array_add(additional_args, net_device_params);
+		}
+        }
+}
 
 /*!
  * Replace any special tokens found in \p args with their expanded
@@ -152,9 +172,8 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 	gchar           **arg;
 	gchar            *bytes = NULL;
 	gchar            *console_device = NULL;
+	gchar		 *hypervisor_console = NULL;
 	g_autofree gchar *procsock_device = NULL;
-	g_autofree gchar *agent_ctl_socket = NULL;
-	g_autofree gchar *agent_tty_socket = NULL;
 
 	gboolean          ret = false;
 	gint              count;
@@ -165,10 +184,7 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 	gint              uuid_index = 0;
 
 	gchar            *kernel_net_params = NULL;
-	gchar            *net_device_params = NULL;
-	gchar            *netdev_params = NULL;
-	gchar            *net_device_option = NULL;
-	gchar            *netdev_option = NULL;
+	struct cc_proxy  *proxy;
 
 	if (! (config && args)) {
 		return false;
@@ -181,6 +197,11 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 
 	if (! config->bundle_path) {
 		g_critical ("No bundle path");
+		goto out;
+	}
+
+	if (! config->proxy) {
+		g_critical ("No proxy");
 		goto out;
 	}
 
@@ -223,116 +244,30 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 
 	bytes = g_strdup_printf ("%lu", (unsigned long int)st.st_size);
 
-	/* XXX: Note that "signal=off" ensures that the key sequence
-	 * CONTROL+c will not cause the VM to exit.
-	 */
-	if (! config->console || ! g_utf8_strlen(config->console, LINE_MAX)) {
+	hypervisor_console = g_build_path ("/", config->state.runtime_path,
+			CC_OCI_CONSOLE_SOCKET, NULL);
 
-		config->use_socket_console = true;
-
-		/* Temporary fix for non-console output, since -chardev stdio is not working as expected
-		 * 
-		 * Check if called from docker. Use -chardev pipe as virtualconsole.
-		 * Create symlinks to docker named pipes in the format qemu expects.
-		 *
-		 * Eventually move to using "stdio,id=charconsole0,signal=off"
-		 */
-		if (! config->oci.process.terminal ) {
-
-			config->console = g_build_path ("/",
-					config->bundle_path,
-					"cc-std", NULL);
-
-			g_debug ("no console device provided , so using pipe: %s", config->console);
-
-			g_autofree gchar *init_stdout = g_build_path ("/",
-							config->bundle_path,
-							"init-stdout", NULL);
-
-			g_autofree gchar *cc_stdout = g_build_path ("/",
-							config->bundle_path,
-							"cc-std.out", NULL);
-
-			g_autofree gchar *init_stdin = g_build_path ("/",
-							config->bundle_path,
-							"init-stdin", NULL);
-			g_autofree gchar *cc_stdin = g_build_path ("/",
-							config->bundle_path,
-							"cc-std.in", NULL);
-
-			if ( symlink (init_stdout, cc_stdout) == -1) {
-				g_critical("Failed to create symlink for output pipe: %s",
-					   strerror (errno));
-				goto out;
-			}
-
-			if ( symlink (init_stdin, cc_stdin) == -1) {
-				g_critical("Failed to create symlink for input pipe: %s",
-					   strerror (errno));
-				goto out;
-			}
-
-			console_device = g_strdup_printf ("pipe,id=charconsole0,path=%s", config->console);
-
-		} else {
-
-			/* In case the runtime is called standalone without console */
-
-			/* No console specified, so make the hypervisor create
-			 * a Unix domain socket.
-			 */	
-			config->console = g_build_path ("/",
-					config->state.runtime_path,
-					CC_OCI_CONSOLE_SOCKET, NULL);
-
-			/* Note that path is not quoted - attempting to do so
-			 * results in qemu failing with the error:
-			 *
-			 *   Failed to bind socket to "/a/dir/console.sock": No such file or directory
-			 */
-
-			g_debug ("no console device provided, so using socket: %s", config->console);
-
-			console_device = g_strdup_printf ("socket,path=%s,server,nowait,id=charconsole0,signal=off",
-				config->console);
-		}
-	} else {
-		console_device = g_strdup_printf ("serial,id=charconsole0,path=%s", config->console);
-	}
+	console_device = g_strdup_printf (
+			"socket,path=%s,server,nowait,id=charconsole0,signal=off",
+			hypervisor_console);
 
 	procsock_device = g_strdup_printf ("socket,id=procsock,path=%s,server,nowait", config->state.procsock_path);
 
-	agent_ctl_socket = g_build_path ("/", config->state.runtime_path,
-					CC_OCI_AGENT_CTL_SOCKET, NULL);
+	proxy = config->proxy;
 
-	g_debug("guest agent ctl socket: %s", agent_ctl_socket);
+	proxy->vm_console_socket = hypervisor_console;
 
-	agent_tty_socket = g_build_path("/", config->state.runtime_path,
-					CC_OCI_AGENT_TTY_SOCKET, NULL);
+	proxy->agent_ctl_socket = g_build_path ("/", config->state.runtime_path,
+			CC_OCI_AGENT_CTL_SOCKET, NULL);
 
-	g_debug("guest agent tty socket: %s", agent_tty_socket);
+	g_debug("guest agent ctl socket: %s", proxy->agent_ctl_socket);
+
+	proxy->agent_tty_socket = g_build_path("/", config->state.runtime_path,
+			CC_OCI_AGENT_TTY_SOCKET, NULL);
+
+	g_debug("guest agent tty socket: %s", proxy->agent_tty_socket);
 
 	kernel_net_params = cc_oci_expand_net_cmdline(config);
-
-	if ( config->net.interfaces == NULL ) {
-		/* Support --net=none */
-		/* FIXME, no clean way to append args today
-		 * For multiple network we need to have a way to append
-		 * args to the hypervisor command line vs substitution
-		 */
-		netdev_option = g_strdup("-net");
-		netdev_params = g_strdup("none");
-		net_device_option = g_strdup("-net");
-		net_device_params = g_strdup("none");
-	} else {
-		netdev_option = g_strdup("-netdev");
-		net_device_option = g_strdup("-device");
-		/* Support a single interface till we have the capability
-		 * to append more arguments
-		 */
-		netdev_params = cc_oci_expand_netdev_cmdline(config, 0);
-		net_device_params = cc_oci_expand_net_device_cmdline(config, 0);
-	}
 
 	/* Note: @NETDEV@: For multiple network we need to have a way to append
 	 * args to the hypervisor command line vs substitution
@@ -352,12 +287,8 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 		{ "@CONSOLE_DEVICE@"    , console_device             },
 		{ "@NAME@"              , g_strrstr(uuid_str, "-")+1 },
 		{ "@UUID@"              , uuid_str                   },
-		{ "@NETDEV@"            , netdev_option              },
-		{ "@NETDEV_PARAMS@"     , netdev_params              },
-		{ "@NETDEVICE@"         , net_device_option          },
-		{ "@NETDEVICE_PARAMS@"  , net_device_params          },
-		{ "@AGENT_CTL_SOCKET@"  , agent_ctl_socket           },
-		{ "@AGENT_TTY_SOCKET@"  , agent_tty_socket           },
+		{ "@AGENT_CTL_SOCKET@"  , proxy->agent_ctl_socket    },
+		{ "@AGENT_TTY_SOCKET@"  , proxy->agent_tty_socket    },
 		{ NULL }
 	};
 
@@ -404,10 +335,6 @@ out:
 	g_free_if_set (bytes);
 	g_free_if_set (console_device);
 	g_free_if_set (kernel_net_params);
-	g_free_if_set (net_device_params);
-	g_free_if_set (netdev_params);
-	g_free_if_set (net_device_option);
-	g_free_if_set (netdev_option);
 
 	return ret;
 }
@@ -542,11 +469,13 @@ cc_oci_vm_args_get (struct cc_oci_config *config,
 		}
 	}
 
-	 /*  append additional args array */
-        for (int i = 0; i < extra_args_len; i++) {
-                gchar* arg = g_ptr_array_index(hypervisor_extra_args, i);
-                new_args[line_count++] = g_strdup(arg);
-        }
+	/*  append additional args array */
+	for (int i = 0; i < extra_args_len; i++) {
+		const gchar* arg = g_ptr_array_index(hypervisor_extra_args, i);
+		if (arg != '\0') {
+			new_args[line_count++] = g_strstrip(g_strdup(arg));
+		}
+	}
 
 	/* only free pointer to gchar* */
 	g_free(*args);
@@ -568,17 +497,16 @@ out:
  */
 void
 cc_oci_populate_extra_args(struct cc_oci_config *config ,
-		GPtrArray **additional_args)
+		GPtrArray *additional_args)
 {
-	if (! (config && additional_args && *additional_args)) {
+	if (! (config && additional_args)) {
 		return;
 	}
 
-	/* Add args to be appended here.
-	 * Note: The array does not free any dynamically allocated strings
-	 * that it stores pointers to
-	 */
-	//g_ptr_array_add(*additional_args, "-device testdevice");
+	/* Add args to be appended here.*/
+	//g_ptr_array_add(additional_args, g_strdup("-device testdevice"));
+
+	cc_oci_append_network_args(config, additional_args);
 
 	return;
 }

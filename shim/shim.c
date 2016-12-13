@@ -31,6 +31,7 @@
 #include <stdbool.h>
 #include <limits.h>
 #include <fcntl.h>
+#include <termios.h>
 
 #include "utils.h"
 #include "log.h"
@@ -42,6 +43,8 @@
 int signal_pipe_fd[2] = { -1, -1 };
 
 static char *program_name;
+
+struct termios *saved_term_settings;
 
 /*!
  * Add file descriptor to the array of polled descriptors
@@ -107,6 +110,17 @@ assign_all_signals(struct sigaction *sa)
         return true;
 }
 
+void restore_terminal(void) {
+	if ( isatty(STDIN_FILENO) && saved_term_settings) {
+		if (tcsetattr (STDIN_FILENO, TCSANOW, saved_term_settings)) {
+			shim_warning("Unable to restore terminal: %s\n",
+					strerror(errno));
+		}
+		free(saved_term_settings);
+		saved_term_settings = NULL;
+	}
+}
+
 /*!
  * Print formatted message to stderr and exit with EXIT_FAILURE
  *
@@ -125,6 +139,7 @@ err_exit(const char *format, ...)
 	va_start(args, format);
 	vfprintf(stderr, format, args);
 	va_end(args);
+	restore_terminal();
 	exit(EXIT_FAILURE);
 }
 
@@ -279,59 +294,31 @@ handle_signals(struct cc_shim *shim) {
 void
 handle_stdin(struct cc_shim *shim)
 {
-	ssize_t      nread;
-	int          ret;
-	ssize_t      len;
-	static char  buf[BUFSIZ-STREAM_HEADER_SIZE] = {0};
-	static char  wbuf[BUFSIZ] = {0};
-	static bool  cr  = false;
-	static bool  emit = false;
-	static int   cnt = 0;
-	char         ch;
+	ssize_t        nread;
+	int            ret;
+	ssize_t        len;
+	static uint8_t buf[BUFSIZ+STREAM_HEADER_SIZE];
 
 	if (! shim || shim->proxy_io_fd < 0) {
 		return;
 	}
 
-	nread = read(STDIN_FILENO , &ch, 1);
+	nread = read(STDIN_FILENO , buf+STREAM_HEADER_SIZE, BUFSIZ);
 	if (nread <= 0) {
 		shim_warning("Error while reading stdin char :%s\n", strerror(errno));
 		return;
 	}
 
-	if (ch == '\n') {
-		emit = !cr;
-		cr = false;
-		if (emit) {
-			buf[cnt++] = ch;
-		}
-	} else if  (ch == '\r') {
-		emit = true;
-		cr = true;
-		buf[cnt++] = '\n';
-	} else {
-		cr = false;
-		buf[cnt++] = ch;
-	}
-	if (emit || cnt == (BUFSIZ-STREAM_HEADER_SIZE)) {
-		len = cnt + STREAM_HEADER_SIZE;
-		set_big_endian_64 ((uint8_t*)wbuf, shim->io_seq_no);
-		set_big_endian_32 ((uint8_t*)wbuf + STREAM_HEADER_LENGTH_OFFSET, (uint32_t)len);
-		strncpy(wbuf + STREAM_HEADER_SIZE, buf, (size_t)cnt);
+	len = nread + STREAM_HEADER_SIZE;
+	set_big_endian_64 (buf, shim->io_seq_no);
+	set_big_endian_32 (buf + STREAM_HEADER_LENGTH_OFFSET, (uint32_t)len);
 
-		// TODO: handle write in the poll loop to account for write blocking
-		ret = (int)write(shim->proxy_io_fd, wbuf, (size_t)len);
-		if (ret == -1) {
-			shim_warning("Error writing from fd %d to fd %d: %s\n",
-				STDIN_FILENO, shim->proxy_io_fd, strerror(errno));
-			return;
-		}
-
-		memset(buf, 0, BUFSIZ-STREAM_HEADER_SIZE);
-		memset(wbuf, 0, BUFSIZ);
-		cnt = 0;
-		cr = false;
-		emit = false;
+	// TODO: handle write in the poll loop to account for write blocking
+	ret = (int)write(shim->proxy_io_fd, buf, (size_t)len);
+	if (ret == -1) {
+		shim_warning("Error writing from fd %d to fd %d: %s\n",
+			     STDIN_FILENO, shim->proxy_io_fd, strerror(errno));
+		return;
 	}
 }
 
@@ -370,12 +357,12 @@ read_IO_message(struct cc_shim *shim, uint64_t *seq, ssize_t *stream_len) {
 
 		ret = read(shim->proxy_io_fd, buf+bytes_read, (size_t)want);
 		if (ret == -1) {
-			shim_warning("Error reading from proxy I/O fd: %s\n", strerror(errno));
-			goto err;
+			free(buf);
+			err_exit("Error reading from proxy I/O fd: %s\n", strerror(errno));
 		} else if (ret == 0) {
 			/* EOF received on proxy I/O fd*/
-			shim_warning("EOF received on proxy I/O fd\n");
-			goto err;
+			free(buf);
+			err_exit("EOF received on proxy I/O fd\n");
 		}
 
 		bytes_read += ret;
@@ -460,6 +447,7 @@ handle_proxy_output(struct cc_shim *shim)
 		code = *(buf + STREAM_HEADER_SIZE); 	// hyperstart has sent the exit status
 		shim_debug("Exit status for container: %d\n", code);
 		free(buf);
+		restore_terminal();
 		exit(code);
 	}
 
@@ -498,11 +486,9 @@ handle_proxy_ctl(struct cc_shim *shim)
 
 	ret = read(shim->proxy_sock_fd, buf, LINE_MAX-1);
 	if (ret == -1) {
-		shim_warning("Error reading from the proxy ctl socket: %s\n", strerror(errno));
-		exit(EXIT_FAILURE);
+		err_exit("Error reading from the proxy ctl socket: %s\n", strerror(errno));
 	} else if (ret == 0) {
-		shim_warning("EOF received on proxy ctl socket. Proxy has exited\n");
-		exit(EXIT_FAILURE);
+		err_exit("EOF received on proxy ctl socket. Proxy has exited\n");
 	}
 
 	//TODO: Parse the json and log error responses explicitly
@@ -685,7 +671,28 @@ main(int argc, char **argv)
 	 * this causes continuous close events to be generated on the poll loop.
 	 */
 	if (isatty(STDIN_FILENO)) {
+		/*
+		 * Set raw mode on the slave side of the PTY. The local pty
+		 * (ie. the one on the host side) is configured in raw mode to
+		 * be a dumb pipe and forward data to the pty on the VM side.
+		 */
+		struct termios term_settings;
+
+		tcgetattr(STDIN_FILENO, &term_settings);
+		saved_term_settings = calloc(1, sizeof(struct termios));
+		if ( !saved_term_settings) {
+			abort();
+		}
+		*saved_term_settings = term_settings;
+		cfmakeraw(&term_settings);
+		tcsetattr(STDIN_FILENO, TCSAFLUSH, &term_settings);
+
 		add_pollfd(poll_fds, &nfds, STDIN_FILENO, POLLIN | POLLPRI);
+	}
+
+	ret = atexit(restore_terminal);
+	if ( !ret) {
+		shim_debug("Could not register function for atexit");
 	}
 
 	/*	0 =>signal_pipe_fd[0]

@@ -64,7 +64,8 @@ struct subcommand
 };
 
 /*!
- * Data used to create and start a container.
+ * Data used to create and start a container
+ * or execute a new workload.
  *
  * This structure is used to simplify command-line parsing for various
  * similar sub-commands. Values are eventually added to a \ref
@@ -76,6 +77,12 @@ struct start_data {
 	gchar *pid_file;
 	gboolean detach;
 	gboolean dry_run_mode;
+	gboolean  allocate_tty;
+	struct oci_cfg_user  user;
+	/* Path to cc-shim binary */
+	gchar *shim_path;
+	/* Path to cc-proxy's socket */
+	gchar *proxy_socket_path;
 };
 
 gboolean handle_command_toggle (const struct subcommand *sub,
@@ -92,8 +99,11 @@ gboolean handle_option_console (const gchar *option_name,
 		const gchar *value,
 		gpointer data,
 		GError **error);
+gboolean handle_option_user (const gchar *option_name,
+		const gchar *value,
+		gpointer data,
+		GError **error);
 
-extern struct subcommand command_attach;
 extern struct subcommand command_checkpoint;
 extern struct subcommand command_create;
 extern struct subcommand command_delete;

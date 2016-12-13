@@ -48,17 +48,23 @@ function teardown() {
 @test "start then kill (implicit signal)" {
 	workload_cmd "sh"
 
-	cmd="$COR create  --console --bundle $BUNDLE_DIR $container_id"
+	cmd="$COR create --console --bundle $BUNDLE_DIR $container_id"
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
 	testcontainer "$container_id" "created"
 
-	cmd="$COR start $container_id"
+	# 'start' runs in background since it will
+	# update the state file once shim ends
+	cmd="$COR start $container_id &"
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
 	testcontainer "$container_id" "running"
 
 	cmd="$COR kill $container_id"
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
 	testcontainer "$container_id" "killed"
+
+	cmd="$COR delete $container_id"
+	run_cmd "$cmd" "0" "$COR_TIMEOUT"
+	verify_runtime_dirs "$container_id" "deleted"
 }
 
 @test "start then kill (short symbolic signal)" {
@@ -68,7 +74,9 @@ function teardown() {
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
 	testcontainer "$container_id" "created"
 
-	cmd="$COR start $container_id"
+	# 'start' runs in background since it will
+	# update the state file once shim ends
+	cmd="$COR start $container_id &"
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
 	testcontainer "$container_id" "running"
 
@@ -79,6 +87,10 @@ function teardown() {
 	cmd="$COR kill $container_id TERM"
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
 	testcontainer "$container_id" "killed"
+
+	cmd="$COR delete $container_id"
+	run_cmd "$cmd" "0" "$COR_TIMEOUT"
+	verify_runtime_dirs "$container_id" "deleted"
 }
 
 @test "start then kill (full symbolic signal)" {
@@ -88,7 +100,9 @@ function teardown() {
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
 	testcontainer "$container_id" "created"
 
-	cmd="$COR start $container_id"
+	# 'start' runs in background since it will
+	# update the state file once shim ends
+	cmd="$COR start $container_id &"
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
 	testcontainer "$container_id" "running"
 
@@ -99,6 +113,10 @@ function teardown() {
 	cmd="$COR kill $container_id SIGTERM"
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
 	testcontainer "$container_id" "killed"
+
+	cmd="$COR delete $container_id"
+	run_cmd "$cmd" "0" "$COR_TIMEOUT"
+	verify_runtime_dirs "$container_id" "deleted"
 }
 
 @test "start then kill (numeric signal)" {
@@ -108,7 +126,9 @@ function teardown() {
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
 	testcontainer "$container_id" "created"
 
-	cmd="$COR start $container_id"
+	# 'start' runs in background since it will
+	# update the state file once shim ends
+	cmd="$COR start $container_id &"
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
 	testcontainer "$container_id" "running"
 
@@ -119,4 +139,8 @@ function teardown() {
 	cmd="$COR kill $container_id 15"
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
 	testcontainer "$container_id" "killed"
+
+	cmd="$COR delete $container_id"
+	run_cmd "$cmd" "0" "$COR_TIMEOUT"
+	verify_runtime_dirs "$container_id" "deleted"
 }

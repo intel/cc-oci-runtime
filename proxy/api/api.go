@@ -24,6 +24,9 @@ import (
 // It is used to let the proxy know about a new container on the system along
 // with the paths go hyperstart's command and I/O channels (AF_UNIX sockets).
 //
+// Console can be used to indicate the path of a socket linked to the VM
+// console. The proxy can output this data when asked for verbose output.
+//
 //  {
 //    "id": "hello",
 //    "data": {
@@ -36,6 +39,7 @@ type Hello struct {
 	ContainerID string `json:"containerId"`
 	CtlSerial   string `json:"ctlSerial"`
 	IoSerial    string `json:"ioSerial"`
+	Console     string `json:"console,omitempty"`
 }
 
 // The Attach payload can be used to associate clients to an already known VM.

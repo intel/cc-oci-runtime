@@ -40,14 +40,19 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <linux/limits.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <sys/ptrace.h>
+#include <sys/socket.h>
+#include <termios.h>
+#include <sys/ioctl.h>
+#include <sys/file.h>
 
 #include <glib.h>
 #include <glib/gprintf.h>
 #include <gio/gio.h>
 #include <gio/gunixsocketaddress.h>
+#include <gio/gunixconnection.h>
 
 #include "oci.h"
 #include "util.h"
@@ -59,67 +64,23 @@
 #include "common.h"
 #include "logging.h"
 #include "netlink.h"
+#include "proxy.h"
+#include "command.h"
+
+extern struct start_data start_data;
 
 static GMainLoop* main_loop = NULL;
 private GMainLoop* hook_loop = NULL;
 
-/** List of shells that are recognised by "exec", ordered by likelihood. */
-static const gchar *recognised_shells[] =
-{
-	"sh",
-	"bash",
-	"zsh",
-	"ksh",
-	"csh",
-
-	/* terminator */
-	NULL,
-};
-
-/*!
- * Determine if \p cmd is a shell.
- *
- * \param cmd Command to check.
- *
- * \return \c true on success, else \c false.
- */
-private gboolean
-cc_oci_cmd_is_shell (const char *cmd)
-{
-	const gchar **shell;
-
-	if (! cmd) {
-		return false;
-	}
-
-	for (shell = (const gchar **)recognised_shells;
-			shell && *shell;
-			shell++) {
-		g_autofree gchar *suffix = NULL;
-
-		if (! g_strcmp0 (*shell, cmd)) {
-			/* exact match */
-			return true;
-		}
-
-		suffix = g_strdup_printf ("/%s", *shell);
-
-		if (g_str_has_suffix (cmd, suffix)) {
-			/* full path to shell was specified */
-			return true;
-		}
-	}
-
-	return false;
-}
-
 /*!
  * Close file descriptors, excluding standard streams.
+ *
+ * \param fds Array of file descriptors that should not be closed
  *
  * \return \c true on success, else \c false.
  */
 static gboolean
-cc_oci_close_fds (void) {
+cc_oci_close_fds (GArray *fds) {
 	char           *fd_dir = "/proc/self/fd";
 	DIR            *dir;
 	struct dirent  *ent;
@@ -143,6 +104,18 @@ cc_oci_close_fds (void) {
 			continue;
 		}
 
+		if (fds) {
+			uint i;
+			for (i = 0; i < fds->len; i++) {
+				if (g_array_index (fds, int, i) == fd) {
+					break;
+				}
+			}
+			if (i != fds->len) {
+				continue;
+			}
+		}
+
 		if (fd == dirfd (dir)) {
 			/* ignore the fd created by opendir(3) */
 			continue;
@@ -164,33 +137,94 @@ cc_oci_close_fds (void) {
  *
  * \return \c true on success, else \c false.
  */
-static gboolean
+private gboolean
 cc_oci_setup_child (struct cc_oci_config *config)
 {
-	/* become session leader */
-	setsid ();
-
-	/* arrange for the process to be paused when the child command
-	 * is exec(3)'d to ensure that the VM does not launch until
-	 * "start" is called.
-	 */
-	if (ptrace (PTRACE_TRACEME, 0, NULL, 0) < 0) {
-		g_critical ("failed to ptrace in child: %s",
-				strerror (errno));
+	if (! config) {
 		return false;
 	}
 
-	/* log before the fds are closed */
-	g_debug ("set ptrace on child");
+	/* become session leader */
+	setsid ();
 
 	/* Do not close fds when VM runs in detached mode*/
 	if (! config->detached_mode) {
-		cc_oci_close_fds ();
+		cc_oci_close_fds (NULL);
 	}
 
 	cc_oci_setup_hypervisor_logs(config);
 
 	return true;
+}
+
+/*! Perform setup on spawned shim process.
+ *
+ * \param config \ref cc_oci_config.
+ * \param proxy_fd Proxy socket connection.
+ * \param proxy_io_fd Proxy IO fd.
+ *
+ * \return \c true on success, else \c false.
+ */
+private gboolean
+cc_oci_setup_shim (struct cc_oci_config *config,
+			int proxy_fd,
+			int proxy_io_fd,
+			int shim_flock_fd)
+{
+	gboolean        ret = false;
+	int             tty_fd = -1;
+	GArray         *fds = NULL;
+
+	if (! config || proxy_fd < 0 || proxy_io_fd < 0 || shim_flock_fd < 0) {
+		return false;
+	}
+
+	/* become session leader */
+	setsid ();
+
+	// In the console case, the terminal needs to be dup'ed to stdio
+	if (config->oci.process.terminal) {
+		tty_fd = open(config->console, O_RDWR |  O_NOCTTY);
+
+		if (tty_fd == -1) {
+			g_warning("Error opening slave pty %s: %s",
+					config->console,
+					strerror(errno));
+			return false;
+		}
+
+		if (dup2(tty_fd, STDIN_FILENO) < 0) {
+			goto out;
+		}
+		if (dup2(tty_fd, STDOUT_FILENO) < 0) {
+			goto out;
+		}
+		if (dup2(tty_fd, STDERR_FILENO) < 0) {
+			goto out;
+		}
+
+		if (ioctl(STDIN_FILENO, TIOCSCTTY, 1) < 0) {
+			goto out;
+		}
+	}
+
+	fds = g_array_sized_new(FALSE, FALSE, sizeof(int), 3);
+	g_array_append_val (fds, proxy_fd);
+	g_array_append_val (fds, proxy_io_fd);
+	g_array_append_val (fds, shim_flock_fd);
+
+	cc_oci_close_fds (fds);
+
+	g_array_free(fds, TRUE);
+
+	ret = true;
+
+out:
+	if (tty_fd > 2) {
+		close (tty_fd);
+	}
+
+	return ret;
 }
 
 /*!
@@ -203,7 +237,6 @@ cc_oci_setup_child (struct cc_oci_config *config)
  * \note \p exit_code may be \c NULL to avoid returning the
  * child exit code.
  */
-#if 0
 static void
 cc_oci_child_watcher (GPid pid, gint status,
 		gpointer exit_code) {
@@ -217,7 +250,6 @@ cc_oci_child_watcher (GPid pid, gint status,
 
 	g_main_loop_quit (main_loop);
 }
-#endif
 
 /*!
  * Close spawned hook and stop the hook loop.
@@ -249,15 +281,16 @@ static gboolean
 cc_oci_output_watcher(GIOChannel* channel, GIOCondition cond,
                             gint stream)
 {
-	gchar* string;
+	gchar* string = NULL;
 	gsize size;
 
 	if (cond == G_IO_HUP) {
-		g_io_channel_unref(channel);
 		return false;
 	}
 
 	g_io_channel_read_line(channel, &string, &size, NULL, NULL);
+
+
 	if (STDOUT_FILENO == stream) {
 		g_message("%s", string ? string : "");
 	} else {
@@ -446,6 +479,7 @@ cc_run_hook(struct oci_cfg_hook* hook, const gchar* state,
 	/* (re-)start the main loop and wait for the hook
 	 * to finish.
 	 */
+
 	g_main_loop_run(hook_loop);
 
 	/* check hook exit code */
@@ -467,6 +501,10 @@ exit:
 		g_error_free(error);
 	}
 
+	/* Note: this call does not close the fd */
+	if (out_ch) g_io_channel_unref (out_ch);
+	if (err_ch) g_io_channel_unref (err_ch);
+
 	if (std_out != -1) close (std_out);
 	if (std_err != -1) close (std_err);
 
@@ -482,7 +520,7 @@ exit:
  *
  * \return \c true on success, else \c false.
  */
-static gboolean
+private gboolean
 cc_oci_vm_netcfg_get (struct cc_oci_config *config,
 		      struct netlink_handle *hndl)
 {
@@ -500,7 +538,316 @@ cc_oci_vm_netcfg_get (struct cc_oci_config *config,
 }
 
 /*!
- * Start the hypervisor (in a paused state) as a child process.
+ * Create a socket connection from a fd.
+ *
+ * \param fd int.
+ *
+ * \return a GSocketConnection on success, else NULL.
+ */
+private GSocketConnection *
+socket_connection_from_fd (int fd)
+{
+	GError            *error = NULL;
+	GSocket           *socket = NULL;
+	GSocketConnection *connection = NULL;
+
+	if( fd < 0 ) {
+		goto out;
+	}
+
+	socket = g_socket_new_from_fd (fd, &error);
+	if (! socket) {
+		g_critical("failed to create socket from fd");
+		if (error) {
+			g_critical("%s", error->message);
+			g_error_free(error);
+		}
+		goto out;
+	}
+
+	g_socket_set_blocking (socket, TRUE);
+
+	connection = g_socket_connection_factory_create_connection (socket);
+	if (!connection) {
+		g_critical("failed to create socket connection from fd");
+	}
+
+out:
+	if (socket) {
+		g_object_unref (socket);
+	}
+
+	return connection;
+}
+
+/*!
+ * Start \ref CC_OCI_SHIM as a child process.
+ *
+ * \param config \ref cc_oci_config.
+ * \param child_err_fd Readable file descriptor caller should use
+ *   to determine if the shim launched successfully
+ *   (any data that can be read from this fd denotes failure).
+ * \param shim_args_fd Writable file descriptor caller should use to
+ *   send the proxy_socket_fd to the child before \ref CC_OCI_SHIM is
+ *   launched.
+ * \param shim_socket_fd Writable file descriptor caller should use to
+ *   send the proxy IO fd to child before \ref CC_OCI_SHIM is launched.
+ *
+ * \return \c shim-pid  on success, else \c -1.
+ */
+private gboolean
+cc_shim_launch (struct cc_oci_config *config,
+		int *child_err_fd,
+		int *shim_args_fd,
+		int *shim_socket_fd,
+		gboolean initial_workload)
+{
+	GPid      pid = -1;
+	int       child_err_pipe[2] = {-1, -1};
+	int       shim_args_pipe[2] = {-1, -1};
+	int       shim_socket[2] = {-1, -1};
+	int       shim_flock_fd = -1;
+	char     *shim_flock_path = NULL;
+
+	if (! (config && config->proxy)) {
+		return false;
+	}
+
+	if (! (child_err_fd && shim_args_fd && shim_socket_fd)) {
+		return false;
+	}
+
+	if (pipe2 (child_err_pipe, O_CLOEXEC) < 0) {
+		g_critical ("failed to create shim err pipe: %s",
+				strerror (errno));
+		goto out;
+	}
+
+	if (pipe2 (shim_args_pipe, O_CLOEXEC) < 0) {
+		g_critical ("failed to create shim args pipe: %s",
+				strerror (errno));
+		goto out;
+	}
+
+	if (socketpair(PF_UNIX, SOCK_STREAM, 0, shim_socket) < 0) {
+		g_critical ("failed to create shim socket: %s",
+				strerror (errno));
+		goto out;
+	}
+
+	shim_flock_path = g_strdup_printf ("%s/%s", config->state.runtime_path,
+		CC_OCI_SHIM_LOCK_FILE);
+	shim_flock_fd = open(shim_flock_path, O_RDONLY|O_CREAT, S_IRUSR);
+	g_free (shim_flock_path);
+	if (shim_flock_fd < 0) {
+		g_critical ("failed to create shim flock file: %s",
+			strerror (errno));
+		goto out;
+	}
+
+	/* Inform caller of workload PID */
+	config->state.workload_pid = pid = fork ();
+
+	if (pid < 0) {
+		g_critical ("failed to spawn shim child: %s",
+				strerror (errno));
+		goto out;
+	} else if (! pid) {
+		gchar   **args = NULL;
+		ssize_t   bytes;
+		int       proxy_socket_fd = -1;
+		int       proxy_io_fd = -1;
+		int       proxy_io_base = -1;
+		GSocketConnection *connection = NULL;
+		GError   *error = NULL;
+
+		/* child */
+		close (child_err_pipe[0]);
+		close (shim_args_pipe[1]);
+		close (shim_socket[1]);
+
+		g_debug ("shim child waiting for proxy socket fd on fd %d", shim_args_pipe[0]);
+
+		/* block reading proxy fd */
+		bytes = read (shim_args_pipe[0],
+				&proxy_socket_fd,
+				sizeof (proxy_socket_fd));
+
+		if (bytes <= 0) {
+			g_critical ("failed to read proxy socket fd");
+			goto child_failed;
+		}
+
+		/* block reading proxy ioBase */
+		bytes = read (shim_args_pipe[0],
+				&proxy_io_base,
+				sizeof (proxy_io_base));
+
+		if (bytes <= 0) {
+			g_critical ("failed to read proxy ioBase");
+			goto child_failed;
+		}
+
+		/* read proxy IO fd from socket out-of-band */
+		connection = socket_connection_from_fd(shim_socket[0]);
+		if (!connection) {
+			g_critical ("failed to read proxy IO fd");
+			goto child_failed;
+		}
+
+		proxy_io_fd = g_unix_connection_receive_fd (
+			G_UNIX_CONNECTION (connection), NULL, &error);
+		if (proxy_io_fd < 0) {
+			g_critical ("failed to read proxy IO fd from socket");
+			if (error) {
+				g_critical("%s", error->message);
+				g_error_free(error);
+			}
+			goto child_failed;
+		}
+
+		close (shim_args_pipe[0]);
+		shim_args_pipe[0] = -1;
+
+		close (shim_socket[0]);
+		shim_socket[0] = -1;
+
+		g_debug ("proxy socket fd from parent=%d",
+				proxy_socket_fd);
+
+		if (proxy_socket_fd < 0) {
+			g_critical ("parent provided invalid proxy fd");
+			goto child_failed;
+		}
+
+		/* When run interactively, the fds 0,1,2 are closed.
+		 * Since these need to be assigned to the terminal fd, make sure the
+		 * proxy fds are assigned >= 3
+		 */
+		while(proxy_socket_fd < 3) {
+			int fd = dup(proxy_socket_fd);
+			if (fd < 0) {
+				g_critical("dup failed: %s", strerror(errno));
+				goto child_failed;
+			}
+			proxy_socket_fd = fd;
+		}
+
+		while(proxy_io_fd < 3) {
+			int fd = dup(proxy_io_fd);
+			if (fd < 0) {
+				g_critical("dup failed: %s", strerror(errno));
+				goto child_failed;
+			}
+			proxy_io_fd = fd;
+		}
+
+		while(shim_flock_fd < 3) {
+			int fd = dup(shim_flock_fd);
+			if (fd < 0) {
+				g_critical("dup failed: %s", strerror(errno));
+				goto child_failed;
+			}
+			shim_flock_fd = fd;
+		}
+
+		cc_oci_fd_toggle_cloexec(proxy_socket_fd, false);
+
+		cc_oci_fd_toggle_cloexec(proxy_io_fd, false);
+
+		cc_oci_fd_toggle_cloexec(shim_flock_fd, false);
+
+		if (initial_workload && flock (shim_flock_fd, LOCK_EX) < 0) {
+			g_critical("failed to lock %s: %s",
+				CC_OCI_SHIM_LOCK_FILE, strerror(errno));
+			goto child_failed;
+		}
+
+		/* +1 for for NULL terminator */
+		args = g_new0 (gchar *, 11+1);
+
+		/* cc-shim path can be specified via command line */
+		if (start_data.shim_path) {
+			args[0] = g_strdup (start_data.shim_path);
+		} else {
+			args[0] = g_strdup (CC_OCI_SHIM);
+		}
+		args[1] = g_strdup ("-c");
+		args[2] = g_strdup (config->optarg_container_id);
+		args[3] = g_strdup ("-p");
+		args[4] = g_strdup_printf ("%d", proxy_socket_fd);
+		args[5] = g_strdup ("-o");
+		args[6] = g_strdup_printf ("%d", proxy_io_fd);
+		args[7] = g_strdup ("-s");
+		args[8] = g_strdup_printf ("%d", proxy_io_base);
+		if ( ! config->oci.process.terminal) {
+			args[9] = g_strdup ("-e");
+			args[10] = g_strdup_printf ("%d", proxy_io_base + 1);
+		}
+
+		g_debug ("running command:");
+		for (gchar** p = args; p && *p; p++) {
+			g_debug ("arg: '%s'", *p);
+		}
+
+		if (! cc_oci_setup_shim (config, proxy_socket_fd, proxy_io_fd,
+				shim_flock_fd)) {
+			goto child_failed;
+		}
+
+		if (execvp (args[0], args) < 0) {
+			g_critical ("failed to exec child %s: %s",
+					args[0],
+					strerror (errno));
+			abort ();
+		}
+
+child_failed:
+		/* Any data written by the child to this pipe signifies failure,
+		 * so send a very short message ("E", denoting Error).
+		 */
+		close (shim_args_pipe[0]);
+		shim_args_pipe[0] = -1;
+
+		close (shim_socket[0]);
+		shim_socket[0] = -1;
+
+		(void)write (child_err_pipe[1], "E", 1);
+		exit (EXIT_FAILURE);
+	}
+
+	/* parent */
+
+	g_debug ("shim process running with pid %d", (int)pid);
+
+	*child_err_fd = child_err_pipe[0];
+	*shim_args_fd = shim_args_pipe[1];
+	*shim_socket_fd = shim_socket[1];
+
+
+out:
+	close (child_err_pipe[1]);
+	close (shim_args_pipe[0]);
+	close (shim_socket[0]);
+	close (shim_flock_fd);
+
+	return pid;
+}
+
+/*!
+ * Function called when a data element in GPtrArray is destroyed
+ */
+private void
+cc_free_pointer(gpointer str)
+{
+	if (! str) {
+		return;
+	}
+	g_free(str);
+}
+
+/*!
+ * Start the hypervisor as a child process.
  *
  * Due to the way networking is handled in Docker, the logic here
  * is unfortunately rather complex.
@@ -514,10 +861,9 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 {
 	gboolean           ret = false;
 	GPid               pid;
-	int                status = 0;
 	ssize_t            bytes;
-	char               buffer[2];
-	int                hook_status_pipe[2] = {-1, -1};
+	char               buffer[2] = { '\0' };
+	int                hypervisor_args_pipe[2] = {-1, -1};
 	int                child_err_pipe[2] = {-1, -1};
 	gchar            **args = NULL;
 	gchar            **p;
@@ -526,6 +872,16 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 	gboolean           setup_networking;
 	gboolean           hook_status = false;
 	GPtrArray         *additional_args = NULL;
+	gint               hypervisor_args_len = 0;
+	g_autofree gchar  *hypervisor_args = NULL;
+	int                shim_err_fd = -1;
+	int                shim_args_fd = -1;
+	int                shim_socket_fd = -1;
+	int                proxy_fd = -1;
+	int                proxy_io_fd = -1;
+	int                ioBase = -1;
+	GSocketConnection *shim_socket_connection = NULL;
+	GError            *error = NULL;
 
 	if (! config) {
 		return false;
@@ -538,7 +894,7 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 		goto out;
 	}
 
-        additional_args = g_ptr_array_new ();
+        additional_args = g_ptr_array_new_with_free_func(cc_free_pointer);
 
 	config->state.status = OCI_STATUS_CREATED;
 
@@ -550,33 +906,35 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 		goto out;
 	}
 
-	/* Set up 2 comms channels to the child:
+	/* Connect to the proxy before launching the shim so that the
+	 * proxy socket fd can be passed to the shim.
+	 */
+	if (! cc_proxy_connect (config->proxy)) {
+		return false;
+	}
+
+	/* Set up comms channels to the child:
 	 *
-	 * - one to send the child the status of the pre-start hooks.
+	 * - one to pass the full list of expanded hypervisor arguments.
 	 *
-	 * - the other to allow detection of successful child setup: if
+	 * - one to allow detection of successful child setup: if
 	 *   the child closes the pipe, it was successful, but if it
 	 *   writes data to the pipe, setup failed.
 	 */
 
-	if (pipe (hook_status_pipe) < 0) {
-		g_critical ("failed to create hook status pipe: %s",
-				strerror (errno));
-		goto out;
-	}
-
-	if (pipe (child_err_pipe) < 0) {
+	if (pipe2 (child_err_pipe, O_CLOEXEC) < 0) {
 		g_critical ("failed to create child error pipe: %s",
 				strerror (errno));
 		goto out;
 	}
 
-	if (! cc_oci_fd_set_cloexec (child_err_pipe[1])) {
-		g_critical ("failed to set close-exec bit on fd");
+	if (pipe2 (hypervisor_args_pipe, O_CLOEXEC) < 0) {
+		g_critical ("failed to create hypervisor args pipe: %s",
+				strerror (errno));
 		goto out;
 	}
 
-	pid = config->state.workload_pid = fork ();
+	pid = config->vm->pid = fork ();
 	if (pid < 0) {
 		g_critical ("failed to create child: %s",
 				strerror (errno));
@@ -585,69 +943,62 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 
 	if (! pid) {
 		/* child */
-		pid = config->state.workload_pid = getpid ();
 
-		close (hook_status_pipe[1]);
+		/* inform the child who they are */
+		config->vm->pid = getpid ();
+
+		close (hypervisor_args_pipe[1]);
 		close (child_err_pipe[0]);
 
-		g_debug ("reading hook status from parent");
+		/* The child doesn't need the proxy connection */
+		if (! cc_proxy_disconnect (config->proxy)) {
+			goto child_failed;
+		}
 
-		bytes = read (hook_status_pipe[0], &hook_status, sizeof (hook_status));
+		/* first - read hypervisor args length */
+		g_debug ("reading hypervisor command-line length from pipe");
+		bytes = read (hypervisor_args_pipe[0], &hypervisor_args_len,
+			sizeof (hypervisor_args_len));
+		if (bytes < 0 || hypervisor_args_len < 0) {
+			g_critical ("failed to read hypervisor args length");
+			goto child_failed;
+		}
+
+		/* Perform a basic validation check.
+		 *
+		 * ARG_MAX is technically the maximum size of the args *and*
+		 * the environment for a process, but atleast this
+		 * provides an upper-bound to protect against any
+		 * potential DoS.
+		 */
+		if (hypervisor_args_len >= ARG_MAX) {
+			g_critical ("max args len is %d, but parent sent %d",
+					ARG_MAX, hypervisor_args_len);
+			goto child_failed;
+		}
+
+		hypervisor_args = g_new0(gchar, (gsize)(1+hypervisor_args_len));
+		if (! hypervisor_args) {
+			g_critical ("failed alloc memory for hypervisor args");
+			goto child_failed;
+		}
+
+		/* second - read hypervisor args */
+		g_debug ("reading hypervisor command-line from pipe");
+		bytes = read (hypervisor_args_pipe[0], hypervisor_args,
+			(size_t)hypervisor_args_len);
 		if (bytes < 0) {
-			g_critical ("failed to read hook status from parent: %s", strerror (errno));
+			g_critical ("failed to read hypervisor args");
 			goto child_failed;
 		}
 
-		close (hook_status_pipe[0]);
-
-		g_debug ("hook status from parent: %d (%s)",
-                hook_status,
-                hook_status ? "success" : "failure");
-
-		if (! hook_status) {
-			g_critical("hooks failed, child exiting");
+		/* third - convert string to args, the string that was read
+		 * from pipe has '\n' as delimiter
+		 */
+		args = g_strsplit_set(hypervisor_args, "\n", -1);
+		if (! args) {
+			g_critical ("failed split hypervisor args");
 			goto child_failed;
-		}
-
-		if (setup_networking) {
-			hndl = netlink_init();
-			if (hndl == NULL) {
-				g_critical("failed to setup netlink socket");
-				goto child_failed;
-			}
-
-			if (! cc_oci_vm_netcfg_get (config, hndl)) {
-				g_critical("failed to discover network configuration");
-				goto child_failed;
-			}
-
-			if (! cc_oci_network_create(config, hndl)) {
-				g_critical ("failed to create network");
-				goto child_failed;
-			}
-			g_debug ("network configuration complete");
-
-		}
-
-		g_debug ("building hypervisor command-line");
-
-		// FIXME: add network config bits to following functions:
-		//
-		// - cc_oci_container_state()
-		// - oci_state()
-		// - cc_oci_update_options()
-
-		cc_oci_populate_extra_args(config, &additional_args);
-		ret = cc_oci_vm_args_get (config, &args, additional_args);
-		if (! (ret && args)) {
-			goto child_failed;
-		}
-
-		// FIXME: add netcfg to state file
-		ret = cc_oci_state_file_create (config, timestamp);
-		if (! ret) {
-			g_critical ("failed to recreate state file");
-			goto out;
 		}
 
 		g_debug ("running command:");
@@ -665,26 +1016,62 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 					strerror (errno));
 			abort ();
 		}
+
+child_failed:
+		/* Any data written by the child to this pipe signifies failure,
+		 * so send a very short message ("E", denoting Error).
+		 */
+		(void)write (child_err_pipe[1], "E", 1);
+		exit (EXIT_FAILURE);
 	}
 
 	/* parent */
 
-	g_debug ("child pid is %u", (unsigned)pid);
+	g_debug ("hypervisor child pid is %u", (unsigned)pid);
 
-	close (hook_status_pipe[0]);
-	hook_status_pipe[0] = -1;
+	/* Before fork this process again
+	 * we have to close unused file descriptors
+	 */
+	close (hypervisor_args_pipe[0]);
+	hypervisor_args_pipe[0] = -1;
 
 	close (child_err_pipe[1]);
 	child_err_pipe[1] = -1;
 
-	/* create state file before hooks run */
+	/* Launch the shim child before the state file is created.
+	 *
+	 * Required since the state file must contain the workloads pid,
+	 * and for our purposes the workload pid is the pid of the shim.
+	 *
+	 * The child blocks waiting for a write to shim_args_fd.
+	 */
+	if (! cc_shim_launch (config, &shim_err_fd, &shim_args_fd,
+				&shim_socket_fd, true)) {
+		goto out;
+	}
+
+	/* Create state file before hooks run.
+	 *
+	 * Required since the hooks must be passed the runtime state.
+	 *
+	 * XXX: Note that at this point, although the workload PID
+	 * is set (which satisfies the OCI state file requirements),
+	 * there are no proxy details that can be added to the state
+	 * file. For this reason, the state file is recreated (with full
+	 * details) later.
+	 */
 	ret = cc_oci_state_file_create (config, timestamp);
 	if (! ret) {
 		g_critical ("failed to create state file");
 		goto out;
 	}
 
-	/* If a hook returns a non-zero exit code, then an error
+	/* Run the pre-start hooks.
+	 *
+	 * Note that one of these hooks will configure the networking
+	 * in the network namespace.
+	 *
+	 * If a hook returns a non-zero exit code, then an error
 	 * including the exit code and the stderr is returned to
 	 * the caller and the container is torn down.
 	 */
@@ -696,11 +1083,63 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 		g_critical ("failed to run prestart hooks");
 	}
 
-	bytes = write (hook_status_pipe[1], &hook_status, sizeof (hook_status));
+	g_debug ("building hypervisor command-line");
+
+	// FIXME: add network config bits to following functions:
+	//
+	// - cc_oci_container_state()
+	// - oci_state()
+	// - cc_oci_update_options()
+
+	if (setup_networking) {
+		hndl = netlink_init();
+		if (hndl == NULL) {
+			g_critical("failed to setup netlink socket");
+			goto child_failed;
+		}
+
+		if (! cc_oci_vm_netcfg_get (config, hndl)) {
+			g_critical("failed to discover network configuration");
+			goto child_failed;
+		}
+
+		if (! cc_oci_network_create(config, hndl)) {
+			g_critical ("failed to create network");
+			goto child_failed;
+		}
+		g_debug ("network configuration complete");
+
+	}
+
+	cc_oci_populate_extra_args(config, additional_args);
+	ret = cc_oci_vm_args_get (config, &args, additional_args);
+	if (! (ret && args)) {
+		goto out;
+	}
+
+	hypervisor_args = g_strjoinv("\n", args);
+	if (! hypervisor_args) {
+		g_critical("failed to join hypervisor args");
+		goto out;
+	}
+
+	hypervisor_args_len = (gint)g_utf8_strlen(hypervisor_args, -1);
+
+	/* first - write hypervisor length */
+	bytes = write (hypervisor_args_pipe[1], &hypervisor_args_len,
+		sizeof(hypervisor_args_len));
 	if (bytes < 0) {
-		g_critical ("failed to send hook status"
-				" to child: %s",
-				strerror (errno));
+		g_critical ("failed to send hypervisor args length to child: %s",
+			strerror (errno));
+		goto out;
+	}
+
+	/* second - write hypervisor args */
+	bytes = write (hypervisor_args_pipe[1], hypervisor_args,
+		(size_t)hypervisor_args_len);
+	if (bytes < 0) {
+		g_critical ("failed to send hypervisor args to child: %s",
+			strerror (errno));
 		goto out;
 	}
 
@@ -715,54 +1154,128 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 		ret = false;
 		goto out;
 	}
+
 	g_debug ("child setup successful");
 
-	/* wait for child to receive the expected SIGTRAP caused
-	 * by it calling exec(2) whilst under PTRACE control.
+	/* Wait for the proxy to signal readiness.
+	 *
+	 * This can only happen once the agent details have been added
+	 * to the proxy object.
 	 */
-	if (waitpid (pid, &status, 0) != pid) {
-		g_critical ("failed to wait for child %d: %s",
-				pid, strerror (errno));
+	if (! cc_proxy_wait_until_ready (config)) {
+		g_critical ("failed to wait for proxy %s", CC_OCI_PROXY);
 		goto out;
 	}
 
-	if (! WIFSTOPPED (status)) {
-		g_critical ("child %d not stopped by signal", pid);
-		goto out;
-	}
-
-	if (! (WSTOPSIG (status) == SIGTRAP)) {
-		g_critical ("child %d not stopped by expected signal",
-				pid);
-		goto out;
-	}
-
-	/* Stop tracing, but send a stop signal to the child so that it
-	 * remains in a paused state.
+	/* At this point ctl and tty sockets already exist,
+	 * is time to communicate with the proxy
 	 */
-	if (ptrace (PTRACE_DETACH, pid, NULL, SIGSTOP) < 0) {
-		g_critical ("failed to ptrace detach in child %d: %s",
-				(int)pid,
-				strerror (errno));
+	if (! cc_proxy_hyper_pod_create (config)) {
 		goto out;
 	}
 
-	g_debug ("child process running in stopped state "
-			"with pid %u",
-			(unsigned)config->state.workload_pid);
+	proxy_fd = g_socket_get_fd (config->proxy->socket);
+	if (proxy_fd < 0) {
+		g_critical ("invalid proxy fd: %d", proxy_fd);
+		goto out;
+	}
 
+	bytes = write (shim_args_fd, &proxy_fd, sizeof (proxy_fd));
+	if (bytes < 0) {
+		g_critical ("failed to send proxy fd to shim child: %s",
+			strerror (errno));
+		goto out;
+	}
+
+	if (! cc_proxy_cmd_allocate_io(config->proxy,
+			&proxy_io_fd, &ioBase, config->oci.process.terminal)) {
+		goto out;
+	}
+
+	bytes = write (shim_args_fd, &ioBase, sizeof (ioBase));
+	if (bytes < 0) {
+		g_critical ("failed to send proxy ioBase to shim child: %s",
+			strerror (errno));
+		goto out;
+	}
+
+	/* send proxy IO fd to cc-shim child */
+	shim_socket_connection = socket_connection_from_fd(shim_socket_fd);
+	if (! shim_socket_connection) {
+		g_critical("failed to create a socket connection to send proxy IO fd");
+		goto out;
+	}
+
+	ret = g_unix_connection_send_fd (G_UNIX_CONNECTION (shim_socket_connection),
+		proxy_io_fd, NULL, &error);
+
+	if (! ret) {
+		g_critical("failed to send proxy IO fd");
+		goto out;
+	}
+
+	/* save ioBase */
+	config->oci.process.stdio_stream = ioBase;
+	if ( config->oci.process.terminal) {
+		/* For tty, pass stderr seq as 0, so that stdout and
+		 * and stderr are redirected to the terminal
+		 */
+		config->oci.process.stderr_stream = 0;
+	} else {
+		config->oci.process.stderr_stream = ioBase + 1;
+	}
+
+	close (shim_args_fd);
+	shim_args_fd = -1;
+
+	g_debug ("checking shim setup (blocking)");
+
+	bytes = read (shim_err_fd,
+			buffer,
+			sizeof (buffer));
+	if (bytes > 0) {
+		g_critical ("shim setup failed");
+		ret = false;
+		goto out;
+	}
+
+	/* Recreate the state file now that all information is
+	 * available.
+	 */
+	g_debug ("recreating state file");
+
+	ret = cc_oci_state_file_create (config, timestamp);
+	if (! ret) {
+		g_critical ("failed to recreate state file");
+		goto out;
+	}
+
+	/* parent can now disconnect from the proxy (but the shim
+	 * remains connected).
+	 */
+	ret = cc_proxy_disconnect (config->proxy);
+
+	/* Finally, create the pid file.
+	 *
+	 * This MUST be done after all setup since containerd
+	 * considers "create" finished when this file has been created
+	 * (and it will then goes on to call "start").
+	 */
 	if (config->pid_file) {
 		ret = cc_oci_create_pidfile (config->pid_file,
 				config->state.workload_pid);
-	} else {
-		ret = true;
+		if (! ret) {
+			goto out;
+		}
 	}
-
 out:
-	if (hook_status_pipe[0] != -1) close (hook_status_pipe[0]);
-	if (hook_status_pipe[1] != -1) close (hook_status_pipe[1]);
+	if (hypervisor_args_pipe[0] != -1) close (hypervisor_args_pipe[0]);
+	if (hypervisor_args_pipe[1] != -1) close (hypervisor_args_pipe[1]);
 	if (child_err_pipe[0] != -1) close (child_err_pipe[0]);
 	if (child_err_pipe[1] != -1) close (child_err_pipe[1]);
+	if (shim_err_fd != -1) close (shim_err_fd);
+	if (shim_args_fd != -1) close (shim_args_fd);
+	if (shim_socket_fd != -1) close (shim_socket_fd);
 
 	if (setup_networking) {
 		netlink_close (hndl);
@@ -775,14 +1288,13 @@ out:
 		g_ptr_array_free(additional_args, TRUE);
 	}
 
-	return ret;
+	if ( !ret && config->state.workload_pid > 0 ) {
+		g_critical("killing shim with pid:%d",
+				config->state.workload_pid);
+		kill(config->state.workload_pid, SIGKILL);
+	}
 
-child_failed:
-	/* Any data written by the child to this pipe signifies failure,
-	 * so send a very short message ("E", denoting Error).
-	 */
-	(void)write (child_err_pipe[1], "E", 1);
-	exit (EXIT_FAILURE);
+	return ret;
 }
 
 /*!
@@ -846,158 +1358,215 @@ exit:
 }
 
 /*!
- * Create a connection to the VM, run a command and disconnect.
+ * Start a process that launch \ref CC_OCI_SHIM as a child process
+ * then send all needed data to launch a shim.
  *
  * \param config \ref cc_oci_config.
- * \param argc Argument count.
- * \param argv Argument vector.
+ * \param process \ref oci_cfg_process
+ * \param initial_workload \ref true if shim to be be launched is an initial
+ * 	workload,  false to launch an exec shim
  *
  * \return \c true on success, else \c false.
  */
 gboolean
-cc_oci_vm_connect (struct cc_oci_config *config,
-		int argc,
-		char *const argv[]) {
-	gchar     **args = NULL;
-	gboolean    ret = false;
-	guint       args_len = 0;
-	gboolean    cmd_is_just_shell = false;
-#if 0
-	GError     *err = NULL;
-	GPid        pid;
-	gint        exit_code = -1;
-	GSpawnFlags flags = (G_SPAWN_CHILD_INHERITS_STDIN |
-			     /* XXX: required for g_child_watch_add! */
-			     G_SPAWN_DO_NOT_REAP_CHILD |
-			     G_SPAWN_SEARCH_PATH);
-	guint i;
-#endif
+cc_oci_exec_shim (struct cc_oci_config *config, int ioBase, int proxy_io_fd,
+		gboolean initial_workload) {
 
-	g_assert (config);
-	g_assert (argc);
-	g_assert (argv);
+	gboolean           ret = false;
+	GSocketConnection *shim_socket_connection = NULL;
+	int                shim_args_fd = -1;
+	int                shim_socket_fd = -1;
+	int                shim_err_fd = -1;
+	ssize_t            bytes;
+	char               err_buffer[2] = { '\0' };
+	int                proxy_fd = -1;
+	GError            *error = NULL;
 
-	/* Check if the user has specified a shell to run.
-	 *
-	 * FIXME: This is a pragmatic (but potentially unreliable) solution
-	 * FIXME:   if the user wants to run an unknown shell.
-	 */
-	if (cc_oci_cmd_is_shell (argv[0])) {
-		cmd_is_just_shell = true;
-	}
-
-	/* The user wants to run an interactive shell.
-	 * However, this is the default with ssh if no command is
-	 * specified.
-	 *
-	 * If a shell is passed as the 1st arg, ssh gets
-	 * confused as it's expecting to run a non-interactive command,
-	 * so simply remove it to get the behaviour the user wants.
-	 *
-	 * An extra check is performed to ensure that the argument after
-	 * the shell is not an option to ensure that commands like:
-	 * "bash -c ..." still work as expected.
-	 */
-	if (argv[1] && argv[1][0] == '-') {
-		cmd_is_just_shell = false;
-	}
-
-	/* Just a shell, so remove the argument to get the expected
-	 * behavior of an interactive shell.
-	 */
-	if (cmd_is_just_shell) {
-		argc--;
-		argv++;
-	}
-
-	args_len = (guint)argc;
-
-	/* +2 for CC_OCI_EXEC_CMD + hostname to connect to */
-	args_len += 2;
-
-	/* +1 for NULL terminator */
-	args = g_new0 (gchar *, args_len + 1);
-	if (! args) {
+	if(! config){
 		return false;
 	}
 
-	/* The command to use to connect to the VM */
-	args[0] = g_strdup (CC_OCI_EXEC_CMD);
-	if (! args[0]) {
-		ret = false;
+	/* FIXME: Close proxy_fd before launch shim to avoid race conditions */
+
+	if (! cc_shim_launch (config, &shim_err_fd, &shim_args_fd,
+				&shim_socket_fd, initial_workload)) {
 		goto out;
 	}
 
-	/* connection string to connect to the VM */
-	// FIXME: replace with proper connection string once networking details available.
-#if 0
-	args[1] = g_strdup_printf (ip_address);
-
-	/* append argv to the end of args */
-	if (argc) {
-		for (i = 0; i < args_len; ++i) {
-			args[i+2] = g_strdup (argv[i]);
-		}
-	}
-
-	g_debug ("running command:");
-	for (gchar** p = args; p && *p; p++) {
-		g_debug ("arg: '%s'", *p);
-	}
-
-	/* create a new main loop */
-	main_loop = g_main_loop_new (NULL, 0);
-	if (! main_loop) {
-		g_critical ("cannot create main loop for client");
+	/*
+	 * 1. The child blocks waiting for a write proxy fd to shim_args_fd.
+	*/
+	proxy_fd = g_socket_get_fd (config->proxy->socket);
+	if (proxy_fd < 0) {
+		g_critical ("invalid proxy fd: %d", proxy_fd);
 		goto out;
 	}
 
-	ret = g_spawn_async_with_pipes (NULL, /* working directory */
-			args,
-			NULL, /* inherit parents environment */
-			flags,
-			(GSpawnChildSetupFunc)cc_oci_close_fds,
-			NULL, /* user_data */
-			&pid,
-			NULL, /* standard_input */
-			NULL, /* standard_output */
-			NULL, /* standard_error */
-			&err);
-
-	if (! ret) {
-		g_critical ("failed to spawn child process (%s): %s",
-				args[0], err->message);
-		g_error_free (err);
+	bytes = write (shim_args_fd, &proxy_fd, sizeof (proxy_fd));
+	if (bytes < 0) {
+		g_critical ("failed to send proxy fd to shim child: %s",
+			strerror (errno));
 		goto out;
 	}
 
-	g_debug ("child process ('%s') running with pid %u",
-			args[0], (unsigned)pid);
+	/*
+	 * 2. The child blocks waiting for a write ioBase to shim_args_fd.
+	*/
 
-	g_child_watch_add (pid, cc_oci_child_watcher, &exit_code);
+	bytes = write (shim_args_fd, &ioBase, sizeof (ioBase));
+	if (bytes < 0) {
+		g_critical ("failed to send proxy ioBase to shim child: %s",
+			strerror (errno));
+		goto out;
+	}
 
-	/* wait for child to finish */
-	g_main_loop_run (main_loop);
 
-	g_debug ("child pid %u exited with code %d",
-			(unsigned )pid, (int)exit_code);
+	/*
+	 * 3. The child blocks waiting for a write proxy IO fd to shim_socket_fd.
+	*/
+	proxy_fd = g_socket_get_fd (config->proxy->socket);
+	if (proxy_fd < 0) {
+		g_critical ("invalid proxy fd: %d", proxy_fd);
+		goto out;
+	}
 
-	if (exit_code) {
-		/* failed */
+	/* send proxy IO fd to cc-shim child */
+	shim_socket_connection = socket_connection_from_fd(shim_socket_fd);
+	if (! shim_socket_connection) {
+		g_critical("failed to create a socket connection to send proxy IO fd");
+		goto out;
+	}
+
+	if (! g_unix_connection_send_fd (
+				G_UNIX_CONNECTION (shim_socket_connection),
+				proxy_io_fd, NULL, &error) ) {
+
+		g_critical("failed to send proxy IO fd");
+		goto out;
+	}
+	/*
+	 * Finally. Check if an error happend
+	*/
+	bytes = read (shim_err_fd,
+			err_buffer,
+			sizeof (err_buffer));
+	if (bytes > 0) {
+		g_critical ("shim setup failed");
 		goto out;
 	}
 
 	ret = true;
-#else
-	g_critical ("not implemented yet");
-	ret = false;
-#endif
-
 out:
-	if (args) {
-		g_strfreev (args);
+	if (shim_err_fd != -1) {
+		close (shim_err_fd);
+	}
+	if (shim_args_fd != -1) {
+		close (shim_args_fd);
+	}
+	if (shim_socket_fd != -1) {
+		close (shim_socket_fd);
+	}
+	if (! ret) {
+		g_critical ("killing shim with pid:%d", config->state.workload_pid);
+		kill (config->state.workload_pid, SIGTERM);
+	}
+	return ret;
+}
+
+gboolean
+cc_oci_is_attach_mode (struct cc_oci_config *config){
+	/* XXX: If running stand-alone, wait for the hypervisor to
+	 * finish. But if running under containerd, don't wait.
+	 *
+	 * A simple way to determine if we're being called
+	 * under containerd is to check if stdin is closed.
+	 *
+	 * Do not wait when console is empty.
+	 */
+	if ((isatty (STDIN_FILENO) && ! config->detached_mode)) {
+		g_debug("running in attach mode");
+		return true;
+	}
+		g_debug("running in deattach mode");
+	return false;
+}
+
+/*!
+ * Create a connection to the VM, run a command and disconnect.
+ *
+ * \param config \ref cc_oci_config.
+ * \param process \ref oci_cfg_process
+ *
+ * \return \c true on success, else \c false.
+ */
+gboolean
+cc_oci_vm_connect (struct cc_oci_config *config)
+{
+	gboolean    ret = false;
+	int         ioBase = -1;
+	int         proxy_io_fd = -1;
+	gint        exit_code = -1;
+
+	if(! config){
+		goto out;
 	}
 
+	if (! cc_proxy_connect (config->proxy)) {
+		goto out;
+	}
+
+	if (! cc_proxy_attach (config->proxy, config->optarg_container_id)) {
+		goto out;
+	}
+
+	if (! cc_proxy_cmd_allocate_io(config->proxy,
+			&proxy_io_fd, &ioBase, config->oci.process.terminal)) {
+		goto out;
+	}
+
+	/* save ioBase */
+	config->oci.process.stdio_stream = ioBase;
+	if ( config->oci.process.terminal) {
+		/* For tty, pass stderr seq as 0, so that stdout and
+		 * and stderr are redirected to the terminal
+		 */
+		config->oci.process.stderr_stream = 0;
+	} else {
+		config->oci.process.stderr_stream = ioBase + 1;
+	}
+
+	g_debug("exec command");
+	if (! cc_proxy_hyper_exec_command (config)) {
+		goto out;
+	}
+
+	if (! cc_oci_exec_shim (config, ioBase, proxy_io_fd, false)) {
+		goto out;
+	}
+
+	if (cc_oci_is_attach_mode(config)) {
+		main_loop = g_main_loop_new (NULL, 0);
+		if (! main_loop) {
+			g_critical ("cannot create main loop for client");
+			goto out;
+		}
+		g_child_watch_add (config->state.workload_pid, cc_oci_child_watcher,
+				&exit_code);
+
+		/* wait for child to finish */
+		g_main_loop_run (main_loop);
+
+		g_debug ("child pid %u exited with code %d",
+				(unsigned )config->state.workload_pid, (int)exit_code);
+
+		if (exit_code) {
+			/* failed */
+			goto out;
+		}
+	}
+
+	ret = true;
+out:
 	if (main_loop) {
 		g_main_loop_unref (main_loop);
 		main_loop = NULL;

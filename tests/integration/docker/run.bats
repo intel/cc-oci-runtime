@@ -31,5 +31,5 @@ setup() {
 @test "Run shell echo" {
 	run $DOCKER_EXE run busybox sh -c "echo Passed"
 	[ "${status}" -eq 0 ]
-	[ "${output}" == $'Passed\r' ]
+	[[ "${output}" == 'Passed'* ]]
 }

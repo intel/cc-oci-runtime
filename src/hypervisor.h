@@ -29,6 +29,6 @@ gboolean cc_oci_vm_args_get (struct cc_oci_config *config,
 gboolean cc_oci_expand_cmdline (struct cc_oci_config *config,
 		gchar **args);
 void cc_oci_populate_extra_args(struct cc_oci_config *config,
-                GPtrArray **additional_args);
+                GPtrArray *additional_args);
 
 #endif /* _CC_OCI_HYPERVISOR_H */

@@ -31,12 +31,11 @@
 #include <glib/gprintf.h>
 
 #include <libmnl/libmnl.h>
-#include <linux/if.h>
+#include <net/if.h>
 #include <linux/if_link.h>
 #include <linux/rtnetlink.h>
 
 #include "netlink.h"
-#include "oci.h"
 #include "util.h"
 #include "networking.h"
 
@@ -375,22 +374,26 @@ data_ipv4_attr_cb(const struct nlattr *attr, void *data)
 
 /*!
  * Callback handler that scans the route table to
- * detect if default gateway is present.
+ * detect routes and add them.
  *
  * \param nlh netlink response buffer.
  * \param data [in, out] is the data sent to the callback handler
- *   from caller data points to the string value of the default
- *   gateway, or "" if none.
+ *   from caller data points to cc_oci_config object to which routes
+ *   are added
  *
  * \return \c MNL_CB_OK on success.
  */
 static gint
-process_ipv4_gw(const struct nlmsghdr *nlh, void *data)
+process_ipv4_routes(const struct nlmsghdr *nlh, void *data)
 {
 	struct nlattr *tb[RTA_MAX+1] = {0};
 	struct rtmsg *rm = NULL;
-	gchar **gw = data;
 	gint ret;
+	struct cc_oci_net_ipv4_route *route = NULL;
+	struct cc_oci_net_cfg *net = NULL;
+	uint32_t table;
+
+	struct cc_oci_config *config = data;
 
 	if ((nlh == NULL) || (data == NULL)) {
 		g_critical("%s NULL parameter", __func__);
@@ -404,46 +407,80 @@ process_ipv4_gw(const struct nlmsghdr *nlh, void *data)
 		return MNL_CB_OK;
 	}
 
-	if (!((rm->rtm_src_len == 0) && (rm->rtm_dst_len == 0))) {
-		/* We only care about default gw */
-		return MNL_CB_OK;
-	}
-
 	ret = mnl_attr_parse(nlh, sizeof(*rm), data_ipv4_attr_cb, tb);
 	if (ret != MNL_CB_OK) {
 		return ret;
 	}
 
-	if (tb[RTA_GATEWAY]) {
-		struct in_addr *addr = mnl_attr_get_payload(tb[RTA_GATEWAY]);
-		*gw = cc_net_get_ip_address(AF_INET, addr);
+	net = &(config->net);
+
+	if (!tb[RTA_TABLE]) {
+		g_debug("route table not set");
+		return MNL_CB_OK;
 	}
 
+	table = mnl_attr_get_u32(tb[RTA_TABLE]);
+	g_debug("table=%d", table);
+
+	// Add routes from the main routing table. Ignore routes
+	// from the local route table.
+	if (table != RT_TABLE_MAIN) {
+		return MNL_CB_OK;
+	}
+
+	route = g_malloc0(sizeof(*route));
+	net->routes = g_slist_append(net->routes, route);
+
+	if (tb[RTA_DST]) {
+		struct in_addr *addr = mnl_attr_get_payload(tb[RTA_DST]);
+		route->dest = cc_net_get_ip_address(AF_INET, addr);
+		g_debug("destination : %s", route->dest);
+	}
+
+	if (rm->rtm_src_len == 0 && rm->rtm_dst_len == 0) {
+		// hyperstart expects the string "default" or "any" for default route
+		route->dest = g_strdup("default");
+	}
+
+	if (tb[RTA_GATEWAY]) {
+		struct in_addr *addr = mnl_attr_get_payload(tb[RTA_GATEWAY]);
+		route->gateway = cc_net_get_ip_address(AF_INET, addr);
+		g_debug("gateway : %s", route->gateway);
+	}
+
+	if (tb[RTA_OIF]) {
+		uint ifindex = mnl_attr_get_u32(tb[RTA_OIF]);
+		char ifname[IF_NAMESIZE];
+		if (if_indextoname(ifindex, ifname)) {
+			route->ifname = g_strdup(ifname);
+			g_debug("ifname=%s", ifname);
+		}
+	}
 	return MNL_CB_OK;
 }
 
 /*!
- * Obtains the default gateway for the specified inet
- * family by scanning the route table.
+ * Scans the route table for the specified inet family and adds
+ * the routes to the config object.
  *
+ * \param config \ref cc_oci_config.
  * \param hndl handle returned from a call to \ref netlink_init().
  * \param family INET family.
  *
- * \return \c string value of the gateway,
- * or \c "" if there is no default gateway.
+ * \return true on success, false otherwise.
  */
-gchar *
-netlink_get_default_gw(struct netlink_handle *const hndl,
-		   guint8 family)
+gboolean
+netlink_get_routes(struct cc_oci_config *config,
+		struct netlink_handle *const hndl,
+		guchar family)
 {
 	guint8 buf[MNL_SOCKET_BUFFER_SIZE];
 	struct nlmsghdr *nlh = NULL;
 	struct rtmsg *rtm = NULL;
 	glong ret;
 	guint seq, portid;
-	gchar *default_gw = NULL;
 
-	if (hndl == NULL) {
+	if ( ! (hndl && config)) {
 		g_critical("%s NULL parameter", __func__);
 		return false;
 	}
@@ -462,13 +499,14 @@ netlink_get_default_gw(struct netlink_handle *const hndl,
 
 	if (mnl_socket_sendto(hndl->nl, nlh, nlh->nlmsg_len) < 0) {
 		g_critical("mnl_socket_sendto %s", strerror(errno));
-		goto out;
+		return false;
 	}
 
 	ret = mnl_socket_recvfrom(hndl->nl, buf, sizeof(buf));
 	while (ret > 0) {
 		ret = mnl_cb_run(buf, (size_t)ret, seq, portid,
-				 process_ipv4_gw, &default_gw);
+				 process_ipv4_routes, config);
+
 		if (ret <= MNL_CB_STOP) {
 			break;
 		}
@@ -476,9 +514,7 @@ netlink_get_default_gw(struct netlink_handle *const hndl,
 	}
 	if (ret == -1) {
 		g_critical("mnl_socket_recvfrom %s", strerror(errno));
-		goto out;
+		return false;
 	}
-
-out:
-	return default_gw;
+	return true;
 }

@@ -513,10 +513,12 @@ cc_oci_resolve_path (const gchar *path)
  *
  * \param fd File descriptor to change.
  *
+ * \param set Flag to enable or disable
+ *
  * \return \c true on success, else \c false.
  **/
 gboolean
-cc_oci_fd_set_cloexec (int fd)
+cc_oci_fd_toggle_cloexec (int fd, gboolean set)
 {
 	int flags;
 
@@ -529,7 +531,11 @@ cc_oci_fd_set_cloexec (int fd)
 		return false;
 	}
 
-	flags |= FD_CLOEXEC;
+	if (set) {
+		flags |= FD_CLOEXEC;
+	}else {
+		flags &= ~FD_CLOEXEC;
+	}
 
 	if (fcntl (fd, F_SETFD, flags) < 0) {
 		return false;
@@ -557,6 +563,17 @@ cc_oci_enable_networking (void)
 	}
 
 	return enable;
+}
+
+/*!
+ * Convert the value stored in buffer to little endian
+ *
+ * \param buf Buffer storing the big endian value
+ *
+ * \return \c guint32 in big endian order.
+ */
+guint32 cc_oci_get_big_endian_32(const guint8 *buf) {
+	return (guint32)(buf[0] << 24 | buf[1] << 16 | buf[2] << 8 | buf[3]);
 }
 
 /**

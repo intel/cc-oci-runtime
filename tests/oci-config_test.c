@@ -30,24 +30,34 @@
 #include "oci-config.h"
 
 START_TEST(test_cc_oci_config_check) {
-	struct cc_oci_config config = { {0} };
+	struct cc_oci_config *config = NULL;
+
+	config = cc_oci_config_create ();
+	ck_assert (config);
 
 	ck_assert (! cc_oci_config_check (NULL));
-	ck_assert (! cc_oci_config_check (&config));
+	ck_assert (! cc_oci_config_check (config));
 
-	config.oci.oci_version = "0.0.1";
-	g_strlcpy (config.oci.process.cwd, "/foo", sizeof (config.oci.process.cwd));
-	config.oci.platform.os = "linux";
-	config.oci.platform.arch = "amd64";
+	config->oci.oci_version = g_strdup ("0.0.1");
+	g_strlcpy (config->oci.process.cwd, "/foo", sizeof (config->oci.process.cwd));
+	config->oci.platform.os = g_strdup ("linux");
+	config->oci.platform.arch = g_strdup ("amd64");
 
-	ck_assert (cc_oci_config_check (&config));
+	ck_assert (cc_oci_config_check (config));
 
 	/* now, invalidate various elements */
 
 	/* spec version higher than supported version */
-	config.oci.oci_version = "9999.9999.9999";
-	ck_assert (! cc_oci_config_check (&config));
-	config.oci.oci_version = "0.0.1";
+	g_free (config->oci.oci_version);
+	config->oci.oci_version = g_strdup ("9999.9999.9999");
+	ck_assert (! cc_oci_config_check (config));
+
+	g_free (config->oci.oci_version);
+	config->oci.oci_version = g_strdup ("0.0.1");
+	ck_assert (cc_oci_config_check (config));
+
+	/* clean up */
+	cc_oci_config_free (config);
 
 } END_TEST
 
