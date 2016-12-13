@@ -317,6 +317,8 @@ struct cc_oci_net_if_cfg {
         gboolean vf_based;
 
         gchar *bdf;
+
+        gchar *device_driver;
 };
 
 /** cc-specific IPv4 configuration data. */
@@ -375,6 +377,8 @@ struct oci_state {
 	 * so there is no \c oci_cfg_mount type.
 	 */
 	GSList          *mounts;
+
+        GSList          *devices;
 
         /** List of \ref oci_cfg_annotation annotations.
          *
@@ -444,6 +448,11 @@ struct cc_oci_mount {
 	gchar          *directory_created;
 };
 
+struct cc_oci_device {
+        gchar *bdf;
+        gchar *driver;
+};
+
 /** The main object holding all configuration data.
  *
  * \note The main user of this object is "start" - other commands
@@ -462,6 +471,8 @@ struct cc_oci_config {
 
 	/** Network configuration. */
 	struct cc_oci_net_cfg           net;
+
+        GSList *devices;
 
 	/** Container-specific state. */
 	struct cc_oci_container_state  state;

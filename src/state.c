@@ -39,6 +39,7 @@
 #include "annotation.h"
 #include "json.h"
 #include "config.h"
+#include "networking.h"
 
 #define update_subelements_and_strdup(node, data, member) \
 	if (node && node->data) { \
@@ -57,6 +58,7 @@ static void handle_state_processPath_section(GNode*, struct handler_data*);
 static void handle_state_status_section(GNode*, struct handler_data*);
 static void handle_state_created_section(GNode*, struct handler_data*);
 static void handle_state_mounts_section(GNode*, struct handler_data*);
+static void handle_state_devices_section(GNode* node, struct handler_data* data);
 static void handle_state_console_section(GNode*, struct handler_data*);
 static void handle_state_vm_section(GNode*, struct handler_data*);
 static void handle_state_annotations_section(GNode*, struct handler_data*);
@@ -86,6 +88,7 @@ static struct state_handler {
 	{ "status"      , handle_state_status_section      , 1 , 0 },
 	{ "created"     , handle_state_created_section     , 1 , 0 },
 	{ "mounts"      , handle_state_mounts_section      , 0 , 0 },
+	{ "device"     , handle_state_devices_section     , 0 , 0 },
 	{ "console"     , handle_state_console_section     , 2 , 0 },
 	{ "vm"          , handle_state_vm_section          , 5 , 0 },
 	{ "annotations" , handle_state_annotations_section , 0 , 0 },
@@ -275,6 +278,31 @@ handle_state_mounts_section(GNode* node, struct handler_data* data) {
 			m->directory_created = g_strdup((char*)node->children->data);
 		}
 	}
+}
+
+static void
+handle_state_devices_section(GNode* node, struct handler_data* data) {
+        struct cc_oci_device* d;
+
+        if (! (node && node->data)) {
+                return;
+        }
+        if (! (node->children && node->children->data)) {
+                g_critical("%s missing value", (char*)node->data);
+                return;
+        }
+
+        if (! g_strcmp0(node->data, "bdf")) {
+                d = g_new0 (struct cc_oci_device, 1);
+                d->bdf = g_strdup ((char *)node->children->data);
+                data->state->devices = g_slist_append(data->state->devices, d);
+        } else if (! g_strcmp0(node->data, "driver")) {
+                GSList *l = g_slist_last(data->state->devices);
+                if (l) {
+                        d = (struct cc_oci_device*)l->data;
+                        d->driver = g_strdup((char*)node->children->data);
+                }
+        }
 }
 
 /*!
@@ -560,6 +588,29 @@ cc_oci_state_free (struct oci_state *state)
 	g_free (state);
 }
 
+static JsonObject *
+cc_oci_devices_to_json (const struct cc_oci_config *config)
+{
+        JsonObject *device = NULL;
+        int index = 0;
+        struct cc_oci_device *d_info = NULL;
+
+
+        for (index=0; index<g_slist_length(config->devices); index++) {
+                d_info = (struct cc_oci_device *)
+                        g_slist_nth_data(config->devices, index);
+
+                g_debug ("cor finding devices from the config");
+
+                if (d_info->bdf) {
+                   device = json_object_new ();
+                   json_object_set_string_member (device, "bdf", d_info->bdf);
+                   json_object_set_string_member (device, "driver", d_info->driver);
+                }
+        }
+        return device;
+}
+
 /*!
  * Create the state file for the specified \p config.
  *
@@ -579,6 +630,7 @@ cc_oci_state_file_create (struct cc_oci_config *config,
 	JsonObject  *vm = NULL;
 	JsonObject  *annotation_obj = NULL;
 	JsonArray   *mounts = NULL;
+        JsonObject   *device = NULL;
 	gchar       *str = NULL;
 	gsize        str_len = 0;
 	GError      *err = NULL;
@@ -654,7 +706,23 @@ cc_oci_state_file_create (struct cc_oci_config *config,
 		goto out;
 	}
 
+
+
 	json_object_set_array_member (obj, "mounts", mounts);
+
+        /*Add an array of devices to allow "delete" to recreate network
+          interfaces*/
+        device = cc_oci_network_devices_to_json (config);
+        if (device) {
+                g_debug ("cor non-null devices array");
+                json_object_set_object_member (obj, "device", device);
+        }
+
+        device = cc_oci_devices_to_json (config);
+        if (device) {
+               g_debug ("cor non-null device from config");
+               json_object_set_object_member (obj, "device", device); 
+        }
 
 	/* Add an object containing details of the console device being
 	 * used.

@@ -196,13 +196,15 @@ extern GHashTable* mac_hash;
 static gboolean
 check_vf_based_iface(struct cc_oci_net_if_cfg *if_cfg) {
 
-      gchar *bdf = NULL;
+      struct cc_oci_device *d_info = NULL;
 
-      bdf = g_hash_table_lookup(mac_hash, if_cfg->mac_address);
+      d_info = g_hash_table_lookup(mac_hash, if_cfg->mac_address);
 
-      if (bdf) {
-         g_debug ("bdf for the if %s: %s",if_cfg->ifname, bdf);
-         if_cfg->bdf = bdf;
+      if (d_info && d_info->bdf) {
+         g_debug ("bdf for the if %s: %s",if_cfg->ifname, d_info->bdf);
+         g_debug ("driver for the if %s: %s",if_cfg->ifname, d_info->driver);
+         if_cfg->bdf = d_info->bdf;
+         if_cfg->device_driver = d_info->driver;
          if_cfg->vf_based = true;
          return true;
       }
@@ -298,6 +300,29 @@ cc_oci_network_create(const struct cc_oci_config *const config,
 	return true;
 out:
 	return false;
+}
+
+JsonObject *
+cc_oci_network_devices_to_json (const struct cc_oci_config *config)
+{
+        JsonObject *device = NULL;
+        int index = 0;
+        struct cc_oci_net_if_cfg *if_cfg = NULL;
+
+
+        for (index=0; index<g_slist_length(config->net.interfaces); index++) {
+                if_cfg = (struct cc_oci_net_if_cfg *)
+                        g_slist_nth_data(config->net.interfaces, index);
+
+                if (if_cfg->vf_based == true) {
+                        g_debug("interface %s is vf based vf: bdf %s driver %s",if_cfg->ifname, 
+                               if_cfg->bdf, if_cfg->device_driver);  
+                        device = json_object_new ();
+                        json_object_set_string_member (device, "bdf", if_cfg->bdf);
+                        json_object_set_string_member (device, "driver", if_cfg->device_driver);
+                }
+        }
+        return device;
 }
 
 /*!

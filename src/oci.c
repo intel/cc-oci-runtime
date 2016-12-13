@@ -1816,6 +1816,12 @@ cc_oci_config_update (struct cc_oci_config *config,
 		state->mounts = NULL;
 	}
 
+        if (state->devices) {
+               config->devices = state->devices;
+               state->devices = NULL;
+               g_debug ("cor non-null devices from state");
+        }
+
 	if (state->console) {
 		config->console = state->console;
 		state->console = NULL;

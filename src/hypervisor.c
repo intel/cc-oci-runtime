@@ -21,6 +21,7 @@
 #include <stdbool.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
@@ -130,6 +131,86 @@ cc_oci_expand_net_device_cmdline(struct cc_oci_config *config, guint index) {
 
 out:
 	return g_strdup("");
+}
+
+gboolean
+cc_oci_switch_iface_to_container (struct cc_oci_device* d_info, GPid pid) {
+
+        guint Pid = (unsigned) pid;
+        gchar *netns_path = g_strdup_printf("/proc/%d/ns/net", Pid);
+        g_debug ("cor child netns path %s", netns_path);
+
+        gchar* iface_dir_path = g_strdup_printf("/sys/bus/pci/devices/%s/net", d_info->bdf);
+        struct dirent *d = opendir(iface_dir_path);
+
+        if (!d) {
+                g_debug ("opening net dir on bdf %s failed", d_info->bdf);
+        }
+
+        struct dirent *dir;
+        while ((dir = readdir(d)) != NULL) {
+                if (g_strcmp0 (dir->d_name, ".") &&
+                        g_strcmp0 (dir->d_name, "..")) {
+                        break;
+                }
+        }
+
+        gchar *iface_name = g_strdup(dir->d_name);
+        g_debug ("iface name for bdf %s - %s", d_info->bdf, iface_name);
+
+        int fork_pid, status;
+        fork_pid = fork();
+        if (! fork_pid) {
+           char * arg[4];
+
+           /*child*/
+                arg[0] = "/usr/bin/cc-sriovdownscript.sh";
+                arg[1] = g_strdup_printf("%d", Pid);
+                arg[2] = iface_name;
+                arg[3] = NULL;
+                if (execvp (arg[0], &arg[0]) < 0) {
+                        g_debug (" failed to execute the down script");
+                }
+                _exit(1);
+        } else if (fork_pid > 0) {
+                while (waitpid(fork_pid, &status, 0) != fork_pid) {
+
+                }
+                if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+                   g_debug("sriodownscript exited good");
+                }
+        }
+
+        return true;
+}
+
+
+gboolean
+cc_oci_bind_host (struct cc_oci_device* d_info) {
+        FILE* f;
+
+        gchar* bind_driver_path = g_strdup_printf("/sys/bus/pci/drivers/%s/bind", d_info->driver);
+        gchar* unbind_driver_path = g_strdup_printf("/sys/bus/pci/devices/%s/driver/unbind", d_info->bdf);
+        g_debug ("driver path for binding %s %s", d_info->bdf, bind_driver_path);
+
+        f = fopen (unbind_driver_path, "w");
+        if (!f) {
+           g_debug ("cor: opening %s failed", unbind_driver_path);
+           g_debug ("cor: file open error %d", errno);
+           return false;
+        }
+        fprintf(f, "%s", d_info->bdf);
+        fclose(f);
+
+        f = fopen (bind_driver_path, "w");
+        if (!f) {
+           g_debug ("cor: opening %s failed", bind_driver_path);
+           g_debug ("cor: file open error %d", errno);
+           return false;
+        }
+        fprintf(f, "%s", d_info->bdf);
+        fclose(f);
+        return true;
 }
 
 gboolean 
@@ -433,6 +514,9 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
                    passthru_device_params = cc_oci_expand_device_passthru(config, 0);
                     g_debug ("cor: device passthru command %s", passthru_device_params);
                 }
+        } else {
+                passthru_device = g_strdup("");
+                passthru_device_params = g_strdup("");
         }
 
 	/* Note: @NETDEV@: For multiple network we need to have a way to append
