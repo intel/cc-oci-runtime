@@ -64,6 +64,7 @@
 #include "common.h"
 #include "logging.h"
 #include "netlink.h"
+#include "pod.h"
 #include "proxy.h"
 #include "command.h"
 
@@ -1504,6 +1505,7 @@ cc_oci_vm_connect (struct cc_oci_config *config)
 	int         ioBase = -1;
 	int         proxy_io_fd = -1;
 	gint        exit_code = -1;
+	const gchar *container_id;
 
 	if(! config){
 		goto out;
@@ -1513,7 +1515,12 @@ cc_oci_vm_connect (struct cc_oci_config *config)
 		goto out;
 	}
 
-	if (! cc_proxy_attach (config->proxy, config->optarg_container_id)) {
+	container_id = cc_pod_container_id(config);
+	if (! container_id) {
+		goto out;
+	}
+
+	if (! cc_proxy_attach (config->proxy, container_id)) {
 		goto out;
 	}
 
