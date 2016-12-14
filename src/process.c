@@ -825,7 +825,9 @@ out:
 	close (child_err_pipe[1]);
 	close (shim_args_pipe[0]);
 	close (shim_socket[0]);
-	close (shim_flock_fd);
+	if (shim_flock_fd > -1) {
+		close (shim_flock_fd);
+	}
 
 	return ret;
 }
