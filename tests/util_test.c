@@ -24,6 +24,7 @@
 #include <check.h>
 #include <glib.h>
 #include <glib/gstdio.h>
+#include <fcntl.h>
 
 #include "test_common.h"
 #include "../src/util.h"
@@ -517,6 +518,38 @@ START_TEST(test_cc_oci_enable_networking) {
 
 } END_TEST
 
+START_TEST(test_dup_over_stdio) {
+	int fd = -1;
+
+	/* save stdin fd  */
+	int saved_stdin = dup(STDIN_FILENO);
+
+	/* fd pointer is NULL */
+	ck_assert(! dup_over_stdio(NULL));
+
+	/* fd number is -1 */
+	fd = -1;
+	ck_assert(! dup_over_stdio(&fd));
+
+
+	/* dup not used but open STDIN fd */
+	fd = STDIN_FILENO ;
+	ck_assert(dup_over_stdio(&fd));
+	ck_assert_int_gt(fd,2);
+	ck_assert( fcntl(STDIN_FILENO, F_GETFD) == -1 );
+	/* now the fd is higher than 2 , the fd number will not change*/
+	int saved_fd_no = fd;
+	ck_assert(dup_over_stdio(&fd));
+	ck_assert_int_eq(fd,saved_fd_no);
+	close(fd);
+	/* fd closed*/
+	ck_assert(!dup_over_stdio(&fd));
+
+	/* restore stdin fd */
+	dup2(saved_stdin, STDIN_FILENO);
+	close(saved_stdin);
+} END_TEST
+
 Suite* make_util_suite(void) {
 	Suite* s = suite_create(__FILE__);
 
@@ -531,6 +564,7 @@ Suite* make_util_suite(void) {
 	ADD_TEST(test_cc_oci_node_dump, s);
 	ADD_TEST(test_cc_oci_resolve_path, s);
 	ADD_TEST(test_cc_oci_enable_networking, s);
+	ADD_TEST(test_dup_over_stdio, s);
 
 	return s;
 }

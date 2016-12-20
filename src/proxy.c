@@ -653,6 +653,10 @@ cc_proxy_cmd_hello (struct cc_proxy *proxy, const char *container_id)
 
 	msg_received = g_string_new("");
 
+	if (! msg_received ) {
+		goto out;
+	}
+
 	if (! cc_proxy_run_cmd(proxy, msg_to_send, msg_received, NULL)) {
 		g_critical("failed to run proxy command %s: %s",
 				proxy_cmd,
@@ -725,6 +729,10 @@ cc_proxy_attach (struct cc_proxy *proxy, const char *container_id)
 	msg_to_send = json_generator_to_data (generator, NULL);
 
 	msg_received = g_string_new("");
+
+	if (! msg_received ) {
+		goto out;
+	}
 
 	if (! cc_proxy_run_cmd(proxy, msg_to_send, msg_received, NULL)) {
 		g_critical("failed to run proxy command %s: %s",
@@ -799,6 +807,10 @@ cc_proxy_cmd_bye (struct cc_proxy *proxy, const char *container_id)
 	msg_to_send = json_generator_to_data (generator, NULL);
 
 	msg_received = g_string_new ("");
+
+	if (! msg_received ) {
+		goto out;
+	}
 
 	if (! cc_proxy_run_cmd(proxy, msg_to_send, msg_received, NULL)) {
 		g_critical ("failed to run proxy command %s: %s",
@@ -880,6 +892,10 @@ cc_proxy_cmd_allocate_io (struct cc_proxy *proxy,
 	msg_to_send = json_generator_to_data (generator, NULL);
 
 	msg_received = g_string_new("");
+
+	if (! msg_received ) {
+		goto out;
+	}
 
 	if (! cc_proxy_run_cmd(proxy, msg_to_send, msg_received, proxy_io_fd)) {
 		g_critical("failed to run proxy command %s: %s",
@@ -1066,6 +1082,10 @@ cc_proxy_run_hyper_cmd (struct cc_oci_config *config,
 	msg_to_send = json_generator_to_data (generator, NULL);
 
 	msg_received = g_string_new("");
+
+	if (! msg_received ) {
+		goto out;
+	}
 
 	if (! cc_proxy_run_cmd(config->proxy, msg_to_send, msg_received, NULL)) {
 		g_critical("failed to run hyper cmd %s: %s",

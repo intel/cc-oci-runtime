@@ -606,6 +606,84 @@ cc_oci_handle_signals (void)
 	return true;
 }
 
+/**
+ * dup a fd until its value is higher than stdio standard fds
+ * (higher than 2), on success the original fd value is closed and
+ * can not be used anymore.
+ *
+ * \param[in,out] fd File descriptor to change.
+ *
+ * \return \c true on success, else \c false.
+ **/
+gboolean
+dup_over_stdio(int *fdp){
+	int tmp_fds[3] = {-1, -1, -1};
+	/* fd to dup */
+	int dup_fd  = -1;
+	gboolean ret = false;
+
+	if ( ! fdp  || *fdp < 0 ) {
+		return false;
+	}
+
+	if (fcntl(*fdp, F_GETFD) == -1 ){
+		return false;
+	}
+
+	if ( *fdp > 2 ) {
+		/* fd is already higher than 3 */
+		return true;
+	}
+	dup_fd = *fdp;
+
+	/* Dup until dup_fd is higher than 3 */
+	for (int i = 0 ; i < CC_OCI_ARRAY_SIZE(tmp_fds) && dup_fd < 3 ; i++) {
+		/* Save old fd to close it later */
+		/* if we close it now will get the same fd next iteration */
+		tmp_fds[i] = dup_fd;
+
+		dup_fd = dup(tmp_fds[i]);
+		if (dup_fd < 0) {
+			g_critical("dup failed: %s", strerror(errno));
+			break;
+		}
+	}
+
+	if ( dup_fd < 3){
+		/* error, we could not get a fd higher than 3
+	 	 * lets close last dup fd, only if the fd is
+	 	 * not the received as parameter.
+	 	 * */
+		if ( dup_fd != *fdp && dup_fd > -1){
+			close(dup_fd);
+			dup_fd = -1;
+		}
+	} else  {
+		/* success */
+		g_debug("fd moved from %d to  %d", *fdp, dup_fd);
+		*fdp = dup_fd;
+		dup_fd = -1;
+		ret = true;
+	}
+
+	for (int i = 0 ; i < CC_OCI_ARRAY_SIZE(tmp_fds) ; i++) {
+		/* Dont close the original fd on error */
+		if( !ret && tmp_fds[i] == *fdp)
+		{
+			g_debug("failed to dup %d, not closing it", *fdp);
+			continue;
+		}
+		if ( tmp_fds[i] > -1 ) {
+			g_debug("closing tmp fd %d", tmp_fds[i]);
+			if (close ( tmp_fds[i] )  == -1 ) {
+				g_critical("failed to close tmp fd: %s", strerror(errno));
+				ret = false;
+			}
+		}
+	}
+	return ret;
+}
+
 #ifdef DEBUG
 static gboolean
 cc_oci_node_dump_aux(GNode* node, gpointer data) {

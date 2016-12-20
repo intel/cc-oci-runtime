@@ -447,7 +447,7 @@ handle_state_annotations_section(GNode* node, struct handler_data* data)
 static void
 handle_state_process_section(GNode* node, struct handler_data* data)
 {
-	struct cc_oci_config config;
+	struct cc_oci_config config =  { {0} };;
 
 	g_assert(data->state);
 

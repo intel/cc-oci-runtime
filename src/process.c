@@ -149,12 +149,17 @@ cc_oci_setup_child (struct cc_oci_config *config)
 
 	/* Do not close fds when VM runs in detached mode*/
 	if (! config->detached_mode) {
-		cc_oci_close_fds (NULL);
+		if (! cc_oci_close_fds (NULL)) {
+			return false;
+		}
 	}
 
-	cc_oci_setup_hypervisor_logs(config);
+	if (! cc_oci_setup_hypervisor_logs(config)) {
+		return false;
+	}
 
 	return true;
+
 }
 
 /*! Perform setup on spawned shim process.
@@ -183,7 +188,7 @@ cc_oci_setup_shim (struct cc_oci_config *config,
 	setsid ();
 
 	// In the console case, the terminal needs to be dup'ed to stdio
-	if (config->oci.process.terminal) {
+	if (config->oci.process.terminal && config->console) {
 		tty_fd = open(config->console, O_RDWR |  O_NOCTTY);
 
 		if (tty_fd == -1) {
@@ -593,7 +598,7 @@ out:
  * \param shim_socket_fd Writable file descriptor caller should use to
  *   send the proxy IO fd to child before \ref CC_OCI_SHIM is launched.
  *
- * \return \c shim-pid  on success, else \c -1.
+ * \return \c true on success, else \c false.
  */
 private gboolean
 cc_shim_launch (struct cc_oci_config *config,
@@ -602,6 +607,7 @@ cc_shim_launch (struct cc_oci_config *config,
 		int *shim_socket_fd,
 		gboolean initial_workload)
 {
+	gboolean  ret = false;
 	GPid      pid = -1;
 	int       child_err_pipe[2] = {-1, -1};
 	int       shim_args_pipe[2] = {-1, -1};
@@ -724,31 +730,20 @@ cc_shim_launch (struct cc_oci_config *config,
 		 * Since these need to be assigned to the terminal fd, make sure the
 		 * proxy fds are assigned >= 3
 		 */
-		while(proxy_socket_fd < 3) {
-			int fd = dup(proxy_socket_fd);
-			if (fd < 0) {
-				g_critical("dup failed: %s", strerror(errno));
-				goto child_failed;
-			}
-			proxy_socket_fd = fd;
+
+		if (! dup_over_stdio(&proxy_socket_fd)) {
+			g_critical("failed to dup proxy_socket_fd");
+			goto child_failed;
 		}
 
-		while(proxy_io_fd < 3) {
-			int fd = dup(proxy_io_fd);
-			if (fd < 0) {
-				g_critical("dup failed: %s", strerror(errno));
-				goto child_failed;
-			}
-			proxy_io_fd = fd;
+		if(! dup_over_stdio(&proxy_io_fd)) {
+			g_critical("failed to dup proxy_io_fd");
+			goto child_failed;
 		}
 
-		while(shim_flock_fd < 3) {
-			int fd = dup(shim_flock_fd);
-			if (fd < 0) {
-				g_critical("dup failed: %s", strerror(errno));
-				goto child_failed;
-			}
-			shim_flock_fd = fd;
+		if (! dup_over_stdio(&shim_flock_fd)) {
+			g_critical("failed to dup shim_flock_fd");
+			goto child_failed;
 		}
 
 		cc_oci_fd_toggle_cloexec(proxy_socket_fd, false);
@@ -824,14 +819,17 @@ child_failed:
 	*shim_args_fd = shim_args_pipe[1];
 	*shim_socket_fd = shim_socket[1];
 
+	ret = true;
 
 out:
 	close (child_err_pipe[1]);
 	close (shim_args_pipe[0]);
 	close (shim_socket[0]);
-	close (shim_flock_fd);
+	if (shim_flock_fd > -1) {
+		close (shim_flock_fd);
+	}
 
-	return pid;
+	return ret;
 }
 
 /*!
