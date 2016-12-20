@@ -31,6 +31,7 @@
 #include "oci.h"
 
 const gchar *cc_pod_container_id(struct cc_oci_config *config);
+gboolean cc_pod_is_sandbox(struct cc_oci_config *config);
 
 START_TEST(test_cc_pod_container_id) {
 	struct cc_oci_config *config = NULL;
@@ -56,11 +57,29 @@ START_TEST(test_cc_pod_container_id) {
         g_free(config->pod);
 } END_TEST
 
+START_TEST(test_cc_pod_is_sandbox) {
+	struct cc_oci_config *config = NULL;
+	ck_assert(!cc_pod_is_sandbox(config));
+
+	config = cc_oci_config_create ();
+	ck_assert(config);
+	ck_assert(!cc_pod_is_sandbox(config));
+
+	config->pod = g_malloc0 (sizeof (struct cc_pod));
+	ck_assert(config->pod);
+
+	config->pod->sandbox = false;
+	ck_assert(!cc_pod_is_sandbox(config));
+
+	config->pod->sandbox = true;
+	ck_assert(cc_pod_is_sandbox(config));
+} END_TEST
+
 Suite* make_pod_suite(void) {
 	Suite* s = suite_create(__FILE__);
 
 	ADD_TEST (test_cc_pod_container_id, s);
-//	ADD_TEST (test_cc_proxy_disconnect, s);
+	ADD_TEST (test_cc_pod_is_sandbox, s);
 
 	return s;
 }
