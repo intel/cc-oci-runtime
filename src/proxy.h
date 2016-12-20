@@ -28,6 +28,21 @@
 /* allocate 2 streams, stdio and stderr */
 #define IO_STREAMS_NUMBER 2
 
+/*
+ * 4 bytes for the message length.
+ * 4 bytes for the message flags.
+ */
+#define HEADER_MESSAGE_LENGTH 4
+#define HEADER_MESSAGE_FLAGS  4
+#define MESSAGE_HEADER_LENGTH (HEADER_MESSAGE_LENGTH+HEADER_MESSAGE_FLAGS)
+
+/*
+ * As we can not send OOB data through a stream socket
+ * without sending actual data, the proxy will signal
+ * OOB data by sending a single byte message: 'F'.
+ */
+#define OOB_FD_FLAG 'F'
+
 gboolean cc_proxy_connect (struct cc_proxy *proxy);
 gboolean cc_proxy_disconnect (struct cc_proxy *proxy);
 gboolean cc_proxy_wait_until_ready (struct cc_oci_config *config);
