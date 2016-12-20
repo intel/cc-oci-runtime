@@ -574,7 +574,7 @@ cc_oci_create (struct cc_oci_config *config)
 	}
 
 	/* Either start a standalone container or a pod sandbox */
-	if (! config->pod || config->pod->sandbox) {
+	if (cc_pod_is_vm(config)) {
 		if (! cc_oci_vm_launch (config)) {
 			g_critical ("failed to launch VM");
 			goto out;
@@ -737,7 +737,7 @@ cc_oci_start (struct cc_oci_config *config,
 						config->optarg_container_id,
 						config->optarg_container_id,
 						"rootfs", config->optarg_container_id);
-	} else if (config->pod && ! config->pod->sandbox) {
+	} else if (! cc_pod_is_sandbox(config)) {
 		if (! cc_pod_container_start (config)) {
 			ret = false;
 			goto out;
