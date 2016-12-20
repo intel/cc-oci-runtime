@@ -198,8 +198,8 @@ START_TEST(test_cc_oci_setup_shim) {
 	int tmpf2_fd = -1;
 
 	ck_assert (! cc_oci_setup_shim (NULL, -1, -1));
-	ck_assert (! cc_oci_setup_shim (NULL, STDIN_FILENO, -1));
-	ck_assert (! cc_oci_setup_shim (NULL, -1, STDIN_FILENO));
+	ck_assert (! cc_oci_setup_shim (NULL, tmpf1_fd, -1));
+	ck_assert (! cc_oci_setup_shim (NULL, -1, tmpf1_fd));
 
 	tmpf1_fd = g_mkstemp (tmpf1);
 	ck_assert (tmpf1_fd >= 0);
@@ -226,7 +226,6 @@ START_TEST(test_socket_connection_from_fd) {
 	int sockets[2] = { -1, -1 };
 	GSocketConnection *conn = NULL;
 	ck_assert (! socket_connection_from_fd (-1));
-	ck_assert (! socket_connection_from_fd (STDIN_FILENO));
 
 	ck_assert (socketpair(PF_UNIX, SOCK_STREAM, 0, sockets) == 0);
 	close (sockets[0]);
