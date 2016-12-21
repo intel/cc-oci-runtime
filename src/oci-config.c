@@ -157,6 +157,11 @@ cc_oci_config_free (struct cc_oci_config *config)
 		g_free (config->vm);
 	}
 
+	if (config->pod) {
+		g_free_if_set (config->pod->sandbox_name);
+		g_free (config->pod);
+	}
+
 	if (config->oci.process.args) {
 		g_strfreev (config->oci.process.args);
 	}

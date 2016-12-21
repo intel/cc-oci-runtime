@@ -107,7 +107,7 @@ cc_oci_runtime_dir_setup (struct cc_oci_config *config)
 
 	g_debug ("creating directory %s", config->state.runtime_path);
 
-	return ! g_mkdir (config->state.runtime_path, CC_OCI_DIR_MODE);
+	return ! g_mkdir_with_parents (config->state.runtime_path, CC_OCI_DIR_MODE);
 }
 
 /*!

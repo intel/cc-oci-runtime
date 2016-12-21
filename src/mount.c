@@ -221,8 +221,14 @@ cc_oci_handle_mounts (struct cc_oci_config *config)
 	gchar* dirname_dest = NULL;
 	gchar* dirname_parent_dest = NULL;
 	gchar* c = NULL;
+	gchar* workload_dir;
 
 	if (! config) {
+		return false;
+	}
+
+	workload_dir = cc_oci_get_workload_dir(config);
+	if (! workload_dir) {
 		return false;
 	}
 
@@ -236,7 +242,7 @@ cc_oci_handle_mounts (struct cc_oci_config *config)
 
 		g_snprintf (m->dest, sizeof (m->dest),
 				"%s%s",
-				config->oci.root.path, m->mnt.mnt_dir);
+				workload_dir, m->mnt.mnt_dir);
 
 		if (m->mnt.mnt_fsname[0] == '/') {
 			if (stat (m->mnt.mnt_fsname, &st)) {

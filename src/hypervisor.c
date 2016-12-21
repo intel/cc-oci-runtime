@@ -172,6 +172,7 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 	gchar           **arg;
 	gchar            *bytes = NULL;
 	gchar            *console_device = NULL;
+	gchar            *workload_dir;
 	gchar		 *hypervisor_console = NULL;
 	g_autofree gchar *procsock_device = NULL;
 
@@ -207,6 +208,12 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 
 	/* We're about to launch the hypervisor so validate paths.*/
 
+	workload_dir = cc_oci_get_workload_dir(config);
+	if (! workload_dir) {
+		g_critical ("No workload");
+		goto out;
+	}
+
 	if ((!config->vm->image_path[0])
 		|| stat (config->vm->image_path, &st) < 0) {
 		g_critical ("image file: %s does not exist",
@@ -221,10 +228,10 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 		return false;
 	}
 
-	if (!(config->oci.root.path[0]
-		&& g_file_test (config->oci.root.path, G_FILE_TEST_EXISTS|G_FILE_TEST_IS_DIR))) {
+	if (!(workload_dir[0]
+		&& g_file_test (workload_dir, G_FILE_TEST_IS_DIR))) {
 		g_critical ("workload directory: %s does not exist",
-			    config->oci.root.path);
+			    workload_dir);
 		return false;
 	}
 
@@ -276,7 +283,7 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 		const gchar* name;
 		const gchar* value;
 	} special_tags[] = {
-		{ "@WORKLOAD_DIR@"      , config->oci.root.path      },
+		{ "@WORKLOAD_DIR@"      , workload_dir               },
 		{ "@KERNEL@"            , config->vm->kernel_path    },
 		{ "@KERNEL_PARAMS@"     , config->vm->kernel_params  },
 		{ "@KERNEL_NET_PARAMS@" , kernel_net_params          },

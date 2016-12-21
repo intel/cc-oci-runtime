@@ -64,6 +64,7 @@
 #include "common.h"
 #include "logging.h"
 #include "netlink.h"
+#include "pod.h"
 #include "proxy.h"
 #include "command.h"
 
@@ -549,8 +550,8 @@ cc_oci_vm_netcfg_get (struct cc_oci_config *config,
  *
  * \return a GSocketConnection on success, else NULL.
  */
-private GSocketConnection *
-socket_connection_from_fd (int fd)
+GSocketConnection *
+cc_oci_socket_connection_from_fd (int fd)
 {
 	GError            *error = NULL;
 	GSocket           *socket = NULL;
@@ -600,7 +601,7 @@ out:
  *
  * \return \c true on success, else \c false.
  */
-private gboolean
+gboolean
 cc_shim_launch (struct cc_oci_config *config,
 		int *child_err_fd,
 		int *shim_args_fd,
@@ -695,7 +696,7 @@ cc_shim_launch (struct cc_oci_config *config,
 		}
 
 		/* read proxy IO fd from socket out-of-band */
-		connection = socket_connection_from_fd(shim_socket[0]);
+		connection = cc_oci_socket_connection_from_fd(shim_socket[0]);
 		if (!connection) {
 			g_critical ("failed to read proxy IO fd");
 			goto child_failed;
@@ -1198,7 +1199,7 @@ child_failed:
 	}
 
 	/* send proxy IO fd to cc-shim child */
-	shim_socket_connection = socket_connection_from_fd(shim_socket_fd);
+	shim_socket_connection = cc_oci_socket_connection_from_fd(shim_socket_fd);
 	if (! shim_socket_connection) {
 		g_critical("failed to create a socket connection to send proxy IO fd");
 		goto out;
@@ -1429,7 +1430,7 @@ cc_oci_exec_shim (struct cc_oci_config *config, int ioBase, int proxy_io_fd,
 	}
 
 	/* send proxy IO fd to cc-shim child */
-	shim_socket_connection = socket_connection_from_fd(shim_socket_fd);
+	shim_socket_connection = cc_oci_socket_connection_from_fd(shim_socket_fd);
 	if (! shim_socket_connection) {
 		g_critical("failed to create a socket connection to send proxy IO fd");
 		goto out;
@@ -1504,6 +1505,7 @@ cc_oci_vm_connect (struct cc_oci_config *config)
 	int         ioBase = -1;
 	int         proxy_io_fd = -1;
 	gint        exit_code = -1;
+	const gchar *container_id;
 
 	if(! config){
 		goto out;
@@ -1513,7 +1515,12 @@ cc_oci_vm_connect (struct cc_oci_config *config)
 		goto out;
 	}
 
-	if (! cc_proxy_attach (config->proxy, config->optarg_container_id)) {
+	container_id = cc_pod_container_id(config);
+	if (! container_id) {
+		goto out;
+	}
+
+	if (! cc_proxy_attach (config->proxy, container_id)) {
 		goto out;
 	}
 

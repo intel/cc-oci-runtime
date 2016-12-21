@@ -57,6 +57,7 @@
 #include "spec_handler.h"
 #include "command.h"
 #include "proxy.h"
+#include "pod.h"
 
 extern struct start_data start_data;
 
@@ -127,6 +128,29 @@ cc_oci_get_bundlepath_file (const gchar *bundle_path,
 	}
 
 	return g_build_path ("/", bundle_path, file, NULL);
+}
+
+/**
+ * Get the workload directory for a given container.
+ * For pod sandboxes, this is the sandbox workloads directory,
+ * while for regular containers this is the OCI root path.
+ *
+ * \param config Container configuration.
+ *
+ * \return The container workload full path.
+ */
+gchar *
+cc_oci_get_workload_dir (struct cc_oci_config *config)
+{
+	if (! config) {
+		return NULL;
+	}
+
+	if (config->pod) {
+		return config->pod->sandbox_workloads;
+	}
+
+	return config->oci.root.path;
 }
 
 /*!
@@ -213,6 +237,19 @@ cc_oci_kill (struct cc_oci_config *config,
 
 	/* save current status */
 	last_status = config->state.status;
+
+	/* A sandbox is not a running container, nothing to kill here */
+	if (cc_pod_is_sandbox(config)) {
+		config->state.status = OCI_STATUS_STOPPED;
+
+		/* update state file */
+		if (! cc_oci_state_file_create (config, state->create_time)) {
+			g_critical ("failed to recreate state file");
+			goto error;
+		}
+
+		return true;
+	}
 
 	/* stopping container */
 	config->state.status = OCI_STATUS_STOPPING;
@@ -536,9 +573,18 @@ cc_oci_create (struct cc_oci_config *config)
 		return true;
 	}
 
-	if (! cc_oci_vm_launch (config)) {
-		g_critical ("failed to launch VM");
-		goto out;
+	/* Either start a standalone container or a pod sandbox */
+	if (cc_pod_is_vm(config)) {
+		if (! cc_oci_vm_launch (config)) {
+			g_critical ("failed to launch VM");
+			goto out;
+		}
+	} else {
+		/* We want to start a container within a pod */
+		if (! cc_pod_container_create (config)) {
+			g_critical ("failed to launch pod container");
+			goto out;
+		}
 	}
 
 	ret = true;
@@ -644,7 +690,7 @@ cc_oci_start (struct cc_oci_config *config,
 	 *
 	 * Do not wait when console is empty.
 	 */
-	if ((isatty (STDIN_FILENO) && ! config->detached_mode)) {
+	if ((isatty (STDIN_FILENO) && ! config->detached_mode && ! config->pod)) {
 		wait = true;
 	}
 
@@ -681,9 +727,21 @@ cc_oci_start (struct cc_oci_config *config,
 		}
 	}
 
-	if (! cc_proxy_hyper_new_container (config)) {
-	    ret = false;
-	    goto out;
+	if (! config->pod) {
+		if (! cc_proxy_hyper_new_container (config)) {
+			ret = false;
+			goto out;
+		}
+	} else if (cc_pod_is_sandbox(config)) {
+		cc_proxy_hyper_new_pod_container(config,
+						config->optarg_container_id,
+						config->optarg_container_id,
+						"rootfs", config->optarg_container_id);
+	} else if (! cc_pod_is_sandbox(config)) {
+		if (! cc_pod_container_start (config)) {
+			ret = false;
+			goto out;
+		}
 	}
 
 	/* Now the VM is running */
@@ -849,8 +907,21 @@ cc_oci_stop (struct cc_oci_config *config,
 				state->id, state->pid);
 	}
 
+	/*
+	 * We need to update our config so that both
+	 * the pod and mount pointers are accurate.
+	 * OTOH we can't update our config before calling
+	 * cc_oci_vm_running() as config_update() clears
+	 * the state pointer and cc_oci_vm_running would
+	 * always return false.
+	 */
+	if (! cc_oci_config_update (config, state)) {
+		return false;
+	}
+
 	/* Allow the proxy to clean up resources */
-	if (! cc_proxy_cmd_bye (config->proxy, config->optarg_container_id)) {
+	if (cc_pod_is_vm (config) &&
+	    ! cc_proxy_cmd_bye (config->proxy, config->optarg_container_id)) {
 		return false;
 	}
 
@@ -977,6 +1048,11 @@ cc_oci_exec (struct cc_oci_config *config,
 					&config->oci.process)) {
 			goto out;
 		}
+	}
+
+	/* Update config so that the pod pointer is accurate. */
+	if (! cc_oci_config_update (config, state)) {
+		goto out;
 	}
 
 	if (! cc_oci_vm_connect (config)) {
@@ -1408,6 +1484,12 @@ cc_oci_config_update (struct cc_oci_config *config,
 		cc_proxy_free (config->proxy);
 		config->proxy = state->proxy;
 		state->proxy = NULL;
+	}
+
+	if (state->pod) {
+		cc_pod_free (config->pod);
+		config->pod = state->pod;
+		state->pod = NULL;
 	}
 
 	if (state->procsock_path) {

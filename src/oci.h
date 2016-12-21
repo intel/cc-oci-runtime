@@ -432,6 +432,7 @@ struct oci_state {
 
 	struct cc_oci_vm_cfg *vm;
 	struct cc_proxy      *proxy;
+	struct cc_pod        *pod;
 
 	/* Needed by start to create a new container workload  */
 	struct oci_cfg_process *process;
@@ -523,6 +524,31 @@ struct cc_proxy {
 	gchar *vm_console_socket;
 };
 
+/**
+ * Tracks the relationship between a container and
+ * a pod: Is this container part of a Pod ? Is it
+ * a sandbox ? What is the sandbox ID this container
+ * belongs to ?
+ */
+struct cc_pod {
+	/** If \c true, this is a sandbox container. */
+	gboolean sandbox;
+
+	/**
+	 * The sandbox name holds the container ID for the
+	 * sandbox container.
+	 */
+	gchar    *sandbox_name;
+
+	/**
+	 * The sandbox workloads is where all pod containers rootfs
+	 * will be bind mounted.
+	 * A container rootfs will be bind mounted under
+	 * /sandbox_workloads/<container_id>/rootfs.
+	 */
+	gchar    sandbox_workloads[PATH_MAX];
+};
+
 /** The main object holding all configuration data.
  *
  * \note The main user of this object is "start" - other commands
@@ -544,6 +570,9 @@ struct cc_oci_config {
 
 	/** Container-specific state. */
 	struct cc_oci_container_state  state;
+
+	/** Pod-specific configuration. */
+	struct cc_pod                  *pod;
 
 	/** Path to directory containing OCI bundle to run. */
 	gchar *bundle_path;
@@ -579,6 +608,7 @@ gboolean cc_oci_run (struct cc_oci_config *config);
 void cc_oci_config_free (struct cc_oci_config *config);
 gchar *cc_oci_get_bundlepath_file (const gchar *bundle_path,
 		const gchar *file);
+gchar *cc_oci_get_workload_dir (struct cc_oci_config *config);
 gboolean cc_oci_get_config_and_state (gchar **config_file,
 		struct cc_oci_config *config,
 		struct oci_state **state);

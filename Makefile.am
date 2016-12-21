@@ -174,6 +174,7 @@ common_sources = \
 	src/json.c src/json.h \
 	src/proxy.c src/proxy.h \
 	src/spec_handler.c src/spec_handler.h \
+	src/pod.c src/pod.h \
 	src/common.h \
 	src/command.c src/command.h \
 	src/commands/create.c \
@@ -439,6 +440,7 @@ TESTS = \
 	namespace_test \
 	oci_config_test \
 	oci_test \
+	pod_test \
 	priv_test \
 	proxy_test \
 	process_test \
@@ -738,6 +740,17 @@ sh_hooks_test_CFLAGS = \
 	$(TEST_COMMON_CFLAGS)
 
 sh_hooks_test_LDADD = \
+	$(TEST_COMMON_LDADD)
+
+## pod.c test ##
+pod_test_SOURCES = \
+	$(TEST_COMMON_SOURCES) \
+	tests/pod_test.c
+
+pod_test_CFLAGS = \
+	$(TEST_COMMON_CFLAGS)
+
+pod_test_LDADD = \
 	$(TEST_COMMON_LDADD)
 
 CLEANFILES += tests/*~ tests/*.log tests/*.trs
