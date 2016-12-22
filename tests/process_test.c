@@ -41,7 +41,8 @@ gboolean cc_run_hook (struct oci_cfg_hook* hook,
 		gsize state_length);
 gboolean cc_oci_setup_shim (struct cc_oci_config *config,
 		int proxy_fd,
-		int proxy_io_fd);
+		int proxy_io_fd,
+		int shim_flock_fd);
 GSocketConnection *cc_oci_socket_connection_from_fd (int fd);
 gboolean cc_oci_setup_child (struct cc_oci_config *config);
 gboolean cc_oci_vm_netcfg_get (struct cc_oci_config *config,
@@ -194,32 +195,45 @@ START_TEST(test_cc_oci_setup_shim) {
 	struct cc_oci_config config = { { 0 } };
 	char tmpf1[] = "/tmp/.tmpXXXXXX";
 	char tmpf2[] = "/tmp/.tmpXXXXXX";
+	char tmpf3[] = "/tmp/.tmpXXXXXX";
 	int tmpf1_fd = -1;
 	int tmpf2_fd = -1;
+	int flock_fd = -1;
 
-	ck_assert (! cc_oci_setup_shim (NULL, -1, -1));
-	ck_assert (! cc_oci_setup_shim (NULL, tmpf1_fd, -1));
-	ck_assert (! cc_oci_setup_shim (NULL, -1, tmpf1_fd));
+	ck_assert (! cc_oci_setup_shim (NULL, -1, -1, -1));
 
 	tmpf1_fd = g_mkstemp (tmpf1);
 	ck_assert (tmpf1_fd >= 0);
 
+	ck_assert (! cc_oci_setup_shim (NULL, tmpf1_fd, -1, -1));
+
 	tmpf2_fd = g_mkstemp (tmpf2);
 	ck_assert (tmpf2_fd >= 0);
 
-	config.oci.process.terminal = false;
-	ck_assert (cc_oci_setup_shim (&config, tmpf1_fd, tmpf2_fd));
+	ck_assert (! cc_oci_setup_shim (NULL, tmpf1_fd, tmpf2_fd, -1));
 
-	tmpf1_fd = open (tmpf1, O_RDWR);
-	tmpf2_fd = open (tmpf2, O_RDWR);
+	flock_fd = g_mkstemp (tmpf3);
+	ck_assert (flock_fd >= 0);
+
+	ck_assert (! cc_oci_setup_shim (NULL, tmpf1_fd, tmpf2_fd, flock_fd));
+
+	config.oci.process.terminal = false;
+	ck_assert (cc_oci_setup_shim (&config, tmpf1_fd, tmpf2_fd, flock_fd));
 
 	config.oci.process.terminal = true;
 	config.console = g_strdup("/dev/ptmx");
-	ck_assert (! cc_oci_setup_shim (&config, tmpf1_fd, tmpf2_fd));
+	ck_assert (! cc_oci_setup_shim (&config, tmpf1_fd, tmpf2_fd, flock_fd));
 
 	g_free (config.console);
+
+	if (tmpf1_fd > -1) { close (tmpf1_fd); }
+	if (tmpf2_fd > -1) { close (tmpf2_fd); }
+	if (flock_fd > -1) { close (flock_fd); }
+
 	cc_oci_rm_rf (tmpf1);
 	cc_oci_rm_rf (tmpf2);
+	cc_oci_rm_rf (tmpf3);
+
 } END_TEST
 
 START_TEST(test_socket_connection_from_fd) {
