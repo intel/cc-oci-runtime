@@ -29,6 +29,7 @@
 #include "logging.h"
 #include "pod.h"
 #include "oci.h"
+#include "oci-config.h"
 
 const gchar *cc_pod_container_id(struct cc_oci_config *config);
 gboolean cc_pod_is_sandbox(struct cc_oci_config *config);
@@ -36,6 +37,7 @@ gboolean cc_pod_is_vm(struct cc_oci_config *config);
 
 START_TEST(test_cc_pod_container_id) {
 	struct cc_oci_config *config = NULL;
+
 	ck_assert(!cc_pod_container_id(config));
 
 	config = cc_oci_config_create ();
@@ -48,18 +50,20 @@ START_TEST(test_cc_pod_container_id) {
 	config->pod = g_malloc0 (sizeof (struct cc_pod));
 	ck_assert(config->pod);
 
-	config->pod->sandbox_name = "sandbox1";
+	config->pod->sandbox_name = g_strdup("sandbox1");
 	config->pod->sandbox = false;
 	ck_assert(! g_strcmp0(cc_pod_container_id(config), "sandbox1"));
 
 	config->pod->sandbox = true;
 	ck_assert(! g_strcmp0(cc_pod_container_id(config), "pod1"));
 
-        g_free(config->pod);
+	/* clean up */
+	cc_oci_config_free (config);
 } END_TEST
 
 START_TEST(test_cc_pod_is_sandbox) {
 	struct cc_oci_config *config = NULL;
+
 	ck_assert(!cc_pod_is_sandbox(config));
 
 	config = cc_oci_config_create ();
@@ -74,10 +78,14 @@ START_TEST(test_cc_pod_is_sandbox) {
 
 	config->pod->sandbox = true;
 	ck_assert(cc_pod_is_sandbox(config));
+
+	/* clean up */
+	cc_oci_config_free (config);
 } END_TEST
 
 START_TEST(test_cc_pod_is_vm) {
 	struct cc_oci_config *config = NULL;
+
 	ck_assert(cc_pod_is_vm(config));
 
 	config = cc_oci_config_create ();
@@ -92,6 +100,9 @@ START_TEST(test_cc_pod_is_vm) {
 
 	config->pod->sandbox = true;
 	ck_assert(cc_pod_is_vm(config));
+
+	/* clean up */
+	cc_oci_config_free (config);
 } END_TEST
 
 Suite* make_pod_suite(void) {

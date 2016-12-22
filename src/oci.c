@@ -1050,11 +1050,6 @@ cc_oci_exec (struct cc_oci_config *config,
 		}
 	}
 
-	/* Update config so that the pod pointer is accurate. */
-	if (! cc_oci_config_update (config, state)) {
-		goto out;
-	}
-
 	if (! cc_oci_vm_connect (config)) {
 		g_critical ("failed to connect to VM");
 		goto out;
