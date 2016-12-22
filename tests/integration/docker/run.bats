@@ -33,3 +33,12 @@ setup() {
 	[ "${status}" -eq 0 ]
 	[[ "${output}" == 'Passed'* ]]
 }
+
+@test "stdout using run" {
+	$DOCKER_EXE run busybox sh -c "ls /etc/resolv.conf 2>/dev/null | grep "/etc/resolv.conf""
+}
+
+@test "stderr using run" {
+	skip "this is not working (https://github.com/01org/cc-oci-runtime/issues/171)"
+	$DOCKER_EXE run busybox sh -c "if ls /etc/foo > /dev/null; then false; else true; fi"
+}
