@@ -165,8 +165,13 @@ handler_exec (const struct subcommand *sub,
 
 	process->user.uid = start_data.user.uid;
 	process->user.gid = start_data.user.gid;
-	process->terminal = (start_data.console != NULL ? true : false);
 	process->env = env;
+	if ((start_data.console != NULL) && (start_data.console[0])) {
+		process->terminal = true;
+	} else {
+		process->terminal = false;
+	}
+
 	if (cwd){
 		if (snprintf (process->cwd, sizeof(process->cwd),
 		    "%s", cwd) < 0) {
