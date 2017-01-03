@@ -21,6 +21,8 @@
 load common
 
 function setup() {
+	version_regex="([0-9]|\.|-|[a-z])+"
+	commit_regex="([0-9]|[a-z])+"
 	setup_common
 }
 
@@ -31,22 +33,23 @@ function teardown() {
 @test "cor -v" {
 	run $COR -v
 	[ "$status" -eq 0 ]
-	[[ "${lines[0]}" =~ cc-oci-runtime\ version:\ [0-9.]+ ]]
-	[[ "${lines[1]}" =~ spec\ version:\ [0-9.]+ ]]
+	echo "${lines[0]}" | grep -P "cc-oci-runtime\s+version:\s+$version_regex"
+	echo "${lines[1]}" | grep -P "spec\s+version:\s+$version_regex"
+	echo "${lines[2]}" | grep -P "commit:\s+$commit_regex"
 }
 
 @test "cor --version" {
 	run $COR --version
 	[ "$status" -eq 0 ]
-	[[ "${lines[0]}" =~ cc-oci-runtime\ version:\ [0-9.]+ ]]
-	[[ "${lines[1]}" =~ spec\ version:\ [0-9.]+ ]]
-	[[ "${lines[2]}" =~ commit:\ [0-9a-f]+ ]]
+	echo "${lines[0]}" | grep -P "cc-oci-runtime\s+version:\s+$version_regex"
+	echo "${lines[1]}" | grep -P "spec\s+version:\s+$version_regex"
+	echo "${lines[2]}" | grep -P "commit:\s+$commit_regex"
 }
 
 @test "cor version" {
 	run $COR version
 	[ "$status" -eq 0 ]
-	[[ "${lines[0]}" =~ cc-oci-runtime\ version:\ [0-9.]+ ]]
-	[[ "${lines[1]}" =~ spec\ version:\ [0-9.]+ ]]
-	[[ "${lines[2]}" =~ commit:\ [0-9a-f]+ ]]
+	echo "${lines[0]}" | grep -P "cc-oci-runtime\s+version:\s+$version_regex"
+	echo "${lines[1]}" | grep -P "spec\s+version:\s+$version_regex"
+	echo "${lines[2]}" | grep -P "commit:\s+$commit_regex"
 }
