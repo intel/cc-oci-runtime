@@ -39,6 +39,11 @@
 
 /* globals */
 
+struct pollfd poll_fds[MAX_POLL_FDS] = {{-1}};
+
+// stdin is always added at index 3 in the poll_fds array
+#define STDIN_INDEX 3
+
 /* Pipe used for capturing signal occurence */
 int signal_pipe_fd[2] = { -1, -1 };
 
@@ -304,9 +309,14 @@ handle_stdin(struct cc_shim *shim)
 	}
 
 	nread = read(STDIN_FILENO , buf+STREAM_HEADER_SIZE, BUFSIZ);
-	if (nread <= 0) {
+	if (nread < 0) {
 		shim_warning("Error while reading stdin char :%s\n", strerror(errno));
 		return;
+	} else if (nread == 0) {
+		/* EOF received on stdin, send eof to hyperstart and remove stdin fd from
+		 * the polled descriptors to prevent further eof events
+		 */
+		poll_fds[STDIN_INDEX].fd = -1;
 	}
 
 	len = nread + STREAM_HEADER_SIZE;
@@ -543,7 +553,6 @@ main(int argc, char **argv)
 		.err_seq_no     =  0,
 		.exiting        =  false,
 	};
-	struct pollfd      poll_fds[MAX_POLL_FDS] = {{-1}};
 	nfds_t             nfds = 0;
 	int                ret;
 	struct sigaction   sa;
@@ -687,6 +696,9 @@ main(int argc, char **argv)
 		cfmakeraw(&term_settings);
 		tcsetattr(STDIN_FILENO, TCSAFLUSH, &term_settings);
 
+		add_pollfd(poll_fds, &nfds, STDIN_FILENO, POLLIN | POLLPRI);
+	} else if (fcntl(STDIN_FILENO, F_GETFD) != -1) {
+		set_fd_nonblocking(STDIN_FILENO);
 		add_pollfd(poll_fds, &nfds, STDIN_FILENO, POLLIN | POLLPRI);
 	}
 
