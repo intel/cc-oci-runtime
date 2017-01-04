@@ -691,7 +691,7 @@ main(int argc, char **argv)
 	}
 
 	ret = atexit(restore_terminal);
-	if ( !ret) {
+	if (ret) {
 		shim_debug("Could not register function for atexit");
 	}
 
