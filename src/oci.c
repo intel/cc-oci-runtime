@@ -1050,6 +1050,16 @@ cc_oci_exec (struct cc_oci_config *config,
 		}
 	}
 
+	/*
+	 * We need an accurate pod pointer in order
+	 * to attach to the right VM
+	 */
+	if (state->pod) {
+		cc_pod_free (config->pod);
+		config->pod = state->pod;
+		state->pod = NULL;
+	}
+
 	if (! cc_oci_vm_connect (config)) {
 		g_critical ("failed to connect to VM");
 		goto out;
