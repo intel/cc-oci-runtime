@@ -39,6 +39,14 @@
 
 /* globals */
 
+struct pollfd poll_fds[MAX_POLL_FDS] = {{-1}};
+
+// File descriptors are added at specific index in the poll_fds array
+#define SIGNAL_FD_INDEX 0
+#define PROXY_IO_INDEX 1
+#define PROXY_CTL_INDEX 2
+#define STDIN_INDEX 3
+
 /* Pipe used for capturing signal occurence */
 int signal_pipe_fd[2] = { -1, -1 };
 
@@ -50,21 +58,21 @@ struct termios *saved_term_settings;
  * Add file descriptor to the array of polled descriptors
  *
  * \param poll_fds Array of polled fds
- * \param nfds Number of fds present in the array
+ * \param index Index at which the fd is added
  * \param fd File descriptor to add
  * \param events Events for the fd that should be polled
  */
-void add_pollfd(struct pollfd *poll_fds, nfds_t *nfds, int fd,  short events) {
+void add_pollfd(struct pollfd *poll_fds, nfds_t index, int fd,  short events) {
 	struct pollfd pfd = { 0 };
 
-	if ( !poll_fds || !nfds || fd < 0) {
+	if ( !poll_fds || fd < 0 || index >= MAX_POLL_FDS) {
+		shim_warning("Not able to add fd to poll_fds array\n");
 		return;
 	}
-	assert(*nfds < MAX_POLL_FDS);
+
 	pfd.fd = fd;
 	pfd.events = events;
-	poll_fds[*nfds] = pfd;
-	(*nfds)++;
+	poll_fds[index] = pfd;
 }
 
 /*!
@@ -304,9 +312,14 @@ handle_stdin(struct cc_shim *shim)
 	}
 
 	nread = read(STDIN_FILENO , buf+STREAM_HEADER_SIZE, BUFSIZ);
-	if (nread <= 0) {
+	if (nread < 0) {
 		shim_warning("Error while reading stdin char :%s\n", strerror(errno));
 		return;
+	} else if (nread == 0) {
+		/* EOF received on stdin, send eof to hyperstart and remove stdin fd from
+		 * the polled descriptors to prevent further eof events
+		 */
+		poll_fds[STDIN_INDEX].fd = -1;
 	}
 
 	len = nread + STREAM_HEADER_SIZE;
@@ -543,8 +556,6 @@ main(int argc, char **argv)
 		.err_seq_no     =  0,
 		.exiting        =  false,
 	};
-	struct pollfd      poll_fds[MAX_POLL_FDS] = {{-1}};
-	nfds_t             nfds = 0;
 	int                ret;
 	struct sigaction   sa;
 	int                c;
@@ -645,7 +656,7 @@ main(int argc, char **argv)
 	}
 
 	// Add read end of pipe to pollfd list and make it non-bocking
-	add_pollfd(poll_fds, &nfds, signal_pipe_fd[0], POLLIN | POLLPRI);
+	add_pollfd(poll_fds, SIGNAL_FD_INDEX, signal_pipe_fd[0], POLLIN | POLLPRI);
 	if (! set_fd_nonblocking(signal_pipe_fd[0])) {
 		exit(EXIT_FAILURE);
 	}
@@ -662,9 +673,9 @@ main(int argc, char **argv)
 		err_exit("sigaction");
 	}
 
-	add_pollfd(poll_fds, &nfds, shim.proxy_io_fd, POLLIN | POLLPRI);
+	add_pollfd(poll_fds, PROXY_IO_INDEX, shim.proxy_io_fd, POLLIN | POLLPRI);
 
-	add_pollfd(poll_fds, &nfds, shim.proxy_sock_fd, POLLIN | POLLPRI);
+	add_pollfd(poll_fds, PROXY_CTL_INDEX, shim.proxy_sock_fd, POLLIN | POLLPRI);
 
 	/* Add stdin only if it is attached to a terminal.
 	 * If we add stdin in the non-interactive case, since stdin is closed by docker
@@ -687,7 +698,10 @@ main(int argc, char **argv)
 		cfmakeraw(&term_settings);
 		tcsetattr(STDIN_FILENO, TCSAFLUSH, &term_settings);
 
-		add_pollfd(poll_fds, &nfds, STDIN_FILENO, POLLIN | POLLPRI);
+		add_pollfd(poll_fds, STDIN_INDEX, STDIN_FILENO, POLLIN | POLLPRI);
+	} else if (fcntl(STDIN_FILENO, F_GETFD) != -1) {
+		set_fd_nonblocking(STDIN_FILENO);
+		add_pollfd(poll_fds, STDIN_INDEX, STDIN_FILENO, POLLIN | POLLPRI);
 	}
 
 	ret = atexit(restore_terminal);
@@ -695,36 +709,30 @@ main(int argc, char **argv)
 		shim_debug("Could not register function for atexit");
 	}
 
-	/*	0 =>signal_pipe_fd[0]
-		1 =>proxy_io_fd
-		2 =>sockfd
-		3 =>stdin
-	*/
-
 	while (1) {
-		ret = poll(poll_fds, nfds, -1);
+		ret = poll(poll_fds, MAX_POLL_FDS, -1);
 		if (ret == -1 && errno != EINTR) {
 			shim_error("Error in poll : %s\n", strerror(errno));
 			break;
 		}
 
 		/* check if signal was received first */
-		if (poll_fds[0].revents != 0) {
+		if (poll_fds[SIGNAL_FD_INDEX].revents != 0) {
 			handle_signals(&shim);
 		}
 
 		//check proxy_io_fd
-		if (poll_fds[1].revents != 0) {
+		if (poll_fds[PROXY_IO_INDEX].revents != 0) {
 			handle_proxy_output(&shim);
 		}
 
 		// check for proxy sockfd
-		if (poll_fds[2].revents != 0) {
+		if (poll_fds[PROXY_CTL_INDEX].revents != 0) {
 			handle_proxy_ctl(&shim);
 		}
 
 		// check stdin fd
-		if (poll_fds[3].revents != 0) {
+		if (poll_fds[STDIN_INDEX].revents != 0) {
 			handle_stdin(&shim);
 		}
 	}
