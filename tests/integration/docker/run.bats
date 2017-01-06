@@ -42,3 +42,11 @@ setup() {
 	skip "this is not working (https://github.com/01org/cc-oci-runtime/issues/171)"
 	$DOCKER_EXE run busybox sh -c "if ls /etc/foo > /dev/null; then false; else true; fi"
 }
+
+@test "stdin from pipe" {
+	run bash -c "echo hello | $DOCKER_EXE run -i busybox"
+	echo status: "${status}"
+	echo output: "${output}"
+	[[ "${status}" == 127 ]]
+	[[ "${output}" =~ "sh: hello: not found" ]]
+}
