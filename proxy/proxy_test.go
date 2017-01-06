@@ -268,7 +268,7 @@ func TestAttach(t *testing.T) {
 	assert.NotNil(t, err)
 
 	// Attaching to an existing VM should work. To test we are effectively
-	// attached, we issue a bye that would error out if not attatched.
+	// attached, we issue a bye that would error out if not attached.
 	err = rig.Client.Attach(testContainerID)
 	assert.Nil(t, err)
 	err = rig.Client.Bye(testContainerID)
