@@ -460,5 +460,7 @@ func TestAllocateIo(t *testing.T) {
 	assert.Equal(t, 1, len(data))
 	assert.Equal(t, uint8(17), data[0])
 
+	ioFile.Close()
+
 	rig.Stop()
 }
