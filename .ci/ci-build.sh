@@ -63,16 +63,4 @@ fi
  && sudo make install \
  && make check)
 
-# go checks
-export go_packages=$(go list ./... | grep -v cc-oci-runtime/vendor |\
-    sed -e 's#.*/cc-oci-runtime/#./#')
-
-go list -f '{{.Dir}}/*.go' $go_packages |\
-    xargs -I % bash -c "misspell -error %"
-go vet $go_packages
-go list -f '{{.Dir}}' $go_packages |\
-    xargs gofmt -s -l | wc -l |\
-    xargs -I % bash -c "test % -eq 0"
-go list -f '{{.Dir}}' $go_packages | xargs gocyclo -over 15
-
-for p in $go_packages; do golint -set_exit_status $p; done
+$(dirname "$0")/ci-go-static-checks.sh
