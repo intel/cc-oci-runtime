@@ -1,0 +1,7 @@
+2.1.0-rc.3:
+    Added docker tests for handling pipe input
+    Added pprof data export through HTTP
+    Fixed CRI-O exec support
+    Fixed shim atexit return value
+    Fixed docker pipe inout handling (Issue #506)
+    Fixed version functional test
