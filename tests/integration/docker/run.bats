@@ -35,12 +35,17 @@ setup() {
 }
 
 @test "stdout using run" {
-	$DOCKER_EXE run busybox sh -c "ls /etc/resolv.conf 2>/dev/null | grep "/etc/resolv.conf""
+	run bash -c "$DOCKER_EXE run busybox ls /etc/resolv.conf"
+	[[ "${output}" =~ "/etc/resolv.conf" ]]
+	run bash -c "$DOCKER_EXE run busybox ls /etc/resolv.conf 1>/dev/null"
+	[ -z "${output}" ]
 }
 
 @test "stderr using run" {
-	skip "this is not working (https://github.com/01org/cc-oci-runtime/issues/171)"
-	$DOCKER_EXE run busybox sh -c "if ls /etc/foo > /dev/null; then false; else true; fi"
+	run bash -c "$DOCKER_EXE run busybox ls /etc/foo"
+	[[ "${output}" =~ "ls: /etc/foo: No such file or directory" ]]
+	run bash -c "$DOCKER_EXE run busybox ls /etc/foo 2>/dev/null"
+	[ -z "${output}" ]
 }
 
 @test "stdin from pipe" {
