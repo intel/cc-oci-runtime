@@ -289,12 +289,12 @@ func TestAttach(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Attaching to an unknown VM should return an error
-	err = rig.Client.Attach("foo")
+	_, err = rig.Client.Attach("foo", nil)
 	assert.NotNil(t, err)
 
 	// Attaching to an existing VM should work. To test we are effectively
 	// attached, we issue a bye that would error out if not attached.
-	err = rig.Client.Attach(testContainerID)
+	_, err = rig.Client.Attach(testContainerID, nil)
 	assert.Nil(t, err)
 	err = rig.Client.Bye(testContainerID)
 	assert.Nil(t, err)
