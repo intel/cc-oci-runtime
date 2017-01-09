@@ -58,12 +58,17 @@ type testRig struct {
 
 	// client
 	Client *api.Client
+
+	// fd leak detection
+	detector          *FdLeakDetector
+	startFds, stopFds *FdSnapshot
 }
 
 func newTestRig(t *testing.T, proto *protocol) *testRig {
 	return &testRig{
 		t:        t,
 		protocol: proto,
+		detector: NewFdLeadDetector(),
 	}
 }
 
@@ -72,6 +77,11 @@ func (rig *testRig) SetFork(fork bool) {
 }
 
 func (rig *testRig) Start() {
+	var err error
+
+	rig.startFds, err = rig.detector.Snapshot()
+	assert.Nil(rig.t, err)
+
 	initLogging()
 	flag.Parse()
 
@@ -91,10 +101,7 @@ func (rig *testRig) Start() {
 	// Passing a file descriptor through connected AF_UNIX sockets in the
 	// same thread has a slight behaviour difference which breaks the
 	// barrier between two reads(), so we spawn a process in that case.
-	var (
-		clientConn net.Conn
-		err        error
-	)
+	var clientConn net.Conn
 
 	if rig.proxyFork {
 		rig.proxySocketPath = mock.GetTmpPath("test-proxy.%s.sock")
@@ -159,6 +166,8 @@ func TestLaunchProxy(t *testing.T) {
 }
 
 func (rig *testRig) Stop() {
+	var err error
+
 	rig.Client.Close()
 
 	if rig.proxyCommand != nil {
@@ -182,6 +191,14 @@ func (rig *testRig) Stop() {
 	if rig.proxy != nil {
 		rig.proxy.wg.Wait()
 	}
+
+	// We shouldn't have leaked a fd between the beginning of Start() and
+	// the end of Stop().
+	rig.stopFds, err = rig.detector.Snapshot()
+	assert.Nil(rig.t, err)
+
+	assert.True(rig.t,
+		rig.detector.Compare(os.Stdout, rig.startFds, rig.stopFds))
 }
 
 const testContainerID = "0987654321"
