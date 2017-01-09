@@ -43,7 +43,6 @@ setup() {
 }
 
 @test "copying file from host to container using exec" {
-	skip "Read from external pipe does not work (https://github.com/01org/cc-oci-runtime/issues/506)"
 	content="hello world"
 	$DOCKER_EXE run --name containertest -d ubuntu bash -c "sleep 30"
 	echo $content | $DOCKER_EXE exec -i containertest bash -c "cat > /home/file.txt"
@@ -56,7 +55,6 @@ setup() {
 }
 
 @test "stderr forwarded using exec" {
-        skip "stderr forwarded does not work"
         $DOCKER_EXE run --name containertest -d ubuntu bash -c "sleep 30"
         if $DOCKER_EXE exec containertest ls /etc/foo >/dev/null; then false; else true; fi	
 }
