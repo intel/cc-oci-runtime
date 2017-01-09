@@ -212,11 +212,11 @@ func TestHello(t *testing.T) {
 
 	// Register new VM
 	ctlSocketPath, ioSocketPath := rig.Hyperstart.GetSocketPaths()
-	err := rig.Client.Hello(testContainerID, ctlSocketPath, ioSocketPath)
+	_, err := rig.Client.Hello(testContainerID, ctlSocketPath, ioSocketPath, nil)
 	assert.Nil(t, err)
 
 	// A new Hello message with the same containerID should error out
-	err = rig.Client.Hello(testContainerID, "fooCtl", "fooIo")
+	_, err = rig.Client.Hello(testContainerID, "fooCtl", "fooIo", nil)
 	assert.NotNil(t, err)
 
 	// Hello should register a new vm object
@@ -245,7 +245,7 @@ func TestBye(t *testing.T) {
 
 	// Register new VM
 	ctlSocketPath, ioSocketPath := rig.Hyperstart.GetSocketPaths()
-	err := rig.Client.Hello(testContainerID, ctlSocketPath, ioSocketPath)
+	_, err := rig.Client.Hello(testContainerID, ctlSocketPath, ioSocketPath, nil)
 	assert.Nil(t, err)
 
 	// Bye with a bad containerID
@@ -285,7 +285,7 @@ func TestAttach(t *testing.T) {
 
 	// Register new VM
 	ctlSocketPath, ioSocketPath := rig.Hyperstart.GetSocketPaths()
-	err := rig.Client.Hello(testContainerID, ctlSocketPath, ioSocketPath)
+	_, err := rig.Client.Hello(testContainerID, ctlSocketPath, ioSocketPath, nil)
 	assert.Nil(t, err)
 
 	// Attaching to an unknown VM should return an error
@@ -315,7 +315,7 @@ func TestHyperPing(t *testing.T) {
 	rig.Start()
 
 	ctlSocketPath, ioSocketPath := rig.Hyperstart.GetSocketPaths()
-	err := rig.Client.Hello(testContainerID, ctlSocketPath, ioSocketPath)
+	_, err := rig.Client.Hello(testContainerID, ctlSocketPath, ioSocketPath, nil)
 	assert.Nil(t, err)
 
 	// Send ping and verify we have indeed received the message on the
@@ -344,7 +344,7 @@ func TestHyperStartpod(t *testing.T) {
 
 	// Register new VM
 	ctlSocketPath, ioSocketPath := rig.Hyperstart.GetSocketPaths()
-	err := rig.Client.Hello(testContainerID, ctlSocketPath, ioSocketPath)
+	_, err := rig.Client.Hello(testContainerID, ctlSocketPath, ioSocketPath, nil)
 	assert.Nil(t, err)
 
 	// Send startopd and verify we have indeed received the message on the
@@ -427,7 +427,7 @@ func TestAllocateIo(t *testing.T) {
 
 	// Register new VM
 	ctlSocketPath, ioSocketPath := rig.Hyperstart.GetSocketPaths()
-	err := rig.Client.Hello(testContainerID, ctlSocketPath, ioSocketPath)
+	_, err := rig.Client.Hello(testContainerID, ctlSocketPath, ioSocketPath, nil)
 	assert.Nil(t, err)
 
 	// Allocate 2 seq numbers and verify we can use the fd passed from

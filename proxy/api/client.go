@@ -112,20 +112,38 @@ func errorFromResponse(resp *Response) error {
 	return nil
 }
 
+// HelloOptions holds extra arguments one can pass to the Hello function. See
+// the Hello payload for more details.
+type HelloOptions struct {
+	Console string
+}
+
+// HelloReturn contains the return values from Hello. See the Hello and
+// HelloResult payloads.
+type HelloReturn struct {
+}
+
 // Hello wraps the Hello payload (see payload description for more details)
-func (client *Client) Hello(containerID, ctlSerial, ioSerial string) error {
+func (client *Client) Hello(containerID, ctlSerial, ioSerial string,
+	options *HelloOptions) (*HelloReturn, error) {
 	hello := Hello{
 		ContainerID: containerID,
 		CtlSerial:   ctlSerial,
 		IoSerial:    ioSerial,
 	}
 
-	resp, err := client.sendPayload("hello", &hello)
-	if err != nil {
-		return err
+	if options != nil {
+		hello.Console = options.Console
 	}
 
-	return errorFromResponse(resp)
+	resp, err := client.sendPayload("hello", &hello)
+	if err != nil {
+		return nil, err
+	}
+
+	ret := &HelloReturn{}
+
+	return ret, errorFromResponse(resp)
 }
 
 // Attach wraps the Attach payload (see payload description for more details)
