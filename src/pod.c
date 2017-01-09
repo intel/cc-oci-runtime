@@ -93,10 +93,12 @@ add_container_mount(struct cc_oci_config *config) {
 	return true;
 
 error:
-	g_free_if_set(m->mnt.mnt_dir);
-	g_free_if_set(m->mnt.mnt_fsname);
-	g_free_if_set(m->mnt.mnt_type);
-	g_free_if_set(m);
+	if (m) {
+		g_free_if_set(m->mnt.mnt_dir);
+		g_free_if_set(m->mnt.mnt_fsname);
+		g_free_if_set(m->mnt.mnt_type);
+		g_free_if_set(m);
+	}
 
 	return false;
 }

@@ -409,9 +409,7 @@ read_IO_message(struct cc_shim *shim, uint64_t *seq, ssize_t *stream_len) {
 	return buf;
 
 err:
-	if (buf) {
-		free(buf);
-	}
+	free(buf);
 	return NULL;
 }
 
