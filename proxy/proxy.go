@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"path/filepath"
 	"sync"
@@ -370,11 +372,41 @@ func initLogging() {
 	}
 }
 
+type profiler struct {
+	enabled bool
+	host    string
+	port    uint
+}
+
+func (p *profiler) setup() {
+	if !p.enabled {
+		return
+	}
+
+	addr := fmt.Sprintf("%s:%d", p.host, p.port)
+	url := "http://" + addr + "/debug/pprof"
+	glog.V(1).Info("pprof enabled on " + url)
+
+	go func() {
+		http.ListenAndServe(addr, nil)
+	}()
+}
+
 func main() {
+	var pprof profiler
+
 	initLogging()
+
+	flag.BoolVar(&pprof.enabled, "pprof", false,
+		"enable pprof ")
+	flag.StringVar(&pprof.host, "pprof-host", "localhost",
+		"host the pprof server will be bound to")
+	flag.UintVar(&pprof.port, "pprof-port", 6060,
+		"port the pprof server will be bound to")
 
 	flag.Parse()
 	defer glog.Flush()
 
+	pprof.setup()
 	proxyMain()
 }
