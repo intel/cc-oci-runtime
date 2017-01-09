@@ -178,6 +178,10 @@ func (rig *testRig) Stop() {
 	rig.Hyperstart.Stop()
 
 	rig.wg.Wait()
+
+	if rig.proxy != nil {
+		rig.proxy.wg.Wait()
+	}
 }
 
 const testContainerID = "0987654321"

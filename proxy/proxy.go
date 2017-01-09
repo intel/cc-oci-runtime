@@ -46,6 +46,8 @@ type proxy struct {
 
 	// Output the VM console on stderr
 	enableVMConsole bool
+
+	wg sync.WaitGroup
 }
 
 // Represents a client, either a cc-oci-runtime or cc-shim process having
@@ -119,6 +121,14 @@ func helloHandler(data []byte, userData interface{}, response *handlerResponse) 
 	}
 
 	client.vm = vm
+
+	// We start one goroutine per-VM to monitor the qemu process
+	proxy.wg.Add(1)
+	go func() {
+		<-vm.OnVMLost()
+		vm.Close()
+		proxy.wg.Done()
+	}()
 }
 
 // "attach"
@@ -148,6 +158,12 @@ func attachHandler(data []byte, userData interface{}, response *handlerResponse)
 
 // "bye"
 func byeHandler(data []byte, userData interface{}, response *handlerResponse) {
+	// Bye only affects the proxy.vms map and so removes the VM from the
+	// client visible API.
+	// vm.Close(), which tears down the VM object, is done at the end of
+	// the VM life cycle, when  we detect the qemu process is effectively
+	// gone (see helloHandler)
+
 	client := userData.(*client)
 	proxy := client.proxy
 
@@ -173,7 +189,6 @@ func byeHandler(data []byte, userData interface{}, response *handlerResponse) {
 	proxy.Unlock()
 
 	client.vm = nil
-	vm.Close()
 }
 
 // "allocateIO"
@@ -359,6 +374,16 @@ func proxyMain() {
 		os.Exit(1)
 	}
 	proxy.serve()
+
+	// Wait for all the goroutines started by helloHandler to finish.
+	//
+	// Not stricly necessary as:
+	//   • currently proxy.serve() cannot return,
+	//   • even if it was, the process is about to exit anyway...
+	//
+	// That said, this wait group is used in the tests to ensure proper
+	// serialisation between runs of proxyMain()(see proxy/proxy_test.go).
+	proxy.wg.Wait()
 }
 
 func initLogging() {
