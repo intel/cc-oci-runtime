@@ -1606,7 +1606,9 @@ cc_proxy_hyper_exec_command (struct cc_oci_config *config)
 		json_array_add_object_element (envs, env_var);
 	}
 
-	json_object_set_string_member (process_node, "workdir", process->cwd);
+	if (process->cwd[0]) {
+		json_object_set_string_member (process_node, "workdir", process->cwd);
+	}
 	json_object_set_array_member (process_node, "args", args);
 	json_object_set_array_member (process_node, "envs", envs);
 	json_object_set_object_member (payload,

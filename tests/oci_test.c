@@ -1091,6 +1091,7 @@ START_TEST(test_cc_oci_exec) {
 	struct cc_oci_config config = { { 0 } };
 	struct oci_state state;
 	char  *process_json = NULL;
+	state.pod = NULL;
 	ck_assert(! cc_oci_exec(NULL, NULL, NULL));
 	ck_assert(! cc_oci_exec(&config, &state, NULL));
 	ck_assert(! cc_oci_exec(&config, &state, process_json));
