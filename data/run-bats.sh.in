@@ -25,5 +25,5 @@
 cmd="@BATS_PATH@"
 #Networking is not configured using non-root user
 #run bats functional tests with network namespace unshared
-[ $(id -u) -eq 0 ] && cmd="unshare -n $cmd"
+[ $(id -u) -eq 0 ] && cmd="unshare -n $cmd -t"
 eval "$cmd" $@
