@@ -33,6 +33,18 @@ go_packages=$*
 		    sed -e 's#.*/cc-oci-runtime/#./#')
 }
 
+function install_package {
+	url="$1"
+	name=${url##*/}
+
+	echo Updating $name...
+	go get -u $url
+}
+
+install_package github.com/fzipp/gocyclo
+install_package github.com/client9/misspell/cmd/misspell
+install_package github.com/golang/lint/golint
+
 echo Doing go static checks on packages: $go_packages
 
 go list -f '{{.Dir}}/*.go' $go_packages |\
