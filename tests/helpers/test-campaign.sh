@@ -38,6 +38,7 @@ QEMU_PATH="/usr/bin/qemu-lite-system-x86_64"
 IMAGE_PATH="/usr/share/clear-containers/clear-containers.img"
 KERNEL_PATH="/usr/share/clear-containers/vmlinux.container"
 BUNDLE_PATH="/var/lib/oci/bundle"
+LOG_DIR="${SCRIPT_PATH}/test_logs"
 
 function usage()
 {
@@ -50,6 +51,7 @@ function usage()
 		-h                         : Show this information
 		-i <image-path>            : Full path to the clear-containers image
 		-k <kernel-path>           : Full path to the clear-containers kernel
+		-l <logs directory>        : Path of desired logs location.
 		-q <qemu-path>             : Full path to qemu-lite
 
 	Notes:
@@ -59,10 +61,11 @@ function usage()
 		image-path             : $IMAGE_PATH
 		kernel-path            : $KERNEL_PATH
 		qemu-path              : $QEMU_PATH
+		logs directory         : $LOG_DIR
 EOT
 }
 
-while getopts "b:hi:k:q:" opt; do
+while getopts "b:hi:k:l:q:" opt; do
 	case $opt in
 		b)
 			BUNDLE_PATH="${OPTARG}"
@@ -77,6 +80,9 @@ while getopts "b:hi:k:q:" opt; do
 		k)
 			KERNEL_PATH="${OPTARG}"
 			;;
+		l)
+			LOG_DIR="${OPTARG}"
+			;;
 		q)
 			QEMU_PATH="${OPTARG}"
 			;;
@@ -87,8 +93,6 @@ done
 
 shift "$((OPTIND - 1))"
 
-# Logs location
-LOG_DIR="${SCRIPT_PATH}/test_logs"
 AUTOGEN_LOG_FILE="${LOG_DIR}/autogen.log"
 MAKE_LOG_FILE="${LOG_DIR}/make.log"
 MAKE_INSTALL_LOG_FILE="${LOG_DIR}/make_install.log"
