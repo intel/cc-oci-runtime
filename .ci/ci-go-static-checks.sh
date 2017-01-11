@@ -19,14 +19,34 @@
 
 set -e
 
-# Perform go static tests.
-#
-#   .ci/ci-go-static-checks.sh [packages]
-#
-# One can specify the list of packages to test on the command line. If no #
-# packages are specified, defaults to ./...
+# Perform static go tests.
 
-go_packages=$*
+function usage {
+	echo "Usage $0 [OPTIONS] [PACKAGES]"
+	echo "Perform static go checks on PACKAGES (./... by default)."
+	echo
+	echo "List of options:"
+	echo "  -h, --help             print this help"
+	echo "  -n, --no-network       do not access the network"
+}
+
+for i in "$@"; do
+	case $i in
+		-h|--help)
+			usage
+			exit 0
+			;;
+		-n|--no-network)
+			NONETWORK=1
+			shift
+			;;
+		*)
+			args="$args $i"
+			;;
+	esac
+done
+
+go_packages=$args
 
 [ -z "$go_packages" ] && {
 	go_packages=$(go list ./... | grep -v cc-oci-runtime/vendor |\
@@ -36,6 +56,8 @@ go_packages=$*
 function install_package {
 	url="$1"
 	name=${url##*/}
+
+	[ -n "$NONETWORK" ] && return
 
 	echo Updating $name...
 	go get -u $url
