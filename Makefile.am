@@ -276,6 +276,9 @@ CHECK_DEPS += check-proxy
 check-proxy:
 	go test -v -race -timeout 2s $(srcdir)/proxy
 
+check-go:
+	@$(top_srcdir)/.ci/ci-go-static-checks.sh
+
 libexec_PROGRAMS = cc-shim
 
 cc_shim_SOURCES = \
