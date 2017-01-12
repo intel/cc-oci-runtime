@@ -69,12 +69,22 @@ install_package github.com/golang/lint/golint
 
 echo Doing go static checks on packages: $go_packages
 
+echo "Running misspell..."
 go list -f '{{.Dir}}/*.go' $go_packages |\
     xargs -I % bash -c "misspell -error %"
+
+echo "Running go vet..."
 go vet $go_packages
+
+echo "Running gofmt..."
 go list -f '{{.Dir}}' $go_packages |\
     xargs gofmt -s -l | wc -l |\
     xargs -I % bash -c "test % -eq 0"
+
+echo "Running cyclo..."
 go list -f '{{.Dir}}' $go_packages | xargs gocyclo -over 15
 
+echo "Running golint..."
 for p in $go_packages; do golint -set_exit_status $p; done
+
+echo "All Good!"
