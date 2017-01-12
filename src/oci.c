@@ -327,7 +327,6 @@ cc_oci_vm_running (const struct oci_state *state)
 }
 
 /*!
-				state->console);
  * Get the home directory for the workload user
  *
  * \param config \ref cc_oci_config.
