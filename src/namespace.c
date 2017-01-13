@@ -167,10 +167,10 @@ cc_oci_ns_setup (struct cc_oci_config *config)
 
 		type = cc_oci_ns_to_str (ns->type);
 
-		/* The network namespace is the only supported one
-		 * (since it's required to setup networking).
+		/* network and mount namespaces are the only supported
+		 * (since it's required to setup networking and mount).
 		 */
-		if (ns->type != OCI_NS_NET) {
+		if (ns->type != OCI_NS_NET && ns->type != OCI_NS_MOUNT) {
 			g_debug ("ignoring %s namespace request",
 					type ? type : "");
 			continue;
