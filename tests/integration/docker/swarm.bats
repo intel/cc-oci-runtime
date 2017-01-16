@@ -3,7 +3,7 @@
 
 #  This file is part of cc-oci-runtime.
 #
-#  Copyright (C) 2016 Intel Corporation
+#  Copyright (C) 2017 Intel Corporation
 #
 #  This program is free software; you can redistribute it and/or
 #  modify it under the terms of the GNU General Public License
@@ -37,16 +37,28 @@ declare -a NAMES_IPS_REPLICAS
 # saves the ip of the replicas
 declare -a IPS_REPLICAS
 
+#This function will verify that swarm is not running or it finishes
+function clean_swarm_status() {
+	for j in `seq 0 $number_of_attemps`; do
+		if $DOCKER_EXE node ls; then
+			$DOCKER_EXE swarm leave --force
+			# docker swarm leave is not inmediately so it requires time to finish
+			sleep 5
+		else
+			break
+		fi
+        done
+}
+
 
 setup() {
 	source $SRC/test-common.bash
 	clean_docker_ps
 	runtime_docker
+	clean_swarm_status
 	$DOCKER_EXE swarm init
-	# currently using mcastelino/nginx but it will be
-	# modified when nginx image is working
-	$DOCKER_EXE service create --name testswarm --replicas $number_of_replicas --publish 8080:80 mcastelino/nginx /bin/bash -c "hostname > /usr/share/nginx/html/hostname; nginx -g \"daemon off;\"" 2> /dev/null
-	while [ `$DOCKER_EXE ps --filter status=running --filter ancestor=mcastelino/nginx:latest -q | wc -l` -lt $number_of_replicas ]; do
+	$DOCKER_EXE service create --name testswarm --replicas $number_of_replicas --publish 8080:80 nginx /bin/bash -c "hostname > /usr/share/nginx/html/hostname; nginx -g \"daemon off;\"" 2> /dev/null
+	while [ `$DOCKER_EXE ps --filter status=running --filter ancestor=nginx:latest -q | wc -l` -lt $number_of_replicas ]; do
 		sleep 1
 	done
 }
@@ -68,6 +80,7 @@ setup() {
 }
 
 @test "check that the replicas' names are different" {
+	skip "this test is not working properly (see https://github.com/01org/cc-oci-runtime/issues/578)" 
 	# this will help to obtain the hostname of 
 	# the replicas from the curl
         unset http_proxy
@@ -150,5 +163,5 @@ setup() {
 
 teardown () {
 	$DOCKER_EXE service remove testswarm
-	$DOCKER_EXE swarm leave --force
+	clean_swarm_status
 }
