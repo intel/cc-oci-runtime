@@ -58,6 +58,7 @@
 #include "command.h"
 #include "proxy.h"
 #include "pod.h"
+#include "namespace.h"
 
 extern struct start_data start_data;
 
@@ -558,6 +559,15 @@ cc_oci_create (struct cc_oci_config *config)
 			g_critical ("failed to create runtime directory");
 		}
 
+		return false;
+	}
+
+	/* The namespace setup occurs in the parent to ensure
+	 * the hooks run successfully. The child will automatically
+	 * inherit the namespaces.
+	 */
+	if (! cc_oci_ns_setup (config)) {
+		g_critical ("failed to setup namespaces");
 		return false;
 	}
 

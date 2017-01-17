@@ -897,14 +897,6 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 
 	config->state.status = OCI_STATUS_CREATED;
 
-	/* The namespace setup occurs in the parent to ensure
-	 * the hooks run successfully. The child will automatically
-	 * inherit the namespaces.
-	 */
-	if (! cc_oci_ns_setup (config)) {
-		goto out;
-	}
-
 	/* Connect to the proxy before launching the shim so that the
 	 * proxy socket fd can be passed to the shim.
 	 */

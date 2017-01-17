@@ -83,6 +83,7 @@ START_TEST(test_cc_oci_ns_setup) {
 
 	struct cc_oci_config *config = NULL;
 	struct oci_cfg_namespace *ns = NULL;
+	int saved;
 
 	ck_assert (! cc_oci_ns_setup (NULL));
 
@@ -114,9 +115,6 @@ START_TEST(test_cc_oci_ns_setup) {
 	ns->type = OCI_NS_IPC;
 	ck_assert (cc_oci_ns_setup (config));
 
-	ns->type = OCI_NS_MOUNT;
-	ck_assert (cc_oci_ns_setup (config));
-
 	ns->type = OCI_NS_PID;
 	ck_assert (cc_oci_ns_setup (config));
 
@@ -130,7 +128,6 @@ START_TEST(test_cc_oci_ns_setup) {
 	 * as a non-priv user just in case.
 	 */
 	if (getuid ()) {
-		int saved;
 		gchar *tmpdir = g_dir_make_tmp (NULL, NULL);
 		ns->type = OCI_NS_NET;
 		ck_assert (! cc_oci_ns_setup (config));
@@ -171,6 +168,30 @@ START_TEST(test_cc_oci_ns_setup) {
 		ck_assert (! g_remove (tmpdir));
 
 		g_free (tmpdir);
+	}
+
+	/* mount namespaces are honoured, but only run the tests
+	 * as a non-priv user just in case.
+	 */
+	if (getuid ()) {
+		g_free_if_set (ns->path);
+
+		ns->type = OCI_NS_MOUNT;
+		ck_assert (! cc_oci_ns_setup (config));
+
+		/* unshare(2) error */
+		ck_assert (errno == EPERM);
+
+		ns->path = g_strdup ("/proc/self/ns/mnt");
+		ck_assert (ns->path);
+
+		/* passing a valid ns path, but non-priv users
+		 * can't call setns due to insufficient privs.
+		 */
+		ck_assert (! cc_oci_ns_setup (config));
+		saved = errno;
+
+		ck_assert (saved == EPERM || saved == ENOSYS);
 	}
 
 	/* clean up */
