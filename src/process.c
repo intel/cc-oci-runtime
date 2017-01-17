@@ -47,6 +47,7 @@
 #include <termios.h>
 #include <sys/ioctl.h>
 #include <sys/file.h>
+#include <sys/ptrace.h>
 
 #include <glib.h>
 #include <glib/gprintf.h>
@@ -791,6 +792,18 @@ cc_shim_launch (struct cc_oci_config *config,
 			goto child_failed;
 		}
 
+		/* arrange for the process to be paused when the shim command
+		 * is exec(3)'d to ensure that the shim does not launch until
+		 * "start" is called.
+		 */
+		if (initial_workload) {
+			if (ptrace (PTRACE_TRACEME, 0, NULL, 0) < 0) {
+				g_critical ("failed to ptrace in shim: %s",
+					strerror (errno));
+				goto child_failed;
+			}
+		}
+
 		if (execvp (args[0], args) < 0) {
 			g_critical ("failed to exec child %s: %s",
 					args[0],
@@ -881,6 +894,7 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 	int                ioBase = -1;
 	GSocketConnection *shim_socket_connection = NULL;
 	GError            *error = NULL;
+	int                status = 0;
 
 	if (! config) {
 		return false;
@@ -1238,6 +1252,39 @@ child_failed:
 	ret = cc_oci_state_file_create (config, timestamp);
 	if (! ret) {
 		g_critical ("failed to recreate state file");
+		goto out;
+	}
+
+	/* wait for child to receive the expected SIGTRAP caused
+	 * by it calling exec() whilst under PTRACE control.
+	 */
+	if (waitpid (config->state.workload_pid,
+			&status, 0) != config->state.workload_pid) {
+		g_critical ("failed to wait for shim %d: %s",
+				config->state.workload_pid,
+				strerror (errno));
+		goto out;
+	}
+
+	if (! WIFSTOPPED (status)) {
+		g_critical ("shim %d not stopped by signal",
+				config->state.workload_pid);
+		goto out;
+	}
+
+	if (! (WSTOPSIG (status) == SIGTRAP)) {
+		g_critical ("shim %d not stopped by expected signal",
+				config->state.workload_pid);
+		goto out;
+	}
+
+	/* Stop tracing, but send a stop signal to the shim so that it
+	 * remains in a paused state.
+	 */
+	if (ptrace (PTRACE_DETACH, config->state.workload_pid, NULL, SIGSTOP) < 0) {
+		g_critical ("failed to ptrace detach in child %d: %s",
+				(int)config->state.workload_pid,
+				strerror (errno));
 		goto out;
 	}
 

@@ -753,6 +753,17 @@ cc_oci_start (struct cc_oci_config *config,
 		}
 	}
 
+	/* The shim was left in stopped state after 'create', so now let it
+	 * continue after container has started running inside the pod.
+	 *
+	 * This way the shim  sends/receives I/O only after the container 
+	 * has started.
+	 *
+	 * This is to accomodate change introduced with docker 1.12.4 to attach the stdio streams
+	 * before create: https://github.com/docker/docker/pull/26744
+	 */
+	kill(state->pid, SIGCONT);
+
 	/* Now the VM is running */
 	config->state.status = OCI_STATUS_RUNNING;
 
