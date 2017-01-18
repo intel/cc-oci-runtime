@@ -131,6 +131,7 @@ func (proto *protocol) Serve(conn net.Conn, userData interface{}) error {
 		// First send an fd if the handler associated a file with the response
 		if hr.file != nil {
 			if err = api.WriteFd(conn.(*net.UnixConn), int(hr.file.Fd())); err != nil {
+				hr.file.Close()
 				return err
 			}
 			hr.file.Close()
