@@ -70,7 +70,7 @@ setup() {
 	IPS_REPLICAS=(`$DOCKER_EXE network inspect $name_network --format='{{ range .Containers}} {{ println .IPv4Address}}{{end}}' | head -n -2 | cut -d'/' -f1`)
 	for i in `seq 0 $((number_of_replicas-1))`; do
 		for j in `seq 0 $((number_of_replicas-1))`; do
-			if [ "$i" != "$j" ]; then
+			if [ "$i" != "$j" ] && [ -n "${NAMES_REPLICAS[$i]}" ]; then
 				# here we are performing a ping with the list
 				# of the overlay ips obtained from the replicas
 				$DOCKER_EXE exec ${NAMES_REPLICAS[$i]} bash -c "ping -c $number_of_attemps ${IPS_REPLICAS[$j]}"
@@ -151,7 +151,7 @@ setup() {
 	IPS_REPLICAS=(`$DOCKER_EXE network inspect $name_network --format='{{ range .Containers}} {{ println .IPv4Address}}{{end}}' | head -n -2 | cut -d'/' -f1`)
 	for i in `seq 0 $((number_of_replicas-1))`; do
 		for j in `seq 0 $((number_of_replicas-1))`; do
-			if [ "$i" != "$j" ]; then
+			if [ "$i" != "$j" ] && [ -n "${NAMES_REPLICAS[$i]}" ]; then
 				# here we are performing a ping with the list
 				# of the overlay ips obtained from the replicas
 				$DOCKER_EXE exec ${NAMES_REPLICAS[$i]} bash -c "ping -c $number_of_attemps ${IPS_REPLICAS[$j]}"
