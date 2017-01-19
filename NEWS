@@ -1,3 +1,12 @@
+2.1.0.rc.4:
+    Added mount namespace creation
+    Added functional test tap output
+    Added remaining exec tests
+    Added locally runnable CI static tests
+    Fixed proxy file descriptor leak
+    Fixed swarm tests
+    Fixed coverity reported security issues
+
 2.1.0-rc.3:
     Added docker tests for handling pipe input
     Added pprof data export through HTTP
