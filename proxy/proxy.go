@@ -320,6 +320,8 @@ func (proxy *proxy) init() error {
 		if err = os.Chmod(socketPath, 0660|os.ModeSocket); err != nil {
 			return fmt.Errorf("couldn't set mode on socket: %v", err)
 		}
+
+		glog.V(1).Info("listening on ", socketPath)
 	}
 
 	proxy.listener = l
