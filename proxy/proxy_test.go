@@ -58,12 +58,17 @@ type testRig struct {
 
 	// client
 	Client *api.Client
+
+	// fd leak detection
+	detector          *FdLeakDetector
+	startFds, stopFds *FdSnapshot
 }
 
 func newTestRig(t *testing.T, proto *protocol) *testRig {
 	return &testRig{
 		t:        t,
 		protocol: proto,
+		detector: NewFdLeadDetector(),
 	}
 }
 
@@ -72,6 +77,11 @@ func (rig *testRig) SetFork(fork bool) {
 }
 
 func (rig *testRig) Start() {
+	var err error
+
+	rig.startFds, err = rig.detector.Snapshot()
+	assert.Nil(rig.t, err)
+
 	initLogging()
 	flag.Parse()
 
@@ -80,17 +90,18 @@ func (rig *testRig) Start() {
 	rig.Hyperstart.Start()
 
 	// Explicitly send READY message from hyperstart mock
-	go rig.Hyperstart.SendMessage(int(hyper.INIT_READY), []byte{})
+	rig.wg.Add(1)
+	go func() {
+		rig.Hyperstart.SendMessage(int(hyper.INIT_READY), []byte{})
+		rig.wg.Done()
+	}()
 
 	// we can either "start" the proxy in process or spawn a proxy process.
 	// Spawning the process (through TestLaunchProxy).
 	// Passing a file descriptor through connected AF_UNIX sockets in the
 	// same thread has a slight behaviour difference which breaks the
 	// barrier between two reads(), so we spawn a process in that case.
-	var (
-		clientConn net.Conn
-		err        error
-	)
+	var clientConn net.Conn
 
 	if rig.proxyFork {
 		rig.proxySocketPath = mock.GetTmpPath("test-proxy.%s.sock")
@@ -155,6 +166,8 @@ func TestLaunchProxy(t *testing.T) {
 }
 
 func (rig *testRig) Stop() {
+	var err error
+
 	rig.Client.Close()
 
 	if rig.proxyCommand != nil {
@@ -174,6 +187,18 @@ func (rig *testRig) Stop() {
 	rig.Hyperstart.Stop()
 
 	rig.wg.Wait()
+
+	if rig.proxy != nil {
+		rig.proxy.wg.Wait()
+	}
+
+	// We shouldn't have leaked a fd between the beginning of Start() and
+	// the end of Stop().
+	rig.stopFds, err = rig.detector.Snapshot()
+	assert.Nil(rig.t, err)
+
+	assert.True(rig.t,
+		rig.detector.Compare(os.Stdout, rig.startFds, rig.stopFds))
 }
 
 const testContainerID = "0987654321"
@@ -268,7 +293,7 @@ func TestAttach(t *testing.T) {
 	assert.NotNil(t, err)
 
 	// Attaching to an existing VM should work. To test we are effectively
-	// attached, we issue a bye that would error out if not attatched.
+	// attached, we issue a bye that would error out if not attached.
 	err = rig.Client.Attach(testContainerID)
 	assert.Nil(t, err)
 	err = rig.Client.Bye(testContainerID)
@@ -459,6 +484,8 @@ func TestAllocateIo(t *testing.T) {
 	assert.Equal(t, ioBase, seq)
 	assert.Equal(t, 1, len(data))
 	assert.Equal(t, uint8(17), data[0])
+
+	ioFile.Close()
 
 	rig.Stop()
 }

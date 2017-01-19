@@ -259,6 +259,7 @@ cc_proxy_sources =			\
 	proxy/api/fdpassing.go		\
 	proxy/api/fdpassing_test.go	\
 	proxy/api/protocol.go		\
+	proxy/fdleak_test.go		\
 	proxy/protocol.go		\
 	proxy/protocol_test.go		\
 	proxy/proxy.go			\
