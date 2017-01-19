@@ -212,8 +212,12 @@ func TestHello(t *testing.T) {
 
 	// Register new VM
 	ctlSocketPath, ioSocketPath := rig.Hyperstart.GetSocketPaths()
-	_, err := rig.Client.Hello(testContainerID, ctlSocketPath, ioSocketPath, nil)
+	ret, err := rig.Client.Hello(testContainerID, ctlSocketPath, ioSocketPath, nil)
 	assert.Nil(t, err)
+	assert.NotNil(t, ret)
+
+	// Check that Hello returns the protocol version
+	assert.Equal(t, api.Version, ret.Version)
 
 	// A new Hello message with the same containerID should error out
 	_, err = rig.Client.Hello(testContainerID, "fooCtl", "fooIo", nil)
@@ -294,8 +298,12 @@ func TestAttach(t *testing.T) {
 
 	// Attaching to an existing VM should work. To test we are effectively
 	// attached, we issue a bye that would error out if not attached.
-	_, err = rig.Client.Attach(testContainerID, nil)
+	ret, err := rig.Client.Attach(testContainerID, nil)
 	assert.Nil(t, err)
+
+	// Check that Attach returns the protocol version
+	assert.Equal(t, api.Version, ret.Version)
+
 	err = rig.Client.Bye(testContainerID)
 	assert.Nil(t, err)
 

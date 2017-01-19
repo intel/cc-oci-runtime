@@ -121,6 +121,7 @@ type HelloOptions struct {
 // HelloReturn contains the return values from Hello. See the Hello and
 // HelloResult payloads.
 type HelloReturn struct {
+	Version int
 }
 
 // Hello wraps the Hello payload (see payload description for more details)
@@ -143,6 +144,12 @@ func (client *Client) Hello(containerID, ctlSerial, ioSerial string,
 
 	ret := &HelloReturn{}
 
+	val, ok := resp.Data["version"]
+	if !ok {
+		return nil, errors.New("hello: no version in response")
+	}
+	ret.Version = int(val.(float64))
+
 	return ret, errorFromResponse(resp)
 }
 
@@ -154,6 +161,7 @@ type AttachOptions struct {
 // AttachReturn contains the return values from Hello. See the Hello and
 // AttachResult payloads.
 type AttachReturn struct {
+	Version int
 }
 
 // Attach wraps the Attach payload (see payload description for more details)
@@ -168,6 +176,12 @@ func (client *Client) Attach(containerID string, options *AttachOptions) (*Attac
 	}
 
 	ret := &AttachReturn{}
+
+	val, ok := resp.Data["version"]
+	if !ok {
+		return nil, errors.New("attach: no version in response")
+	}
+	ret.Version = int(val.(float64))
 
 	return ret, errorFromResponse(resp)
 }

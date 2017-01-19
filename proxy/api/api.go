@@ -20,6 +20,12 @@ import (
 	"encoding/json"
 )
 
+// Version encodes the proxy protocol version.
+//
+// List of changes:
+// • version 1: initial version released with Clear Containers 2.1
+const Version = 1
+
 // The Hello payload is issued first after connecting to the proxy socket.
 // It is used to let the proxy know about a new container on the system along
 // with the paths go hyperstart's command and I/O channels (AF_UNIX sockets).
@@ -42,6 +48,19 @@ type Hello struct {
 	Console     string `json:"console,omitempty"`
 }
 
+// HelloResult is the result from a successful Hello.
+//
+//  {
+//    "success": true,
+//    "data": {
+//      "version": 1
+//    }
+//  }
+type HelloResult struct {
+	// The version of the proxy protocol
+	Version int `json:"version"`
+}
+
 // The Attach payload can be used to associate clients to an already known VM.
 // attach cannot be issued if a hello for this container hasn't been issued
 // beforehand.
@@ -54,6 +73,19 @@ type Hello struct {
 //  }
 type Attach struct {
 	ContainerID string `json:"containerId"`
+}
+
+// AttachResult is the result from a successful Attach.
+//
+//  {
+//    "success": true,
+//    "data": {
+//      "version": 1
+//    }
+//  }
+type AttachResult struct {
+	// The version of the proxy protocol
+	Version int `json:"version"`
 }
 
 // The Bye payload does the opposite of what hello does, indicating to the

@@ -122,6 +122,8 @@ func helloHandler(data []byte, userData interface{}, response *handlerResponse) 
 
 	client.vm = vm
 
+	response.AddResult("version", api.Version)
+
 	// We start one goroutine per-VM to monitor the qemu process
 	proxy.wg.Add(1)
 	go func() {
@@ -154,6 +156,8 @@ func attachHandler(data []byte, userData interface{}, response *handlerResponse)
 	client.infof(1, "attach(containerId=%s)", attach.ContainerID)
 
 	client.vm = vm
+
+	response.AddResult("version", api.Version)
 }
 
 // "bye"
