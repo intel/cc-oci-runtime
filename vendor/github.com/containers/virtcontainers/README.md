@@ -1,7 +1,7 @@
-[![Build Status](https://travis-ci.org/sameo/virtcontainers.svg?branch=master)](https://travis-ci.org/sameo/virtcontainers)
-[![Go Report Card](https://goreportcard.com/badge/github.com/sameo/virtcontainers)](https://goreportcard.com/report/github.com/sameo/virtcontainers)
-[![Coverage Status](https://coveralls.io/repos/github/sameo/virtcontainers/badge.svg?branch=sameo%2Ftopic%2Funit)](https://coveralls.io/github/sameo/virtcontainers)
-[![GoDoc](https://godoc.org/github.com/sameo/virtcontainers?status.svg)](https://godoc.org/github.com/sameo/virtcontainers)
+[![Build Status](https://travis-ci.org/containers/virtcontainers.svg?branch=master)](https://travis-ci.org/containers/virtcontainers)
+[![Go Report Card](https://goreportcard.com/badge/github.com/containers/virtcontainers)](https://goreportcard.com/report/github.com/containers/virtcontainers)
+[![Coverage Status](https://coveralls.io/repos/github/sameo/virtcontainers/badge.svg?branch=master)](https://coveralls.io/github/sameo/virtcontainers?branch=master)
+[![GoDoc](https://godoc.org/github.com/containers/virtcontainers?status.svg)](https://godoc.org/github.com/containers/virtcontainers)
 
 # virtcontainers
 
