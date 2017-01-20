@@ -220,9 +220,9 @@ cc_oci_runtime_CFLAGS = \
 	$(LIBMNL_CFLAGS) \
 	$(UUID_CFLAGS)
 
-libexec_SCRIPTS = cc-proxy
+#libexec_SCRIPTS = cc-proxy
 
-CLEANFILES += cc-proxy
+#CLEANFILES += cc-proxy
 
 AM_V_GO    = $(am__v_GO_@AM_V@)
 am__v_GO_  = $(am__v_GO_@AM_DEFAULT_V@)
@@ -237,12 +237,12 @@ systemdservice_files = 		\
 	proxy/cc-proxy.service	\
 	proxy/cc-proxy.socket
 
-CLEANFILES += $(systemdservice_files)
+#CLEANFILES += $(systemdservice_files)
 
 if HAVE_SYSTEMD
-GENERATED_FILES += $(systemdservice_files)
+#GENERATED_FILES += $(systemdservice_files)
 systemdservicedir   = $(systemdsystemunitdir)
-systemdservice_DATA = $(systemdservice_files)
+#systemdservice_DATA = $(systemdservice_files)
 endif
 
 proxy_ldflags = "-X main.socketPath=$(localstatedir)/run/cc-oci-runtime/proxy.sock"
@@ -268,23 +268,10 @@ cc_proxy_extra_dist =			\
 	proxy/README.md			\
 	proxy/COPYING
 
-CHECK_DEPS += check-proxy
+#CHECK_DEPS += check-proxy
 
 check-proxy:
 	go test -v -race -timeout 2s $(srcdir)/proxy
-
-libexec_PROGRAMS = cc-shim
-
-cc_shim_SOURCES = \
-	shim/shim.c \
-	shim/shim.h \
-	shim/utils.c \
-	shim/utils.h \
-	shim/log.c \
-	shim/log.h
-
-cc_shim_CFLAGS = \
-	$(AM_CFLAGS)
 
 bats_test_sources = \
 	tests/functional/common.bash.in \
@@ -314,13 +301,9 @@ EXTRA_DIST = \
 	tests/data \
 	commit_id \
 	versions.txt \
-	$(documentation_extra_dist) \
 	$(defaults_DATA) \
 	$(cc_image_systemd_files) \
-	$(cc_proxy_sources) \
-	$(cc_proxy_extra_dist) \
 	$(mock_extra_dist) \
-	$(systemdservice_in_files) \
 	data/cc-oci-runtime.sh.in \
 	data/dockerFiles/Dockerfile.fedora.in \
 	data/dockerFiles/Dockerfile.ubuntu.in \

@@ -21,7 +21,7 @@
 #
 
 AC_PREREQ([2.69])
-AC_INIT([cc-oci-runtime], [0.1])
+AC_INIT([cc-oci-runtime], [2.0.0])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([foreign -Wall -Werror -Wno-portability silent-rules subdir-objects color-tests no-dist-gzip dist-xz])
 AM_SILENT_RULES([yes])
@@ -42,10 +42,6 @@ AC_PROG_CC
 AM_PROG_CC_C_O
 AC_PROG_INSTALL
 AC_PROG_MKDIR_P
-
-# We need go!
-AC_CHECK_PROG(GO,[go],[go],[no])
-test "$GO" == "no" && AC_MSG_ERROR([go is required to build cc-oci-runtime])
 
 # Checks for header files.
 AC_CHECK_HEADERS([fcntl.h mntent.h stdlib.h string.h sys/mount.h unistd.h uuid/uuid.h gio/gio.h gio/gunixsocketaddress.h])
@@ -319,10 +315,6 @@ cc-oci-runtime - $VERSION
        Container image          : $CONTAINERS_IMG
        Container image services : $CC_IMAGE_SYSTEMDSYSTEMUNIT_PATH
        Debug build              : $enable_debug
-
- • Proxy:
-
-       Systemd unit directory   : $systemdsystemunitdir
 
  • Tests:
 
