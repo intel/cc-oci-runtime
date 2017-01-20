@@ -363,25 +363,6 @@ cc_oci_semver_2_0_0_cmp (const char *version_a, const char *version_b,
 }
 
 /*!
- * Fully compare two Semantic version (SemVer) strings.
- *
- * \param version_a First SemVer string.
- * \param version_b Second SemVer string.
- *
- * Return values match those of \c strcmp(3).
- *
- * \note Handles SemVer 2.0.0-format strings.
- *
- * \return \c 0 if \p version_a == \p version_b, \c <0 if \p version_a <
- * \p version_b or \c >0 if \p version_a > \p version_b.
- */
-gint
-cc_oci_semver_cmp_full (const char *version_a, const char *version_b)
-{
-	return cc_oci_semver_2_0_0_cmp (version_a, version_b, false);
-}
-
-/*!
  * Compare two Semantic version (SemVer) strings for
  * backwards-compatibility.
  *
