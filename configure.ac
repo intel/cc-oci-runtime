@@ -320,10 +320,6 @@ cc-oci-runtime - $VERSION
        Container image services : $CC_IMAGE_SYSTEMDSYSTEMUNIT_PATH
        Debug build              : $enable_debug
 
- • Proxy:
-
-       Systemd unit directory   : $systemdsystemunitdir
-
  • Tests:
 
        Unit tests               : $enable_tests

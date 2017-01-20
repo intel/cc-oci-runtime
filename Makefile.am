@@ -220,9 +220,9 @@ cc_oci_runtime_CFLAGS = \
 	$(LIBMNL_CFLAGS) \
 	$(UUID_CFLAGS)
 
-libexec_SCRIPTS = cc-proxy
+#libexec_SCRIPTS = cc-proxy
 
-CLEANFILES += cc-proxy
+#CLEANFILES += cc-proxy
 
 AM_V_GO    = $(am__v_GO_@AM_V@)
 am__v_GO_  = $(am__v_GO_@AM_DEFAULT_V@)
@@ -237,12 +237,12 @@ systemdservice_files = 		\
 	proxy/cc-proxy.service	\
 	proxy/cc-proxy.socket
 
-CLEANFILES += $(systemdservice_files)
+#CLEANFILES += $(systemdservice_files)
 
 if HAVE_SYSTEMD
-GENERATED_FILES += $(systemdservice_files)
+#GENERATED_FILES += $(systemdservice_files)
 systemdservicedir   = $(systemdsystemunitdir)
-systemdservice_DATA = $(systemdservice_files)
+#systemdservice_DATA = $(systemdservice_files)
 endif
 
 proxy_ldflags = "-X main.socketPath=$(localstatedir)/run/cc-oci-runtime/proxy.sock"
@@ -268,7 +268,7 @@ cc_proxy_extra_dist =			\
 	proxy/README.md			\
 	proxy/COPYING
 
-CHECK_DEPS += check-proxy
+#CHECK_DEPS += check-proxy
 
 check-proxy:
 	go test -v -race -timeout 2s $(srcdir)/proxy
