@@ -30,51 +30,44 @@ import (
 
 // Control command string IDs
 const (
-	Version          = "version"
-	StartPod         = "startpod"
-	GetPod           = "getpod"
-	DestroyPod       = "destroypod"
-	RestartContainer = "restartcontainer"
-	ExecCmd          = "execcmd"
-	FinishCmd        = "finishcmd"
-	Ready            = "ready"
-	Ack              = "ack"
-	Error            = "error"
-	WinSize          = "winsize"
-	Ping             = "ping"
-	FinishPod        = "finishpod"
-	Next             = "next"
-	WriteFile        = "writefile"
-	ReadFile         = "readfile"
-	NewContainer     = "newcontainer"
-	KillContainer    = "killcontainer"
-	OnlineCPUMem     = "onlinecpumem"
-	SetupInterface   = "setupinterface"
-	SetupRoute       = "setuproute"
+	Version        = "version"
+	StartPod       = "startpod"
+	DestroyPod     = "destroypod"
+	ExecCmd        = "execcmd"
+	Ready          = "ready"
+	Ack            = "ack"
+	Error          = "error"
+	WinSize        = "winsize"
+	Ping           = "ping"
+	FinishPod      = "finishpod"
+	Next           = "next"
+	WriteFile      = "writefile"
+	ReadFile       = "readfile"
+	NewContainer   = "newcontainer"
+	KillContainer  = "killcontainer"
+	OnlineCPUMem   = "onlinecpumem"
+	SetupInterface = "setupinterface"
+	SetupRoute     = "setuproute"
 )
 
 var codeList = map[int]string{
-	hyper.INIT_VERSION:          Version,
-	hyper.INIT_STARTPOD:         StartPod,
-	hyper.INIT_GETPOD:           GetPod,
-	hyper.INIT_DESTROYPOD:       DestroyPod,
-	hyper.INIT_RESTARTCONTAINER: RestartContainer,
-	hyper.INIT_EXECCMD:          ExecCmd,
-	hyper.INIT_FINISHCMD:        FinishCmd,
-	hyper.INIT_READY:            Ready,
-	hyper.INIT_ACK:              Ack,
-	hyper.INIT_ERROR:            Error,
-	hyper.INIT_WINSIZE:          WinSize,
-	hyper.INIT_PING:             Ping,
-	hyper.INIT_FINISHPOD:        FinishPod,
-	hyper.INIT_NEXT:             Next,
-	hyper.INIT_WRITEFILE:        WriteFile,
-	hyper.INIT_READFILE:         ReadFile,
-	hyper.INIT_NEWCONTAINER:     NewContainer,
-	hyper.INIT_KILLCONTAINER:    KillContainer,
-	hyper.INIT_ONLINECPUMEM:     OnlineCPUMem,
-	hyper.INIT_SETUPINTERFACE:   SetupInterface,
-	hyper.INIT_SETUPROUTE:       SetupRoute,
+	hyper.INIT_VERSION:        Version,
+	hyper.INIT_STARTPOD:       StartPod,
+	hyper.INIT_DESTROYPOD:     DestroyPod,
+	hyper.INIT_EXECCMD:        ExecCmd,
+	hyper.INIT_READY:          Ready,
+	hyper.INIT_ACK:            Ack,
+	hyper.INIT_ERROR:          Error,
+	hyper.INIT_WINSIZE:        WinSize,
+	hyper.INIT_PING:           Ping,
+	hyper.INIT_NEXT:           Next,
+	hyper.INIT_WRITEFILE:      WriteFile,
+	hyper.INIT_READFILE:       ReadFile,
+	hyper.INIT_NEWCONTAINER:   NewContainer,
+	hyper.INIT_KILLCONTAINER:  KillContainer,
+	hyper.INIT_ONLINECPUMEM:   OnlineCPUMem,
+	hyper.INIT_SETUPINTERFACE: SetupInterface,
+	hyper.INIT_SETUPROUTE:     SetupRoute,
 }
 
 // Hyperstart is an object mocking the hyperstart agent.
