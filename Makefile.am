@@ -326,7 +326,6 @@ EXTRA_DIST = \
 	$(cc_image_systemd_files) \
 	$(cc_proxy_sources) \
 	$(cc_proxy_extra_dist) \
-	$(mock_extra_dist) \
 	$(systemdservice_in_files) \
 	data/cc-oci-runtime.sh.in \
 	data/dockerFiles/Dockerfile.fedora.in \
