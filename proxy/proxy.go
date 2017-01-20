@@ -277,11 +277,6 @@ var ArgSocketPath = flag.String("socket-path", "", "specify path to socket file"
 func (proxy *proxy) init() error {
 	var l net.Listener
 	var err error
-	var socketPath = DefaultSocketPath
-
-	if len(*ArgSocketPath) != 0 {
-		socketPath = *ArgSocketPath
-	}
 
 	// flags
 	v := flag.Lookup("v").Value.(flag.Getter).Get().(glog.Level)
@@ -299,6 +294,18 @@ func (proxy *proxy) init() error {
 			return fmt.Errorf("couldn't listen on socket: %v", err)
 		}
 	} else {
+		// Invoking "go build" without any linker option will not
+		// populate DefaultSocketPath, so fallback to a reasonable
+		// path.
+		if DefaultSocketPath == "" {
+			DefaultSocketPath = "/var/run/cc-oci-runtime/proxy.sock"
+		}
+
+		socketPath := DefaultSocketPath
+		if len(*ArgSocketPath) != 0 {
+			socketPath = *ArgSocketPath
+		}
+
 		socketDir := filepath.Dir(socketPath)
 		if err = os.MkdirAll(socketDir, 0750); err != nil {
 			return fmt.Errorf("couldn't create socket directory: %v", err)
@@ -313,6 +320,8 @@ func (proxy *proxy) init() error {
 		if err = os.Chmod(socketPath, 0660|os.ModeSocket); err != nil {
 			return fmt.Errorf("couldn't set mode on socket: %v", err)
 		}
+
+		glog.V(1).Info("listening on ", socketPath)
 	}
 
 	proxy.listener = l
