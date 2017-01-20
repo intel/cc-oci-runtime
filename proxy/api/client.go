@@ -112,34 +112,64 @@ func errorFromResponse(resp *Response) error {
 	return nil
 }
 
+// HelloOptions holds extra arguments one can pass to the Hello function. See
+// the Hello payload for more details.
+type HelloOptions struct {
+	Console string
+}
+
+// HelloReturn contains the return values from Hello. See the Hello and
+// HelloResult payloads.
+type HelloReturn struct {
+}
+
 // Hello wraps the Hello payload (see payload description for more details)
-func (client *Client) Hello(containerID, ctlSerial, ioSerial string) error {
+func (client *Client) Hello(containerID, ctlSerial, ioSerial string,
+	options *HelloOptions) (*HelloReturn, error) {
 	hello := Hello{
 		ContainerID: containerID,
 		CtlSerial:   ctlSerial,
 		IoSerial:    ioSerial,
 	}
 
-	resp, err := client.sendPayload("hello", &hello)
-	if err != nil {
-		return err
+	if options != nil {
+		hello.Console = options.Console
 	}
 
-	return errorFromResponse(resp)
+	resp, err := client.sendPayload("hello", &hello)
+	if err != nil {
+		return nil, err
+	}
+
+	ret := &HelloReturn{}
+
+	return ret, errorFromResponse(resp)
+}
+
+// AttachOptions holds extra arguments one can pass to the Attach function. See
+// the Attach payload for more details.
+type AttachOptions struct {
+}
+
+// AttachReturn contains the return values from Hello. See the Hello and
+// AttachResult payloads.
+type AttachReturn struct {
 }
 
 // Attach wraps the Attach payload (see payload description for more details)
-func (client *Client) Attach(containerID string) error {
+func (client *Client) Attach(containerID string, options *AttachOptions) (*AttachReturn, error) {
 	hello := Attach{
 		ContainerID: containerID,
 	}
 
 	resp, err := client.sendPayload("attach", &hello)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return errorFromResponse(resp)
+	ret := &AttachReturn{}
+
+	return ret, errorFromResponse(resp)
 }
 
 // AllocateIo wraps the AllocateIo payload (see payload description for more details)
