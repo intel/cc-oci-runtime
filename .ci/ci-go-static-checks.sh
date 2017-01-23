@@ -66,6 +66,7 @@ function install_package {
 install_package github.com/fzipp/gocyclo
 install_package github.com/client9/misspell/cmd/misspell
 install_package github.com/golang/lint/golint
+install_package github.com/gordonklaus/ineffassign
 
 echo Doing go static checks on packages: $go_packages
 
@@ -86,5 +87,8 @@ go list -f '{{.Dir}}' $go_packages | xargs gocyclo -over 15
 
 echo "Running golint..."
 for p in $go_packages; do golint -set_exit_status $p; done
+
+echo "Running ineffassign..."
+go list -f '{{.Dir}}' $go_packages | xargs -L 1 ineffassign
 
 echo "All Good!"
