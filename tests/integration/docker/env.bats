@@ -30,7 +30,6 @@ setup() {
 }
 
 @test "Verify LANG is not set in env" {
-	#skip "this is not working (see https://github.com/01org/cc-oci-runtime/issues/324)"
 	run $DOCKER_EXE run -i ubuntu env
 	echo "${output}" | grep -v "LANG"
 }
