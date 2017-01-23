@@ -31,6 +31,8 @@
 #include "oci-config.h"
 #include "priv.h"
 
+#define KVM_PATH "/dev/kvm"
+
 /* globals */
 static char *program_name;
 
@@ -379,6 +381,14 @@ handle_arguments (int argc, char **argv)
 		 */
 		fprintf (stderr, "failed to setup logging\n");
 		g_critical ("failed to setup logging\n");
+		ret = false;
+		goto out;
+	}
+
+	if (! g_file_test(KVM_PATH, G_FILE_TEST_EXISTS)) {
+		fprintf (stderr, "This system does not support virtualization\n");
+		g_critical ("This system does not support virtualization\n");
+		g_critical("%s does not exist", KVM_PATH);
 		ret = false;
 		goto out;
 	}
