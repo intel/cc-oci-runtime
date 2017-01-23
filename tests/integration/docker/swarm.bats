@@ -56,7 +56,15 @@ setup() {
 	clean_docker_ps
 	runtime_docker
 	clean_swarm_status
-	$DOCKER_EXE swarm init
+	interfaces=($(readlink /sys/class/net/* | grep -i pci | xargs basename -a))
+	swarm_interface_arg=""
+	for i in ${interfaces[@]}; do
+		if [ "`cat /sys/class/net/${i}/operstate`" == "up" ]; then
+			swarm_interface_arg="--advertise-addr ${i}"
+			break;
+		fi
+	done
+	$DOCKER_EXE swarm init ${swarm_interface_arg}
 	$DOCKER_EXE service create --name testswarm --replicas $number_of_replicas --publish 8080:80 nginx /bin/bash -c "hostname > /usr/share/nginx/html/hostname; nginx -g \"daemon off;\"" 2> /dev/null
 	while [ `$DOCKER_EXE ps --filter status=running --filter ancestor=nginx:latest -q | wc -l` -lt $number_of_replicas ]; do
 		sleep 1
