@@ -83,7 +83,6 @@ setup() {
 }
 
 @test "run a couchbase container" {
-	skip "this image is not working (see https://github.com/01org/cc-oci-runtime/issues/318)"
 	$DOCKER_EXE run --rm -i couchbase bash -c "couchbase-cli rebalance --help | grep rebalance"
 }
 
@@ -243,7 +242,6 @@ setup() {
 }
 
 @test "start mongo container" {
-	skip "this image is not working (see https://github.com/01org/cc-oci-runtime/issues/318)"
 	timeout 10 $DOCKER_EXE run -i mongo --auth | grep "MongoDB starting"
 }
 
@@ -298,7 +296,6 @@ setup() {
 }
 
 @test "start instance in percona container" {
-	skip "this image is not working (see https://github.com/01org/cc-oci-runtime/issues/318)"
 	if $DOCKER_EXE run -i percona perl -e 'print "Clear Containers\n"' | grep LANG; then false; else true; fi
 }
 
@@ -335,7 +332,6 @@ setup() {
 }
 
 @test "run rakudo star container" {
-	skip "this image is not working (see https://github.com/01org/cc-oci-runtime/issues/318)"
 	if $DOCKER_EXE run -i rakudo-star perl -e 'print "Hello\n"' | grep "LANG"; then false; else true; fi
 }
 
