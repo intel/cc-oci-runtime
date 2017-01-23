@@ -161,12 +161,10 @@ setup() {
 }
 
 @test "run hello world container" {
-	skip "this image is not working (see https://github.com/01org/cc-oci-runtime/issues/222)"
 	$DOCKER_EXE run --rm -i hello-world | grep "Hello from Docker"
 }
 
 @test "run hello seattle container" {
-	skip "this image is not working (see https://github.com/01org/cc-oci-runtime/issues/222)"
 	$DOCKER_EXE run --rm -i hello-seattle | grep "Hello from DockerCon"
 }
 
@@ -246,13 +244,11 @@ setup() {
 }
 
 @test "start nats server" {
-	skip "this image is not working (see https://github.com/01org/cc-oci-runtime/issues/222)"
-	timeout 10 $DOCKER_EXE run -i nats nats-streaming | grep "ready"
+	timeout 10 $DOCKER_EXE run --rm -i nats | grep "nats-server"
 }
 
 @test "run nats streaming container" {
-	skip "this image is not working (see https://github.com/01org/cc-oci-runtime/issues/222)"
-	timeout 10 $DOCKER_EXE run -i nats-streaming | grep "Server is ready"
+	timeout 10 $DOCKER_EXE run --rm -i nats-streaming | grep "Server is ready"
 }
 
 @test "create a file in a neo4j container" {
