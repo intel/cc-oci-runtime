@@ -113,6 +113,39 @@ handled by systemd and can be viewed with:
 journalctl -u cc-proxy -f
 ```
 
+## SELinux
+
+To verify you have SELinux enforced check the output of `sestatus`:
+
+```
+$ sestatus 
+SELinux status:                 enabled
+SELinuxfs mount:                /sys/fs/selinux
+SELinux root directory:         /etc/selinux
+Loaded policy name:             targeted
+Current mode:                   enforcing
+Mode from config file:          error (Permission denied)
+Policy MLS status:              enabled
+Policy deny_unknown status:     allowed
+Max kernel policy version:      30
+```
+
+If you have `SELinux status enabled` and `Current mode enforcing`, then you'll 
+need to build and install SELinux `cc-proxy` policy.
+
+Run the following commands as root:
+
+```
+cd selinux/
+dnf install selinux-policy-devel rpm-build
+make 
+restorecon -R -v /run/cc-oci-runtime/proxy.sock
+semodule -X 300 -i cc-proxy.pp.bz2
+systemctl start cc-proxy.socket
+```
+
+Detailed info in `selinux/README.md`
+
 ## Debugging
 
 `cc-proxy` uses [glog](https://github.com/golang/glog) for its log messages.
