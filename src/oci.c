@@ -1490,6 +1490,11 @@ cc_oci_config_update (struct cc_oci_config *config,
 		state->mounts = NULL;
 	}
 
+	if (state->namespaces) {
+		config->oci.oci_linux.namespaces = state->namespaces;
+		state->namespaces = NULL;
+	}
+
 	if(state->process && ! config->oci.process.args) {
 		config->oci.process = *state->process;
 		g_free_if_set (state->process);

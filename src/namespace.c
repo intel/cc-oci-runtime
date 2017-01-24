@@ -36,17 +36,25 @@
 #include "util.h"
 
 /** Map of \ref oci_namespace values to human-readable strings. */
-static struct cc_oci_map oci_ns_map[] = 
-{
-	{ OCI_NS_CGROUP  , "cgroup"  },
-	{ OCI_NS_IPC     , "ipc"     },
-	{ OCI_NS_MOUNT   , "mount"   },
-	{ OCI_NS_NET     , "network" },
-	{ OCI_NS_PID     , "pid"     },
-	{ OCI_NS_USER    , "user"    },
-	{ OCI_NS_UTS     , "uts"     },
+static struct cc_oci_ns_map {
+	/* namespace value */
+	const enum oci_namespace ns;
 
-	{ OCI_NS_INVALID , NULL      }
+	/* string representation for namespace */
+	const gchar* name;
+
+	/* set to true if namespace is supported by runtime */
+	const gboolean supported;
+} oci_ns_map[] = {
+	{ OCI_NS_CGROUP  , "cgroup"  , false },
+	{ OCI_NS_IPC     , "ipc"     , false },
+	{ OCI_NS_MOUNT   , "mount"   , true  },
+	{ OCI_NS_NET     , "network" , true  },
+	{ OCI_NS_PID     , "pid"     , false },
+	{ OCI_NS_USER    , "user"    , false },
+	{ OCI_NS_UTS     , "uts"     , false },
+
+	{ OCI_NS_INVALID , NULL      , false}
 };
 
 /*!
@@ -66,6 +74,28 @@ cc_oci_ns_free (struct oci_cfg_namespace *ns)
 }
 
 /**
+ * check if namespace is supported
+ *
+ * \param ns \ref oci_namespace.
+ *
+ * \return true is namespace is supported else false.
+ */
+static gboolean
+cc_oci_ns_supported (enum oci_namespace ns)
+{
+	struct cc_oci_ns_map  *p;
+
+	for (p = oci_ns_map; p && p->name; p++) {
+		if (p->ns != ns) {
+			continue;
+		}
+		return p->supported;
+	}
+
+	return false;
+}
+
+/**
  * Convert a \ref oci_namespace into a human-readable string.
  *
  * \param ns \ref oci_namespace.
@@ -76,10 +106,10 @@ cc_oci_ns_free (struct oci_cfg_namespace *ns)
 const char *
 cc_oci_ns_to_str (enum oci_namespace ns)
 {
-	struct cc_oci_map  *p;
+	struct cc_oci_ns_map  *p;
 
 	for (p = oci_ns_map; p && p->name; p++) {
-		if (p->num == ns) {
+		if (p->ns == ns) {
 			return p->name;
 		}
 	}
@@ -98,7 +128,7 @@ cc_oci_ns_to_str (enum oci_namespace ns)
 enum oci_namespace
 cc_oci_str_to_ns (const char *str)
 {
-	struct cc_oci_map  *p;
+	struct cc_oci_ns_map  *p;
 
 	if ((! str) || (! *str)) {
 		goto out;
@@ -106,12 +136,57 @@ cc_oci_str_to_ns (const char *str)
 
 	for (p = oci_ns_map; p && p->name; p++) {
 		if (! g_strcmp0 (str, p->name)) {
-			return p->num;
+			return p->ns;
 		}
 	}
 
 out:
 	return OCI_NS_INVALID;
+}
+
+/**
+ * Join a specific namespace
+ *
+ * \param ns \ref oci_cfg_namespace.
+ *
+  * \return \c true on success, else \c false.
+ */
+gboolean cc_oci_ns_join(struct oci_cfg_namespace *ns)
+{
+	int fd;
+	int saved;
+	const gchar *type;
+
+	type = cc_oci_ns_to_str (ns->type);
+
+	fd = open (ns->path, O_RDONLY);
+
+	if (fd < 0) {
+		saved = errno;
+		g_critical ("failed to open %s : %s", ns->path, strerror(errno));
+		goto err;
+	}
+
+	/* join an existing namespace */
+	if (setns (fd, ns->type) < 0) {
+		saved = errno;
+		g_critical ("failed to join to %s namespace %s : %s",
+			type ? type : "", ns->path, strerror(errno));
+		goto err;
+	}
+
+	close (fd);
+
+	return true;
+err:
+	if (fd != -1) {
+		close (fd);
+	}
+
+	/* pass errno back to caller (mainly for tests) */
+	errno = saved;
+
+	return false;
 }
 
 /**
@@ -142,8 +217,6 @@ cc_oci_ns_setup (struct cc_oci_config *config)
 	const gchar               *type;
 	GSList                    *l;
 	struct oci_cfg_namespace  *ns;
-	int                        saved;
-	int                        fd = -1;
 
 	if (! config) {
 		return false;
@@ -170,65 +243,67 @@ cc_oci_ns_setup (struct cc_oci_config *config)
 		/* network and mount namespaces are the only supported
 		 * (since it's required to setup networking and mount).
 		 */
-		if (ns->type != OCI_NS_NET && ns->type != OCI_NS_MOUNT) {
+		if (! cc_oci_ns_supported (ns->type)) {
 			g_debug ("ignoring %s namespace request",
 					type ? type : "");
 			continue;
 		}
 
 		if (ns->path) {
-			fd = open (ns->path, O_RDONLY);
-
-			if (fd < 0) {
-				saved = errno;
-				goto err;
+			if (! cc_oci_ns_join (ns)) {
+				return false;
 			}
-
-			/* join an existing namespace */
-			if (setns (fd, ns->type) < 0) {
-				saved = errno;
-				goto err;
-			}
-
-			close (fd);
-
-			/* reset to ensure any subsequent failure is
-			 * handled correctly.
-			 */
-			fd = -1;
+			g_debug ("joined %s namespace", type ? type : "");
 		} else {
 			/* create a new namespace */
 			if (unshare (ns->type) < 0) {
-				saved = errno;
-				goto err;
+				return false;
 			}
+			g_debug ("created %s namespace", type ? type : "");
 		}
-
-		g_debug ("%s %s namespace",
-				ns->path ? "joined" : "created",
-				type ? type : "");
 	}
 
 	g_debug ("finished namespace setup");
 
 	return true;
+}
 
-err:
-	if (fd != -1) {
-		close (fd);
+/*!
+ * Convert the list of namespaces to a JSON array.
+ *
+ * \param config \ref cc_oci_config.
+ *
+ * \return \c JsonArray on success, else \c NULL.
+ */
+JsonArray *
+cc_oci_ns_to_json (const struct cc_oci_config *config)
+{
+	JsonArray *array = NULL;
+	JsonObject *ns = NULL;
+	GSList *l;
+
+	array  = json_array_new ();
+
+	for (l = config->oci.oci_linux.namespaces; l && l->data; l = g_slist_next (l)) {
+		struct oci_cfg_namespace *n = (struct oci_cfg_namespace *)l->data;
+
+		/* DO NOT save unsupported namespaces */
+		if (! cc_oci_ns_supported(n->type)) {
+			continue;
+		}
+
+		ns = json_object_new ();
+
+		json_object_set_string_member (ns, "type",
+			cc_oci_ns_to_str(n->type));
+
+		if (n->path) {
+			json_object_set_string_member (ns, "path",
+				n->path);
+		}
+
+		json_array_add_object_element (array, ns);
 	}
 
-	g_critical ("failed to %s %s namespace: %s",
-			fd != -1
-				? "open"
-				: ns->path
-					? "join"
-					: "create",
-			type ? type : "",
-			strerror (saved));
-
-	/* pass errno back to caller (mainly for tests) */
-	errno = saved;
-
-	return false;
+	return array;
 }

@@ -108,7 +108,11 @@ START_TEST(test_cc_oci_handle_umounts) {
 	mounts_spec_handler.handle_section(
 	    node_find_child(node, mounts_spec_handler.name), config);
 
-	ck_assert(! cc_oci_handle_unmounts(config));
+	/**
+	 * cc_oci_handle_unmounts returns true when there
+	 * is not a mount namespace with path
+	 */
+	ck_assert(cc_oci_handle_unmounts(config));
 
 	cc_oci_config_free(config);
 	g_free_node(node);

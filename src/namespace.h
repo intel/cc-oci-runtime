@@ -25,5 +25,8 @@ void cc_oci_ns_free (struct oci_cfg_namespace *ns);
 gboolean cc_oci_ns_setup (struct cc_oci_config *config);
 const char *cc_oci_ns_to_str (enum oci_namespace ns);
 enum oci_namespace cc_oci_str_to_ns (const char *str);
+JsonArray *
+cc_oci_ns_to_json (const struct cc_oci_config *config);
+gboolean cc_oci_ns_join(struct oci_cfg_namespace *ns);
 
 #endif /* _CC_OCI_NAMESPACE_H */
