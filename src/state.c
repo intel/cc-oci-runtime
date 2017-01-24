@@ -36,6 +36,7 @@
 #include "state.h"
 #include "runtime.h"
 #include "mount.h"
+#include "namespace.h"
 #include "annotation.h"
 #include "json.h"
 #include "config.h"
@@ -58,6 +59,7 @@ static void handle_state_processPath_section(GNode*, struct handler_data*);
 static void handle_state_status_section(GNode*, struct handler_data*);
 static void handle_state_created_section(GNode*, struct handler_data*);
 static void handle_state_mounts_section(GNode*, struct handler_data*);
+static void handle_state_namespaces_section(GNode*, struct handler_data*);
 static void handle_state_console_section(GNode*, struct handler_data*);
 static void handle_state_vm_section(GNode*, struct handler_data*);
 static void handle_state_proxy_section(GNode*, struct handler_data*);
@@ -95,6 +97,7 @@ static struct state_handler {
 	{ "proxy"       , handle_state_proxy_section       , 2 , 0 },
 	{ "pod"         , handle_state_pod_section         , 0 , 0 },
 	{ "annotations" , handle_state_annotations_section , 0 , 0 },
+	{ "namespaces"  , handle_state_namespaces_section  , 0 , 0 },
 
 	/* terminator */
 	{ NULL, NULL, 0, 0 }
@@ -279,6 +282,37 @@ handle_state_mounts_section(GNode* node, struct handler_data* data) {
 		if (l) {
 			m = (struct cc_oci_mount*)l->data;
 			m->directory_created = g_strdup((char*)node->children->data);
+		}
+	}
+}
+
+/*!
+ * handler for namespaces section
+ *
+ * \param node \c GNode.
+ * \param data \ref handler_data.
+ */
+static void
+handle_state_namespaces_section(GNode* node, struct handler_data* data) {
+	struct oci_cfg_namespace* n;
+
+	if (! (node && node->data) || ! (data && data->state)) {
+		return;
+	}
+	if (! (node->children && node->children->data)) {
+		g_critical("%s missing value", (char*)node->data);
+		return;
+	}
+
+	if (! g_strcmp0(node->data, "type")) {
+		n = g_new0 (struct oci_cfg_namespace, 1);
+		n->type = cc_oci_str_to_ns((char*)node->children->data);
+		data->state->namespaces = g_slist_append(data->state->namespaces, n);
+	} else if (! g_strcmp0(node->data, "path")) {
+		GSList *l = g_slist_last(data->state->namespaces);
+		if (l) {
+			n = (struct oci_cfg_namespace*)l->data;
+			n->path = g_strdup((char*)node->children->data);
 		}
 	}
 }
@@ -695,6 +729,11 @@ cc_oci_state_free (struct oci_state *state)
 		cc_oci_mounts_free_all (state->mounts);
 	}
 
+	if (state->namespaces) {
+		g_slist_free_full(state->namespaces,
+			(GDestroyNotify)cc_oci_ns_free);
+	}
+
 	if (state->vm) {
 		g_free_if_set (state->vm->kernel_params);
 		g_free (state->vm);
@@ -739,6 +778,7 @@ cc_oci_state_file_create (struct cc_oci_config *config,
 	JsonObject  *proxy = NULL;
 	JsonObject  *annotation_obj = NULL;
 	JsonArray   *mounts = NULL;
+	JsonArray   *namespaces = NULL;
 	JsonObject  *process = NULL;
 	JsonObject  *pod = NULL;
 	gchar       *str = NULL;
@@ -828,6 +868,16 @@ cc_oci_state_file_create (struct cc_oci_config *config,
 	}
 
 	json_object_set_array_member (obj, "mounts", mounts);
+
+	/* Add an array of namespaces to allow join to them and
+	 * umount or clear all resources
+	 */
+	namespaces = cc_oci_ns_to_json(config);
+	if (! namespaces) {
+		goto out;
+	}
+
+	json_object_set_array_member (obj, "namespaces", namespaces);
 
 	/* Add an process object to allow "start" command  what workload
 	 * will be used

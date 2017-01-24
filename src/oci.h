@@ -427,6 +427,9 @@ struct oci_state {
          */
         GSList          *annotations;
 
+	/** List of \ref oci_cfg_namespace namespaces */
+	GSList          *namespaces;
+
 	/* See member of same name in \ref cc_oci_config. */
 	gchar           *console;
 
