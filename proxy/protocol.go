@@ -128,19 +128,21 @@ func (proto *protocol) Serve(conn net.Conn, userData interface{}) error {
 		// Execute the corresponding handler
 		resp := proto.handleRequest(ctx, &req, &hr)
 
-		// First send an fd if the handler associated a file with the response
-		if hr.file != nil {
-			if err = api.WriteFd(conn.(*net.UnixConn), int(hr.file.Fd())); err != nil {
-				return err
-			}
-			hr.file.Close()
-		}
-
-		// Then send the response back to the client.
+		// Send the response back to the client.
 		if err = api.WriteMessage(conn, resp); err != nil {
 			// Something made us unable to write the response back
 			// to the client (could be a disconnection, ...).
 			return err
 		}
+
+		// And send a fd if the handler associated a file with the response
+		if hr.file != nil {
+			if err = api.WriteFd(conn.(*net.UnixConn), int(hr.file.Fd())); err != nil {
+				hr.file.Close()
+				return err
+			}
+			hr.file.Close()
+		}
+
 	}
 }

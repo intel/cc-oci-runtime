@@ -17,7 +17,6 @@ package api
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net"
 	"os"
 )
@@ -63,39 +62,6 @@ func (client *Client) sendPayload(id string, payload interface{}) (*Response, er
 	}
 
 	return &resp, nil
-}
-
-// sendPayloadGetFd will send a command payload and get a response back
-// but also an out of band file descriptor.
-func (client *Client) sendPayloadGetFd(id string, payload interface{}) (*Response, *os.File, error) {
-	var err error
-
-	req := Request{}
-	req.ID = id
-	if payload != nil {
-		if req.Data, err = json.Marshal(payload); err != nil {
-			return nil, nil, err
-		}
-	}
-
-	if err := WriteMessage(client.conn, &req); err != nil {
-		return nil, nil, err
-	}
-
-	// I/O fd
-	newFd, err := ReadFd(client.conn)
-	if err != nil {
-		return nil, nil, fmt.Errorf("sendPayloadGetFd: couldn't read fd for request %s", id)
-	}
-
-	ioFile := os.NewFile(uintptr(newFd), "")
-
-	resp := Response{}
-	if err := ReadMessage(client.conn, &resp); err != nil {
-		return nil, nil, err
-	}
-
-	return &resp, ioFile, nil
 }
 
 func errorFromResponse(resp *Response) error {
@@ -192,7 +158,7 @@ func (client *Client) AllocateIo(nStreams int) (ioBase uint64, ioFile *os.File, 
 		NStreams: nStreams,
 	}
 
-	resp, ioFile, err := client.sendPayloadGetFd("allocateIO", &allocate)
+	resp, err := client.sendPayload("allocateIO", &allocate)
 	if err != nil {
 		return
 	}
@@ -208,6 +174,14 @@ func (client *Client) AllocateIo(nStreams int) (ioBase uint64, ioFile *os.File, 
 	}
 
 	ioBase = (uint64)(val.(float64))
+
+	// I/O fd
+	newFd, err := ReadFd(client.conn)
+	if err != nil {
+		return 0, nil, errors.New("allocateio: couldn't read fd")
+	}
+
+	ioFile = os.NewFile(uintptr(newFd), "")
 
 	return
 }

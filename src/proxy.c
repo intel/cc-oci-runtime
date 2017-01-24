@@ -42,13 +42,10 @@ struct watcher_proxy_data
 	GString     *msg_received;
 	int          socket_fd;
 	/**
-	 * indicates that we expect an out-of-band file descriptor
+	 * Indicates that we expect an out-of-band file descriptor
 	 * from proxy socket.
-	 * if NULL read watcher WILL NOT wait for oob data,
-	 * otherwise it WILL wait
 	 */
 	int         *oob_fd;
-	gboolean    oob_fd_found;
 };
 
 /** Format of a proxy message */
@@ -225,6 +222,78 @@ out:
 }
 
 /**
+ * Read a file descriptor from the proxy's socket.
+ *
+ * \param proxy_fd the fd of the proxy socket
+ * \param fd fd read out of proxy_fd (out parameter)
+ *
+ * The proxy can send fds through OOB data after a successful reply of certain
+ * payloads. proxy will send us a 1 byte dummy message containing 'F'
+ * (OOB_FD_FLAG) for signaling OOB data.
+ *
+ * \return \c true on success, \c false otherwise.
+ */
+static gboolean
+cc_proxy_receive_fd(int proxy_fd, int *fd)
+{
+	struct msghdr msg = { 0 };
+	gchar iov_buffer[1] = { 0 };
+	struct iovec io = { .iov_base = iov_buffer,
+	                    .iov_len = sizeof(iov_buffer) };
+	char ctl_buffer[CMSG_SPACE(sizeof(int))];
+	struct cmsghdr *cmsg = NULL;
+	ssize_t bytes_read;
+	unsigned char *data;
+
+	msg.msg_iov = &io;
+	msg.msg_iovlen = 1;
+	msg.msg_control = ctl_buffer;
+	msg.msg_controllen = sizeof(ctl_buffer);
+
+	while (1) {
+		bytes_read = recvmsg(proxy_fd, &msg, 0);
+		if (bytes_read < 0 && (errno == EAGAIN || errno == EINTR)) {
+			continue;
+		}
+		break;
+	}
+
+	if (bytes_read == -1){
+		g_critical("recvmsg failed: %s", strerror(errno));
+		return false;
+	}
+
+	if (bytes_read == 0) {
+		g_critical("recvmsg failed: EOF");
+		return false;
+	}
+
+	if (bytes_read != 1 || iov_buffer[0] != OOB_FD_FLAG) {
+		g_critical("recvmsg failed: read %zd bytes, flag: %c",
+			   bytes_read, iov_buffer[0]);
+		return false;
+	}
+
+	cmsg = CMSG_FIRSTHDR(&msg);
+	if (!cmsg) {
+		g_critical("could not read the control message");
+		return false;
+	}
+
+	data = CMSG_DATA(cmsg);
+	if (!data) {
+		g_critical("missing out of band data");
+		return false;
+	}
+
+	*fd = *((int*) data);
+
+	g_message("received fd from proxy %d", *fd);
+
+	return true;
+}
+
+/**
  * Read a message from proxy's socket.
  *
  * \param source GIOChannel.
@@ -237,122 +306,62 @@ static gboolean
 cc_proxy_msg_read (GIOChannel *source, GIOCondition condition,
 	struct watcher_proxy_data *proxy_data)
 {
-	gchar iov_buffer[LINE_MAX] = { 0 };
 	ssize_t bytes_read, total_bytes_read = 0;
 	size_t payload_length;
-	struct msghdr msg = { 0 };
-	struct cmsghdr *cmsg = NULL;
-	struct iovec io = { .iov_base = iov_buffer,
-	                    .iov_len = sizeof(iov_buffer) };
-	char ctl_buffer[LINE_MAX] = { 0 };
-	unsigned char *data;
-	guint8 header_length[HEADER_MESSAGE_LENGTH] = { 0 };
-
-	msg.msg_iov = &io;
-	msg.msg_iovlen = 1;
-	msg.msg_control = ctl_buffer;
-	msg.msg_controllen = sizeof(ctl_buffer);
+	guint8 header[MESSAGE_HEADER_LENGTH] = { 0 };
+	gchar buf[LINE_MAX];
 
 	/*
-	 * If we are expecting to get OOB data, proxy will first
-	 * send us a 1 byte dummy message containing 'F' (OOB_FD_FLAG)
-	 * for signaling OOB data and then the actual command answer
-	 * as a regular message.
-	 * If we're not expecting OOB data we only receive the
-	 * command answer as a regular message.
-	 *
-	 * When expecting OOB data as part of the command reply,
-	 * this function will be called twice: First for receiving
-	 * the OOB data and then for receiving the actual message.
-	 * In the OOB data case, if the first message does not
-	 * contain ancillary data and the related in band data is
-	 * not OOB_FD_FLAG, we error out.
+	 * Start by reading the message header and the payload length.
 	 */
-
-	/*
-	 * Read the first bytes, this could be a message length
-	 * or the OOB message data file descriptor flag ('F').
-	 */
-	bytes_read = recvmsg(proxy_data->socket_fd, &msg, 0);
-
-	if (bytes_read == -1){
-		g_critical("failed to read proxy message %s", strerror(errno));
-		return false;
-	}
-
-	if (bytes_read == 0) {
-		g_critical("failed to read length");
-		return false;
-	}
-
-	total_bytes_read += bytes_read;
-
-	if (proxy_data->oob_fd && !proxy_data->oob_fd_found) {
-		/*
-		 * We expect OOB data that we have not found yet.
-		 * The OOB message must come first, as a 1 byte
-		 * only message.
-		 */
-		cmsg = CMSG_FIRSTHDR(&msg);
-		if (!cmsg) {
-			g_critical("could not read the control message");
-			goto out;
-		}
-
-		data = CMSG_DATA(cmsg);
-		if (! (data && iov_buffer[0] == OOB_FD_FLAG)) {
-			g_critical("missing out of band data");
-			goto out;
-		}
-
-		*proxy_data->oob_fd = *((int*) data);
-		g_message("oob fd read from proxy socket %d", *proxy_data->oob_fd);
-		proxy_data->oob_fd_found = true;
-
-		/* Kick this routine again for the actual command reply */
-		return true;
-	}
-
-	/* Get the proxy message length */
-	memcpy (header_length, iov_buffer, HEADER_MESSAGE_LENGTH);
-	payload_length = cc_oci_get_big_endian_32 (header_length);
-	g_debug ("msg length: %ld", payload_length);
-
-	/* Copy the rest of the io buffer */
-	g_string_append_len (proxy_data->msg_received,
-			iov_buffer + MESSAGE_HEADER_LENGTH,
-			(ssize_t)(bytes_read - MESSAGE_HEADER_LENGTH));
-
-	/* The entire message was read */
-	if (bytes_read >= payload_length + MESSAGE_HEADER_LENGTH) {
+	bytes_read = read(proxy_data->socket_fd, header, sizeof(header));
+	if (bytes_read <= 0) {
+		g_critical("couldn't read header from proxy: %s",
+			   strerror(errno));
 		goto out;
 	}
 
-	/* Read the missing bytes */
-	while(true) {
-		bytes_read = recvmsg(proxy_data->socket_fd, &msg, 0);
-		if (bytes_read < 0) {
+	payload_length = cc_oci_get_big_endian_32 (header);
+	g_debug ("proxy msg length: %ld", payload_length);
+
+	/*
+	 * The proxy sends back very small messages usually just a:
+	 *    '{"status":"success"}'
+	 * The biggest response is from allocateIO that adds an ioBase field,
+	 * so 1k is quite a high boundary.
+	 */
+	if (payload_length > 1024) {
+		g_critical("received bogus payload length");
+		goto out;
+	}
+
+	/*
+	 * Read the payload
+	 */
+	while(total_bytes_read < payload_length) {
+		bytes_read = read(proxy_data->socket_fd, buf,
+				  payload_length - (size_t)total_bytes_read);
+		if (bytes_read <= 0) {
 			/* Continue if we're missing some bytes */
-			if ((errno == EAGAIN) && (total_bytes_read < payload_length + MESSAGE_HEADER_LENGTH)) {
+			if (errno == EAGAIN || errno == EINTR) {
 				continue;
 			}
-
-			/* No more data to read */
+			g_critical("lost proxy connection: %s",
+				   strerror(errno));
 			break;
 		}
 
-		g_string_append_len(proxy_data->msg_received,
-			iov_buffer, bytes_read);
+		g_string_append_len(proxy_data->msg_received, buf, bytes_read);
 
 		total_bytes_read += bytes_read;
 	}
 
-out:
 	if (proxy_data->msg_received->len > 0) {
 		g_debug("message read from proxy socket: %s",
 			proxy_data->msg_received->str);
 	}
 
+out:
 	g_main_loop_quit (proxy_data->loop);
 
 	/* Unregister this watcher */
@@ -577,7 +586,6 @@ cc_proxy_run_cmd(struct cc_proxy *proxy,
 	g_io_channel_set_encoding (channel, NULL, NULL);
 
 	proxy_data.msg_received = msg_received;
-	proxy_data.oob_fd_found = false;
 
 	/* add a watcher for proxy's socket stdin */
 	g_io_add_watch(channel, G_IO_OUT | G_IO_HUP,
@@ -594,6 +602,20 @@ cc_proxy_run_cmd(struct cc_proxy *proxy,
 		ret = false;
 	} else {
 		ret = hyper_result;
+	}
+
+	/*
+	 * If we're asked for a fd out of the proxy and the command has
+	 * succeeded, we can now read it.
+	 */
+	if (oob_fd && ret == true) {
+		gboolean fd_received;
+
+		fd_received = cc_proxy_receive_fd(proxy_data.socket_fd, oob_fd);
+		if (!fd_received) {
+			g_critical ("failed to receive fd");
+			ret = false;
+		}
 	}
 
 out:
