@@ -207,31 +207,6 @@ All command-line commands should have a corresponding functional test.
 For example, the ``version`` command has a BATS_ functional test at
 `tests/functional/version.bats`_.
 
-Starting the hypervisor
------------------------
-
-The hypervisor is launched by the ``cc_oci_vm_launch()`` function.
-
-The logic employed by this function is unfortunately quite elaborate.
-This is mostly due to the `OCI runtime specification`_ version 1.0.0-rc1 which split the
-previous ``start`` command into two separate commands (``create`` and
-``start``), but also due to Containerd_'s expectations of how a runtime
-should operate.
-
-Since under Docker, the pre-start hooks are responsible for setting up
-the containers network and since the runtime process is expected to be
-running at ``create`` time, ``create`` runs the pre-start hooks _first_,
-then arranges for the hypervisor process to be started passing it the
-network configuration derived from the execution of the pre-start hooks.
-Further, since the hypervisor process must exist but is not allowed to
-execute at this phase, it is created in a stopped state by launching it
-under the control of ``ptrace(2)``. This control is immediately
-relinquished by the process is sent a ``SIGSTOP`` signal such that it is
-"paused".
-
-The ``start`` command then "releases" the stopped hypervisor process
-by sending it the ``SIGCONT`` signal, allowing it to start executing.
-
 Logging
 -------
 
