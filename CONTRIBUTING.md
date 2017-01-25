@@ -2,7 +2,7 @@
 
 cc-oci-runtime is an open source project licensed under the [GPL v2 License] (https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html).
 
-## Coding Style
+## Coding Style (C)
 
 The coding style for cc-oci-runtime is roughly K&R with function names in
 column 0, and variable names aligned in declarations.
@@ -29,6 +29,13 @@ The right results can be almost achieved by doing the following.
 ```
 	indent -kr -i8 -psl
 ```
+
+## Coding Style (Go)
+
+The usual Go style, enforced by `gofmt`, should be used. Additionally, the [Go
+Code Review](https://github.com/golang/go/wiki/CodeReviewComments) document
+contains a few common errors to be mindful of.
+
 
 ## Certificate of Origin
 
