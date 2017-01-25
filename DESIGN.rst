@@ -64,13 +64,13 @@ and viewing the extensive code documentation.
 Code layout
 -----------
 
-- Code lives below the ``src/`` directory.
+- The OCI runtime code lives below the ``src/`` directory.
+- The proxy code lives below the ``proxy/`` directory.
+- The shim code lives below the ``shim/`` directory.
 - Tests:
 
   - Unit test code lives in the directory ``tests/``.
-
   - Functional tests live below the directory ``tests/functional/``.
-
   - Integration tests live below the directory ``tests/integration/``.
 
 Coding style and strategy
