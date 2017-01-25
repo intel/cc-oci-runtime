@@ -76,29 +76,38 @@ Code layout
 Coding style and strategy
 -------------------------
 
-- The style of the code is similar to that used by the `Linux kernel`_.
-- The code is written to be as clean and readable as possible.
-- Use of "``goto``" is recommended for simplifying error handling and
-  avoiding duplicated code.
-- All functions must be documented with a `Doxygen`_ header.
-- All function parameters must be checked and an error returned
-  when an unexpected value is found.
-- Functions relating to a particular sub-system are separated into their
-  own sub-system-specific file and optional header file.
-- A sub-system should expose the smallest possible interface (all other
-  functions and data should be "``static``").
-- All sub-system interfaces must be accompanied with unit tests.
-  For example, subsystem "``src/${subsystem}.c``" must have an
-  accompanying "``tests/${subsystem}_test.c``". This is a minimum -
-  ideally all functions should have a unit test (to test a private
-  function, replace "``static``" with "``private``").
-- Most unit tests functions accept an ``cc_oci_config`` object. This is
-  the main object which encapsulates the contents of the `OCI
-  configuration file`_ along with runtime-specific data.
-- Where possible, all command-line commands and options should be
-  accompanied by a functional test. See `How command-line commands are
-  implemented`_.
-- The BATS_ test framework is used for functional and integration tests.
+- Runtime and shim (in C):
+
+  - The style of the code is similar to that used by the `Linux kernel`_.
+  - The code is written to be as clean and readable as possible.
+  - Use of "``goto``" is recommended for simplifying error handling and
+    avoiding duplicated code.
+  - All functions must be documented with a `Doxygen`_ header.
+  - All function parameters must be checked and an error returned when an
+    unexpected value is found.
+
+- Considerations specific to the runtime:
+
+  - Functions relating to a particular sub-system are separated into their own
+    sub-system-specific file and optional header file.
+  - A sub-system should expose the smallest possible interface (all other
+    functions and data should be "``static``").
+  - All sub-system interfaces must be accompanied with unit tests.  For
+    example, subsystem "``src/${subsystem}.c``" must have an accompanying
+    "``tests/${subsystem}_test.c``". This is a minimum - ideally all functions
+    should have a unit test (to test a private function, replace "``static``"
+    with "``private``").
+  - Most unit tests functions accept an ``cc_oci_config`` object. This is the
+    main object which encapsulates the contents of the `OCI configuration
+    file`_ along with runtime-specific data.
+  - Where possible, all command-line commands and options should be accompanied
+    by a functional test. See `How command-line commands are implemented`_.
+  - The BATS_ test framework is used for functional and integration tests.
+
+- Proxy (in Go):
+
+  - The usual Go style, enforced by `gofmt`, should be used.
+  - The `Go Code Review`_ document contains a few additional useful guidelines.
 
 Files
 -----
@@ -357,3 +366,4 @@ Notes:
 .. _`tests/functional/version.bats`: https://github.com/01org/cc-oci-runtime/blob/master/tests/functional/version.bats
 .. _`Linux kernel`: https://www.kernel.org/
 .. _BATS: https://github.com/sstephenson/bats
+.. _`Go Code Review`: https://github.com/golang/go/wiki/CodeReviewComments
