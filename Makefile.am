@@ -61,6 +61,7 @@ GENERATED_FILES = \
 	data/dockerFiles/Dockerfile.ubuntu \
 	data/vm.json \
 	tests/functional/common.bash \
+	tests/functional/run-functional-tests.sh \
 	tests/functional/data/config-minimal-cc-oci.json \
 	tests/metrics/density/docker_cpu_usage.sh \
 	tests/metrics/density/docker_memory_usage.sh \
@@ -87,6 +88,7 @@ $(GENERATED_FILES): %: %.in Makefile
 		-e 's|[@]DOCKER_ENGINE_FEDORA_VERSION[@]|$(DOCKER_ENGINE_FEDORA_VERSION)|g' \
 		-e 's|[@]DOCKER_UBUNTU_VERSION[@]|$(DOCKER_UBUNTU_VERSION)|g' \
 		-e 's|[@]DOCKER_ENGINE_UBUNTU_VERSION[@]|$(DOCKER_ENGINE_UBUNTU_VERSION)|g' \
+		-e 's|[@]ABS_BUILDDIR[@]|$(abs_builddir)|g' \
 		"$<" > "$@"
 
 if FUNCTIONAL_TESTS
@@ -332,6 +334,7 @@ EXTRA_DIST = \
 	data/dockerFiles/Dockerfile.ubuntu.in \
 	data/dockerFiles/Dockerfile.clearlinux \
 	$(bats_test_sources) \
+	tests/functional/run-functional-tests.sh.in \
 	tests/integration \
 	tests/lib \
 	tests/metrics/density/docker_cpu_usage.sh.in \
@@ -359,19 +362,7 @@ functional-tests: $(FUNCTIONAL_TESTS_DEPS)
 				ln -s $$f $(builddir)/tests/functional/ ; \
 			done; \
 		fi
-		@echo -e \
-		"export PROXY_SOCKET_PATH=\"$(abs_top_srcdir)/tests/functional/proxy.sock\" \n" \
-		"export SHIM_PATH=\"$(abs_top_srcdir)/cc-shim\" \n" \
-		"echo 'Running a new instance of cc-proxy' \n" \
-		"$(abs_top_srcdir)/cc-proxy -socket-path=\"\$${PROXY_SOCKET_PATH}\" & \n" \
-		"p=\$$! \n" \
-		"sleep 1 \n" \
-		"bash $(builddir)/data/run-bats.sh $(builddir)/tests/functional/ \n" \
-		"echo 'killing own cc-proxy instance' \n" \
-		"kill -9 \$$p \n" \
-		"rm -f \$${PROXY_SOCKET_PATH} \n" > $(abs_top_srcdir)/tests/functional/run_functional_tests.sh
-		@bash -f $(abs_top_srcdir)/tests/functional/run_functional_tests.sh
-		@rm -f $(abs_top_srcdir)/tests/functional/run_functional_tests.sh
+		@bash -f $(abs_builddir)/tests/functional/run-functional-tests.sh
 endif
 
 if DOCKER_TESTS
