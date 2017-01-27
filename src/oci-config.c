@@ -170,6 +170,10 @@ cc_oci_config_free (struct cc_oci_config *config)
 		g_strfreev (config->oci.process.env);
 	}
 
+	if (config->oci.process.user.additionalGids) {
+		g_strfreev (config->oci.process.user.additionalGids);
+	}
+
 	cc_oci_mounts_free_all (config->oci.mounts);
 	cc_oci_annotations_free_all (config->oci.annotations);
 

@@ -37,6 +37,9 @@ handle_user_section (GNode *root, struct cc_oci_config *config)
 	if (g_strcmp0(root->data, "gid") == 0) {
 		config->oci.process.user.gid = (gid_t)atoi (root->children->data);
 	}
+	if (g_strcmp0(root->data, "additionalGids") == 0) {
+		config->oci.process.user.additionalGids = node_to_strv (root);
+	}
 }
 
 static void
