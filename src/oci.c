@@ -1542,10 +1542,11 @@ cc_oci_config_update (struct cc_oci_config *config,
 JsonObject *
 cc_oci_process_to_json(const struct oci_cfg_process *process)
 {
-	JsonObject *json_process = NULL;
-	JsonObject *user         = NULL;
-	JsonArray  *args         = NULL;
-	JsonArray  *envs         = NULL;
+	JsonObject *json_process    = NULL;
+	JsonObject *user            = NULL;
+	JsonArray  *args            = NULL;
+	JsonArray  *envs            = NULL;
+	JsonArray  *additional_gids = NULL;
 
 	if (! (process && process->args && process->cwd[0])) {
 		goto out;
@@ -1572,6 +1573,20 @@ cc_oci_process_to_json(const struct oci_cfg_process *process)
 	json_object_set_object_member (json_process, "user", user);
 	json_object_set_int_member (user, "uid", process->user.uid);
 	json_object_set_int_member (user, "gid", process->user.gid);
+
+	if (process->user.additionalGids) {
+		additional_gids = json_array_new();
+
+		char **gids = process->user.additionalGids;
+		while (*gids != NULL) {
+			json_array_add_string_element (additional_gids,
+							*gids);
+			gids++;
+		}
+
+		json_object_set_array_member (user, "additionalGids",
+						additional_gids);
+	}
 
 	json_object_set_array_member (json_process, "args", args);
 	json_object_set_array_member (json_process, "env", envs);
