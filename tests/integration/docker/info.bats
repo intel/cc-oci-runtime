@@ -25,11 +25,12 @@ SRC="${BATS_TEST_DIRNAME}/../../lib/"
 
 setup() {
 	source $SRC/test-common.bash
-	clean_docker_ps
 	runtime_docker
 }
 
 @test "Container info" {
-	$DOCKER_EXE run -itd --name container1 busybox
+	container=$(random_name)
+	$DOCKER_EXE run -itd --name $container busybox
 	$DOCKER_EXE info| grep "Containers: 1"
+	$DOCKER_EXE rm -f $container
 }

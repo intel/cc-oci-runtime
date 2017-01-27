@@ -26,16 +26,19 @@ exit_status=55
 
 setup() {
 	source $SRC/test-common.bash
-	clean_docker_ps
 	runtime_docker
 }
 
 @test "Exit Code from container process when running non-interactive" {
-	run $DOCKER_EXE run ubuntu /usr/bin/perl -e "exit $exit_status"
+	container=$(random_name)
+	run $DOCKER_EXE run --name $container ubuntu /usr/bin/perl -e "exit $exit_status"
 	[ "${status}" -eq "$exit_status" ]
+	$DOCKER_EXE rm -f $container
 }
 
 @test "Exit Code from container process when running interactive" {
-	run $DOCKER_EXE run -ti ubuntu /usr/bin/perl -e "exit $exit_status"
+	container=$(random_name)
+	run $DOCKER_EXE run --name $container -ti ubuntu /usr/bin/perl -e "exit $exit_status"
 	[ "${status}" -eq "$exit_status" ]
+	$DOCKER_EXE rm -f $container
 }

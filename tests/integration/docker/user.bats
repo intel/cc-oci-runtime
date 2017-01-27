@@ -29,19 +29,25 @@ setup() {
 }
 
 @test "Run as non-root user" {
-	run $DOCKER_EXE run -u postgres postgres whoami
+	container=$(random_name)
+	run $DOCKER_EXE run --name $container -u postgres postgres whoami
 	[ "${status}" -eq 0 ]
 	[[ "${output}" == 'postgres'* ]]
+	$DOCKER_EXE rm -f $container
 }
 
 @test "Groups for non-root user" {
-	run $DOCKER_EXE run -u postgres postgres groups
+	container=$(random_name)
+	run $DOCKER_EXE run --name $container -u postgres postgres groups
 	[ "${status}" -eq 0 ]
 	[[ "${output}" == 'postgres ssl-cert'* ]]
+	$DOCKER_EXE rm -f $container
 }
 
 @test "Run as root user" {
-	run $DOCKER_EXE run -u root:root postgres whoami
+	container=$(random_name)
+	run $DOCKER_EXE run --name $container -u root:root postgres whoami
 	[ "${status}" -eq 0 ]
 	[[ "${output}" == 'root'* ]]
+	$DOCKER_EXE rm -f $container
 }

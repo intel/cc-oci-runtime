@@ -25,21 +25,26 @@ SRC="${BATS_TEST_DIRNAME}/../../lib/"
 
 setup() {
 	source $SRC/test-common.bash
-	clean_docker_ps
 	runtime_docker
 }
 
 @test "Inspect a container ip address" {
-	$DOCKER_EXE run -ti -d --name container1 busybox
-	$DOCKER_EXE inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' container1
+	container=$(random_name)
+	$DOCKER_EXE run -ti -d --name $container busybox
+	$DOCKER_EXE inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $container
+	$DOCKER_EXE rm -f $container
 }
 
 @test "Inspect a container with json format" {
-	$DOCKER_EXE run -ti -d --name container2 busybox
-	$DOCKER_EXE inspect --format='{{json .Config}}' container2
+	container=$(random_name)
+	$DOCKER_EXE run -ti -d --name $container busybox
+	$DOCKER_EXE inspect --format='{{json .Config}}' $container
+	$DOCKER_EXE rm -f $container
 }
 
 @test "Inspect a container to get instance's log path" {
-	$DOCKER_EXE run -ti -d --name container3 busybox
-	$DOCKER_EXE inspect --format='{{.LogPath}}' container3
+	container=$(random_name)
+	$DOCKER_EXE run -ti -d --name $container busybox
+	$DOCKER_EXE inspect --format='{{.LogPath}}' $container
+	$DOCKER_EXE rm -f $container
 }

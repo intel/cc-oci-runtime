@@ -29,29 +29,39 @@ setup() {
 }
 
 @test "Run shell echo" {
-	run $DOCKER_EXE run busybox sh -c "echo Passed"
+	container=$(random_name)
+	run $DOCKER_EXE run --name $container busybox sh -c "echo Passed"
 	[ "${status}" -eq 0 ]
 	[[ "${output}" == 'Passed'* ]]
+	$DOCKER_EXE rm -f $container
 }
 
 @test "stdout using run" {
-	run bash -c "$DOCKER_EXE run busybox ls /etc/resolv.conf"
+	container=$(random_name)
+	container2=$(random_name)
+	run $DOCKER_EXE run --name $container busybox ls /etc/resolv.conf
 	[[ "${output}" =~ "/etc/resolv.conf" ]]
-	run bash -c "$DOCKER_EXE run busybox ls /etc/resolv.conf 1>/dev/null"
+	run bash -c "$DOCKER_EXE run --name $container2 busybox ls /etc/resolv.conf 1>/dev/null"
 	[ -z "${output}" ]
+	$DOCKER_EXE rm -f $container $container2
 }
 
 @test "stderr using run" {
-	run bash -c "$DOCKER_EXE run busybox ls /etc/foo"
+	container=$(random_name)
+	container2=$(random_name)
+	run $DOCKER_EXE run --name $container busybox ls /etc/foo
 	[[ "${output}" =~ "ls: /etc/foo: No such file or directory" ]]
-	run bash -c "$DOCKER_EXE run busybox ls /etc/foo 2>/dev/null"
+	run bash -c "$DOCKER_EXE run --name $container2 busybox ls /etc/foo 2>/dev/null"
 	[ -z "${output}" ]
+	$DOCKER_EXE rm -f $container $container2
 }
 
 @test "stdin from pipe" {
-	run bash -c "echo hello | $DOCKER_EXE run -i busybox"
+	container=$(random_name)
+	run bash -c "echo hello | $DOCKER_EXE run --name $container -i busybox"
 	echo status: "${status}"
 	echo output: "${output}"
 	[[ "${status}" == 127 ]]
 	[[ "${output}" =~ "sh: hello: not found" ]]
+	$DOCKER_EXE rm -f $container
 }

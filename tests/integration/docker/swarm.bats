@@ -53,7 +53,6 @@ function clean_swarm_status() {
 
 setup() {
 	source $SRC/test-common.bash
-	clean_docker_ps
 	runtime_docker
 	clean_swarm_status
 	interfaces=($(readlink /sys/class/net/* | grep -i pci | xargs basename -a))

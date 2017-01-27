@@ -25,17 +25,17 @@ SRC="${BATS_TEST_DIRNAME}/../../lib/"
 
 setup() {
 	source $SRC/test-common.bash
-	clean_docker_ps
 	runtime_docker
 }
 
 @test "Check attach functionality" {
-	$DOCKER_EXE run --name containertest -d ubuntu bash -c "sleep 5 && echo 'Hello, World'"
-	$DOCKER_EXE attach containertest > result_file
+	container=$(random_name)
+	$DOCKER_EXE run --name $container -d ubuntu bash -c "sleep 5 && echo 'Hello, World'"
+	$DOCKER_EXE attach $container > result_file
 	grep 'Hello, World' result_file
+	$DOCKER_EXE rm -f $container
 }
 
 teardown() {
-	$DOCKER_EXE rm -f containertest
 	rm result_file
 }

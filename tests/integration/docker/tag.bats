@@ -25,13 +25,14 @@ SRC="${BATS_TEST_DIRNAME}/../../lib/"
 
 setup() {
 	source $SRC/test-common.bash
-	clean_docker_ps
 	runtime_docker
 }
 
 @test "Tag a container" {
-	$DOCKER_EXE run -i busybox true
-	$DOCKER_EXE tag busybox container1
+	container=$(random_name)
+	$DOCKER_EXE run --name $container -i busybox true
+	$DOCKER_EXE tag busybox "container1"
 	$DOCKER_EXE images | grep "container1"
-	$DOCKER_EXE rmi container1
+	$DOCKER_EXE rmi "container1"
+	$DOCKER_EXE rm -f $container
 }
