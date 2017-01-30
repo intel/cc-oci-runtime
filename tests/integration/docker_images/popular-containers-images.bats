@@ -107,7 +107,6 @@ setup() {
 }
 
 @test "run drupal container" {
-	skip "this image is not working (see https://github.com/01org/cc-oci-runtime/issues/321)"
 	$DOCKER_EXE run --name mysqlcontainertest -e MYSQL_ROOT_PASSWORD=secretword -e MYSQL_USER=test -e MYSQL_DATABASE=testdb -d mysql
 	if timeout 10 $DOCKER_EXE run --rm -i --name containertest --link mysqlcontainertest:mysql -p 8080:8080 drupal | grep "Unable to open logs"; then false; else true; fi
 }
@@ -169,7 +168,6 @@ setup() {
 }
 
 @test "start apachectl in a httpd container" {
-	skip "this image is not working (see https://github.com/01org/cc-oci-runtime/issues/321)"
 	if $DOCKER_EXE run -i httpd apachectl -k start | grep "Unable to open logs"; then false; else true; fi
 }
 
@@ -198,7 +196,6 @@ setup() {
 }
 
 @test "run joomla container" {
-	skip "this image is not working (see https://github.com/01org/cc-oci-runtime/issues/321)"
 	$DOCKER_EXE run --name mysqlcontainertest -e MYSQL_ROOT_PASSWORD=secretword -e MYSQL_USER=test -e MYSQL_DATABASE=testdb -d mysql
 	if timeout 10 $DOCKER_EXE run -i --name testcontainer --link mysqlcontainertest:mysql -p 8080:8080 joomla | grep "Unable to open logs"; then false; else true; fi
 }
@@ -356,7 +353,6 @@ setup() {
 }
 
 @test "start swarm container" {
-	skip "this image is not working (see https://github.com/01org/cc-oci-runtime/issues/222)"
 	if $DOCKER_EXE run -i swarm create | grep "EXEC spawning"; then false; else true; fi
 }
 
@@ -373,7 +369,6 @@ setup() {
 }
 
 @test "run an instance in a traefik container" {
-	skip "this image is not working (see https://github.com/01org/cc-oci-runtime/issues/222)"
 	if $DOCKER_EXE run -i traefik traefik --version | grep "EXEC spawning"; then false; else true; fi
 }
 
@@ -390,7 +385,6 @@ setup() {
 }
 
 @test "start wordpress container" {
-	skip "this image is not working (see https://github.com/01org/cc-oci-runtime/issues/318)"
 	if $DOCKER_EXE run -i wordpress perl -e 'print "test\n"' | grep LANG; then false; else true; fi
 }
 
