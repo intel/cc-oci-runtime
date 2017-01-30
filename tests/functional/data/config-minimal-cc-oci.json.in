@@ -25,6 +25,13 @@
 	},
 	"hostname": "shell",
 	"mounts": [],
+	"namespaces": [
+		{"type":"mount"},
+		{"type":"network"},
+		{"type":"uts"},
+		{"type":"pid"},
+		{"type":"ipc"}
+	],
 	"hooks": {
 		"prestart": [
 		{
