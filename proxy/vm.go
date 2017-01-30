@@ -135,8 +135,6 @@ func (vm *vm) ioHyperToClients() {
 	for {
 		msg, err := vm.hyperHandler.ReadIoMessage()
 		if err != nil {
-			// VM process is gone
-			vm.signalVMLost()
 			break
 		}
 
@@ -158,6 +156,8 @@ func (vm *vm) ioHyperToClients() {
 		}
 	}
 
+	// Having an error on read/write is interpreted as having lost the VM.
+	vm.signalVMLost()
 	vm.wg.Done()
 }
 
