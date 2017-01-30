@@ -25,18 +25,21 @@ SRC="${BATS_TEST_DIRNAME}/../../lib/"
 
 setup() {
 	source $SRC/test-common.bash
-	clean_docker_ps
 	runtime_docker
 }
 
 @test "Verify LANG is not set in env" {
-	run $DOCKER_EXE run -i ubuntu env
+	container=$(random_name)
+	run $DOCKER_EXE run --name $container -i ubuntu env
 	echo "${output}" | grep -v "LANG"
+	$DOCKER_EXE rm -f $container
 }
 
 @test "Check that required env variables are set" {
-	run $DOCKER_EXE run -i ubuntu env
+	container=$(random_name)
+	run $DOCKER_EXE run --name $container -i ubuntu env
 	echo "${output}" | grep "PATH"
 	echo "${output}" | grep "HOSTNAME"
 	echo "${output}" | grep "HOME"
+	$DOCKER_EXE rm -f $container
 }

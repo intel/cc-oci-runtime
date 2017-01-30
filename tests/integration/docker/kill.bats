@@ -25,11 +25,12 @@ SRC="${BATS_TEST_DIRNAME}/../../lib/"
 
 setup() {
 	source $SRC/test-common.bash
-	clean_docker_ps
 	runtime_docker
 }
 
 @test "Kill a container" {
-	$DOCKER_EXE run -d -ti --name container1 busybox sh
-	$DOCKER_EXE kill container1
+	container=$(random_name)
+	$DOCKER_EXE run -d -ti --name $container busybox sh
+	$DOCKER_EXE kill $container
+	$DOCKER_EXE rm -f $container
 }

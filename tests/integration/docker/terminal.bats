@@ -27,22 +27,27 @@ tty_dev="/dev/pts/.*"
 
 setup() {
 	source $SRC/test-common.bash
-	clean_docker_ps
 	runtime_docker
 }
 
 @test "TERM env variable is set when allocating a tty" {
-	$DOCKER_EXE run -t ubuntu env | grep -q "$term_var"
+	container=$(random_name)
+	$DOCKER_EXE run --name $container -t ubuntu env | grep -q "$term_var"
+	$DOCKER_EXE rm -f $container
 }
 
 @test "TERM env variable is not set when not allocating a tty" {
-	run bash -c "$DOCKER_EXE run ubuntu env | grep -q $term_var"
+	container=$(random_name)
+	run bash -c "$DOCKER_EXE run --name $container ubuntu env | grep -q $term_var"
 	# Expecting RC=1 from the grep command since
 	# the TERM env variable should not exist.
 	[ "${status}" -eq 1 ]
+	$DOCKER_EXE rm -f $container
 }
 
 @test "Check that pseudo tty is setup properly when allocating a tty" {
-	run $DOCKER_EXE run -ti ubuntu tty
+	container=$(random_name)
+	run $DOCKER_EXE run --name $container -ti ubuntu tty
 	echo "${output}" | grep "$tty_dev"
+	$DOCKER_EXE rm -f $container
 }

@@ -25,11 +25,12 @@ SRC="${BATS_TEST_DIRNAME}/../../lib/"
 
 setup() {
 	source $SRC/test-common.bash
-	clean_docker_ps
 	runtime_docker
 }
 
 @test "Port a container" {
-	$DOCKER_EXE run -tid -p 8080:8080 --name container1 busybox
-	$DOCKER_EXE port container1 8080/tcp
+	container=$(random_name)
+	$DOCKER_EXE run -tid -p 8080:8080 --name $container busybox
+	$DOCKER_EXE port $container 8080/tcp
+	$DOCKER_EXE rm -f $container
 }

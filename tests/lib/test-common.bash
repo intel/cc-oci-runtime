@@ -23,12 +23,6 @@ DOCKER_SERVICE="docker-cor"
 SCRIPT_PATH=$(dirname $(readlink -f $0))
 RESULT_DIR="${SCRIPT_PATH}/../results"
 
-# Cleaning test environment
-function clean_docker_ps(){
-	"$DOCKER_EXE" ps -q | xargs -r "$DOCKER_EXE" kill
-	"$DOCKER_EXE" ps -aq | xargs -r "$DOCKER_EXE" rm -f
-}
-
 # Restarting test environment
 function start_docker_service(){
 	systemctl status "$DOCKER_SERVICE" | grep 'running'
@@ -93,4 +87,8 @@ function get_average(){
 	done
 	echo "Average: " >> "$test_file"
 	echo "scale=2; $total / $count" | bc >> "$test_file"
+}
+
+function random_name() {
+	echo $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
 }

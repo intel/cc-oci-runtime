@@ -25,11 +25,12 @@ SRC="${BATS_TEST_DIRNAME}/../../lib/"
 
 setup() {
 	source $SRC/test-common.bash
-	clean_docker_ps
 	runtime_docker
 }
 
 @test "Retrieve logs from container" {
-	$DOCKER_EXE run -d -ti --name container1 ubuntu /bin/bash -c "echo 'hello world' > file; cat file"
-	$DOCKER_EXE logs container1
+	container=$(random_name)
+	$DOCKER_EXE run -d -ti --name $container ubuntu /bin/bash -c "echo 'hello world' > file; cat file"
+	$DOCKER_EXE logs $container
+	$DOCKER_EXE rm -f $container
 }

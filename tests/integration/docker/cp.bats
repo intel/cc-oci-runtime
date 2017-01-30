@@ -25,17 +25,18 @@ SRC="${BATS_TEST_DIRNAME}/../../lib/"
 
 setup() {
 	source $SRC/test-common.bash
-	clean_docker_ps
 	runtime_docker
 }
 
 @test "Check mounted files at /etc after a docker cp" {
+	container=$(random_name)
 	content="test"
 	testfile=$(mktemp --tmpdir="$BATS_TMPDIR" --suffix=-cor-test)
-	$DOCKER_EXE run --name containertest -tid ubuntu bash
+	$DOCKER_EXE run --name $container -tid ubuntu bash
 	echo $content > $testfile
-	$DOCKER_EXE cp $testfile containertest:/root/
-	$DOCKER_EXE exec -i containertest bash -c "ls /root/$(basename $testfile)"
-	$DOCKER_EXE exec -i containertest bash -c "[ -s /etc/resolv.conf ]"
+	$DOCKER_EXE cp $testfile $container:/root/
+	$DOCKER_EXE exec -i $container bash -c "ls /root/$(basename $testfile)"
+	$DOCKER_EXE exec -i $container bash -c "[ -s /etc/resolv.conf ]"
 	rm -f $testfile
+	$DOCKER_EXE rm -f $container
 }

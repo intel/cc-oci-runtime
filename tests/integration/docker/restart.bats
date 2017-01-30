@@ -25,15 +25,16 @@ SRC="${BATS_TEST_DIRNAME}/../../lib/"
 
 setup() {
 	source $SRC/test-common.bash
-	clean_docker_ps
 	runtime_docker
 }
 
 @test "Restart a container" {
-	$DOCKER_EXE run -ti -d --name container1 busybox
+	container=$(random_name)
+	$DOCKER_EXE run -ti -d --name $container busybox
 	$DOCKER_EXE ps -a | grep "Up"
-	$DOCKER_EXE stop container1
+	$DOCKER_EXE stop $container
 	$DOCKER_EXE ps -a | grep "Exited"
-	$DOCKER_EXE restart container1
+	$DOCKER_EXE restart $container
 	$DOCKER_EXE ps -a | grep "Up"
+	$DOCKER_EXE rm -f $container
 }

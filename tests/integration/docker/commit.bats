@@ -25,19 +25,22 @@ SRC="${BATS_TEST_DIRNAME}/../../lib/"
 
 setup() {
 	source $SRC/test-common.bash
-	clean_docker_ps
 	runtime_docker
 }
 
 @test "Commit a container" {
-	$DOCKER_EXE run -i --name container1 busybox /bin/sh -c "echo hello"
-	$DOCKER_EXE commit -m "test_commit" container1 container/test-container
+	container=$(random_name)
+	$DOCKER_EXE run -i --name $container busybox /bin/sh -c "echo hello"
+	$DOCKER_EXE commit -m "test_commit" $container container/test-container
 	$DOCKER_EXE rmi container/test-container
+	$DOCKER_EXE rm -f $container
 }
 
 @test "Commit a container with new configurations" {
-	$DOCKER_EXE run -i --name container2 busybox /bin/sh -c "echo hello"
-	$DOCKER_EXE inspect -f "{{ .Config.Env }}" container2
-	$DOCKER_EXE commit --change "ENV DEBUG true" container2 test/container-test
+	container=$(random_name)
+	$DOCKER_EXE run -i --name $container busybox /bin/sh -c "echo hello"
+	$DOCKER_EXE inspect -f "{{ .Config.Env }}" $container
+	$DOCKER_EXE commit --change "ENV DEBUG true" $container test/container-test
 	$DOCKER_EXE rmi test/container-test
+	$DOCKER_EXE rm -f $container
 }

@@ -25,7 +25,6 @@ SRC="${BATS_TEST_DIRNAME}/../../lib/"
 
 setup() {
 	source $SRC/test-common.bash
-	clean_docker_ps
 	runtime_docker
 	volName='volume1'
 }
@@ -40,36 +39,40 @@ setup() {
 }
 
 @test "Volume - use volume in a container" {
+	container=$(random_name)
+	container2=$(random_name)
 	testFile='hello_world'
 	containerPath='/attached_vol'
-	run bash -c "$DOCKER_EXE run -i -v $volName:$containerPath busybox touch $containerPath/$testFile"
+	run bash -c "$DOCKER_EXE run --name $container -i -v $volName:$containerPath busybox touch $containerPath/$testFile"
 	[ $status -eq 0 ]
-	run bash -c "$DOCKER_EXE run -i -v $volName:$containerPath busybox ls $containerPath | grep $testFile"
-	$DOCKER_EXE rm $($DOCKER_EXE ps -qa)
+	run bash -c "$DOCKER_EXE run --name $container2 -i -v $volName:$containerPath busybox ls $containerPath | grep $testFile"
+	run $DOCKER_EXE rm -f $container $container2
 	[ $status -eq 0 ]
 }
 
 @test "Volume - bind-mount a directory" {
+	container=$(random_name)
 	dir_path="$(pwd)/sharedSpace"
 	test_file="foo"
 	containerPath="/root/sharedSpace"
 	mkdir "$dir_path"
 	touch "$dir_path/$test_file"
-	run bash -c "$DOCKER_EXE run -i -v $dir_path:$containerPath busybox ls $containerPath | grep $test_file"
+	run bash -c "$DOCKER_EXE run --name $container -i -v $dir_path:$containerPath busybox ls $containerPath | grep $test_file"
 	rm -r "$dir_path"
-	$DOCKER_EXE rm $($DOCKER_EXE ps -qa)
+	run $DOCKER_EXE rm -f $container
 	[ $status -eq 0 ]
 
 }
 
 @test "Volume - bind-mount a single file" {
+	container=$(random_name)
 	test_file="$(pwd)/foo"
 	file_content="bar"
 	echo "$file_content" >  "$test_file"
 	containerPath="/root/foo"
-	run bash -c "$DOCKER_EXE run -i -v $test_file:$containerPath busybox cat $containerPath | grep $file_content"
+	run bash -c "$DOCKER_EXE run --name $container -i -v $test_file:$containerPath busybox cat $containerPath | grep $file_content"
 	rm "$test_file"
-	$DOCKER_EXE rm $($DOCKER_EXE ps -qa)
+	run $DOCKER_EXE rm -f $container
 	[ $status -eq 0 ]
 }
 

@@ -25,15 +25,16 @@ SRC="${BATS_TEST_DIRNAME}/../../lib/"
 
 setup() {
 	source $SRC/test-common.bash
-	clean_docker_ps
 	runtime_docker
 }
 
 @test "Load container" {
-	$DOCKER_EXE run -itd --name=container1 busybox
-	$DOCKER_EXE commit container1 mynewimage
+	container=$(random_name)
+	$DOCKER_EXE run -itd --name $container busybox
+	$DOCKER_EXE commit $container mynewimage
 	$DOCKER_EXE save mynewimage> /tmp/mynewimage.tar
 	$DOCKER_EXE load < /tmp/mynewimage.tar
 	$DOCKER_EXE images | grep "mynewimage"
 	$DOCKER_EXE rmi mynewimage
+	$DOCKER_EXE rm -f $container
 }

@@ -25,13 +25,14 @@ SRC="${BATS_TEST_DIRNAME}/../../lib/"
 
 setup() {
 	source $SRC/test-common.bash
-	clean_docker_ps
 	runtime_docker
 }
 
 @test "Create a container" {
-	$DOCKER_EXE create -ti --name container1 busybox true
-	$DOCKER_EXE ps -a | grep "container1"
+	container=$(random_name)
+	$DOCKER_EXE create -ti --name $container busybox true
+	$DOCKER_EXE ps -a | grep $container
+	$DOCKER_EXE rm -f $container
 }
 
 @test "Create network" {

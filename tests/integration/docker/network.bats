@@ -25,18 +25,21 @@ SRC="${BATS_TEST_DIRNAME}/../../lib/"
 
 setup() {
 	source $SRC/test-common.bash
-	clean_docker_ps
 	runtime_docker
 }
 
 @test "HostName is passed to the container" {
+	container=$(random_name)
 	hostName=clr-container
-	$DOCKER_EXE run -h $hostName -i ubuntu hostname | grep $hostName
+	$DOCKER_EXE run --name $container -h $hostName -i ubuntu hostname | grep $hostName
+	$DOCKER_EXE rm -f $container
 }
 
 @test "Verify connectivity between 2 containers" {
-	contName='pingTest'
-	$DOCKER_EXE run -tid --name "$contName" ubuntu bash
-	ip_addr=$($DOCKER_EXE inspect --format '{{ .NetworkSettings.IPAddress }}' "$contName")
-	$DOCKER_EXE run -i debian ping -c 1 "$ip_addr" | grep -q '1 packets received'
+	container=$(random_name)
+	container2=$(random_name)
+	$DOCKER_EXE run -tid --name $container ubuntu bash
+	ip_addr=$($DOCKER_EXE inspect --format '{{ .NetworkSettings.IPAddress }}' $container)
+	$DOCKER_EXE run --name $container2 -i debian ping -c 1 "$ip_addr" | grep -q '1 packets received'
+	$DOCKER_EXE rm -f $container $container2
 }

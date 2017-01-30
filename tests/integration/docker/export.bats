@@ -25,16 +25,17 @@ SRC="${BATS_TEST_DIRNAME}/../../lib/"
 
 setup() {
 	source $SRC/test-common.bash
-	clean_docker_ps
 	runtime_docker
 }
 
 @test "Export a container" {
-	$DOCKER_EXE run -ti -d --name container1 busybox
-	$DOCKER_EXE export container1 > latest.tar
+	container=$(random_name)
+	$DOCKER_EXE run -ti -d --name $container busybox
+	$DOCKER_EXE export $container > latest.tar
 	if [ ! -f latest.tar ]; then
 		exit 1
 	fi
+	$DOCKER_EXE rm -f $container
 }
 
 teardown () {
