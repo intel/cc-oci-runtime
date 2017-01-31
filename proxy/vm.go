@@ -270,21 +270,6 @@ func (session *ioSession) Close() {
 	session.wg.Wait()
 }
 
-func (vm *vm) CloseIo(seq uint64) {
-	vm.Lock()
-	session := vm.ioSessions[seq]
-	if session == nil {
-		vm.Unlock()
-		return
-	}
-	for i := 0; i < session.nStreams; i++ {
-		delete(vm.ioSessions, seq+uint64(i))
-	}
-	vm.Unlock()
-
-	session.Close()
-}
-
 func (vm *vm) Close() {
 	vm.hyperHandler.CloseSockets()
 	if vm.console.conn != nil {
