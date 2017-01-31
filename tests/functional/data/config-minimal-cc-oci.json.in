@@ -36,7 +36,7 @@
 		"prestart": [
 		{
 			"path": "/bin/echo",
-			"args": ["this", "is", "a", "test"],
+			"args": ["/bin/echo", "this", "is", "a", "test"],
 			"env":  [ "key1=value1"]
 		},
 		{
@@ -52,7 +52,7 @@
 		"poststop": [
 		{
 			"path": "/bin/echo",
-			"args": ["other", "test"]
+			"args": ["/bin/echo", "other", "test"]
 		}
 		]
 	},
