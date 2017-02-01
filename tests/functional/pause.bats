@@ -64,7 +64,7 @@ function teardown() {
 
 	# 'run' runs in background since it will
 	# update the state file once shim ends
-	cmd="$COR run --console --bundle $BUNDLE_DIR $container_id &"
+	cmd="$COR run -d --bundle $BUNDLE_DIR $container_id"
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
 	testcontainer "$container_id" "running"
 
