@@ -51,8 +51,6 @@ gboolean
 cc_shim_launch (struct cc_oci_config *config, int *child_err_fd,
 		int *shim_args_fd, int *shim_socket_fd, gboolean initial_workload);
 
-extern GMainLoop *hook_loop;
-
 
 START_TEST(test_cc_run_hook) {
 
@@ -71,9 +69,6 @@ START_TEST(test_cc_run_hook) {
 
 	/*******************************/
 
-	hook_loop = g_main_loop_new (NULL, 0);
-	ck_assert (hook_loop);
-
 	hook = g_new0 (struct oci_cfg_hook, 1);
 	ck_assert (hook);
 
@@ -82,14 +77,10 @@ START_TEST(test_cc_run_hook) {
 	/* fails since full path not specified */
 	ck_assert (! cc_run_hook (hook, "", 1));
 
-	g_main_loop_unref (hook_loop);
 	cc_oci_hook_free (hook);
 
 	/*******************************/
 	/* full path specified, no args */
-
-	hook_loop = g_main_loop_new (NULL, 0);
-	ck_assert (hook_loop);
 
 	hook = g_new0 (struct oci_cfg_hook, 1);
 	ck_assert (hook);
@@ -98,14 +89,10 @@ START_TEST(test_cc_run_hook) {
 
 	ck_assert (cc_run_hook (hook, "", 1));
 
-	g_main_loop_unref (hook_loop);
 	cc_oci_hook_free (hook);
 
 	/*******************************/
 	/* full path specified, cmd arg */
-
-	hook_loop = g_main_loop_new (NULL, 0);
-	ck_assert (hook_loop);
 
 	hook = g_new0 (struct oci_cfg_hook, 1);
 	ck_assert (hook);
@@ -118,14 +105,10 @@ START_TEST(test_cc_run_hook) {
 
 	ck_assert (cc_run_hook (hook, "", 1));
 
-	g_main_loop_unref (hook_loop);
 	cc_oci_hook_free (hook);
 
 	/*******************************/
 	/* full path, cmd arg + 1 arg */
-
-	hook_loop = g_main_loop_new (NULL, 0);
-	ck_assert (hook_loop);
 
 	hook = g_new0 (struct oci_cfg_hook, 1);
 	ck_assert (hook);
@@ -139,14 +122,10 @@ START_TEST(test_cc_run_hook) {
 
 	ck_assert (cc_run_hook (hook, "", 1));
 
-	g_main_loop_unref (hook_loop);
 	cc_oci_hook_free (hook);
 
 	/*******************************/
 	/* full path, cmd arg + 2 args */
-
-	hook_loop = g_main_loop_new (NULL, 0);
-	ck_assert (hook_loop);
 
 	hook = g_new0 (struct oci_cfg_hook, 1);
 	ck_assert (hook);
@@ -161,14 +140,10 @@ START_TEST(test_cc_run_hook) {
 
 	ck_assert (cc_run_hook (hook, "", 1));
 
-	g_main_loop_unref (hook_loop);
 	cc_oci_hook_free (hook);
 
 	/*******************************/
 	/* full path, cmd arg + 3 args */
-
-	hook_loop = g_main_loop_new (NULL, 0);
-	ck_assert (hook_loop);
 
 	hook = g_new0 (struct oci_cfg_hook, 1);
 	ck_assert (hook);
@@ -184,7 +159,6 @@ START_TEST(test_cc_run_hook) {
 
 	ck_assert (cc_run_hook (hook, "", 1));
 
-	g_main_loop_unref (hook_loop);
 	cc_oci_hook_free (hook);
 
 	/*******************************/
