@@ -25,7 +25,6 @@ SRC="${BATS_TEST_DIRNAME}/../../lib/"
 
 setup() {
 	source $SRC/test-common.bash
-	clean_docker_ps
 	runtime_docker
 }
 
@@ -109,6 +108,7 @@ setup() {
 @test "run drupal container" {
 	$DOCKER_EXE run --name mysqlcontainertest -e MYSQL_ROOT_PASSWORD=secretword -e MYSQL_USER=test -e MYSQL_DATABASE=testdb -d mysql
 	if timeout 10 $DOCKER_EXE run --rm -i --name containertest --link mysqlcontainertest:mysql -p 8080:8080 drupal | grep "Unable to open logs"; then false; else true; fi
+	$DOCKER_EXE rm -f mysqlcontainertest
 }
 
 @test "run an instance in a docker container" {
@@ -168,7 +168,7 @@ setup() {
 }
 
 @test "start apachectl in a httpd container" {
-	if $DOCKER_EXE run -i httpd apachectl -k start | grep "Unable to open logs"; then false; else true; fi
+	if $DOCKER_EXE run --rm -i httpd apachectl -k start | grep "Unable to open logs"; then false; else true; fi
 }
 
 @test "run python command in a hylang container" {
@@ -197,7 +197,8 @@ setup() {
 
 @test "run joomla container" {
 	$DOCKER_EXE run --name mysqlcontainertest -e MYSQL_ROOT_PASSWORD=secretword -e MYSQL_USER=test -e MYSQL_DATABASE=testdb -d mysql
-	if timeout 10 $DOCKER_EXE run -i --name testcontainer --link mysqlcontainertest:mysql -p 8080:8080 joomla | grep "Unable to open logs"; then false; else true; fi
+	if timeout 10 $DOCKER_EXE run --rm -i --name testcontainer --link mysqlcontainertest:mysql -p 8080:8080 joomla | grep "Unable to open logs"; then false; else true; fi
+	$DOCKER_EXE rm -f mysqlcontainertest
 }
 
 @test "start jruby container" {
@@ -237,7 +238,7 @@ setup() {
 }
 
 @test "start mongo container" {
-	timeout 10 $DOCKER_EXE run -i mongo --auth | grep "MongoDB starting"
+	$DOCKER_EXE run --rm -i mongo --version
 }
 
 @test "start nats server" {
@@ -289,7 +290,7 @@ setup() {
 }
 
 @test "start instance in percona container" {
-	if $DOCKER_EXE run -i percona perl -e 'print "Clear Containers\n"' | grep LANG; then false; else true; fi
+	if $DOCKER_EXE run --rm -i percona perl -e 'print "Clear Containers\n"' | grep LANG; then false; else true; fi
 }
 
 @test "run php container" {
@@ -325,7 +326,7 @@ setup() {
 }
 
 @test "run rakudo star container" {
-	if $DOCKER_EXE run -i rakudo-star perl -e 'print "Hello\n"' | grep "LANG"; then false; else true; fi
+	if $DOCKER_EXE run --rm -i rakudo-star perl -e 'print "Hello\n"' | grep "LANG"; then false; else true; fi
 }
 
 @test "start redis server with a certain port" {
@@ -369,7 +370,7 @@ setup() {
 }
 
 @test "run an instance in a traefik container" {
-	if $DOCKER_EXE run -i traefik traefik --version | grep "EXEC spawning"; then false; else true; fi
+	if $DOCKER_EXE run --rm -i traefik traefik --version | grep "EXEC spawning"; then false; else true; fi
 }
 
 @test "run an instance in an ubuntu debootstrap container" {
@@ -385,7 +386,7 @@ setup() {
 }
 
 @test "start wordpress container" {
-	if $DOCKER_EXE run -i wordpress perl -e 'print "test\n"' | grep LANG; then false; else true; fi
+	if $DOCKER_EXE run --rm -i wordpress perl -e 'print "test\n"' | grep LANG; then false; else true; fi
 }
 
 @test "start zookeeper container" {
