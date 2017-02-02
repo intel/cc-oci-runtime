@@ -45,6 +45,9 @@
 		g_node_destroy(node); \
 		node=NULL; }
 
+#define close_if_set(fd) \
+	if ((fd != -1)) { close(fd); fd=-1; }
+
 #ifdef DEBUG
 	void cc_oci_node_dump(GNode* node);
 #else

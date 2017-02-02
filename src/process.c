@@ -72,7 +72,6 @@
 extern struct start_data start_data;
 
 static GMainLoop* main_loop = NULL;
-private GMainLoop* hook_loop = NULL;
 
 /*!
  * Close file descriptors, excluding standard streams.
@@ -259,56 +258,6 @@ cc_oci_child_watcher (GPid pid, gint status,
 }
 
 /*!
- * Close spawned hook and stop the hook loop.
- *
- * \param pid Process ID.
- * \param status status of child process.
- * \param[out] exit_code exit code of child process.
- * */
-static void
-cc_oci_hook_watcher(GPid pid, gint status, gpointer exit_code) {
-	g_debug ("Hook pid %u ended with exit status %d", pid, status);
-
-	*((gint*)exit_code) = status;
-
-	g_spawn_close_pid (pid);
-
-	g_main_loop_quit(hook_loop);
-}
-
-/*!
- * Handle processes output streams
- * \param channel GIOChannel
- * \param cond GIOCondition
- * \param stream STDOUT_FILENO or STDERR_FILENO
- *
- * \return \c true on success, else \c false.
- * */
-static gboolean
-cc_oci_output_watcher(GIOChannel* channel, GIOCondition cond,
-                            gint stream)
-{
-	gchar* string = NULL;
-	gsize size;
-
-	if (cond == G_IO_HUP) {
-		return false;
-	}
-
-	g_io_channel_read_line(channel, &string, &size, NULL, NULL);
-
-
-	if (STDOUT_FILENO == stream) {
-		g_message("%s", string ? string : "");
-	} else {
-		g_warning("%s", string ? string : "");
-	}
-	g_free_if_set (string);
-
-	return true;
-}
-
-/*!
  * Start a hook
  *
  * \param hook \ref oci_cfg_hook.
@@ -319,203 +268,147 @@ cc_oci_output_watcher(GIOChannel* channel, GIOCondition cond,
  * */
 private gboolean
 cc_run_hook(struct oci_cfg_hook* hook, const gchar* state,
-             gsize state_length) {
-	GError* error = NULL;
-	gboolean ret = false;
-	gboolean result = false;
-	gchar **args = NULL;
-	guint args_len = 0;
-	GPid pid = 0;
-	gint std_in = -1;
-	gint std_out = -1;
-	gint std_err = -1;
-	gint hook_exit_code = -1;
-	GIOChannel* out_ch = NULL;
-	GIOChannel* err_ch = NULL;
-	gchar* container_state = NULL;
-	size_t i;
-	GSpawnFlags flags = 0x0;
+             gsize state_length)
+{
+	int stdin_pipe[2]        = { -1, -1 };
+	int pipe_child_error[2]  = { -1, -1 };
+	int pipe_parent_error[2] = { -1, -1 };
+	pid_t pid = 0;
+	int pipe_sz = 0;
+	bool ret = false;
+	char c = 0;
+	int status = 1;
+	char **args = NULL;
 
-	if (! (hook && state && state_length)) {
+	if (! hook) {
 		return false;
 	}
 
-	if (! hook_loop) {
-		/* all the hooks share the same loop */
+	if (hook->path[0] != '/') {
+		g_critical ("hook full path not specified");
 		return false;
 	}
 
-	flags |= G_SPAWN_DO_NOT_REAP_CHILD;
-	flags |= G_SPAWN_CLOEXEC_PIPES;
-
-	/* This flag is required to support exec'ing a command that
-	 * operates differently depending on its name (argv[0).
-	 *
-	 * Docker currently uses this, for example, to handle network
-	 * setup where it sets:
-	 *
-	 * path: "/path/to/dockerd"
-	 * args: [ "libnetwork-setkey", "$hash_1", "$hash2" ]
-	 */
-	flags |= G_SPAWN_FILE_AND_ARGV_ZERO;
-
-	if (hook->args) {
-		/* command name + args
-		 * (where args[0] might not match hook->path).
-		 */
-		args_len = 1 + g_strv_length(hook->args);
-	} else  {
-		/* command name + command name.
-		 *
-		 * Note: The double command name is required since we
-		 * must use G_SPAWN_FILE_AND_ARGV_ZERO.
-		 */
-		args_len = 2;
+	if (pipe (stdin_pipe) < 0) {
+		g_critical ("failed to create stdin pipe: %s", strerror(errno));
+		goto fail1;
 	}
 
-	/* +1 for for NULL terminator */
-	args = g_new0(gchar*, args_len + 1);
+	if (pipe2 (pipe_child_error, O_CLOEXEC) < 0) {
+		g_critical ("failed to create child pipe: %s", strerror(errno));
+		goto fail2;
+	}
 
-	/* args[0] must be file's path */
-	args[0] = hook->path;
+	if (pipe(pipe_parent_error) < 0) {
+		g_critical ("failed to create parent pipe: %s", strerror(errno));
+		goto fail3;
+	}
 
-	/* copy hook->args to args */
-	if (hook->args) {
-		for (i=0; i<args_len; ++i) {
-			args[i+1] = hook->args[i];
+	pid = fork ();
+	if (pid < 0) {
+		g_critical ("failed to fork parent: %s", strerror(errno));
+		goto fail4;
+	} else if (! pid) {
+		//child
+		close_if_set (stdin_pipe[1]);
+		close_if_set (pipe_child_error[0]);
+		close_if_set (pipe_parent_error[1]);
+
+		/* waiting for parent setup */
+		if (read (pipe_parent_error[0], &c, sizeof(c)) > 0) {
+			g_critical ("parent setup failed");
+			goto fail_child;
 		}
-	} else {
 
-		/* args[1] is the start of the array passed to the
-		 * program specified by args[0] so should contain the
-		 * program name (since this will become argv[0] for the
-		 * exec'd process).
-		 */
-		args[1] = hook->path;
-	}
-
-	g_debug ("running hook command '%s' as:", args[0]);
-
-	/* +1 to ignore the original (hook->path) name since:
-	 *
-	 * 1) It's just been displayed above.
-	 * 2) Although the command to exec is args[0],
-	 *    it will be known as args[1].
-	 */
-	for (gchar** p = args+1; p && *p; p++) {
-		g_debug ("arg: '%s'", *p);
-	}
-
-	ret = g_spawn_async_with_pipes(NULL,
-			args,
-			hook->env,
-			flags,
-			NULL,
-			NULL,
-			&pid,
-			&std_in,
-			&std_out,
-			&std_err,
-			&error
-	);
-
-	/* check errors */
-	if (!ret) {
-		g_critical("failed to spawn hook");
-		if (error) {
-			g_critical("error: %s", error->message);
+		if (dup2 (stdin_pipe[0], STDIN_FILENO) < 0) {
+			g_critical ("failed to dup hook stdin");
+			goto fail_child;
 		}
-		goto exit;
-	}
 
-	g_debug ("hook process ('%s') running with pid %d",
-			args[0], (int)pid);
-
-	/* add watcher to hook */
-	g_child_watch_add(pid, cc_oci_hook_watcher, &hook_exit_code);
-
-	/* create output channels */
-	out_ch = g_io_channel_unix_new(std_out);
-	err_ch = g_io_channel_unix_new(std_err);
-
-	/* add watchers to channels */
-	if (out_ch) {
-		g_io_add_watch(out_ch, G_IO_IN | G_IO_HUP,
-			(GIOFunc)cc_oci_output_watcher, (gint*)STDOUT_FILENO);
-	} else {
-		g_critical("failed to create out channel");
-	}
-	if (err_ch) {
-		g_io_add_watch(err_ch, G_IO_IN | G_IO_HUP,
-			(GIOFunc)cc_oci_output_watcher, (gint*)STDERR_FILENO);
-	} else {
-		g_critical("failed to create err channel");
-	}
-
-	/* write container state to hook's stdin */
-	container_state = g_strdup(state);
-	g_strdelimit(container_state, "\n", ' ');
-	if (write(std_in, container_state, state_length) < 0) {
-		int saved = errno;
-
-		g_critical ("failed to send container state to hook: %s",
-				strerror (saved));
-		/* Ignore signal since hook was probably not expecting
-		 * state to be passed via its stdin and has now exited.
-		 */
-		if (saved == EPIPE) {
-			result = true;
+		args = hook->args;
+		if (! (hook->args && *hook->args)) {
+			args = g_new0(gchar *, 2);
+			args[0] = hook->path;
 		}
-		goto exit;
-	}
 
-	/* commit container state to stdin */
-	if (write(std_in, "\n", 1) < 0) {
-		int saved = errno;
-		g_critical ("failed to commit container state: %s",
-				strerror (saved));
-		if (saved == EPIPE) {
-			result = true;
+		if (execvpe (hook->path, args, hook->env) < 0) {
+			g_critical ("failed to exec hook %s: %s",
+					hook->path, strerror (errno));
 		}
-		goto exit;
+
+fail_child:
+		if (write (pipe_child_error[1], "E", 1) < 0) {
+			g_critical ("failed to write error in child pipe: %s",
+				strerror(errno));
+		}
+		close_if_set (stdin_pipe[0]);
+		close_if_set (pipe_child_error[1]);
+		close_if_set (pipe_parent_error[0]);
+		abort();
 	}
 
-	/* required to complete notification to hook */
-	close (std_in);
+	//parent
+	close_if_set (stdin_pipe[0]);
+	close_if_set (pipe_child_error[1]);
+	close_if_set (pipe_parent_error[0]);
 
-	/* (re-)start the main loop and wait for the hook
-	 * to finish.
-	 */
+	/* if needed resize pipe size */
+	pipe_sz = fcntl (stdin_pipe[1], F_GETPIPE_SZ);
+	if (pipe_sz < state_length) {
+		if (fcntl (stdin_pipe[1], F_SETPIPE_SZ, state_length+1) < 0) {
+			g_critical ("failed to change pipe size: %s", strerror(errno));
+			goto fail5;
+		}
+	}
 
-	g_main_loop_run(hook_loop);
+	/* send state to hook */
+	if (write (stdin_pipe[1], state, state_length) < 0) {
+		g_critical ("failed to send state to hook: %s", strerror(errno));
+		goto fail5;
+	}
+
+	/* notify to child that setup finished successfully */
+	close_if_set (stdin_pipe[1]);
+	close_if_set (pipe_parent_error[1])
+
+	/* waiting for parent setup */
+	if (read (pipe_child_error[0], &c, sizeof(c)) > 0) {
+		g_critical ("hook setup failed");
+		goto fail4;
+	}
+
+	if (waitpid (pid, &status, 0) != pid) {
+		g_critical ("waitpid failed: %s", strerror(errno));
+		goto fail4;
+	}
 
 	/* check hook exit code */
-	if (hook_exit_code != 0) {
+	if (WEXITSTATUS (status) != 0) {
 		g_critical("hook process %d failed with exit code: %d",
-				(int)pid,
-				hook_exit_code);
-		goto exit;
+				(int)pid, WEXITSTATUS (status));
+		goto fail4;
 	}
 
-	g_debug ("hook process %d finished successfully", (int)pid);
+	ret = true;
 
-	result = true;
-
-exit:
-	g_free_if_set(container_state);
-	g_free_if_set(args);
-	if (error) {
-		g_error_free(error);
+fail5:
+	if (pipe_parent_error[1] != -1) {
+		if (write (pipe_parent_error[1], "E", 1) < 0) {
+			g_critical ("failed to write error in parent pipe: %s",
+				strerror(errno));
+		}
 	}
-
-	/* Note: this call does not close the fd */
-	if (out_ch) g_io_channel_unref (out_ch);
-	if (err_ch) g_io_channel_unref (err_ch);
-
-	if (std_out != -1) close (std_out);
-	if (std_err != -1) close (std_err);
-
-	return result;
+fail4:
+	close_if_set (pipe_parent_error[0]);
+	close_if_set (pipe_parent_error[1]);
+fail3:
+	close_if_set (pipe_child_error[0]);
+	close_if_set (pipe_child_error[1]);
+fail2:
+	close_if_set (stdin_pipe[0]);
+	close_if_set (stdin_pipe[1]);
+fail1:
+	return ret;
 }
 
 
@@ -1359,13 +1252,6 @@ cc_run_hooks(GSList* hooks, const gchar* state_file_path,
 		return true;
 	}
 
-	/* create a new main loop */
-	hook_loop = g_main_loop_new(NULL, 0);
-	if (!hook_loop) {
-		g_critical("cannot create a new main loop\n");
-		return false;
-	}
-
 	/* The state of the container is passed to the hooks over stdin,
 	 * so the hooks could get the information they need to do their
 	 * work.
@@ -1389,8 +1275,6 @@ cc_run_hooks(GSList* hooks, const gchar* state_file_path,
 
 exit:
 	g_free_if_set(container_state);
-	g_main_loop_unref(hook_loop);
-	hook_loop = NULL;
 
 	return result;
 }
