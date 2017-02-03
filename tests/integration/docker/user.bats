@@ -51,3 +51,23 @@ setup() {
 	[[ "${output}" == 'root'* ]]
 	$DOCKER_EXE rm -f $container
 }
+
+@test "Run with additional groups" {
+	run $DOCKER_EXE run --rm --group-add audio --group-add nogroup busybox id
+	[ "${status}" -eq 0 ]
+	echo "${output}" | grep "uid=0(root) gid=0(root) groups=[wheel10,()]*29(audio),99(nogroup)"
+}
+
+@test "Run with non-existing numeric gid" {
+	skip "This is not working. Hyperstart issue: https://github.com/hyperhq/hyperstart/issues/250"
+	# When passed a non-existent numeric id, hyperstart errors out saying that the
+	# user does not exist. This works with runc.
+	# Docker mentions "When passing a numeric ID, the user does not have
+	# to exist in the container."
+	# This needs to be fixed in hyperstart codebase.
+	# Passing a non-existent group name on the command line is not permitted however
+	# and docker itself handles the error.
+	run $DOCKER_EXE run --rm --group-add audio --group-add nogroup --group-add 777 busybox id
+	[ "${status}" -eq 0 ]
+	echo "${output}" | grep "777"
+}

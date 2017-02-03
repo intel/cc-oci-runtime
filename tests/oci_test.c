@@ -1058,7 +1058,9 @@ START_TEST(test_cc_oci_process_to_json) {
 	ck_assert (process_obj);
 	json_object_unref(process_obj);
 
-	process->user.additionalGids = 0;
+	process->user.additionalGids = g_malloc0(sizeof(*process->user.additionalGids) * 3);
+	process->user.additionalGids[0] = "10";
+	process->user.additionalGids[0] = "20";
 	process->user.gid = 0;
 	process->user.uid = 0;
 
@@ -1080,10 +1082,21 @@ START_TEST(test_cc_oci_process_to_json) {
 	ck_assert (json_object_has_member(process_obj, "stdio_stream"));
 	ck_assert (json_object_has_member(process_obj, "stderr_stream"));
 
+	JsonNode *user = json_object_get_member (process_obj,
+                        "user");
+	ck_assert (json_node_get_value_type(user) == JSON_TYPE_OBJECT);
+
+	JsonObject *user_obj = json_node_get_object(user);
+	ck_assert (user_obj);
+	ck_assert (json_object_has_member(user_obj, "uid"));
+	ck_assert (json_object_has_member(user_obj, "gid"));
+	ck_assert (json_object_has_member(user_obj, "additionalGids"));
+
 	json_object_unref(process_obj);
 
 	free(process->args);
 	free(process->env);
+	free(process->user.additionalGids);
 	free(process);
 } END_TEST
 

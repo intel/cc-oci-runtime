@@ -184,7 +184,12 @@ struct oci_cfg_root {
 struct oci_cfg_user {
 	uid_t    uid; /*!< User ID to run workload as. */
 	gid_t    gid; /*!< Group ID to run workload as. */
-	gid_t  **additionalGids; /*!< extra Group IDs to set workload as a member of */
+
+	/* Assigning type as char** as hyper expects strings in its commands
+	 * and much cleaner to handle these as strings to avoid extra casts 
+	 * while writing/reading from state file and sending these to hyperstart.
+	 */
+	gchar  **additionalGids; /*!< extra Group IDs to set workload as a member of */
 };
 
 struct oci_cfg_hook {
