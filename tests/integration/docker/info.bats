@@ -31,6 +31,12 @@ setup() {
 @test "Container info" {
 	container=$(random_name)
 	$DOCKER_EXE run -itd --name $container busybox
-	$DOCKER_EXE info| grep "Containers: 1"
+	# Checks one container is running (relies on having no previous docker
+	# container running).
+	$DOCKER_EXE info| grep "^ Running: 1$"
+	# As an additional measure, make sure $container is indeed running
+	run $DOCKER_EXE inspect --type container --format '{{ .State.Status }}' $container
+	[ "$status" -eq 0 ]
+	[ "$output" = "running" ]
 	$DOCKER_EXE rm -f $container
 }
