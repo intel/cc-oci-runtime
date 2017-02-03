@@ -361,6 +361,9 @@ struct cc_oci_net_if_cfg {
 	/** Name of the QEMU tap device */
 	gchar  *tap_device;
 
+	/** mtu of interface **/
+	unsigned int mtu;
+
 	/** List of IPv4 addresses on the interface */
 	GSList  *ipv4_addrs;
 
