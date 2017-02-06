@@ -3,41 +3,44 @@ dist: trusty
 
 language: c
 compiler:
-  - gcc
-  - clang
+- gcc
+- clang
 
 env:
   global:
-    # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
-    #   via the "travis encrypt" command using the project repo's public key
-    - secure: "iw3DDm/YamMkn6cEMDG5d028kRuBbSOCZqJ13kI9yWbalk8sH14iG3mBQ1biOD6VJPlPZSMTYpYIX78Z9DQ0iDCWSsILeCLVjQVwjfhiQ/Ws7QVtFx7qlgxmXjlbVVPrzOTELgQkYNRz1VIzOAiNuXwhjZXVCd9ORjQMbHthODwJ/S6gweskyCX+7cVVaVAAX/O38zLGEzTceZPMLD0qTWDZO/FLGxQ0Z3IcNcZxa0uNWIhUFIcEYetcVcGggTRpaaQe69LYSYqtGBKPJksLNbbWAB3E13Z/pkvxl8OLAHm3GFI9WHORLSN/E/3012+aRQCVrpPoHh4AO11bt60cLohYLXt52XK034Gb2GkoUonu+/GtAT6tKgVjg0817whgROJChfblHg9rwS+dKzW/wtIO4CeXNq6ZWHEtOFjEuwzplYtpN/ShcxKVBpx9eraw2fJYYW0RBM3XhYbCvnT88Xo+7QlkPXYFBGuVDcXHcC26RCPOEolL2VL2elQPXpq8sRXh/y9DNhO2A1MEGF99RyQdQHb+F6boVkLQrKtehmCo30rVonNeiyqnr3zv50GEibD4/b2qYjizj5uU9CfG1hgrM0GQxitahhjZhX/7GM0j+So97Qg4bTnfNd9ZEuozcfFk+trmJPqWJe5YswL9RJCX8O4/eI/QnhIyWQsf0JU="
-    # Only run for the default compiler to minimise the impact on the
-    # projects Coverity Scan quota.
-    - coverity_scan_run_condition='"$CC" = gcc'
+  # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
+  # via the "travis encrypt" command using the project repo's public key
+  - secure: iw3DDm/YamMkn6cEMDG5d028kRuBbSOCZqJ13kI9yWbalk8sH14iG3mBQ1biOD6VJPlPZSMTYpYIX78Z9DQ0iDCWSsILeCLVjQVwjfhiQ/Ws7QVtFx7qlgxmXjlbVVPrzOTELgQkYNRz1VIzOAiNuXwhjZXVCd9ORjQMbHthODwJ/S6gweskyCX+7cVVaVAAX/O38zLGEzTceZPMLD0qTWDZO/FLGxQ0Z3IcNcZxa0uNWIhUFIcEYetcVcGggTRpaaQe69LYSYqtGBKPJksLNbbWAB3E13Z/pkvxl8OLAHm3GFI9WHORLSN/E/3012+aRQCVrpPoHh4AO11bt60cLohYLXt52XK034Gb2GkoUonu+/GtAT6tKgVjg0817whgROJChfblHg9rwS+dKzW/wtIO4CeXNq6ZWHEtOFjEuwzplYtpN/ShcxKVBpx9eraw2fJYYW0RBM3XhYbCvnT88Xo+7QlkPXYFBGuVDcXHcC26RCPOEolL2VL2elQPXpq8sRXh/y9DNhO2A1MEGF99RyQdQHb+F6boVkLQrKtehmCo30rVonNeiyqnr3zv50GEibD4/b2qYjizj5uU9CfG1hgrM0GQxitahhjZhX/7GM0j+So97Qg4bTnfNd9ZEuozcfFk+trmJPqWJe5YswL9RJCX8O4/eI/QnhIyWQsf0JU=
+  # Only run for the default compiler to minimise the impact on the
+  # projects Coverity Scan quota.
+  - coverity_scan_run_condition='"$CC" = gcc'
 
 before_script:
-- ./.ci/ci-setup.sh
+- "./.ci/ci-setup.sh"
 
 script:
-- ./.ci/ci-build.sh
+- "./.ci/ci-build.sh"
 
 after_failure:
-- ./.ci/ci-teardown.sh
+- "./.ci/ci-teardown.sh"
 
 notifications:
   email:
     recipients:
-      - cc-devel@lists.01.org
+    - cc-devel@lists.01.org
     on_success: change
     on_failure: always
+  slack:
+    secure: l/E9H4p6KHHBU+BHetJoQ1OoyNeVKmcW5NHhmBxTq10n2orM0fbLjYQUWMnsvdxL11uzS/QtoA3uan5rVlqKllazk59iqO7iGkNrecdyvyeTHwT7PWsXy36VgYahX5MXusRi+zPCS1rnKszPKOXdRIqqMIOv+T8zvkKK2RdZFZtsc0k/uKzxMunUm5nBaG7WUmm5ZyEULJ4rZiZ3i1t/BwpMnBlbOt+CO18xhfKz1lcMBWa74wajpsjNtMPNptYrkaw2mmBiIWtkUWE7Gap6Y+93ynxX+B+OfvwRLwKDoWil3j6bG7zIpXEMZnLURoiH+VaVvc8/tmQF2F6jq5+jobm+SrqWIQw1JebdPdhVMytYQj5YmgDcXAXMnk2opxSVKli+EuQn4TilYLfTPkRYZJ4fJIjj5NwhE31CyfHOrTI1jjdAzROo9hdR3L3uyQfLYwo00r4GINYfQOLfkERSaax+r9uZGGzMZYQ9tnz+xQw84mH7MUp01s+tom9/AuDhypusDy7OMmJwq1cyBzSxdWbZnfIsfnj57a/4XAdIr7g/XSK5pmPdkDj3aZ3XRwuP9SlVkEqiXi5x1M0vxapQPjwd/el4uwTUq9UW8s+GPjuNZSzqopD2XIP8Avgm2+zO146SH2MZLiJdLiBv3XV0IXmCuKXZeEUU9uINB7GiHFk=
 
 addons:
   coverity_scan:
     project:
-      name: "01org/cc-oci-runtime"
-      description: "Build submitted via Travis CI"
-    build_command_prepend: "./autogen.sh --enable-cppcheck --enable-valgrind --disable-valgrind-helgrind --disable-valgrind-drd; make clean"
-    build_command: "make -j5"
+      name: 01org/cc-oci-runtime
+      description: Build submitted via Travis CI
+    build_command_prepend: "./autogen.sh --enable-cppcheck --enable-valgrind --disable-valgrind-helgrind
+      --disable-valgrind-drd; make clean"
+    build_command: make -j5
     branch_pattern: coverity_scan
     # It should be possible to specify the Coverity notification email
     # using environment variable COVERITY_SCAN_NOTIFICATION_EMAIL
