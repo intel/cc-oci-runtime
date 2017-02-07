@@ -119,7 +119,7 @@ setup() {
 }
 
 @test "check that replicas has two interfaces" {
-	REPLICAS_UP=(`$DOCKER_EXE ps -a -q`)
+	REPLICAS_UP=(`$DOCKER_EXE ps -q`)
 	for i in ${REPLICAS_UP[@]}; do
 		# here we are checking that each replica has two interfaces
 		# and they should be always eth0 and eth1
@@ -130,7 +130,7 @@ setup() {
 @test "check service ip among the replicas" {
 	service_name=`$DOCKER_EXE service ls --filter name=testswarm -q`
 	ip_service=`$DOCKER_EXE service inspect $service_name --format='{{range .Endpoint.VirtualIPs}}{{.Addr}}{{end}}' | cut -d'/' -f1`
-	REPLICAS_UP=(`$DOCKER_EXE ps -a -q`)
+	REPLICAS_UP=(`$DOCKER_EXE ps -q`)
 	for i in ${REPLICAS_UP[@]}; do
 		# here we are checking that all the
 		# replicas have the service ip
@@ -139,7 +139,7 @@ setup() {
 }
 
 @test "ping among replicas on their gateway ip" {
-	REPLICAS_UP=(`$DOCKER_EXE ps -a | tail -n +2 | awk '{ print $1 }'`)
+	REPLICAS_UP=(`$DOCKER_EXE ps | tail -n +2 | awk '{ print $1 }'`)
 	IPS_REPLICAS=(`$DOCKER_EXE network inspect docker_gwbridge --format='{{range .Containers}} {{ println .IPv4Address}}{{end}}' | head -n -2 | cut -d'/' -f1`)
 	for i in ${REPLICAS_UP[@]}; do
 		for j in ${IPS_REPLICAS[@]}; do
