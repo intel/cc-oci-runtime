@@ -54,13 +54,13 @@ function get_time(){
 
 function cor_create_time(){
 	echo "" > ${LOG_FILE}
-	${DOCKER_EXE} run --runtime="$RUNTIME" -ti ${IMAGE} true > /dev/null && get_time
+	${DOCKER_EXE} run --rm --runtime="$RUNTIME" -ti ${IMAGE} true > /dev/null && get_time
 	if [ -z $(echo "$test_data" | grep -o "^-*") ]; then
 		testArgs='Network units=seconds'
 		write_result_to_file "$TEST_NAME" "$testArgs" "$test_data" "$testResultFileNet"
 	fi
 	echo "" > ${LOG_FILE}
-	${DOCKER_EXE} run --runtime="$RUNTIME" -ti --net=none ${IMAGE} true > /dev/null && get_time
+	${DOCKER_EXE} run --rm --runtime="$RUNTIME" -ti --net=none ${IMAGE} true > /dev/null && get_time
 	if [ -z "`echo $test_data | grep -o ^-*`" ]; then
 		testArgs='No-network units=seconds'
 		write_result_to_file "$TEST_NAME" "$testArgs" "$test_data" "$testResultFileNoNet"
@@ -77,4 +77,3 @@ for i in $(seq 1 $TIMES); do
 done
 get_average "$testResultFileNet"
 get_average "$testResultFileNoNet"
-clean_docker_ps

@@ -27,7 +27,7 @@ set -e
 [ $# -ne 1 ] && ( echo >&2 "Usage: $0 <times to run>"; exit 1 )
 
 SCRIPT_PATH=$(dirname "$(readlink -f "$0")")
-source "${SCRIPT_PATH}/../common/test.common"
+source "${SCRIPT_PATH}/../../lib/test-common.bash"
 
 TEST_NAME="Kernel Boot Time"
 TIMES="$1"
@@ -46,7 +46,7 @@ function get_kernelspace_time(){
 	write_csv_header "$test_result_file"
 	for i in $(seq 1 "$TIMES")
 	do
-		eval docker run "$run_options" -ti debian dmesg > "$TMP_FILE"
+		eval docker run --rm "$run_options" -ti debian dmesg > "$TMP_FILE"
 		test_data=$(grep "Freeing" "$TMP_FILE" | tail -1 | awk '{print $2}' | cut -d']' -f1)
 		write_result_to_file "$TEST_NAME" "$test_args" "$test_data" "$test_result_file"
 		rm "$TMP_FILE"
@@ -57,5 +57,3 @@ echo "Executing test: ${TEST_NAME}"
 
 get_kernelspace_time
 get_kernelspace_time nonet
-
-clean_docker_ps

@@ -42,11 +42,13 @@ function shut_down_container(){
 	if [[ "$RUNTIME" != 'runc' && "$RUNTIME" != 'cor' ]]; then
         die "Runtime ${RUNTIME} is not valid"
 	fi
-	$DOCKER_EXE run -tid --runtime "$RUNTIME" "$IMAGE" "$CMD" > /dev/null && \
-		(time -p ${DOCKER_EXE} stop "$($DOCKER_EXE ps -q)") &> "$TMP_FILE" && \
+	contname=$(random_name)
+	$DOCKER_EXE run --name ${contname} -tid --runtime "$RUNTIME" "$IMAGE" "$CMD" > /dev/null && \
+		(time -p ${DOCKER_EXE} stop ${contname}) &> "$TMP_FILE" && \
 		test_data=$(grep 'real' "$TMP_FILE" | cut -f2 -d' ')
 	write_result_to_file "$TEST_NAME" "$TEST_ARGS" "$test_data" "$TEST_RESULT_FILE"
 	rm -f $TMP_FILE
+	docker rm -f ${contname}
 }
 
 echo "Executing test: ${TEST_NAME} ${TEST_ARGS}"
@@ -56,4 +58,3 @@ for i in $(seq 1 "$TIMES"); do
 	shut_down_container
 done
 get_average "$TEST_RESULT_FILE"
-clean_docker_ps

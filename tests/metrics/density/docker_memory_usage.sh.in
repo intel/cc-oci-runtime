@@ -42,14 +42,17 @@ SMEM_BIN=$(command -v smem || true)
 QEMU_BIN="@QEMU_PATH@"
 
 function get_docker_memory_usage(){
+	containers=()
 	for i in $(seq 1 "$TIMES"); do
-		${DOCKER_EXE} run -tid $IMAGE $CMD
+		containers+=($(random_name))
+		${DOCKER_EXE} run --name ${containers[-1]} -tid $IMAGE $CMD
 	done
 	sleep "$WAIT_TIME"
 	for i in $("$SMEM_BIN" --no-header -P "^$QEMU_BIN" | awk '{print $6}'); do
 		test_data=$i
 		write_result_to_file "$TEST_NAME" "$TEST_ARGS" "$test_data" "$TEST_RESULT_FILE"
 	done
+	docker rm -f ${containers[@]}
 }
 
 echo "Executing Test: ${TEST_NAME}"
@@ -60,4 +63,3 @@ backup_old_file "$TEST_RESULT_FILE"
 write_csv_header "$TEST_RESULT_FILE"
 get_docker_memory_usage
 get_average "$TEST_RESULT_FILE"
-clean_docker_ps
