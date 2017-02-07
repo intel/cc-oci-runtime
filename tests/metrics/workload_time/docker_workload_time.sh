@@ -43,7 +43,7 @@ function run_workload(){
 	if [[ "$RUNTIME" != 'runc' && "$RUNTIME" != 'cor' ]]; then
 		die "Runtime ${RUNTIME} is not valid"
 	fi
-	(time -p $DOCKER_EXE run -ti --runtime "$RUNTIME" "$IMAGE" "$CMD") &> "$TMP_FILE"
+	(time -p $DOCKER_EXE run --rm -ti --runtime "$RUNTIME" "$IMAGE" "$CMD") &> "$TMP_FILE"
 	if [ $? -eq 0 ]; then
 		test_data=$(grep ^real "$TMP_FILE" | cut -f2 -d' ')
 		write_result_to_file "$TEST_NAME" "$TEST_ARGS" "$test_data" "$TEST_RESULT_FILE"
@@ -58,4 +58,3 @@ for i in $(seq 1 "$TIMES"); do
 	run_workload
 done
 get_average "$TEST_RESULT_FILE"
-clean_docker_ps
