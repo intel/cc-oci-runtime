@@ -1,4 +1,13 @@
-2.1.0.rc.5:
+2.1.0-rc.6:
+    Added additional groups and user related tests
+    Added docker attach functional tests
+    Added back popular containers tests
+    Added memory consumption tool
+    Fixed invalid file descriptor Glib warning
+    Fixed removing stale docker instances after docker rm
+    Fixed distcheck, functional and unit tests
+
+2.1.0-rc.5:
     Added SELinux configuration for proxy
     Added environment and image docker tests
     Added virtualization support check
@@ -9,7 +18,7 @@
     Fixed support for latest Docker streams
     Fixed a proxy fd leak
 
-2.1.0.rc.4:
+2.1.0-rc.4:
     Added mount namespace creation
     Added functional test tap output
     Added remaining exec tests
