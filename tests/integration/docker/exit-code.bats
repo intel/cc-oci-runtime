@@ -27,6 +27,11 @@ exit_status=55
 setup() {
 	source $SRC/test-common.bash
 	runtime_docker
+	kill_processes_before_start
+}
+
+teardown() {
+	check_no_processes_up
 }
 
 @test "Exit Code from container process when running non-interactive" {

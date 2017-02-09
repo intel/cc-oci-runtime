@@ -65,7 +65,8 @@ GENERATED_FILES = \
 	tests/functional/data/config-minimal-cc-oci.json \
 	tests/metrics/density/docker_cpu_usage.sh \
 	tests/metrics/density/docker_memory_usage.sh \
-	tests/metrics/workload_time/cor_create_time.sh
+	tests/metrics/workload_time/cor_create_time.sh \
+	tests/lib/test-common.bash
 
 $(GENERATED_FILES): %: %.in Makefile
 	@mkdir -p `dirname $@`
@@ -369,7 +370,7 @@ endif
 if DOCKER_TESTS
 CHECK_DEPS += docker-tests
 docker-tests: cc-oci-runtime
-	@$(BATS_PATH) $(srcdir)/tests/integration/docker
+	@$(BATS_PATH) -t $(srcdir)/tests/integration/docker
 endif
 
 #### tests ####

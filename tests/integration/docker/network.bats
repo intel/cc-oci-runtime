@@ -26,6 +26,11 @@ SRC="${BATS_TEST_DIRNAME}/../../lib/"
 setup() {
 	source $SRC/test-common.bash
 	runtime_docker
+	kill_processes_before_start
+}
+
+teardown() {
+	check_no_processes_up
 }
 
 @test "HostName is passed to the container" {

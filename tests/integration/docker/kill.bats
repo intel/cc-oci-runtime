@@ -22,15 +22,21 @@
 #Based on docker commands
 
 SRC="${BATS_TEST_DIRNAME}/../../lib/"
+cc_shim="/usr/libexec/cc-shim"
 
 setup() {
 	source $SRC/test-common.bash
 	runtime_docker
+	kill_processes_before_start
 }
 
 @test "Kill a container" {
 	container=$(random_name)
 	$DOCKER_EXE run -d -ti --name $container busybox sh
 	$DOCKER_EXE kill $container
-	$DOCKER_EXE rm -f $container
+	$DOCKER_EXE rm $container
+}
+
+teardown() {
+	check_no_processes_up
 }

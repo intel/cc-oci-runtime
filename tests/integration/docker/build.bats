@@ -26,11 +26,13 @@ IMG_NAME="ccbuildtests"
 setup() {
 	source $SRC/test-common.bash
 	runtime_docker
+	kill_processes_before_start
 }
 
 teardown () {
 	echo "teardown:"
 	$DOCKER_EXE rmi $IMG_NAME
+	check_no_processes_up
 }
 
 @test "docker build env vars" {

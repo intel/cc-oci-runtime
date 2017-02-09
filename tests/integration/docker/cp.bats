@@ -26,6 +26,7 @@ SRC="${BATS_TEST_DIRNAME}/../../lib/"
 setup() {
 	source $SRC/test-common.bash
 	runtime_docker
+	kill_processes_before_start
 }
 
 @test "Check mounted files at /etc after a docker cp" {
@@ -39,4 +40,8 @@ setup() {
 	$DOCKER_EXE exec -i $container bash -c "[ -s /etc/resolv.conf ]"
 	rm -f $testfile
 	$DOCKER_EXE rm -f $container
+}
+
+teardown() {
+	check_no_processes_up
 }
