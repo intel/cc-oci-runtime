@@ -38,8 +38,7 @@ addons:
     project:
       name: 01org/cc-oci-runtime
       description: Build submitted via Travis CI
-    build_command_prepend: "./autogen.sh --enable-cppcheck --enable-valgrind --disable-valgrind-helgrind
-      --disable-valgrind-drd; make clean"
+    build_command_prepend: "./.ci/ci-configure.sh; make clean"
     build_command: make -j5
     branch_pattern: coverity_scan
     # It should be possible to specify the Coverity notification email

@@ -19,46 +19,9 @@
 
 set -e -x
 
-source $(dirname "$0")/ci-common.sh
+source $(dirname "$0")/ci-configure.sh
 
-./autogen.sh
-
-# We run the travis script from an exploded `make dist` tarball to ensure
-# `make dist` has the necessary files to compile and run the tests.
-#
-# Note: we don't use `make distcheck` here as we can't run everything we want
-#       for distcheck in travis.
-# Note: chronic is used to limit the travis output while still showing it if
-# the command fails.
-chronic make dist
-tarball=`ls -1 cc-oci-runtime-*.tar.xz`
-chronic tar xvf "$tarball"
-tarball_dir=${tarball%.tar.xz}
-
-configure_opts=""
-configure_opts+=" --sysconfdir=/etc"
-configure_opts+=" --localstatedir=/var"
-configure_opts+=" --prefix=/usr"
-configure_opts+=" --enable-cppcheck"
-configure_opts+=" --enable-valgrind"
-configure_opts+=" --disable-valgrind-helgrind"
-configure_opts+=" --disable-valgrind-drd"
-configure_opts+=" --disable-silent-rules"
-
-if [ "$nested" = "Y" ]
-then
-    configure_opts+=" --enable-docker-tests"
-    configure_opts+=" --enable-functional-tests"
-    configure_opts+=" --with-cc-image=\"${clr_assets_dir}/clear-containers.img\""
-    configure_opts+=" --with-cc-kernel=\"${clr_assets_dir}/vmlinux.container\""
-    configure_opts+=" --with-qemu-path=\"${prefix_dir}/bin/qemu-system-x86_64\""
-else
-    configure_opts+=" --disable-docker-tests"
-    configure_opts+=" --disable-functional-tests"
-fi
-
-(cd "$ci_build_dir" && \
- eval ../"$tarball_dir"/configure "$configure_opts" \
+(cd "$ci_build_dir" \
  && make -j5 CFLAGS="-Werror -Wno-error=pedantic" \
  && sudo make install \
  && make check)
