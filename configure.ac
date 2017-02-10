@@ -302,7 +302,7 @@ AS_IF([test x"$with_tests_bundle_path" != x""],
       [])
 
 #Kernel path for Clear Containers
-DEFAULT_KERNEL_PATH=$localstatedir/lib/$PACKAGE_NAME/data/kernel/vmlinux.container
+DEFAULT_KERNEL_PATH=$localstatedir/lib/$PACKAGE_NAME/data/kernel/vmlinuz.container
 AC_ARG_WITH([cc-kernel],
     [AS_HELP_STRING([--with-cc-kernel=[[KERNEL-PATH]]],
         [clear container kernel path])
