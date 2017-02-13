@@ -25,6 +25,7 @@ AUTOMAKE_OPTIONS = parallel-tests
 
 CHECK_DEPS =
 FUNCTIONAL_TESTS_DEPS =
+PROXY_DEPS =
 
 # Has a value if building in a git tree
 GIT_COMMIT := $(shell git rev-parse HEAD 2>/dev/null)
@@ -250,8 +251,21 @@ systemdservicedir   = $(systemdsystemunitdir)
 systemdservice_DATA = $(systemdservice_files)
 endif
 
+if AUTOGOPATH
+export GOPATH := $(shell mktemp -d --suffix=-cor-gopath)
+PKG_LINK_BASE = $(GOPATH)/src/github.com/01org
+PKG_LINK = $(PKG_LINK_BASE)/cc-oci-runtime
+
+$(PKG_LINK):
+		mkdir -p $(PKG_LINK_BASE)
+		ln -sfn $(CURDIR) $(PKG_LINK)
+		cp -r $(CURDIR)/vendor/* $(GOPATH)/src
+
+PROXY_DEPS += $(PKG_LINK)
+endif
+
 proxy_ldflags = "-X main.DefaultSocketPath=$(localstatedir)/run/cc-oci-runtime/proxy.sock"
-cc-proxy: $(cc_proxy_sources)
+cc-proxy: $(cc_proxy_sources) | $(PROXY_DEPS)
 	$(AM_V_GO)go build -o $@ -ldflags=$(proxy_ldflags) $(srcdir)/proxy
 
 cc_proxy_sources =			\
@@ -276,7 +290,7 @@ cc_proxy_extra_dist =			\
 
 CHECK_DEPS += check-proxy
 
-check-proxy:
+check-proxy: $(cc_proxy_sources) | $(PROXY_DEPS)
 	$(AM_V_GEN)proxy_test_common_args="-v -timeout 2s $(srcdir)/proxy" ; \
 	go test -race $$proxy_test_common_args || go test $$proxy_test_common_args
 
@@ -756,6 +770,9 @@ check: $(CHECK_DEPS)
 
 clean-local:
 	rm -f commit_id
+if AUTOGOPATH
+	rm -rf /tmp/*cor-gopath
+endif
 if FUNCTIONAL_TESTS
 if AUTO_BUNDLE_CREATION
 	$(AM_V_GEN)echo "Deleting generated bundle '$(BUNDLE_TEST_PATH)'"

@@ -302,6 +302,17 @@ AC_ARG_WITH([cc-image],
     ]
 )
 
+AC_ARG_ENABLE([autogopath],
+	AS_HELP_STRING([--enable-autogopath], [Set GOPATH variable for you, used when packaging @<:@default=false@:>@]),
+	[case "${enableval}" in
+		yes) autogopath=true ;;
+		 no) autogopath=false ;;
+		  *) AC_MSG_ERROR([bad value ${enableval} for --enable-autogopath]) ;;
+	esac],
+	[autogopath=false]
+)
+AM_CONDITIONAL([AUTOGOPATH], [test x$autogopath = xtrue])
+
 AC_OUTPUT
 
 dnl === Summary ===============================================================
