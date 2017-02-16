@@ -1,0 +1,163 @@
+%undefine _missing_build_ids_terminate_build
+Name:      cc-oci-runtime
+Version:   2.1.1
+Release:   0
+Source0:   %{name}-%{version}.tar.gz
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+Summary  : No detailed summary available
+Group    : Development/Tools
+License  : Apache-2.0 GPL-2.0
+Requires: cc-oci-runtime-bin
+Requires: cc-oci-runtime-config
+Requires: cc-oci-runtime-data
+BuildRequires : bats
+BuildRequires : clear-containers-image
+#BuildRequires : cppcheck
+#BuildRequires : lcov
+%if 0%{?suse_version}
+BuildRequires : gettext-runtime
+BuildRequires : go
+%else
+BuildRequires : gettext-devel
+BuildRequires : golang
+%endif
+BuildRequires : lcov
+BuildRequires : linux-container
+BuildRequires : m4
+BuildRequires : pkgconfig(check)
+BuildRequires : pkgconfig(gio-unix-2.0)
+BuildRequires : pkgconfig(glib-2.0)
+BuildRequires : pkgconfig(json-glib-1.0)
+BuildRequires : pkgconfig(libmnl)
+BuildRequires : pkgconfig(systemd)
+BuildRequires : pkgconfig(uuid)
+BuildRequires : qemu-lite
+BuildRequires : systemd-devel
+BuildRequires : valgrind
+BuildRequires : libtool
+%if 0%{?suse_version}
+BuildRequires : autoconf
+BuildRequires : automake
+%endif
+Requires:  clear-containers-image
+Requires:  clear-containers-selinux
+Requires:  qemu-lite
+Requires:  linux-container
+Patch1: update_commit_id.patch
+Patch2: genfile.patch
+
+%description
+.. contents::
+.. sectnum::
+``cc-oci-runtime``
+===================
+Overview
+--------
+
+%package bin
+Summary: bin components for the cc-oci-runtime package.
+Group: Binaries
+Requires: cc-oci-runtime-data
+Requires: cc-oci-runtime-config
+
+%description bin
+bin components for the cc-oci-runtime package.
+
+%package config
+Summary: config components for the cc-oci-runtime package.
+Group: Default
+
+%description config
+config components for the cc-oci-runtime package.
+
+%package data
+Summary: data components for the cc-oci-runtime package.
+Group: Data
+
+%description data
+data components for the cc-oci-runtime package.
+
+%package extras
+Summary: extras components for the cc-oci-runtime package.
+Group: Default
+
+%description extras
+extras components for the cc-oci-runtime package.
+
+%prep
+%setup -q
+%patch1 -p1
+%patch2 -p1
+
+%build
+export LANG=C
+sh ./autogen.sh --disable-static --enable-valgrind \
+--disable-cppcheck \
+--disable-tests \
+--disable-valgrind-memcheck \
+--disable-functional-tests \
+--disable-docker-tests \
+--with-cc-kernel=/usr/share/clear-containers/vmlinux.container \
+--with-cc-image=/usr/share/clear-containers/clear-containers.img \
+--with-cc-image-systemdsystemunitdir=/usr/lib/systemd/system \
+--enable-autogopath
+make V=1  %{?_smp_mflags}
+
+%check
+export LANG=C
+export http_proxy=http://127.0.0.1:9/
+export https_proxy=http://127.0.0.1:9/
+export no_proxy=localhost
+make VERBOSE=1 V=1 check
+
+%install
+rm -rf %{buildroot}
+%make_install
+
+%files
+%defattr(-,root,root,-)
+
+%files bin
+%defattr(-,root,root,-)
+/usr/bin/cc-oci-runtime
+/usr/bin/cc-oci-runtime.sh
+/usr/libexec/cc-proxy
+/usr/libexec/cc-shim
+
+%files config
+%defattr(-,root,root,-)
+%exclude /usr/lib/systemd/system/cc-agent.service
+%exclude /usr/lib/systemd/system/cc-agent.target
+%exclude /usr/lib/systemd/system/container-workload.service
+%exclude /usr/lib/systemd/system/container.target
+%exclude /usr/lib/systemd/system/opt-rootfs-proc.mount
+%exclude /usr/lib/systemd/system/opt-rootfs-sys.mount
+%exclude /usr/lib/systemd/system/opt-rootfs.mount
+/usr/lib/systemd/system/cc-proxy.service
+/usr/lib/systemd/system/cc-proxy.socket
+
+%files data
+%defattr(-,root,root,-)
+%if 0%{?suse_version}
+%dir /usr/share/defaults
+%dir /usr/share/defaults/cc-oci-runtime
+%endif
+/usr/share/defaults/cc-oci-runtime/hypervisor.args
+/usr/share/defaults/cc-oci-runtime/kernel-cmdline
+/usr/share/defaults/cc-oci-runtime/vm.json
+
+
+%files extras
+%defattr(-,root,root,-)
+/usr/lib/systemd/system/cc-agent.service
+/usr/lib/systemd/system/cc-agent.target
+/usr/lib/systemd/system/container-workload.service
+/usr/lib/systemd/system/container.target
+/usr/lib/systemd/system/opt-rootfs-proc.mount
+/usr/lib/systemd/system/opt-rootfs-sys.mount
+/usr/lib/systemd/system/opt-rootfs.mount
+
+%post
+/usr/bin/systemctl enable cc-proxy.socket
+/usr/bin/systemctl daemon-reload
+/usr/bin/systemctl restart cc-proxy.socket

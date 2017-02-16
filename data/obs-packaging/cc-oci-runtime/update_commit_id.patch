@@ -1,0 +1,5 @@
+--- a/commit_id.fmt
++++ b/commit_id.fmt
+@@ -1 +1 @@
+-$Format:%H$
++d7de93a13edc9eddf7d6417f20a6faa3f56136dc
