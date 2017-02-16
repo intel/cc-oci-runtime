@@ -1,0 +1,27 @@
+#!/usr/bin/make -f
+include /usr/share/dpkg/default.mk
+export LANG=C
+%:
+	dh $@
+
+override_dh_auto_configure:
+	sh ./autogen.sh --disable-static \
+	--enable-valgrind \
+	--disable-cppcheck \
+	--disable-tests \
+	--disable-valgrind-memcheck \
+	--disable-functional-tests \
+	--disable-docker-tests \
+	--with-cc-kernel=/usr/share/clear-containers/vmlinux.container \
+	--with-cc-image=/usr/share/clear-containers/clear-containers.img \
+	--with-cc-image-systemdsystemunitdir=/usr/lib/systemd/system \
+	--with-systemdsystemunitdir=/usr/lib/systemd/system \
+	--enable-autogopath
+
+override_dh_auto_build:
+	make V=1
+
+override_dh_auto_clean:
+
+override_dh_auto_install:
+	dh_auto_install

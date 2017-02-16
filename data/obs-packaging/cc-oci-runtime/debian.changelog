@@ -1,0 +1,64 @@
+cc-oci-runtime (2.1.1) stable; urgency=medium
+
+  * Release 2.1.1: d7de93a
+
+ -- Geronimo Orozco <geronimo.orozco@intel.com>  Thu, 02 Mar 2017 14:26:46 -0600
+
+cc-oci-runtime (2.1.0) stable; urgency=medium
+
+  * Release 2.1.0: 3f14bb5
+
+ -- Geronimo Orozco <geronimo.orozco@intel.com>  Fri, 24 Feb 2017 16:52:24 -0600
+
+cc-oci-runtime (2.1.0.rc.6) stable; urgency=medium
+
+  * Update to tag rc.6: 6ae1ebf
+
+ -- Geronimo Orozco <geronimo.orozco@intel.com>  Wed, 08 Feb 2017 15:32:51 -0600
+
+cc-oci-runtime (2.1.0.rc.5) stable; urgency=medium
+
+  * Add postinst and postrm scripts 
+
+ -- Geronimo Orozco <geronimo.orozco@intel.com>  Thu, 02 Feb 2017 15:07:45 -0600
+
+cc-oci-runtime (2.1.0.rc.5) stable; urgency=medium
+
+  * Update to tag rc.5: 3c925e9
+
+ -- Geronimo Orozco <geronimo.orozco@intel.com>  Wed, 25 Jan 2017 17:48:23 -0600
+
+cc-oci-runtime (2.1.0.rc.4) stable; urgency=medium
+
+  * Update to tag rc.4: 60fb0ac
+
+ -- Geronimo Orozco <geronimo.orozco@intel.com>  Mon, 19 Jan 2017 09:17:59 -0600
+
+cc-oci-runtime (2.1.0.rc.3) stable; urgency=medium
+
+  * Update to tag rc.3: 5b8e830
+
+ -- Geronimo Orozco <geronimo.orozco@intel.com>  Mon, 09 Jan 2016 11:14:34 -0600
+
+cc-oci-runtime (2.1.0.rc.2) stable; urgency=medium
+
+  * Update to tag rc.2: 3c2b98a
+
+ -- Geronimo Orozco <geronimo.orozco@intel.com>  Tue, 22 Dec 2016 17:36:06 -0600
+
+cc-oci-runtime (2.1.0.f0292a3) stable; urgency=medium
+
+  * Update to tag rc.1: f0292a3
+
+cc-oci-runtime (0.1-12) stable; urgency=medium
+
+  * Include new binaries
+
+ -- Archana Shinde <archana.m.shinde@intel.com>  Tue, 29 Nov 2016 13:58:32 -0600
+
+cc-oci-runtime (0.1-8) stable; urgency=medium
+
+  * Initial release.
+
+ -- Archana Shinde <archana.m.shinde@intel.com>  Mon, 11 Aug 2016 12:20:38 -0600
+

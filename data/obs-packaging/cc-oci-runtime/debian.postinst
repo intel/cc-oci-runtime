@@ -1,0 +1,6 @@
+#! /bin/bash
+
+# Restart the cc-proxy socket if running
+/bin/systemctl enable cc-proxy.socket
+/bin/systemctl daemon-reload
+/bin/systemctl restart cc-proxy.socket
