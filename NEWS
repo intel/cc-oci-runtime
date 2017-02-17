@@ -1,3 +1,7 @@
+2.1.0:
+	Add complete configuration to prepare coverity build
+	Fixed coverity token
+
 2.1.0-rc.6:
     Added additional groups and user related tests
     Added docker attach functional tests
