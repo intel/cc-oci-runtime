@@ -1060,7 +1060,7 @@ START_TEST(test_cc_oci_process_to_json) {
 
 	process->user.additionalGids = g_malloc0(sizeof(*process->user.additionalGids) * 3);
 	process->user.additionalGids[0] = "10";
-	process->user.additionalGids[0] = "20";
+	process->user.additionalGids[1] = "20";
 	process->user.gid = 0;
 	process->user.uid = 0;
 
