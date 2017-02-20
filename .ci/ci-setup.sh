@@ -118,6 +118,7 @@ then
 	pkgs+=" qemu-system-x86"
 fi
 
+sudo apt-get -qq update
 eval sudo apt-get -qq install "$pkgs"
 
 function compile {
