@@ -1018,7 +1018,7 @@ START_TEST(test_cc_oci_kill) {
 
 START_TEST(test_cc_oci_process_to_json) {
 	struct oci_cfg_process *process = NULL;
-	JsonObject* process_obj = NULL;\
+	JsonObject* process_obj = NULL;
 
 	ck_assert (! cc_oci_process_to_json(process));
 
