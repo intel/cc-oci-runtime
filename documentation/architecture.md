@@ -23,7 +23,7 @@ works seamlessly with the [Docker Engine](https://www.docker.com/products/docker
 pluggable runtime architecture. In other words, one can transparently replace the
 [default Docker runtime (runc)](https://github.com/opencontainers/runc) with `cc-oci-runtime`.
 
-![Docker and Clear Containers](https://github.com/01org/cc-oci-runtime/blob/topic/documentation/documentation/docker-cc.png)
+![Docker and Clear Containers](https://github.com/01org/cc-oci-runtime/blob/master/documentation/docker-cc.png)
 
 `cc-oci-runtime` creates a QEMU/KVM virtual machine for each container the Docker engine creates.
 
@@ -54,14 +54,14 @@ The container workload, i.e. the actual OCI bundle rootfs, is exported from the 
 the virtual machine via a 9pfs virtio mount point. Hyperstart uses this mount point as the root
 filesystem for the container processes.
 
-![Overall architecture](https://github.com/01org/cc-oci-runtime/blob/topic/documentation/documentation/overall-architecture.png)
+![Overall architecture](https://github.com/01org/cc-oci-runtime/blob/master/documentation/overall-architecture.png)
 
 #### Hypervisor
 
 Clear Containers use [KVM](http://www.linux-kvm.org/page/Main_Page)/[QEMU](http://www.qemu-project.org/) to
 create virtual machines where Docker containers will run:
 
-![QEMU/KVM](https://github.com/01org/cc-oci-runtime/blob/topic/documentation/documentation/qemu.png)
+![QEMU/KVM](https://github.com/01org/cc-oci-runtime/blob/master/documentation/qemu.png)
 
 Although Clear Containers can run with any recent QEMU release, containers boot time and memory
 footprint are significantly optimized by using a specific QEMU version called [`qemu-lite`](https://github.com/01org/qemu-lite).
@@ -145,7 +145,7 @@ according to the container OCI configuration file.
    virtio I/O serial one).
 3. Run all the [OCI hooks](https://github.com/opencontainers/runtime-spec/blob/master/config.md#hooks) in the container namespaces,
 as described by the OCI container configuration file.
-4. [Set up the container networking](https://github.com/01org/cc-oci-runtime/blob/topic/documentation/documentation/architecture.md#networking).
+4. [Set up the container networking](https://github.com/01org/cc-oci-runtime/blob/master/documentation/architecture.md#networking).
 This must happen after all hooks are done as one of them is potentially setting
 the container networking namespace up.
 5. Create the virtual machine running the container process. The VM `systemd` instance will spawn the `hyperstart` daemon.
@@ -155,7 +155,7 @@ the container networking namespace up.
 9. Pass the `cc-proxy` socketpair file descriptor, and the I/O sequence numbers to the listening cc-shim process through the dedicated pipes.
 10. The `cc-shim` instance is put into a stopped state to prevent it from doing I/O before the container is started.
 
-![Docker create](https://github.com/01org/cc-oci-runtime/blob/topic/documentation/documentation/create.png)
+![Docker create](https://github.com/01org/cc-oci-runtime/blob/master/documentation/create.png)
 
 At that point, the container sandbox is created in the virtual machine and `cc-shim` is stopped on the host.
 However the container process itself is not yet running as one needs to call `docker start` to actually start it.
@@ -253,7 +253,7 @@ Its main role is to:
 
 - A UNIX, named socket for all `cc-oci-runtime` instances on the host to send commands to `cc-proxy`.
 - One socket pair per `cc-shim` instance, to send stdin and receive stdout and stderr I/O streams. See the
-[cc-shim section](https://github.com/01org/cc-oci-runtime/blob/topic/documentation/documentation/architecture.md#shim)
+[cc-shim section](https://github.com/01org/cc-oci-runtime/blob/master/documentation/architecture.md#shim)
 for more details about that interface.
 
 The protocol on the `cc-proxy` UNIX named socket supports the following commands:
@@ -311,7 +311,7 @@ As an example, let's say that running the `pwd` command from a container standar
 as the stdin, stdout and stderr sequence numbers.
 With `cc-shim` and Clear Containers, this example would look like:
 
-![cc-shim](https://github.com/01org/cc-oci-runtime/blob/topic/documentation/documentation/shim.png)
+![cc-shim](https://github.com/01org/cc-oci-runtime/blob/master/documentation/shim.png)
 
 #### Networking
 
@@ -331,7 +331,7 @@ To overcome that incompatibility between typical container engines expectations
 and virtual machines, `cc-oci-runtime` networking transparently bridges `veth`
 interfaces with `TAP` ones:
 
-![Clear Containers networking](https://github.com/01org/cc-oci-runtime/blob/topic/documentation/documentation/network.png)
+![Clear Containers networking](https://github.com/01org/cc-oci-runtime/blob/master/documentation/network.png)
 
 The [virtcontainers library](https://github.com/containers/virtcontainers#cnm) has some more
 details on how `cc-oci-runtime` implements [CNM](https://github.com/docker/libnetwork/blob/master/docs/design.md).
