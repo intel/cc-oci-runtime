@@ -324,7 +324,7 @@ bats_test_sources = \
 	tests/functional/version.bats
 
 documentation_extra_dist =	\
-	documentation/high-level-overview.png
+	documentation/
 
 EXTRA_DIST = \
 	.ci \
