@@ -276,23 +276,9 @@ cc_proxy_extra_dist =			\
 
 CHECK_DEPS += check-proxy
 
-define CONTENT
-package main
-import "fmt"
-func main() {
-	fmt.Printf("Executing test program")
-}
-endef
-export CONTENT
-
 check-proxy:
-	$(AM_V_GEN)go_test_extra_args="" ; \
-	echo "$$CONTENT">./racetest.go ; \
-	if go build -race ./racetest.go; then \
-		go_test_extra_args+="-race" ; \
-	fi ; \
-	rm ./racetest* ; \
-	go test -v "$$go_test_extra_args" -timeout 2s $(srcdir)/proxy
+	$(AM_V_GEN)proxy_test_common_args="-v -timeout 2s $(srcdir)/proxy" ; \
+	go test -race $$proxy_test_common_args || go test $$proxy_test_common_args
 
 check-go:
 	@$(top_srcdir)/.ci/ci-go-static-checks.sh
