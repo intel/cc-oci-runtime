@@ -195,7 +195,7 @@ func (d *FdLeakDetector) Compare(w io.Writer, a, b *FdSnapshot) bool {
 
 		if aInfo.Fd == bInfo.Fd {
 			// File descriptor found in both snapshots
-			equal = aInfo.equal(bInfo)
+			equal = equal && aInfo.equal(bInfo)
 			i++
 			j++
 
@@ -457,6 +457,39 @@ func TestFdDetectorCompare(t *testing.T) {
 					{
 						Fd:    0,
 						Flags: syscall.O_RDWR,
+					},
+				},
+			},
+			new: &FdSnapshot{
+				Fds: []FdInfo{
+					{
+						Fd:    0,
+						Flags: syscall.O_RDWR,
+					},
+					{
+						Fd:    1,
+						Flags: syscall.O_RDWR,
+						Text:  "/foo",
+					},
+				},
+			},
+			equal: false,
+		},
+
+		// Same number of fds in the two snapshots, different fds at
+		// index 0 but same fds at index 1. We used to have a bug
+		// saying the two snapshots were identical.
+		{
+			old: &FdSnapshot{
+				Fds: []FdInfo{
+					{
+						Fd:    0,
+						Flags: syscall.O_RDONLY,
+					},
+					{
+						Fd:    1,
+						Flags: syscall.O_RDWR,
+						Text:  "/foo",
 					},
 				},
 			},
