@@ -768,7 +768,7 @@ gboolean
 cc_oci_vm_launch (struct cc_oci_config *config)
 {
 	gboolean           ret = false;
-	GPid               pid;
+	GPid               pid = -1;
 	ssize_t            bytes;
 	char               buffer[2] = { '\0' };
 	int                hypervisor_args_pipe[2] = {-1, -1};
@@ -1228,6 +1228,18 @@ out:
 		g_critical("killing shim with pid:%d",
 				config->state.workload_pid);
 		kill(config->state.workload_pid, SIGKILL);
+	}
+
+	/* We have force killed the shim if it is running at this point,
+	 * kill the hypervisor as well.
+	 */
+	if ( !ret && pid > 0) {
+		g_critical("killing VM forcefully with pid:%d",
+				pid);
+		if (kill(pid, SIGKILL) == -1) {
+			g_critical("Could not kill VM : %s\n",
+				strerror(errno));
+		}
 	}
 
 	return ret;
