@@ -196,6 +196,9 @@ cc_oci_config_free (struct cc_oci_config *config)
 		g_slist_free_full(config->oci.oci_linux.namespaces,
                 (GDestroyNotify)cc_oci_ns_free);
 	}
+	if (config->oci.oci_linux.cgroupsPath) {
+		g_free (config->oci.oci_linux.cgroupsPath);
+	}
 
 	g_free_if_set (config->net.hostname);
 	g_free_if_set (config->net.dns_ip1);

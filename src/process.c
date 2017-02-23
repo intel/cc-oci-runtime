@@ -791,6 +791,12 @@ cc_oci_vm_launch (struct cc_oci_config *config)
 	GSocketConnection *shim_socket_connection = NULL;
 	GError            *error = NULL;
 	int                status = 0;
+	char              *pid_str = NULL;
+	int                fd_tasks = -1;
+	int                fd_procs = -1;
+	gchar             *cgroup_dir = NULL;
+	gchar             *cgroup_tasks = NULL;
+	gchar             *cgroup_procs = NULL;
 
 	if (! config) {
 		return false;
@@ -1191,6 +1197,38 @@ child_failed:
 	 */
 	ret = cc_proxy_disconnect (config->proxy);
 
+	/* Before create pid file!
+	 *
+	 * Docker provides a cgroup path that MUST be created before pid file
+	 * workload pid MUST be copied to task and cgroup.procs notifying to docker
+	 * that the workload is part of a cgroup.
+	 * With this change docker WILL NOT create a new cgroup and WILL NOT copy
+	 * the workload pid to this new cgroup avoiding file descriptor leaks
+	 */
+	if (config->oci.oci_linux.cgroupsPath) {
+		cgroup_dir = g_strdup_printf ("%s/%s", CGROUP_MEM_DIR,
+			config->oci.oci_linux.cgroupsPath);
+		g_mkdir_with_parents (cgroup_dir, CC_OCI_CGROUP_MODE);
+
+		pid_str = g_strdup_printf ("%d", config->state.workload_pid);
+
+		cgroup_tasks = g_strdup_printf ("%s/tasks", cgroup_dir);
+		fd_tasks = open (cgroup_tasks, O_WRONLY);
+		if (write (fd_tasks, pid_str, strlen(pid_str)) <= 0) {
+			g_critical ("failed to copy workload pid to cgroup tasks: %s",
+				strerror(errno));
+			goto out;
+		}
+
+		cgroup_procs = g_strdup_printf ("%s/cgroup.procs", cgroup_dir);
+		fd_procs = open (cgroup_procs, O_WRONLY);
+		if (write (fd_procs, pid_str, strlen(pid_str)) <= 0) {
+			g_critical ("failed to copy workload pid to cgroup procs: %s",
+				strerror(errno));
+			goto out;
+		}
+	}
+
 	/* Finally, create the pid file.
 	 *
 	 * This MUST be done after all setup since containerd
@@ -1212,6 +1250,14 @@ out:
 	if (shim_err_fd != -1) close (shim_err_fd);
 	if (shim_args_fd != -1) close (shim_args_fd);
 	if (shim_socket_fd != -1) close (shim_socket_fd);
+
+	close_if_set (fd_procs);
+	close_if_set (fd_tasks);
+
+	g_free_if_set (cgroup_dir);
+	g_free_if_set (cgroup_tasks);
+	g_free_if_set (cgroup_procs);
+	g_free_if_set (pid_str);
 
 	if (setup_networking) {
 		netlink_close (hndl);

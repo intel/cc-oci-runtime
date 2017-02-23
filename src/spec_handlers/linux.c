@@ -102,6 +102,8 @@ handle_linux_section (GNode *root, struct cc_oci_config *config)
 		g_node_children_foreach(root, G_TRAVERSE_ALL,
 			(GNodeForeachFunc)handle_namespaces_section,
 			config);
+	} else if (! g_strcmp0 (root->data, "cgroupsPath")) {
+		config->oci.oci_linux.cgroupsPath = g_strdup (root->children->data);
 	}
 }
 

@@ -1,4 +1,6 @@
 {
 	"linux" : {
+		"namespaces": [],
+		"cgroupsPath": "/mycontainer/"
 	}
 }

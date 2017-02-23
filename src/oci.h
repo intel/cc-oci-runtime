@@ -109,6 +109,11 @@
 /** Mode for \ref CC_OCI_WORKLOAD_FILE. */
 #define CC_OCI_SCRIPT_MODE		0755
 
+/** Mode for cgroup directory.
+ * 0755 is the mode used to create directories in /sys/fs/cgroup/memory/
+ */
+#define CC_OCI_CGROUP_MODE		0755
+
 /** Mode for all created directories. */
 #define CC_OCI_DIR_MODE                0750
 
@@ -136,6 +141,9 @@
 
 /* Path to the stateless passwd file. */ 
 #define STATELESS_PASSWD_PATH "/usr/share/defaults/etc/passwd"
+
+/* Path to memory cgroup directory */
+#define CGROUP_MEM_DIR "/sys/fs/cgroup/memory"
 
 /* Offset to add to the interface index for assigning the pci slot.
  * First 3 slots are in use for pc-lite machine type
@@ -254,6 +262,9 @@ struct oci_cfg_process {
 struct oci_cfg_linux {
 	/** List of \ref oci_cfg_namespace namespaces */
 	GSList          *namespaces;
+
+	/** cgroup path */
+	gchar           *cgroupsPath;
 };
 
 /** Representation of the OCI runtime schema embodied by
