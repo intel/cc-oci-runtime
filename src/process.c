@@ -989,6 +989,8 @@ child_failed:
 	// - oci_state()
 	// - cc_oci_update_options()
 
+	ret = false;
+
 	if (setup_networking) {
 		hndl = netlink_init();
 		if (hndl == NULL) {
