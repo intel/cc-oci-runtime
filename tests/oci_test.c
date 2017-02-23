@@ -1018,7 +1018,9 @@ START_TEST(test_cc_oci_kill) {
 
 START_TEST(test_cc_oci_process_to_json) {
 	struct oci_cfg_process *process = NULL;
-	JsonObject* process_obj = NULL;\
+	JsonObject* process_obj = NULL;
+	JsonArray *array = NULL;
+	const char *str = NULL;
 
 	ck_assert (! cc_oci_process_to_json(process));
 
@@ -1060,7 +1062,7 @@ START_TEST(test_cc_oci_process_to_json) {
 
 	process->user.additionalGids = g_malloc0(sizeof(*process->user.additionalGids) * 3);
 	process->user.additionalGids[0] = "10";
-	process->user.additionalGids[0] = "20";
+	process->user.additionalGids[1] = "20";
 	process->user.gid = 0;
 	process->user.uid = 0;
 
@@ -1091,6 +1093,17 @@ START_TEST(test_cc_oci_process_to_json) {
 	ck_assert (json_object_has_member(user_obj, "uid"));
 	ck_assert (json_object_has_member(user_obj, "gid"));
 	ck_assert (json_object_has_member(user_obj, "additionalGids"));
+
+	array = json_object_get_array_member (user_obj, "additionalGids");
+	ck_assert (array);
+
+	str = json_array_get_string_element (array, 0);
+	ck_assert (str);
+	ck_assert (! g_strcmp0 (str, "10"));
+
+	str = json_array_get_string_element (array, 1);
+	ck_assert (str);
+	ck_assert (! g_strcmp0 (str, "20"));
 
 	json_object_unref(process_obj);
 

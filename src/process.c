@@ -226,7 +226,10 @@ cc_oci_setup_shim (struct cc_oci_config *config,
 	ret = true;
 
 out:
-	if (tty_fd > 2) {
+	/* Close on error, or if the fd does not refer to
+	 * one of the standard streams.
+	 */
+	if (ret == false || tty_fd > 2) {
 		close (tty_fd);
 	}
 

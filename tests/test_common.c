@@ -393,7 +393,7 @@ pid_t run_qmp_vm(char **socket_path) {
 					argv[0],
 					strerror (errno));
 		}
-		write (err_pipe[1], "E", 1);
+		(void)write (err_pipe[1], "E", 1);
 		close (err_pipe[1]);
 		exit (EXIT_FAILURE);
 	}
