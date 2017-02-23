@@ -989,21 +989,23 @@ child_failed:
 	// - oci_state()
 	// - cc_oci_update_options()
 
+	ret = false;
+
 	if (setup_networking) {
 		hndl = netlink_init();
 		if (hndl == NULL) {
 			g_critical("failed to setup netlink socket");
-			goto child_failed;
+			goto out;
 		}
 
 		if (! cc_oci_vm_netcfg_get (config, hndl)) {
 			g_critical("failed to discover network configuration");
-			goto child_failed;
+			goto out;
 		}
 
 		if (! cc_oci_network_create(config, hndl)) {
 			g_critical ("failed to create network");
-			goto child_failed;
+			goto out;
 		}
 		g_debug ("network configuration complete");
 
