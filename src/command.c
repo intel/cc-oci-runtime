@@ -60,6 +60,7 @@ struct subcommand *subcommands[] =
  */
 static struct spec_handler *stop_spec_handlers[] = {
 	&hooks_spec_handler,
+	&linux_spec_handler,
 
 	/* terminator */
 	NULL
@@ -153,6 +154,7 @@ handle_command_stop (const struct subcommand *sub,
 	gchar             *config_file = NULL;
 	gboolean           ret;
 	GNode*             root = NULL;
+	gchar             *cgroup_dir = NULL;
 
 	g_assert (sub);
 	g_assert (config);
@@ -207,6 +209,16 @@ handle_command_stop (const struct subcommand *sub,
 	g_print ("stopped container %s\n", config->optarg_container_id);
 
 out:
+	if (config->oci.oci_linux.cgroupsPath) {
+		cgroup_dir = g_strdup_printf ("%s/%s", CGROUP_MEM_DIR,
+			config->oci.oci_linux.cgroupsPath);
+		/* removing cgroup path will notify docker to close its event fds */
+		if (g_rmdir(cgroup_dir) != 0) {
+			g_critical("failed to remove cgroup dir: %s", cgroup_dir);
+		}
+		g_free_if_set (cgroup_dir);
+	}
+
 	g_free_if_set (config_file);
 	cc_oci_state_free (state);
 

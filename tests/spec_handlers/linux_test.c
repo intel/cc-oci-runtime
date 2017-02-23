@@ -34,6 +34,7 @@ static struct spec_handler_test tests[] = {
 	{ TEST_DATA_DIR "/linux-namespaces-no-path.json"     , true  },
 	{ TEST_DATA_DIR "/linux-namespaces-with-paths.json"  , true  },
 	{ TEST_DATA_DIR "/linux-invalid-namespace-type.json" , false },
+	{ TEST_DATA_DIR "/linux-no-cgroupsPath.json"         , true  },
 	{ TEST_DATA_DIR "/linux.json"                        , true  },
 	{ NULL, false },
 };
