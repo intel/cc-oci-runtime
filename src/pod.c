@@ -248,6 +248,10 @@ cc_pod_container_create (struct cc_oci_config *config)
 		goto out;
 	}
 
+	if (! cc_oci_create_cgroups(config)) {
+		goto out;
+	}
+
 	/* Create the pid file. */
 	if (config->pid_file) {
 		ret = cc_oci_create_pidfile (config->pid_file,
