@@ -14,6 +14,9 @@
     * [Networking](#networking)
 * [Appendices](#appendices)
     * [DAX](#dax)
+    * [Previous Releases](#previous-releases)
+        * [V2.0](#version-20)
+        * [V1.0](#version-10)
 
 ## Overview
 
@@ -375,3 +378,38 @@ More information about DAX can be found in the Linux Kernel
 
 Information on the use of nvdimm via QEMU is available in the QEMU source code
 [here](http://git.qemu-project.org/?p=qemu.git;a=blob;f=docs/nvdimm.txt;hb=HEAD)
+
+### Previous releases
+
+This section provides a brief overview of architectural details and differences
+for previous versions of Clear Containers.
+
+#### Version 2.0
+
+The main architectural differences between Version 2.0 and Version 2.1 are:
+
+- V2.0 does not use `hyperstart` as the guest mini-OS workload launcher. V2.0
+uses Clear Containers specific systemd startup files to load and execute the
+container workload.
+- V2.0 does not have either `cc-shim` or `cc-proxy`. The main features therefore
+not supported due to this are:
+    - Unable to collect workload exit codes, due to lack of `cc-shim`.
+    - Incomplete support for terminal/signal control due to lack of
+`cc-proxy`.
+
+Clear Containers V2.0 is OCI compatible, and does integrate seamlessly into
+Docker 1.12 via the OCI runtime method.
+
+#### Version 1.0
+
+The main architectural differences between Version 1.0 and Version 2.0 are:
+
+- V1.0 was implemented using the `lkvm/kvmtool` VM supervisor on the host. In
+V2.0 we moved to using `QEMU`, for more extended functionality.
+- V1.0 was not an OCI compatible runtime, and OCI runtimes were not a supported
+feature of Docker at the time. V1.0 was a compiled in replacement runtime for
+Docker, which required a different build of Docker to be installed on the host
+system.
+- V1.0 utilised a virtual PCI device to DAX map host files into the guest,
+rather than the nvdimm method used in V2.0.
+
