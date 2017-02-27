@@ -119,6 +119,31 @@ cc_oci_get_signum (const gchar *signame)
 }
 
 /*!
+ * Convert the specified signal number into its symbolic name
+ *
+ * \param signum Numer of signal.
+ *
+ * \return static signal name string, or NULL on error.
+ */
+const char*
+cc_oci_get_signame (int signum)
+{
+	struct cc_oci_signal_table  *s;
+
+	if (signum < 0) {
+		return NULL;
+	}
+
+	for (s = signal_table; s && s->name; s++) {
+		if (signum == s->num) {
+			return s->name;
+		}
+	}
+
+	return NULL;
+}
+
+/*!
  * Create an ISO-8601-formatted timestamp.
  *
  * \return Newly-allocated string.

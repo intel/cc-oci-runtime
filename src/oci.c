@@ -222,17 +222,25 @@ err:
  * \param config \ref cc_oci_config.
  * \param state \ref oci_state.
  * \param signum Signal number to send to hypervisor.
+ * \param allProcesses \c true to send a signal to all container's processes,
+ *  \c false to send a signal to container's workload.
  *
  * \return \c true on success, else \c false.
  */
 gboolean
 cc_oci_kill (struct cc_oci_config *config,
 		struct oci_state *state,
-		int signum)
+		int signum,
+		gboolean allProcesses)
 {
 	enum oci_status last_status;
 
 	if (! (config && state)) {
+		return false;
+	}
+
+	if (! cc_oci_get_signame (signum)) {
+		g_critical ("signal %d is not supported", signum);
 		return false;
 	}
 
@@ -261,15 +269,14 @@ cc_oci_kill (struct cc_oci_config *config,
 		goto error;
 	}
 
-	/* send signal to cc-shim because it
-	 * will send killcontainer to hyperstart
+#ifndef UNIT_TESTING
+	/* kill container's processes, cc-shim will catch exit code
+	 * and will end
 	 */
-	if (kill (state->pid, signum) < 0) {
-		g_critical ("failed to stop container %s "
-				"running with pid %u: %s",
-				config->optarg_container_id,
-				(unsigned)state->pid,
-				strerror (errno));
+	if (! cc_proxy_hyper_kill_container (config, signum, allProcesses)) {
+		g_critical ("failed to kill container %s: %s",
+			config->optarg_container_id,
+			strerror (errno));
 		/* revert container status */
 		config->state.status = last_status;
 		if (! cc_oci_state_file_create (config, state->create_time)) {
@@ -277,19 +284,20 @@ cc_oci_kill (struct cc_oci_config *config,
 		}
 		return false;
 	}
+#endif //UNIT_TESTING
 
-#ifndef UNIT_TESTING
-	/* cc-shim is not able to catch SIGKILL and SIGSTOP
-	 * signals for this reason we must kill the container
-	 * using hyperstart's API
-	 */
-	if (signum == SIGKILL || signum == SIGSTOP) {
-		if (! cc_proxy_hyper_kill_container (config, signum)) {
-			g_critical ("failed to kill container");
+	if (signum == SIGKILL) {
+		/* cc-shim is not able to catch the exit code of a process
+		 * finished with SIGKILL signal hence cc-shim MUST receive
+		 * this signal too
+		 */
+		if (kill (state->pid, signum) < 0) {
+			g_critical ("failed to stop cc-shim %u: %s",
+					(unsigned)state->pid,
+					strerror (errno));
 			return false;
 		}
 	}
-#endif //UNIT_TESTING
 
 	last_status = config->state.status;
 
