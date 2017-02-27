@@ -1517,10 +1517,10 @@ cc_proxy_hyper_new_container (struct cc_oci_config *config)
  * \return \c true on success, else \c false.
  */
 gboolean
-cc_proxy_hyper_kill_container (struct cc_oci_config *config, int signum)
+cc_proxy_hyper_kill_container (struct cc_oci_config *config,
+				int signum, gboolean all_processes)
 {
 	JsonObject *killcontainer_payload;
-	char       *signum_str = NULL;
 	gboolean    ret = false;
 	const gchar *container_id;
 
@@ -1540,14 +1540,14 @@ cc_proxy_hyper_kill_container (struct cc_oci_config *config, int signum)
 		return false;
 	}
 
-	signum_str = g_strdup_printf("%d", signum);
-
 	killcontainer_payload = json_object_new ();
 
 	json_object_set_string_member (killcontainer_payload, "container",
 		config->optarg_container_id);
-	json_object_set_string_member (killcontainer_payload, "signal",
-		signum_str);
+	json_object_set_int_member (killcontainer_payload, "signal",
+		signum);
+	json_object_set_boolean_member (killcontainer_payload, "allProcesses",
+		all_processes);
 
 	if (! cc_proxy_run_hyper_cmd (config, "killcontainer", killcontainer_payload)) {
 		g_critical("failed to run cmd killcontainer");
@@ -1556,8 +1556,6 @@ cc_proxy_hyper_kill_container (struct cc_oci_config *config, int signum)
 
 	ret = true;
 out:
-	g_free_if_set(signum_str);
-
 	json_object_unref (killcontainer_payload);
 
 	cc_proxy_disconnect (config->proxy);
