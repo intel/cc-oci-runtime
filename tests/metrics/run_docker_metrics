@@ -7,6 +7,18 @@ if [ ! -d "$RESULT_DIR" ]; then
 	mkdir "$RESULT_DIR"
 fi
 
+IN_FILES=(workload_time/cor_create_time.sh.in)
+
+#generate files if they do not exist
+for inf in ${IN_FILES[@]}; do
+	outf="`dirname \"${inf}\"`/`basename -s '.in' \"${inf}\"`"
+	if [ ! -f "${outf}" ]; then
+		PACKAGE_NAME=cc-oci-runtime \
+		../../data/genfile.sh "${inf}" "${outf}"
+		chmod +x "${outf}"
+	fi
+done
+
 # complete workload : docker run --runtime $runtime -tid $image $cmd
 bash workload_time/docker_workload_time.sh true ubuntu runc "$TIMES"
 bash workload_time/docker_workload_time.sh true ubuntu cor "$TIMES"

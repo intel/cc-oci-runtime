@@ -69,27 +69,27 @@ GENERATED_FILES = \
 
 $(GENERATED_FILES): %: %.in Makefile
 	@mkdir -p `dirname $@`
-	$(AM_V_GEN)$(SED) \
-		-e 's|[@]bindir[@]|$(bindir)|g' \
-		-e 's|[@]srcdir[@]|$(srcdir)|g' \
-		-e 's|[@]libexecdir[@]|$(libexecdir)|' \
-		-e "s|[@]localstatedir[@]|$(localstatedir)|" \
-		-e 's|[@]BUNDLE_TEST_PATH[@]|$(BUNDLE_TEST_PATH)|g' \
-		-e 's|[@]CMDLINE[@]|$(CMDLINE)|g' \
-		-e 's|[@]CONTAINER_KERNEL[@]|$(CONTAINER_KERNEL)|g' \
-		-e 's|[@]CONTAINERS_IMG[@]|$(CONTAINERS_IMG)|g' \
-		-e 's|[@]DEFAULTSDIR[@]|$(DEFAULTSDIR)|g' \
-		-e 's|[@]PACKAGE_NAME[@]|$(PACKAGE_NAME)|g' \
-		-e 's|[@]QEMU_PATH[@]|$(QEMU_PATH)|g' \
-		-e 's|[@]BATS_PATH[@]|$(BATS_PATH)|g' \
-		-e 's|[@]ROOTFS_PATH[@]|$(BUNDLE_TEST_PATH)/rootfs|g' \
-		-e 's|[@]SYSCONFDIR[@]|$(SYSCONFDIR)|g' \
-		-e 's|[@]DOCKER_FEDORA_VERSION[@]|$(DOCKER_FEDORA_VERSION)|g' \
-		-e 's|[@]DOCKER_ENGINE_FEDORA_VERSION[@]|$(DOCKER_ENGINE_FEDORA_VERSION)|g' \
-		-e 's|[@]DOCKER_UBUNTU_VERSION[@]|$(DOCKER_UBUNTU_VERSION)|g' \
-		-e 's|[@]DOCKER_ENGINE_UBUNTU_VERSION[@]|$(DOCKER_ENGINE_UBUNTU_VERSION)|g' \
-		-e 's|[@]ABS_BUILDDIR[@]|$(abs_builddir)|g' \
-		"$<" > "$@"
+	$(AM_V_GEN) \
+		bindir="$(bindir)" \
+		srcdir="$(srcdir)" \
+		libexecdir="$(libexecdir)" \
+		localstatedir="$(localstatedir)" \
+		BUNDLE_TEST_PATH="$(BUNDLE_TEST_PATH)" \
+		CMDLINE="$(CMDLINE)" \
+		CONTAINER_KERNEL="$(CONTAINER_KERNEL)" \
+		CONTAINERS_IMG="$(CONTAINERS_IMG)" \
+		DEFAULTSDIR="$(DEFAULTSDIR)" \
+		PACKAGE_NAME="$(PACKAGE_NAME)" \
+		QEMU_PATH="$(QEMU_PATH)" \
+		BATS_PATH="$(BATS_PATH)" \
+		ROOTFS_PATH="$(BUNDLE_TEST_PATH)/rootfs" \
+		SYSCONFDIR="$(SYSCONFDIR)" \
+		DOCKER_FEDORA_VERSION="$(DOCKER_FEDORA_VERSION)" \
+		DOCKER_ENGINE_FEDORA_VERSION="$(DOCKER_ENGINE_FEDORA_VERSION)" \
+		DOCKER_UBUNTU_VERSION="$(DOCKER_UBUNTU_VERSION)" \
+		DOCKER_ENGINE_UBUNTU_VERSION="$(DOCKER_ENGINE_UBUNTU_VERSION)" \
+		abs_builddir="$(abs_builddir)" \
+		$(top_srcdir)/data/genfile.sh "$<" "$@"
 
 if FUNCTIONAL_TESTS
 if AUTO_BUNDLE_CREATION
@@ -115,7 +115,7 @@ AM_CPPFLAGS = -I $(top_srcdir)/src -DG_LOG_DOMAIN=\"$(PACKAGE_NAME)\" \
 	-DLIBEXECDIR=\"$(libexecdir)\"
 
 defaultsdir = $(datadir)/defaults/$(PACKAGE_NAME)
-defaults_DATA = data/vm.json data/hypervisor.args data/kernel-cmdline
+defaults_DATA = data/vm.json data/hypervisor.args data/kernel-cmdline data/genfile.sh
 
 cc_image_systemd_files = \
 	data/cc-agent.target \
