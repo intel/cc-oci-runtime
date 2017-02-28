@@ -68,6 +68,7 @@
 #include <arpa/inet.h>
 #include <net/if_arp.h>
 #include <net/if.h>
+#include <sys/ioctl.h>
 
 #include <glib.h>
 #include <glib/gprintf.h>
@@ -209,6 +210,92 @@ out:
 }
 
 /*!
+ * Helper function for setting/getting MTU for network interface.
+ *
+ * \param ifname Interface name.
+ * \param mtu MTU to be set/retrieved for the interface.
+ * \param set Flag indicating if the mtu needs to be set/retrieved.
+ *
+ * \return \c true on success, else \c false.
+ */
+gboolean
+cc_oci_handle_interface_mtu(char *ifname, unsigned int *mtu, gboolean set)
+{
+	int socket_fd = -1;
+	gboolean ret = false;
+	struct ifreq ifr;
+
+	if (! (ifname && mtu)) {
+		return false;
+	}
+
+	socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
+	if (socket_fd < 0) {
+		g_critical("Error opening socket: %s", strerror(errno));
+		goto out;
+	}
+
+	memset(&ifr, 0, sizeof(ifr));
+	ifr.ifr_addr.sa_family = AF_INET;
+	g_strlcpy(ifr.ifr_name, ifname, IFNAMSIZ);
+
+	if (set) {
+		ifr.ifr_mtu = (int)(*mtu);
+
+		if (ioctl(socket_fd, SIOCSIFMTU, (caddr_t)&ifr) < 0) {
+			g_critical("ioctl SIOCSIFMTU (set mtu) error for interface %s" \
+					"with mtu %d :%s", 
+					ifname, *mtu, strerror(errno));
+			goto out;
+		}
+		g_debug("MTU set for interface %s as %d\n", ifname, ifr.ifr_mtu);
+	} else {
+		if (ioctl(socket_fd, SIOCGIFMTU, (caddr_t)&ifr) < 0) {
+			g_critical("ioctl get mtu error for interface %s :%s",
+				ifname, strerror(errno));
+			goto out;
+		}
+		*mtu = (unsigned int)ifr.ifr_mtu;
+		g_debug("MTU for interface %s: %d\n", ifname, *mtu);
+	}
+
+	ret = true;
+out:
+	if (socket_fd >= 0) {
+		close (socket_fd);
+	}
+	return ret;
+}
+
+/*!
+ * Set MTU for network interface.
+ *
+ * \param[in] ifname Interface name.
+ * \param mtu MTU to be set for the interface.
+ *
+ * \return \c true on success, else \c false.
+ */
+gboolean
+cc_oci_set_interface_mtu(char *ifname, unsigned int mtu)
+{
+	return cc_oci_handle_interface_mtu(ifname, &mtu, true);
+}
+
+/*!
+ * Get MTU of the network interface.
+ *
+ * \param[in] ifname Interface name.
+ * \param[out] mtu MTU retrieved for the interface.
+ *
+ * \return \c true on success, else \c false.
+ */
+gboolean
+cc_oci_get_interface_mtu(char *ifname, unsigned int *mtu)
+{
+	return cc_oci_handle_interface_mtu(ifname, mtu, false);
+}
+
+/*!
  * Request to create the networking framework
  * that will be used to connect the specified
  * container network (veth) to the VM
@@ -250,6 +337,12 @@ cc_oci_network_create(const struct cc_oci_config *const config,
 			g_slist_nth_data(config->net.interfaces, index);
 
 		if (!cc_oci_tap_create(if_cfg->tap_device)) {
+			goto out;
+		}
+
+		/* Set the MTU for the tap interface.
+		 */
+		if (! cc_oci_set_interface_mtu(if_cfg->tap_device, if_cfg->mtu)) {
 			goto out;
 		}
 
@@ -503,6 +596,7 @@ cc_oci_network_discover(struct cc_oci_config *const config,
 	struct cc_oci_net_cfg *net = NULL;
 	gint family;
 	gchar *ifname;
+	unsigned int mtu;
 
 	if (!config) {
 		return false;
@@ -565,7 +659,22 @@ cc_oci_network_discover(struct cc_oci_config *const config,
 			ipv4_cfg->subnet_mask = cc_net_get_ip_address(family,
 				&((struct sockaddr_in *)ifa->ifa_netmask)->sin_addr);
 
-
+			/* Retrieve the mtu set for the interface to be set
+			 * later for the tap interface sent to the VM and 
+			 * the interface within the VM
+			 */
+			if (if_cfg->mtu == 0) {
+				if ( cc_oci_get_interface_mtu(if_cfg->ifname, &mtu)) {
+					if_cfg->mtu = mtu;
+				} else {
+					freeifaddrs(ifaddrs);
+					/* Free all interfaces */
+					g_slist_free_full(config->net.interfaces,
+						(GDestroyNotify)cc_oci_net_interface_free);
+					config->net.interfaces = NULL;
+					return false;
+				}
+			}
 		} else if (family == AF_INET6) {
 			struct cc_oci_net_ipv6_cfg *ipv6_cfg;
 			ipv6_cfg = g_malloc0(sizeof(*ipv6_cfg));

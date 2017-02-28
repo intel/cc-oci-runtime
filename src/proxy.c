@@ -1206,6 +1206,8 @@ cc_proxy_hyper_pod_create (struct cc_oci_config *config)
 			ifnames[i]);
 		json_object_set_string_member (iface_data, "newDeviceName",
 			if_cfg->ifname);
+		json_object_set_int_member (iface_data, "mtu",
+			if_cfg->mtu);
 
 		ipaddr_arr = json_array_new();
 
