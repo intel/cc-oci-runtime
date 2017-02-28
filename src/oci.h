@@ -569,6 +569,14 @@ struct cc_pod {
 	 * /sandbox_workloads/<container_id>/rootfs.
 	 */
 	gchar    sandbox_workloads[PATH_MAX];
+
+	/**
+	 * List of \ref cc_oci_mount mounts.
+	 *
+	 * This is a list of rootfs mount points for each container
+	 * within the pod.
+	 */
+	GSList   *rootfs_mounts;
 };
 
 /** The main object holding all configuration data.
