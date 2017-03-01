@@ -310,7 +310,7 @@ bats_test_sources = \
 	tests/functional/version.bats
 
 documentation_extra_dist =	\
-	documentation/
+	documentation
 
 EXTRA_DIST = \
 	.ci \
