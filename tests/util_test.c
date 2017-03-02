@@ -412,12 +412,6 @@ START_TEST(test_cc_oci_get_signum) {
 	ck_assert(cc_oci_get_signum("TERM") != -1);
 } END_TEST
 
-START_TEST(test_cc_oci_get_signame) {
-	ck_assert(cc_oci_get_signame(-1) == NULL);
-	ck_assert(cc_oci_get_signame(0) == NULL);
-	ck_assert_str_eq(cc_oci_get_signame(SIGTERM), "SIGTERM");
-} END_TEST
-
 START_TEST(test_cc_oci_node_dump) {
 	GNode* node;
 	cc_oci_node_dump(NULL);
@@ -567,7 +561,6 @@ Suite* make_util_suite(void) {
 	ADD_TEST(test_cc_oci_json_obj_to_string, s);
 	ADD_TEST(test_cc_oci_json_arr_to_string, s);
 	ADD_TEST(test_cc_oci_get_signum, s);
-	ADD_TEST(test_cc_oci_get_signame, s);
 	ADD_TEST(test_cc_oci_node_dump, s);
 	ADD_TEST(test_cc_oci_resolve_path, s);
 	ADD_TEST(test_cc_oci_enable_networking, s);
