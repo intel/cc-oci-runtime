@@ -649,6 +649,14 @@ cc_oci_create (struct cc_oci_config *config)
 		return false;
 	}
 
+	/**
+	 * Pod mounts should happen on the host mount namespace.
+	 */
+	if (! cc_pod_handle_mounts(config)) {
+		g_critical ("failed to handle pod mounts");
+		return false;
+	}
+
 	/* The namespace setup occurs in the parent to ensure
 	 * the hooks run successfully. The child will automatically
 	 * inherit the namespaces.
@@ -1023,6 +1031,11 @@ cc_oci_stop (struct cc_oci_config *config,
 	 * always return false.
 	 */
 	if (! cc_oci_config_update (config, state)) {
+		return false;
+	}
+
+	if (! cc_pod_handle_unmounts(config)) {
+		g_critical ("failed to handle pod unmounts");
 		return false;
 	}
 

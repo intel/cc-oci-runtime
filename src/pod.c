@@ -89,8 +89,8 @@ add_container_mount(struct cc_oci_config *config) {
 		goto error;
 	}
 
-	/* Add our pod container mount to the list of all mount points */
-	config->oci.mounts = g_slist_append(config->oci.mounts, m);
+	/* Add our pod container rootfs mount to the pod mount points */
+	config->pod->rootfs_mounts = g_slist_append(config->pod->rootfs_mounts, m);
 
 	return true;
 

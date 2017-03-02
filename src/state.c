@@ -443,6 +443,41 @@ handle_state_proxy_section(GNode* node, struct handler_data* data) {
 }
 
 /*!
+ * handler for pod mounts section
+ *
+ * \param node \c GNode.
+ * \param data \ref handler_data.
+ */
+static void
+handle_pod_mounts_section(GNode* node, struct handler_data* data) {
+	struct cc_oci_mount* m;
+	struct cc_pod *pod;
+
+	if (! (node && node->data)) {
+		return;
+	}
+	if (! (node->children && node->children->data)) {
+		g_critical("%s missing value", (char*)node->data);
+		return;
+	}
+
+	pod = data->state->pod;
+
+	if (! g_strcmp0(node->data, "destination")) {
+		m = g_new0 (struct cc_oci_mount, 1);
+		g_strlcpy (m->dest, (char*)node->children->data, sizeof (m->dest));
+		m->ignore_mount = false;
+		pod->rootfs_mounts = g_slist_append(pod->rootfs_mounts, m);
+	} else if (! g_strcmp0(node->data, "directory_created")) {
+		GSList *l = g_slist_last(data->state->mounts);
+		if (l) {
+			m = (struct cc_oci_mount*)l->data;
+			m->directory_created = g_strdup((char*)node->children->data);
+		}
+	}
+}
+
+/*!
  * handler for pod section.
  *
  * \param node \c GNode.
@@ -455,8 +490,14 @@ handle_state_pod_section(GNode* node, struct handler_data* data) {
 	if (! (node && node->data)) {
 		return;
 	}
+
 	if (! (node->children && node->children->data)) {
-		g_critical("%s missing value", (char*)node->data);
+		if (g_strcmp0(node->data, "rootfs_mounts") == 0) {
+			g_node_children_foreach(node, G_TRAVERSE_ALL,
+						(GNodeForeachFunc)handle_pod_mounts_section, data);
+		} else {
+			g_critical("%s missing value", (char*)node->data);
+		}
 		return;
 	}
 
@@ -483,6 +524,9 @@ handle_state_pod_section(GNode* node, struct handler_data* data) {
 		pod->sandbox_name =
 			g_strdup ((gchar *)node->children->data);
 		(*(data->subelements_count))++;
+	} else if (g_strcmp0(node->data, "rootfs_mounts") == 0) {
+		g_node_children_foreach(node, G_TRAVERSE_ALL,
+					(GNodeForeachFunc)handle_pod_mounts_section, data);
 	} else {
 		g_critical("unknown pod option: %s", (char*)node->data);
 	}
@@ -751,6 +795,9 @@ cc_oci_state_free (struct oci_state *state)
 	}
 
 	if (state->pod) {
+		if (state->pod->rootfs_mounts) {
+			cc_oci_mounts_free_all (state->pod->rootfs_mounts);
+		}
 		g_free_if_set (state->pod->sandbox_name);
 		g_free (state->pod);
 	}
@@ -943,6 +990,8 @@ cc_oci_state_file_create (struct cc_oci_config *config,
 	json_object_set_object_member (obj, "proxy", proxy);
 
 	if (config->pod != NULL) {
+		JsonArray *rootfs_mounts = NULL;
+
 		/* Add an object containing CRI-O/ocid details */
 		pod = json_object_new ();
 
@@ -952,6 +1001,16 @@ cc_oci_state_file_create (struct cc_oci_config *config,
 		json_object_set_string_member (pod, "sandbox_name",
 					       config->pod->sandbox_name ?
 					       config->pod->sandbox_name : "");
+
+		/* Add an array of mounts to allow "delete" to unmount these
+		 * resources later.
+		 */
+		rootfs_mounts = cc_pod_mounts_to_json (config);
+		if (!rootfs_mounts) {
+			goto out;
+		}
+
+		json_object_set_array_member (pod, "rootfs_mounts", rootfs_mounts);
 
 		json_object_set_object_member (obj, "pod", pod);
 	}

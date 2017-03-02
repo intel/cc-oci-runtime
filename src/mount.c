@@ -457,7 +457,7 @@ cc_oci_handle_unmounts (const struct cc_oci_config *config)
 gboolean
 cc_pod_handle_unmounts (const struct cc_oci_config *config)
 {
-	if (! config && ! config->pod) {
+	if (! (config && config->pod)) {
 		return true;
 	}
 
