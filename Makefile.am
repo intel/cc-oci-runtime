@@ -117,7 +117,7 @@ AM_CPPFLAGS = -I $(top_srcdir)/src -DG_LOG_DOMAIN=\"$(PACKAGE_NAME)\" \
 	-DLIBEXECDIR=\"$(libexecdir)\"
 
 defaultsdir = $(datadir)/defaults/$(PACKAGE_NAME)
-defaults_DATA = data/vm.json data/hypervisor.args data/kernel-cmdline data/genfile.sh
+defaults_DATA = data/vm.json data/hypervisor.args data/kernel-cmdline
 
 cc_image_systemd_files = \
 	data/cc-agent.target \
@@ -355,7 +355,8 @@ EXTRA_DIST = \
 	tests/lib \
 	tests/metrics/density/docker_cpu_usage.sh.in \
 	tests/metrics/density/docker_memory_usage.sh.in \
-	tests/metrics/workload_time/cor_create_time.sh.in
+	tests/metrics/workload_time/cor_create_time.sh.in \
+	data/genfile.sh
 
 if CPPCHECK
 CHECK_DEPS += cppcheck
