@@ -47,11 +47,22 @@ CONT_GATE="$CONT_SHARED_PATH/gate"
 HOST_RDM_FILE="$HOST_SHARED_PATH/out.data"
 CONT_RDM_FILE="$CONT_SHARED_PATH/out.data"
 CSV_FILE="mem.csv"
+PSS_FILE="pss.log"
 
 declare WORKLOAD
 declare COLLECT_PID
+declare SMEM_PID
 declare F_OPTS
-declare AVG
+declare DATA_RES
+declare RSS_RES
+declare PSS_RES
+
+# columns in collect output
+declare -A COLLECT_MEM=(
+	["VmStk"]=13
+	["VmData"]=12
+	["VmRSS"]=11
+	["VmLck"]=10)
 
 # Shows help about this script
 function help()
@@ -117,7 +128,8 @@ EOF
 # in order to get metrics about a specific tool.
 function start_collect()
 {
-	collectl -oTm -sZm -i1:1 \
+	echo "Launching collectl"
+	collectl -oTm -sZm -i0.5:1 \
 		--procfilt f$PROC \
 		--procopts tm -f $PROC-mem &
 
@@ -128,38 +140,105 @@ function start_collect()
 # It kills the collectl process.
 function stop_collect()
 {
+	echo "Stop collectl"
 	kill "$COLLECT_PID"
 }
 
-# Get the average about a "csv" file produced
-# by collectl tool.
-function get_average()
+# It launches a instance of smem tool
+# in order to get metrics about proportional
+# set size.
+function start_pss_monitor()
 {
-	sum=0
-	count=0
+	bash ./smem_monitor.sh $PROC &
+	SMEM_PID=$!
+}
+
+# It terms smem process
+function stop_pss_monitor()
+{
+	kill "$SMEM_PID"
+}
+
+# Get PSS memory metrics
+function get_pss_metrics()
+{
+	pss_sum=0
+	pss_count=0
+	samples=""
+
+	while read line; do
+		pss_mem=$(echo "$line" | sed 's/[A-Za-z]*//g')
+		res=$(echo "$pss_mem > 0" | bc )
+		if [ $res -eq 1 ];then
+			pss_sum=$(echo "$pss_sum + $pss_mem"| bc -l )
+			pss_count=$(( $pss_count + 1 ))
+			if [ ! -z "$samples" ];then
+				samples="$samples ,"
+			fi
+			samples="$samples $pss_mem"
+		fi
+	done < "$PSS_FILE"
+
+	stdev=$(python3 -c "import statistics; print (statistics.stdev([$samples]))")
+	avg=$(echo "$pss_sum / $pss_count" | bc -l)
+	pstdev=$(echo "($stdev / $avg) * 100" | bc -l)
+	echo "avg: $avg stdev: $stdev pstdev: $pstdev"
+}
+
+# Get metrics about a "csv" file produced
+# by collectl tool.
+function get_collect_metrics()
+{
+	data_sum=0
+	data_count=0
+	samples=""
 
 	while read line; do
 		cmd=$(echo "$line" | awk -F "," '{print $30}' | grep $PROC)
-		if [ ! -z "$cmd" ];then
-			binary="$(echo "$cmd" | cut -d " " -f1 | \
-				xargs basename -z | grep $F_OPTS $PROC)"
-			if [ ! -z "$binary" ];then
-				mem_data=$(echo "$line" | awk -F "," '{print $12}')
-				if (( $mem_data > 0 ));then
-					sum=$(( $sum + $mem_data ))
-					count=$(( $count + 1 ))
-				fi
+		if [ -z "$cmd" ];then
+			continue
+		fi
+
+		binary="$(echo "$cmd" | cut -d " " -f1 | \
+			xargs basename -z | grep $F_OPTS $PROC)"
+
+		if [ -z "$binary" ];then
+			continue
+		fi
+
+		data_mem=$(echo "$line" | awk -v column=$1 -F "," '{print $column}')
+
+		if (( $data_mem > 0 ));then
+			data_sum=$(( $data_sum + $data_mem ))
+			data_count=$(( $data_count + 1 ))
+			if [ -n "$samples" ];then
+				samples="$samples ,"
 			fi
+			samples="$samples $data_mem"
 		fi
 
 	done < "$CSV_FILE"
 
-	if (( $count == 0 ));then
+		if (( $data_count == 0 ));then
 		echo -e "\e[31m$MYSELF: error: no collected samples\e[39m"
 		exit 1;
 	fi
-	AVG=$(echo "$sum / $count" | bc)
-	echo -e "\e[33mMemory consumption average: $AVG\e[39m"
+
+	stdev=$(python3 -c "import statistics; print(statistics.stdev([$samples]))")
+	avg=$(echo "$data_sum / $data_count" | bc -l)
+	pstdev=$(echo "($stdev / $avg) * 100" | bc -l)
+
+	echo "avg: $avg stdev: $stdev pstdev: $pstdev"
+}
+
+# Print the metrics memory
+function print_results()
+{
+	echo -e "\e[33m==== Results ===="
+	echo "$PROC VmData: $DATA_RES"
+	echo "$PROC RSS:    $RSS_RES"
+	echo "$PROC PSS:    $PSS_RES"
+	echo -e "=================\e[39m"
 }
 
 # It creates a "csv" file using a raw information
@@ -193,13 +272,9 @@ function check_proxy_service()
 		echo -e "\e[31merror: cc-proxy could not start\e[39m"
 		exit 1
 	fi
-
-	sleep 1
 }
 
-# This function will check the necessary requirements
-# in the environment for running Clear Containers.
-function set_environment()
+function clean_docker_waste()
 {
 	echo "Cleaning environment"
 
@@ -208,10 +283,45 @@ function set_environment()
 	if [ ! -z "$waste" ];then
 		docker rm -f $waste
 	fi
+}
+
+# Exit with error
+function die()
+{
+	local msg="$*"
+	echo >&2 "error: $msg"
+	exit 1
+}
+
+# This function will check the necessary requirements
+# in the environment for running Clear Containers.
+function set_environment()
+{
+	req_tools=(
+		collectl
+		smem
+		bc
+		python3)
+
+	# check available tools
+	echo "Check required tools"
+	for cmd in ${req_tools[*]};do
+		command -v "$cmd" &>/dev/null
+		res=$?
+		if [ $res -eq 0 ];then
+			echo "command: $cmd: yes"
+			continue
+		fi
+
+		die "command $cmd not available"
+	done
+
+	clean_docker_waste
 
 	# clean result files
 	rm -rf *.gz
 	rm -rf *.csv
+	rm -rf *.log
 
 	if [ -d "$HOST_SHARED_PATH" ];then
 		echo "Cleaning shared directory"
@@ -219,6 +329,9 @@ function set_environment()
 	fi
 
 	mkdir -p $HOST_SHARED_PATH
+
+	echo "Restart docker service"
+	systemctl restart docker-cor.service
 }
 
 # main function
@@ -274,11 +387,13 @@ function main()
 
 	echo "Active gate"
 	echo "True" > $HOST_GATE
+	start_pss_monitor
 
 	while [ 1 ];
 	do
 		cont_num=$(docker ps | wc -l)
 		if (( $cont_num == 1 ));then
+			stop_pss_monitor
 			break
 		fi
 
@@ -290,8 +405,12 @@ function main()
 	create_csv_file
 
 	echo "Making a total"
-	get_average
+	RSS_RES=$(get_collect_metrics ${COLLECT_MEM["VmRSS"]})
+	DATA_RES=$(get_collect_metrics ${COLLECT_MEM["VmData"]})
+	PSS_RES=$(get_pss_metrics)
 
+	clean_docker_waste
+	print_results
 	echo -e "\e[32mFinish\e[39m"
 
 	exit 0;
@@ -299,4 +418,3 @@ function main()
 
 # call to main function
 main $@
-
