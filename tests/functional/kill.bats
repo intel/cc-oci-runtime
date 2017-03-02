@@ -36,7 +36,7 @@ function teardown() {
 @test "kill without container id" {
 	run $COR kill
 	[ "$status" -ne 0 ]
-	[[ "${output}" == "Usage: kill <container-id> [<signal>]" ]]
+	[[ "${output}" == "Usage: kill <container-id> [<options>] [<signal>]" ]]
 }
 
 @test "kill with invalid container id" {
@@ -48,13 +48,7 @@ function teardown() {
 @test "start then kill (implicit signal)" {
 	workload_cmd "sh"
 
-	cmd="$COR create --console --bundle $BUNDLE_DIR $container_id"
-	run_cmd "$cmd" "0" "$COR_TIMEOUT"
-	testcontainer "$container_id" "created"
-
-	# 'start' runs in background since it will
-	# update the state file once shim ends
-	cmd="$COR start $container_id &"
+	cmd="$COR run -d --bundle $BUNDLE_DIR $container_id"
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
 	testcontainer "$container_id" "running"
 
@@ -70,13 +64,7 @@ function teardown() {
 @test "start then kill (short symbolic signal)" {
 	workload_cmd "sh"
 
-	cmd="$COR create  --console --bundle $BUNDLE_DIR $container_id"
-	run_cmd "$cmd" "0" "$COR_TIMEOUT"
-	testcontainer "$container_id" "created"
-
-	# 'start' runs in background since it will
-	# update the state file once shim ends
-	cmd="$COR start $container_id &"
+	cmd="$COR run -d --bundle $BUNDLE_DIR $container_id"
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
 	testcontainer "$container_id" "running"
 
@@ -96,13 +84,7 @@ function teardown() {
 @test "start then kill (full symbolic signal)" {
 	workload_cmd "sh"
 
-	cmd="$COR create  --console --bundle $BUNDLE_DIR $container_id"
-	run_cmd "$cmd" "0" "$COR_TIMEOUT"
-	testcontainer "$container_id" "created"
-
-	# 'start' runs in background since it will
-	# update the state file once shim ends
-	cmd="$COR start $container_id &"
+	cmd="$COR run -d --bundle $BUNDLE_DIR $container_id"
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
 	testcontainer "$container_id" "running"
 
@@ -122,21 +104,37 @@ function teardown() {
 @test "start then kill (numeric signal)" {
 	workload_cmd "sh"
 
-	cmd="$COR create  --console --bundle $BUNDLE_DIR $container_id"
-	run_cmd "$cmd" "0" "$COR_TIMEOUT"
-	testcontainer "$container_id" "created"
-
-	# 'start' runs in background since it will
-	# update the state file once shim ends
-	cmd="$COR start $container_id &"
+	cmd="$COR run -d --bundle $BUNDLE_DIR $container_id"
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
 	testcontainer "$container_id" "running"
 
 	# specify invalid signal number
 	cmd="$COR kill $container_id 123456"
 	run_cmd "$cmd" "1" "$COR_TIMEOUT"
+	testcontainer "$container_id" "running"
 
 	cmd="$COR kill $container_id 15"
+	run_cmd "$cmd" "0" "$COR_TIMEOUT"
+	testcontainer "$container_id" "killed"
+
+	cmd="$COR delete $container_id"
+	run_cmd "$cmd" "0" "$COR_TIMEOUT"
+	verify_runtime_dirs "$container_id" "deleted"
+}
+
+@test "start then kill --all (numeric signal)" {
+	workload_cmd "sh"
+
+	cmd="$COR run -d --bundle $BUNDLE_DIR $container_id"
+	run_cmd "$cmd" "0" "$COR_TIMEOUT"
+	testcontainer "$container_id" "running"
+
+	# specify invalid signal number
+	cmd="$COR kill --all $container_id 123456"
+	run_cmd "$cmd" "1" "$COR_TIMEOUT"
+	testcontainer "$container_id" "running"
+
+	cmd="$COR kill -a $container_id 15"
 	run_cmd "$cmd" "0" "$COR_TIMEOUT"
 	testcontainer "$container_id" "killed"
 

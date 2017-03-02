@@ -23,6 +23,19 @@
 
 #include "command.h"
 
+static gboolean allProcesses = false;
+
+static GOptionEntry options_kill[] =
+{
+	{
+		"all", 'a' , G_OPTION_FLAG_NONE,
+		G_OPTION_ARG_NONE, &allProcesses,
+		"send a signal to all processes inside the container",
+		NULL
+	},
+	{ NULL }
+};
+
 static gboolean
 handler_kill (const struct subcommand *sub,
 		struct cc_oci_config *config,
@@ -37,9 +50,8 @@ handler_kill (const struct subcommand *sub,
 	g_assert (sub);
 	g_assert (config);
 
-
 	if (handle_default_usage (argc, argv, sub->name,
-				&ret, 1, "[<signal>]")) {
+				&ret, 1, "[<options>] [<signal>]")) {
 		return ret;
 	}
 
@@ -75,7 +87,7 @@ handler_kill (const struct subcommand *sub,
 		goto out;
 	}
 
-	ret = cc_oci_kill (config, state, signum);
+	ret = cc_oci_kill (config, state, signum, allProcesses);
 
 out:
 	g_free_if_set (config_file);
@@ -87,6 +99,7 @@ out:
 struct subcommand command_kill =
 {
 	.name        = "kill",
+	.options     = options_kill,
 	.handler     = handler_kill,
 	.description = "send a signal to the container "
 		       "(signal may be symbolic (\"SIGKILL\"/\"KILL\") "
