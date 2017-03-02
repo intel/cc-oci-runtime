@@ -26,6 +26,7 @@ SRC="${BATS_TEST_DIRNAME}/../../lib/"
 setup() {
 	source $SRC/test-common.bash
 	runtime_docker
+	kill_processes_before_start
 }
 
 @test "Check attach functionality" {
@@ -38,4 +39,5 @@ setup() {
 
 teardown() {
 	rm result_file
+	check_no_processes_up
 }

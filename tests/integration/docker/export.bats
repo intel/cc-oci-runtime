@@ -26,6 +26,7 @@ SRC="${BATS_TEST_DIRNAME}/../../lib/"
 setup() {
 	source $SRC/test-common.bash
 	runtime_docker
+	kill_processes_before_start
 }
 
 @test "Export a container" {
@@ -40,4 +41,5 @@ setup() {
 
 teardown () {
 	rm -rf latest.tar
+	check_no_processes_up
 }

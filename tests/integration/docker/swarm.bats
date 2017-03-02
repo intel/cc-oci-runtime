@@ -54,6 +54,7 @@ function clean_swarm_status() {
 setup() {
 	source $SRC/test-common.bash
 	runtime_docker
+	kill_processes_before_start
 	clean_swarm_status
 	interfaces=($(readlink /sys/class/net/* | grep -i pci | xargs basename -a))
 	swarm_interface_arg=""
@@ -171,4 +172,5 @@ setup() {
 teardown () {
 	$DOCKER_EXE service remove testswarm
 	clean_swarm_status
+	check_no_processes_up
 }
