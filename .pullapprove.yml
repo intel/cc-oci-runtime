@@ -9,6 +9,7 @@ always_pending:
   title_regex: 'WIP'
   labels:
     - do-not-merge
+    - on-hold
     - wip
   explanation: 'Work in progress - do not merge'
 
