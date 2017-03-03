@@ -158,6 +158,9 @@ cc_oci_config_free (struct cc_oci_config *config)
 	}
 
 	if (config->pod) {
+		if (config->pod->rootfs_mounts) {
+			cc_oci_mounts_free_all (config->pod->rootfs_mounts);
+		}
 		g_free_if_set (config->pod->sandbox_name);
 		g_free (config->pod);
 	}

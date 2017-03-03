@@ -216,6 +216,93 @@ err:
 	return false;
 }
 
+
+/*!
+ * Create OCI cgroup files under a given directory.
+ * The actual cgroup creation routine (\ref cc_oci_create_cgroups)
+ * is a wrapper around that function with \ref CGROUP_MEM_DIR as
+ * the directory argument.
+ *
+ * \param config \ref cc_oci_config.
+ * \param directory The directory where cgroup files will be created.
+ *
+ * \return \c true on success, else \c false.
+ */
+gboolean
+cc_oci_create_cgroup_files (struct cc_oci_config *config, const gchar *directory)
+{
+	g_autofree gchar *cgroup_dir = NULL;
+	g_autofree gchar *cgroup_tasks = NULL;
+	g_autofree gchar *cgroup_procs = NULL;
+	g_autofree gchar *pid_str = NULL;
+	int      fd_tasks = -1;
+	int      fd_procs = -1;
+	gboolean ret = false;
+
+	if (! (config && directory)) {
+		return false;
+	}
+
+	if (!config->oci.oci_linux.cgroupsPath) {
+		return true;
+	}
+
+	cgroup_dir = g_strdup_printf ("%s/%s", directory,
+				      config->oci.oci_linux.cgroupsPath);
+	if (g_mkdir_with_parents (cgroup_dir, CC_OCI_CGROUP_MODE) < 0) {
+		g_critical("Failed to create cgroup directory: %s", strerror(errno));
+		goto out;
+	}
+
+	pid_str = g_strdup_printf ("%d", config->state.workload_pid);
+
+	cgroup_tasks = g_strdup_printf ("%s/tasks", cgroup_dir);
+	fd_tasks = open (cgroup_tasks, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+	if (fd_tasks < 0) {
+		g_critical("Failed to create cgroup tasks file: %s", strerror(errno));
+		goto out;
+	}
+
+	if (write (fd_tasks, pid_str, strlen(pid_str)) <= 0) {
+		g_critical ("failed to copy workload pid to cgroup tasks: %s",
+			    strerror(errno));
+		goto out;
+	}
+
+	cgroup_procs = g_strdup_printf ("%s/cgroup.procs", cgroup_dir);
+	fd_procs = open (cgroup_procs, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+	if (fd_procs < 0) {
+		g_critical("Failed to create cgroup procs file: %s", strerror(errno));
+		goto out;
+	}
+
+	if (write (fd_procs, pid_str, strlen(pid_str)) <= 0) {
+		g_critical ("failed to copy workload pid to cgroup procs: %s",
+			    strerror(errno));
+		goto out;
+	}
+
+	ret = true;
+out:
+	if (fd_procs != -1) close (fd_procs);
+	if (fd_tasks != -1) close (fd_tasks);
+
+	return ret;
+}
+
+/*!
+ * Create OCI cgroup files for a given container.
+ *
+ * \param config \ref cc_oci_config.
+ *
+ * \return \c true on success, else \c false.
+ */
+gboolean
+cc_oci_create_cgroups (struct cc_oci_config *config)
+{
+	return cc_oci_create_cgroup_files(config, CGROUP_MEM_DIR);
+}
+
 /*!
  * Forcibly stop the Hypervisor.
  *
@@ -559,6 +646,14 @@ cc_oci_create (struct cc_oci_config *config)
 			g_critical ("failed to create runtime directory");
 		}
 
+		return false;
+	}
+
+	/**
+	 * Pod mounts should happen on the host mount namespace.
+	 */
+	if (! cc_pod_handle_mounts(config)) {
+		g_critical ("failed to handle pod mounts");
 		return false;
 	}
 
@@ -936,6 +1031,11 @@ cc_oci_stop (struct cc_oci_config *config,
 	 * always return false.
 	 */
 	if (! cc_oci_config_update (config, state)) {
+		return false;
+	}
+
+	if (! cc_pod_handle_unmounts(config)) {
+		g_critical ("failed to handle pod unmounts");
 		return false;
 	}
 

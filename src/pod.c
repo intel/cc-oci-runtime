@@ -34,6 +34,8 @@
 #include <errno.h>
 #include <string.h>
 #include <sys/mount.h>
+#include <sys/ptrace.h>
+#include <sys/wait.h>
 
 #include <glib.h>
 #include <gio/gunixconnection.h>
@@ -87,8 +89,8 @@ add_container_mount(struct cc_oci_config *config) {
 		goto error;
 	}
 
-	/* Add our pod container mount to the list of all mount points */
-	config->oci.mounts = g_slist_append(config->oci.mounts, m);
+	/* Add our pod container rootfs mount to the pod mount points */
+	config->pod->rootfs_mounts = g_slist_append(config->pod->rootfs_mounts, m);
 
 	return true;
 
@@ -216,6 +218,7 @@ cc_pod_container_create (struct cc_oci_config *config)
 	int                ioBase = -1;
 	GSocketConnection *shim_socket_connection = NULL;
 	GError            *error = NULL;
+	int                status = 1;
 
 	if (! (config && config->pod && config->proxy)) {
 		return false;
@@ -245,6 +248,10 @@ cc_pod_container_create (struct cc_oci_config *config)
 	 * The child blocks waiting for a write to shim_args_fd.
 	 */
 	if (! cc_shim_launch (config, &shim_err_fd, &shim_args_fd, &shim_socket_fd, true)) {
+		goto out;
+	}
+
+	if (! cc_oci_create_cgroups(config)) {
 		goto out;
 	}
 
@@ -331,6 +338,39 @@ cc_pod_container_create (struct cc_oci_config *config)
 	ret = cc_oci_state_file_create (config, timestamp);
 	if (! ret) {
 		g_critical ("failed to create state file");
+		goto out;
+	}
+
+	/* wait for child to receive the expected SIGTRAP caused
+	 * by it calling exec() whilst under PTRACE control.
+	 */
+	if (waitpid (config->state.workload_pid,
+			&status, 0) != config->state.workload_pid) {
+		g_critical ("failed to wait for shim %d: %s",
+				config->state.workload_pid,
+				strerror (errno));
+		goto out;
+	}
+
+	if (! WIFSTOPPED (status)) {
+		g_critical ("shim %d not stopped by signal",
+				config->state.workload_pid);
+		goto out;
+	}
+
+	if (! (WSTOPSIG (status) == SIGTRAP)) {
+		g_critical ("shim %d not stopped by expected signal",
+				config->state.workload_pid);
+		goto out;
+	}
+
+	/* Stop tracing, but send a stop signal to the shim so that it
+	 * remains in a paused state.
+	 */
+	if (ptrace (PTRACE_DETACH, config->state.workload_pid, NULL, SIGSTOP) < 0) {
+		g_critical ("failed to ptrace detach in child %d: %s",
+				(int)config->state.workload_pid,
+				strerror (errno));
 		goto out;
 	}
 

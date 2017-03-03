@@ -207,14 +207,15 @@ cc_oci_perform_mount (const struct cc_oci_mount *m, gboolean dry_run)
 }
 
 /*!
- * Setup required mounts.
+ * Setup mount points.
  *
  * \param config \ref cc_oci_config.
+ * \param mounts List of \ref cc_oci_mount.
  *
  * \return \c true on success, else \c false.
  */
-gboolean
-cc_oci_handle_mounts (struct cc_oci_config *config)
+static gboolean
+cc_handle_mounts(struct cc_oci_config *config, GSList *mounts)
 {
 	GSList    *l;
 	gboolean   ret;
@@ -233,7 +234,7 @@ cc_oci_handle_mounts (struct cc_oci_config *config)
 		return false;
 	}
 
-	for (l = config->oci.mounts; l && l->data; l = g_slist_next (l)) {
+	for (l = mounts; l && l->data; l = g_slist_next (l)) {
 		struct cc_oci_mount *m = (struct cc_oci_mount *)l->data;
 
 		if (cc_oci_mount_ignore (m)) {
@@ -302,6 +303,39 @@ cc_oci_handle_mounts (struct cc_oci_config *config)
 }
 
 /*!
+ * Setup required OCI mounts.
+ *
+ * \param config \ref cc_oci_config.
+ *
+ * \return \c true on success, else \c false.
+ */
+gboolean
+cc_oci_handle_mounts (struct cc_oci_config *config)
+{
+	if (! (config && config->oci.mounts)) {
+		return false;
+	}
+	return cc_handle_mounts(config, config->oci.mounts);
+}
+
+/*!
+ * Setup pod rootfs mount points.
+ *
+ * \param config \ref cc_oci_config.
+ *
+ * \return \c true on success, else \c false.
+ */
+gboolean
+cc_pod_handle_mounts (struct cc_oci_config *config)
+{
+	if (! (config && config->pod)) {
+		return true;
+	}
+
+	return cc_handle_mounts(config, config->pod->rootfs_mounts);
+}
+
+/*!
  * Unmount the mount specified by \p m.
  *
  * \param m \ref cc_oci_mount.
@@ -321,7 +355,54 @@ cc_oci_perform_unmount (const struct cc_oci_mount *m)
 }
 
 /*!
- * Unmount all mounts.
+ * Unmount a list of mounts.
+ *
+ * \param mounts List of \ref cc_oci_mount.
+ *
+ * \return \c true on success, else \c false.
+ */
+static gboolean
+cc_handle_unmounts (GSList *mounts)
+{
+	GSList  *l;
+
+	/* umount files and directories */
+	for (l = mounts; l && l->data; l = g_slist_next (l)) {
+		struct cc_oci_mount *m = (struct cc_oci_mount *)l->data;
+
+		if (m->ignore_mount) {
+			/* was never mounted */
+			continue;
+		}
+
+		if (! cc_oci_perform_unmount (m)) {
+			g_critical("failed to umount %s", m->dest);
+			return false;
+		}
+	}
+
+	/* delete directories created by cc_oci_handle_mounts */
+	for (l = mounts; l && l->data; l = g_slist_next (l)) {
+		struct cc_oci_mount *m = (struct cc_oci_mount *)l->data;
+
+		if (m->ignore_mount) {
+			/* was never mounted */
+			continue;
+		}
+
+		if (m->directory_created) {
+			if (! cc_oci_rm_rf(m->directory_created)) {
+				g_critical("failed to delete %s", m->directory_created);
+			}
+		}
+	}
+
+	return true;
+}
+
+
+/*!
+ * Unmount all OCI mounts.
  *
  * \param config \ref cc_oci_config.
  *
@@ -363,53 +444,39 @@ cc_oci_handle_unmounts (const struct cc_oci_config *config)
 		return true;
 	}
 
-	/* umount files and directories */
-	for (l = config->oci.mounts; l && l->data; l = g_slist_next (l)) {
-		struct cc_oci_mount *m = (struct cc_oci_mount *)l->data;
-
-		if (m->ignore_mount) {
-			/* was never mounted */
-			continue;
-		}
-
-		if (! cc_oci_perform_unmount (m)) {
-			g_critical("failed to umount %s", m->dest);
-			return false;
-		}
-	}
-
-	/* delete directories created by cc_oci_handle_mounts */
-	for (l = config->oci.mounts; l && l->data; l = g_slist_next (l)) {
-		struct cc_oci_mount *m = (struct cc_oci_mount *)l->data;
-
-		if (m->ignore_mount) {
-			/* was never mounted */
-			continue;
-		}
-
-		if (m->directory_created) {
-			if (! cc_oci_rm_rf(m->directory_created)) {
-				g_critical("failed to delete %s", m->directory_created);
-			}
-		}
-	}
-
-	return true;
+	return cc_handle_unmounts(config->oci.mounts);
 }
 
 /*!
- * Convert the list of mounts to a JSON array.
+ * Unmount all pod mount points.
+ *
+ * \param config \ref cc_oci_config.
+ *
+ * \return \c true on success, else \c false.
+ */
+gboolean
+cc_pod_handle_unmounts (const struct cc_oci_config *config)
+{
+	if (! (config && config->pod)) {
+		return true;
+	}
+
+	return cc_handle_unmounts(config->pod->rootfs_mounts);
+}
+
+/*!
+ * Convert a list of mounts to a JSON array.
  *
  * Note that the returned array will be empty unless any of the list of
  * mounts provided in \ref CC_OCI_CONFIG_FILE were actually mounted
  * (many are ignored as they are unecessary in the hypervisor case).
  *
- * \param config \ref cc_oci_config.
+ * \param mounts List of \ref cc_oci_mount.
  *
  * \return \c JsonArray on success, else \c NULL.
  */
-JsonArray *
-cc_oci_mounts_to_json (const struct cc_oci_config *config)
+static JsonArray *
+cc_mounts_to_json (GSList *mounts)
 {
 	JsonArray *array = NULL;
 	JsonObject *mount = NULL;
@@ -417,7 +484,7 @@ cc_oci_mounts_to_json (const struct cc_oci_config *config)
 
 	array  = json_array_new ();
 
-	for (l = config->oci.mounts; l && l->data; l = g_slist_next (l)) {
+	for (l = mounts; l && l->data; l = g_slist_next (l)) {
 		struct cc_oci_mount *m = (struct cc_oci_mount *)l->data;
 
 		if (m->ignore_mount) {
@@ -438,4 +505,38 @@ cc_oci_mounts_to_json (const struct cc_oci_config *config)
 	}
 
 	return array;
+}
+
+/*!
+ * Convert the list of OCI mounts to a JSON array.
+ *
+ * Note that the returned array will be empty unless any of the list of
+ * mounts provided in \ref CC_OCI_CONFIG_FILE were actually mounted
+ * (many are ignored as they are unecessary in the hypervisor case).
+ *
+ * \param config \ref cc_oci_config.
+ *
+ * \return \c JsonArray on success, else \c NULL.
+ */
+JsonArray *
+cc_oci_mounts_to_json (const struct cc_oci_config *config)
+{
+	return cc_mounts_to_json(config->oci.mounts);
+}
+
+/*!
+ * Convert the list of pod mounts to a JSON array.
+ *
+ * \param config \ref cc_oci_config.
+ *
+ * \return \c JsonArray on success, else \c NULL.
+ */
+JsonArray *
+cc_pod_mounts_to_json (const struct cc_oci_config *config)
+{
+	if (! config && ! config->pod) {
+		return NULL;
+	}
+
+	return cc_mounts_to_json(config->pod->rootfs_mounts);
 }
