@@ -22,6 +22,8 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <errno.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
@@ -1139,6 +1141,59 @@ START_TEST(test_cc_oci_toggle) {
 	cc_oci_config_free (config);
 } END_TEST
 
+START_TEST(test_cc_oci_create_cgroup_files) {
+	struct cc_oci_config* config = cc_oci_config_create();
+	GPid workload_pid = 1000;
+	g_autofree gchar *tmpdir = NULL;
+	g_autofree gchar *tasks = NULL;
+	g_autofree gchar *procs = NULL;
+	gchar *cgroup_path = "cgroup_test";
+	gchar buf[LINE_MAX], workload_pid_str[5];
+	int task_fd, procs_fd;
+	ssize_t bytes_read;
+
+	tmpdir = g_dir_make_tmp (NULL, NULL);
+	ck_assert (tmpdir);
+
+	ck_assert (! cc_oci_create_cgroup_files (NULL, NULL));
+	ck_assert (! cc_oci_create_cgroup_files (config, NULL));
+	ck_assert (! cc_oci_create_cgroup_files (NULL, tmpdir));
+
+	config->oci.oci_linux.cgroupsPath = g_strdup(cgroup_path);
+	config->state.workload_pid = workload_pid;
+
+	ck_assert (cc_oci_create_cgroup_files (config, tmpdir));
+
+	tasks = g_build_path ("/", tmpdir, cgroup_path, "/tasks", NULL);
+	ck_assert (tasks);
+
+	procs = g_build_path ("/", tmpdir, cgroup_path, "/cgroup.procs", NULL);
+	ck_assert (procs);
+
+	g_snprintf(workload_pid_str, 5, "%d", workload_pid);
+
+	task_fd = open(tasks, O_RDONLY);
+	ck_assert_int_gt (task_fd, 0);
+
+	bytes_read = read(task_fd, buf, sizeof(buf));
+	ck_assert_int_gt (bytes_read, 0);
+	ck_assert_msg (! strncmp (buf, workload_pid_str, 4), buf);
+
+	ck_assert (! close(task_fd));
+
+	procs_fd = open(procs, O_RDONLY);
+	ck_assert (procs_fd);
+
+	bytes_read = read(procs_fd, buf, sizeof(buf));
+	ck_assert_int_gt (bytes_read, 0);
+	ck_assert_msg (! strncmp (buf, workload_pid_str, 4), buf);
+
+	ck_assert (! close(procs_fd));
+
+	cc_oci_config_free (config);
+	ck_assert (g_remove (tmpdir));
+} END_TEST
+
 Suite* make_oci_suite(void) {
 	Suite* s = suite_create(__FILE__);
 
@@ -1153,6 +1208,7 @@ Suite* make_oci_suite(void) {
 	ADD_TEST (test_cc_oci_process_to_json, s);
 	ADD_TEST (test_cc_oci_exec, s);
 	ADD_TEST (test_cc_oci_toggle, s);
+	ADD_TEST (test_cc_oci_create_cgroup_files, s);
 
 	return s;
 }
