@@ -40,7 +40,7 @@ refer to the installation instructions on the wiki:
 Requirements
 ------------
 
-- A Qemu_ hypervisor that supports the ``pc-lite`` machine type (see qemu-lite_).
+- A Qemu_ hypervisor that supports the ``pc-lite`` machine type (see qemu-2.7-lite_ branch).
 - CONFIG_VHOST_NET enabled in the host kernel
 
 Platform Support
@@ -395,7 +395,7 @@ Links
 
 .. _`Qemu`: http://qemu.org
 
-.. _`qemu-lite`: https://github.com/01org/qemu-lite
+.. _`qemu-2.7-lite`: https://github.com/01org/qemu-lite/tree/qemu-2.7-lite
 
 .. _OCI: https://www.opencontainers.org/
 
