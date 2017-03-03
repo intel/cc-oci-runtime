@@ -24,6 +24,7 @@ SCRIPT_PATH=$(dirname $(readlink -f $0))
 RESULT_DIR="${SCRIPT_PATH}/../results"
 HYPERVISOR_PATH="@QEMU_PATH@"
 CC_SHIM_PATH="/usr/libexec/cc-shim"
+number_of_attempts=5
 
 # Checking that default runtime is cor
 function runtime_docker(){
@@ -118,3 +119,18 @@ function check_no_processes_up() {
 	done
 	return 1
 }
+
+# This function will check that swarm is not running
+# in order to clean up the environment
+function clean_swarm_status() {
+	for j in `seq 0 $number_of_attempts`; do
+		if $DOCKER_EXE node ls; then
+			$DOCKER_EXE swarm leave --force
+			# docker swarm leave is not inmediately so it requires time to finish
+			sleep 5
+		else
+			break
+		fi
+	done
+}
+
