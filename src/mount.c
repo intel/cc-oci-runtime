@@ -534,7 +534,7 @@ cc_oci_mounts_to_json (const struct cc_oci_config *config)
 JsonArray *
 cc_pod_mounts_to_json (const struct cc_oci_config *config)
 {
-	if (! config && ! config->pod) {
+	if (! (config && config->pod)) {
 		return NULL;
 	}
 
