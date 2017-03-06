@@ -1142,7 +1142,7 @@ START_TEST(test_cc_oci_toggle) {
 } END_TEST
 
 START_TEST(test_cc_oci_create_cgroup_files) {
-	struct cc_oci_config* config = cc_oci_config_create();
+	struct cc_oci_config* config = NULL;
 	GPid workload_pid = 1000;
 	g_autofree gchar *tmpdir = NULL;
 	g_autofree gchar *tasks = NULL;
@@ -1154,6 +1154,9 @@ START_TEST(test_cc_oci_create_cgroup_files) {
 
 	tmpdir = g_dir_make_tmp (NULL, NULL);
 	ck_assert (tmpdir);
+
+	config = cc_oci_config_create();
+	ck_assert (config);
 
 	ck_assert (! cc_oci_create_cgroup_files (NULL, NULL));
 	ck_assert (! cc_oci_create_cgroup_files (config, NULL));
@@ -1182,7 +1185,7 @@ START_TEST(test_cc_oci_create_cgroup_files) {
 	ck_assert (! close(task_fd));
 
 	procs_fd = open(procs, O_RDONLY);
-	ck_assert (procs_fd);
+	ck_assert (procs_fd >= 0);
 
 	bytes_read = read(procs_fd, buf, sizeof(buf));
 	ck_assert_int_gt (bytes_read, 0);
