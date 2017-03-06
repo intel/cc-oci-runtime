@@ -312,9 +312,10 @@ cc_handle_mounts(struct cc_oci_config *config, GSList *mounts)
 gboolean
 cc_oci_handle_mounts (struct cc_oci_config *config)
 {
-	if (! (config && config->oci.mounts)) {
+	if (! config) {
 		return false;
 	}
+
 	return cc_handle_mounts(config, config->oci.mounts);
 }
 
