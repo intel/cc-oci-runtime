@@ -25,6 +25,8 @@ echo 'Running a new instance of cc-proxy'
 p=$!
 sleep 1
 bash @ABS_BUILDDIR@/data/run-bats.sh @ABS_BUILDDIR@/tests/functional/
+functional_tests_exit_code="$?"
 echo 'killing cc-proxy instance'
 kill -9 $p 2> /dev/null
 rm -f ${PROXY_SOCKET_PATH}
+exit "$functional_tests_exit_code"
