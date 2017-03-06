@@ -49,7 +49,7 @@ done
 go_packages=$args
 
 [ -z "$go_packages" ] && {
-	go_packages=$(go list ./... | grep -v cc-oci-runtime/vendor |\
+	go_packages=$(go list ./... | grep -v "cc-oci-runtime.*/vendor" |\
 		    sed -e 's#.*/cc-oci-runtime/#./#')
 }
 
