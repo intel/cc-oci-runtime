@@ -356,6 +356,7 @@ EXTRA_DIST = \
 	tests/metrics/density/docker_cpu_usage.sh.in \
 	tests/metrics/density/docker_memory_usage.sh.in \
 	tests/metrics/workload_time/cor_create_time.sh.in \
+	vendor \
 	data/genfile.sh
 
 if CPPCHECK
