@@ -39,3 +39,18 @@ groups:
       enabled: true
       approve_regex: '^qa-passed'
       reject_regex: '^qa-failed'
+
+  docs-team:
+    conditions:
+      files:
+        - "documentation/*"
+        - "*.md"
+        - "*.rst"
+    required: 1
+    users:
+      - rcaballeromx
+      - mltullis
+    approve_by_comment:
+      enabled: true
+      approve_regex: '^docs-passed'
+      reject_regex: '^docs-failed'
