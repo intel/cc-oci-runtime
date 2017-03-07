@@ -37,20 +37,6 @@ declare -a NAMES_IPS_REPLICAS
 # saves the ip of the replicas
 declare -a IPS_REPLICAS
 
-#This function will verify that swarm is not running or it finishes
-function clean_swarm_status() {
-	for j in `seq 0 $number_of_attempts`; do
-		if $DOCKER_EXE node ls; then
-			$DOCKER_EXE swarm leave --force
-			# docker swarm leave is not inmediately so it requires time to finish
-			sleep 5
-		else
-			break
-		fi
-	done
-}
-
-
 setup() {
 	source $SRC/test-common.bash
 	runtime_docker
