@@ -29,19 +29,6 @@ total_number_of_tests=3
 # number of attempts
 number_of_attempts=5
 
-#This function will verify that swarm is not running or it finishes
-function clean_swarm_status() {
-        for j in `seq 0 $number_of_attempts`; do
-                if $DOCKER_EXE node ls; then
-                    $DOCKER_EXE swarm leave --force
-                    # "docker swarm leave" is not immediate so it requires some time to finish
-                    sleep 5
-                else
-                        break
-                fi
-        done
-}
-
 setup() {
         source $SRC/test-common.bash
 	runtime_docker
