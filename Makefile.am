@@ -385,7 +385,7 @@ endif
 
 if DOCKER_TESTS
 CHECK_DEPS += docker-tests
-docker-tests: cc-oci-runtime
+docker-tests: cc-oci-runtime tests/lib/test-common.bash
 	@$(BATS_PATH) -t $(srcdir)/tests/integration/docker
 endif
 
