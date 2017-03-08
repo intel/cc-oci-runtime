@@ -49,7 +49,7 @@ setup() {
 
 @test "Checking MTU values in different interfaces" {
 	ip_addresses=$(mktemp)
-	container_id=`$DOCKER_EXE ps -qaf "name=testswarm"`
+	container_id=`$DOCKER_EXE ps -qf "name=testswarm"`
 	network_settings_file=`$DOCKER_EXE inspect "$container_id" | grep "SandboxKey" | cut -d ':' -f2 | cut -d '"' -f2`
 	[ -f "$network_settings_file" ]
 	nsenter --net="$network_settings_file" ip a > "$ip_addresses"

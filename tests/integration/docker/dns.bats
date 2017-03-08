@@ -59,7 +59,7 @@ setup() {
 
 @test "DNS test to check Server and IP Address" {
 	skip "this is not working (this is related with https://github.com/01org/cc-oci-runtime/issues/578)"
-	container_id_dns=`$DOCKER_EXE ps -qaf "name=testdns"`
+	container_id_dns=`$DOCKER_EXE ps -qf "name=testdns"`
 	expected_virtual_ip_1=`$DOCKER_EXE service inspect testswarm1 -f '{{if eq 1 (len .Endpoint.VirtualIPs)}}{{with index .Endpoint.VirtualIPs 0}}{{.Addr}}{{end}}{{end}}' | cut -d "/" -f1`
 	ip_1=$(mktemp)
 	$DOCKER_EXE exec -it $container_id_dns nslookup testswarm1 | grep Address | tail -1 | cut -d ':' -f2 | tr -d ' ' > "$ip_1"
@@ -77,8 +77,8 @@ setup() {
 
 @test "DNS test to check hostname" {
 	skip "this is not working (this is related with https://github.com/01org/cc-oci-runtime/issues/578)"
-	container_id_dns=`$DOCKER_EXE ps -qaf "name=testdns"`
-	container_id_1=`$DOCKER_EXE ps -qaf "name=testswarm1"`
+	container_id_dns=`$DOCKER_EXE ps -qf "name=testdns"`
+	container_id_1=`$DOCKER_EXE ps -qf "name=testswarm1"`
 	hostname_1=$(mktemp)
 	$DOCKER_EXE exec -it $container_id_dns curl testswarm1:/hostname > "$hostname_1"
 	final_hostname_1=$(mktemp)
