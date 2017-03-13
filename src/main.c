@@ -396,7 +396,8 @@ handle_arguments (int argc, char **argv)
 	if (cc_log_options.enable_debug) {
 		/* Record how runtime was invoked in log */
 		gchar *str = g_strjoinv (" ", argv);
-		g_debug ("called as: %s %s", program_name, str);
+		g_debug ("%s %s called as: %s %s", PACKAGE_STRING, GIT_COMMIT,
+			program_name, str);
 		g_free (str);
 	}
 
