@@ -43,7 +43,7 @@ cat << EOL | sudo tee /etc/systemd/system/docker.service.d/clr-containers.conf
 [Service]
 ExecStart=
 ExecStart=/usr/bin/dockerd -D --add-runtime cor=/usr/bin/cc-oci-runtime --default-runtime=cor
-EOL>>
+EOL
 ```
 
 ## Restart the docker and Clear Containers systemd services
