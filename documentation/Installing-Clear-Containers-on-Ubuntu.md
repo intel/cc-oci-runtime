@@ -39,11 +39,11 @@ sudo apt-get install -y cc-oci-runtime
 ## Configure docker to use Clear Containers by default
 ```
 sudo mkdir -p /etc/systemd/system/docker.service.d/
-cat << EOL | sudo tee /etc/systemd/system/docker.service.d/clr-containers.conf
+cat << EOF | sudo tee /etc/systemd/system/docker.service.d/clr-containers.conf
 [Service]
 ExecStart=
 ExecStart=/usr/bin/dockerd -D --add-runtime cor=/usr/bin/cc-oci-runtime --default-runtime=cor
-EOL
+EOF
 ```
 
 ## Restart the docker and Clear Containers systemd services
