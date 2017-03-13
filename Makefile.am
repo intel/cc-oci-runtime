@@ -315,6 +315,8 @@ bats_test_sources = \
 	tests/functional/common.bash.in \
 	data/run-bats.sh.in \
 	tests/functional/data/config-minimal-cc-oci.json.in \
+	tests/functional/data/exec.json \
+	tests/functional/data/exec_false.json \
 	tests/functional/help.bats \
 	tests/functional/kill.bats \
 	tests/functional/pause.bats \

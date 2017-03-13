@@ -194,6 +194,7 @@ handler_exec (const struct subcommand *sub,
 
 	g_free_if_set(config->console);
 	config->console = g_strdup(start_data.console);
+	config->detached_mode = start_data.detach;
 
 	ret = cc_oci_exec (config, state, process_json);
 	if (! ret) {
