@@ -11,14 +11,19 @@ used but some issues may exist.
 This step is optional and required only in the case where docker is not installed
 on the system, or the explicitly supported version of docker is required.
 
+The `add-apt-repository` and `apt-get` commands below reference
+`ubuntu-xenial`. Both Ubuntu 16.04 and 16.10 require this reference
+since the version of Docker supported by Clear Containers is not
+available as a Ubuntu 16.10 package.
+
 ```
 sudo groupadd docker
 sudo -E gpasswd -a $USER docker
 sudo apt-get install -y apt-transport-https ca-certificates
 curl -fsSL https://yum.dockerproject.org/gpg | sudo apt-key add -
-sudo add-apt-repository "deb https://apt.dockerproject.org/repo/ ubuntu-$(lsb_release -cs) main"
+sudo add-apt-repository "deb https://apt.dockerproject.org/repo/ ubuntu-xenial main"
 sudo apt-get update
-sudo apt-get install -y --allow-downgrades docker-engine=1.12.1-0~$(lsb_release -cs)
+sudo apt-get install -y --allow-downgrades docker-engine=1.12.1-0~xenial
 sudo sudo apt-mark hold docker-engine
 ```
 
