@@ -655,7 +655,7 @@ gboolean cc_oci_list (struct cc_oci_config *config,
 gboolean cc_oci_delete (struct cc_oci_config *config,
 		struct oci_state *state);
 gboolean cc_oci_kill (struct cc_oci_config *config,
-		struct oci_state *state, int signum);
+		struct oci_state *state, int signum, gboolean all_processes);
 
 gboolean cc_oci_config_update (struct cc_oci_config *config,
 		struct oci_state *state);

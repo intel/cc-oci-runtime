@@ -949,7 +949,7 @@ START_TEST(test_cc_oci_kill) {
 	config_new = cc_oci_config_create ();
 	ck_assert (config_new);
 
-	ck_assert (! cc_oci_kill (NULL, NULL, 0));
+	ck_assert (! cc_oci_kill (NULL, NULL, 0, false));
 
 	tmpdir = g_dir_make_tmp (NULL, NULL);
 	ck_assert (tmpdir);
@@ -986,14 +986,14 @@ START_TEST(test_cc_oci_kill) {
 
 	ck_assert (state->pid == config_tmp->state.workload_pid);
 
-	ck_assert (cc_oci_kill (config, state, SIGTERM));
+	ck_assert (cc_oci_kill (config, state, SIGKILL, false));
 	(void)waitpid (state->pid, &status, 0);
 
 	ck_assert (kill (config->state.workload_pid, 0) < 0);
 	ck_assert (errno == ESRCH);
 
 	ck_assert (WIFSIGNALED (status));
-	ck_assert (WTERMSIG (status) == SIGTERM);
+	ck_assert (WTERMSIG (status) == SIGKILL);
 
 	config_new->optarg_container_id = config->optarg_container_id;
 	config_new->root_dir = g_strdup (tmpdir);
