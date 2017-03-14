@@ -62,3 +62,15 @@ tags
 test-driver
 tests/functional/common.bash
 tests/functional/data/config-minimal-cc-oci.json
+tests/helpers/test_logs/
+tests/metrics/dmesglog.*
+tests/metrics/workloadTime.*
+tests/metrics/results/
+tests/metrics/workload_time/cor_create_time.sh
+tests/metrics/density/docker_cpu_usage.sh
+tests/metrics/density/docker_memory_usage.sh
+data/dockerFiles/Dockerfile.fedora
+data/dockerFiles/Dockerfile.ubuntu
+tests/lib/test-common.bash
+tests/functional/run-functional-tests.sh
+tests/integration/docker/test.sh
