@@ -48,3 +48,18 @@ collectl
 ```bash
 # ./collect_mem_consmd.sh -c 50 -m 1000 -p cc-shim -x
 ```
+
+### Mapping tool
+
+The `map_mem.sh` tool will report the memory map of a process in a JSON file.
+Each mapping has the following information:
+
+- Proportional set size
+- Shared memory
+- Private memory
+
+**Usage example:**
+
+```bash
+# ./map_mem.sh cc-proxy
+```
