@@ -31,9 +31,9 @@
 #include "oci.h"
 #include "oci-config.h"
 
-const gchar *cc_pod_container_id(struct cc_oci_config *config);
-gboolean cc_pod_is_sandbox(struct cc_oci_config *config);
-gboolean cc_pod_is_vm(struct cc_oci_config *config);
+const gchar *cc_pod_container_id(const struct cc_oci_config *config);
+gboolean cc_pod_is_sandbox(const struct cc_oci_config *config);
+gboolean cc_pod_is_vm(const struct cc_oci_config *config);
 
 START_TEST(test_cc_pod_container_id) {
 	struct cc_oci_config *config = NULL;
