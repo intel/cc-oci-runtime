@@ -378,7 +378,7 @@ cc_oci_kill (struct cc_oci_config *config,
 		 * finished with SIGKILL signal hence cc-shim MUST receive
 		 * this signal too
 		 */
-		if (kill (state->pid, signum) < 0) {
+		if (kill (state->pid, signum) < 0 && errno != ESRCH) {
 			g_critical ("failed to stop cc-shim %u: %s",
 					(unsigned)state->pid,
 					strerror (errno));
