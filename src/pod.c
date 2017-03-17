@@ -428,7 +428,7 @@ cc_pod_container_start (struct cc_oci_config *config)
  * \return the pod container ID on success, else \c NULL.
  */
 const gchar *
-cc_pod_container_id(struct cc_oci_config *config)
+cc_pod_container_id(const struct cc_oci_config *config)
 {
 	if (! config) {
 		return NULL;
@@ -451,7 +451,7 @@ cc_pod_container_id(struct cc_oci_config *config)
  * \return \c true if the container is a pod sanbox, \c false otherwise
  */
 gboolean
-cc_pod_is_sandbox(struct cc_oci_config *config)
+cc_pod_is_sandbox(const struct cc_oci_config *config)
 {
 	if (config && config->pod && config->pod->sandbox) {
 		return true;
@@ -471,7 +471,7 @@ cc_pod_is_sandbox(struct cc_oci_config *config)
  * \return \c true if the container is a virtual machine, \c false otherwise
  */
 gboolean
-cc_pod_is_vm(struct cc_oci_config *config)
+cc_pod_is_vm(const struct cc_oci_config *config)
 {
 	if (config && config->pod && ! config->pod->sandbox) {
 		return false;

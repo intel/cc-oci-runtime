@@ -530,6 +530,11 @@ cc_oci_cleanup (struct cc_oci_config *config)
 		return false;
 	}
 
+	/* Pod unmounts should happen after the volume unmounts */
+	if (! cc_pod_handle_unmounts(config)) {
+		return false;
+	}
+
 	if (! cc_oci_state_file_delete (config)) {
 		return false;
 	}
@@ -1039,11 +1044,6 @@ cc_oci_stop (struct cc_oci_config *config,
 	 * always return false.
 	 */
 	if (! cc_oci_config_update (config, state)) {
-		return false;
-	}
-
-	if (! cc_pod_handle_unmounts(config)) {
-		g_critical ("failed to handle pod unmounts");
 		return false;
 	}
 

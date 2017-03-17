@@ -28,6 +28,7 @@
 #include "mount.h"
 #include "common.h"
 #include "namespace.h"
+#include "pod.h"
 
 /** Mounts that will be ignored.
  *
@@ -211,11 +212,12 @@ cc_oci_perform_mount (const struct cc_oci_mount *m, gboolean dry_run)
  *
  * \param config \ref cc_oci_config.
  * \param mounts List of \ref cc_oci_mount.
+ * \param volume If \c true the mount point is a container volume.
  *
  * \return \c true on success, else \c false.
  */
 static gboolean
-cc_handle_mounts(struct cc_oci_config *config, GSList *mounts)
+cc_handle_mounts(struct cc_oci_config *config, GSList *mounts, gboolean volume)
 {
 	GSList    *l;
 	gboolean   ret;
@@ -238,13 +240,17 @@ cc_handle_mounts(struct cc_oci_config *config, GSList *mounts)
 		struct cc_oci_mount *m = (struct cc_oci_mount *)l->data;
 
 		if (cc_oci_mount_ignore (m)) {
-			g_debug ("ignoring mount %s", m->mnt.mnt_dir);
 			continue;
 		}
 
-		g_snprintf (m->dest, sizeof (m->dest),
-				"%s%s",
-				workload_dir, m->mnt.mnt_dir);
+		if (! cc_pod_is_vm(config) && volume) {
+			g_snprintf (m->dest, sizeof (m->dest),
+				    "%s/%s/rootfs/%s", workload_dir, config->optarg_container_id, m->mnt.mnt_dir);
+		} else {
+			g_snprintf (m->dest, sizeof (m->dest),
+				    "%s/%s",
+				    workload_dir, m->mnt.mnt_dir);
+		}
 
 		if (m->mnt.mnt_fsname[0] == '/') {
 			if (stat (m->mnt.mnt_fsname, &st)) {
@@ -316,7 +322,7 @@ cc_oci_handle_mounts (struct cc_oci_config *config)
 		return false;
 	}
 
-	return cc_handle_mounts(config, config->oci.mounts);
+	return cc_handle_mounts(config, config->oci.mounts, true);
 }
 
 /*!
@@ -333,7 +339,7 @@ cc_pod_handle_mounts (struct cc_oci_config *config)
 		return true;
 	}
 
-	return cc_handle_mounts(config, config->pod->rootfs_mounts);
+	return cc_handle_mounts(config, config->pod->rootfs_mounts, false);
 }
 
 /*!
@@ -441,7 +447,7 @@ cc_oci_handle_unmounts (const struct cc_oci_config *config)
 	 * since namespace created by unshare in \ref cc_oci_ns_setup
 	 * is destroyed when qemu ends
 	 */
-	if (! mountns) {
+	if (! mountns && cc_pod_is_vm(config)) {
 		return true;
 	}
 
