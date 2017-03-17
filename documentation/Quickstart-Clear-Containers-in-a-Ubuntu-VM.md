@@ -55,8 +55,8 @@ All you need to do to use *ciao-down* on your machine is:
 
 
    ```
-   $ GOPATH/bin/ciao-down prepare -vmtype clearcontainers
-   $ GOPATH/bin/ciao-down connect
+   $ $GOPATH/bin/ciao-down prepare -vmtype clearcontainers
+   $ $GOPATH/bin/ciao-down connect
    ```
 
 ## Usage of ciao-down:
