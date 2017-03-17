@@ -23,12 +23,12 @@ This setup is particularly useful when your want try to modify networking functi
 or when trying out docker swarm or kubernetes.
 
 
-## ciao-down
+## ``ciao-down``
 
-*ciao-down* is a small utility for setting up a VM that contains everything you need to run
+``ciao-down`` is a small utility for setting up a VM that contains everything you need to run
 Clear Containers.
 
-All you need to do to use *ciao-down* on your machine is:
+All you need to do to use ``ciao-down`` on your machine is:
 
 * Ensure go 1.7 or greater is installed on the host system.
 * Ensure that kvm nested virtualization is enabled on your host
@@ -45,7 +45,7 @@ All you need to do to use *ciao-down* on your machine is:
 
 
 
-* Install *ciao-down*:
+* Install ``ciao-down``:
 
    ```
    $ go get github.com/01org/ciao/testutil/ciao-down
@@ -59,7 +59,7 @@ All you need to do to use *ciao-down* on your machine is:
    $ $GOPATH/bin/ciao-down connect
    ```
 
-## Usage of ciao-down:
+## Usage of ``ciao-down``
 
 
 ```
