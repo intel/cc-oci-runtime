@@ -79,7 +79,7 @@ go vet $go_packages
 
 echo "Running gofmt..."
 go list -f '{{.Dir}}' $go_packages |\
-    xargs gofmt -s -l | tee /dev/tty | \
+    xargs gofmt -s -d -l | tee /dev/tty | \
     wc -l | xargs -I % bash -c "test % -eq 0"
 
 echo "Running cyclo..."
