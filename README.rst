@@ -174,6 +174,18 @@ See `the contributing page <https://github.com/01org/cc-oci-runtime/blob/master/
 Building
 --------
 
+Acquiring
+~~~~~~~~~
+
+As ``cc-oci-runtime`` contains some golang code, the source tree needs to live
+in your ``$GOPATH`` in order to build. The easiest way to get the codebase into
+the correct place is with the command::
+
+    $ go get -d github.com/01org/cc-oci-runtime/...
+
+The source tree will be placed at
+``$GOPATH/src/github.com/01org/cc-oci-runtime``
+
 Dependencies
 ~~~~~~~~~~~~
 
@@ -182,9 +194,10 @@ installed on your system:
 
 - check
 - glib
+- golang - version 1.7 or above
 - json-glib
-- uuid
 - libmnl
+- uuid
 
 Configure Stage
 ~~~~~~~~~~~~~~~
