@@ -103,14 +103,14 @@ connects to the socket for the first time.
 After having run `make install`, socket action is enabled with:
 
 ```
-sudo systemctl enable cc-proxy.socket
+$ sudo systemctl enable cc-proxy.socket
 ```
 
 The proxy can output log messages on stderr, which are automatically
 handled by systemd and can be viewed with:
 
 ```
-journalctl -u cc-proxy -f
+$ sudo journalctl -u cc-proxy -f
 ```
 
 ## SELinux
