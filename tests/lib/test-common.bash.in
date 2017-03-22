@@ -95,7 +95,7 @@ function check_active_process() {
 # The function is intended to be used in the setup() of
 # the docker integration tests for cc-oci-runtime.
 function kill_processes_before_start() {
-	[ "$($DOCKER_EXE ps -q)" ] && $DOCKER_EXE kill $("$DOCKER_EXE ps -q")
+	[ $("$DOCKER_EXE" ps -q) ] && "$DOCKER_EXE" kill $("$DOCKER_EXE" ps -q)
 	check_active_process "$HYPERVISOR_PATH" || killall "$HYPERVISOR_PATH"
 	check_active_process "$CC_SHIM_PATH" || killall "$CC_SHIM_PATH"
 }
@@ -107,7 +107,7 @@ function kill_processes_before_start() {
 function check_no_processes_up() {
 	wait_time=5
 	while [ "$wait_time" -gt 0 ]; do
-		if [ ! -z "$($DOCKER_EXE ps -q)" ] && \
+		if [ ! -z $("$DOCKER_EXE" ps -q) ] && \
 		[ ! "$(check_active_process qemu)" ] && \
 		[ ! "$(check_active_process cc-shim)" ]
 		then
