@@ -1161,7 +1161,6 @@ cc_proxy_hyper_pod_create (struct cc_oci_config *config)
 	JsonObject                   *iface_data = NULL;
 	struct cc_oci_net_if_cfg     *if_cfg = NULL;
 	struct cc_oci_net_ipv4_cfg   *ipv4_cfg = NULL;
-	gchar                       **ifnames = NULL;
 	gsize                         len;
 	JsonObject                   *ipaddr_obj = NULL;
 	JsonArray                    *ipaddr_arr = NULL;
@@ -1193,17 +1192,14 @@ cc_proxy_hyper_pod_create (struct cc_oci_config *config)
 	iface_array = json_array_new ();
 
 	len = g_slist_length(config->net.interfaces);
-	ifnames = g_new0(gchar *, len + 1);
 
 	for (guint i = 0; i < len; i++) {
-                ifnames[i] = get_pcie_ifname(i);
-
 		if_cfg = (struct cc_oci_net_if_cfg *)
 	                g_slist_nth_data(config->net.interfaces, i);
 
 		iface_data = json_object_new ();
-		json_object_set_string_member (iface_data, "device",
-			ifnames[i]);
+		json_object_set_string_member (iface_data, "macAddr",
+			if_cfg->mac_address);
 		json_object_set_string_member (iface_data, "newDeviceName",
 			if_cfg->ifname);
 		json_object_set_int_member (iface_data, "mtu",
@@ -1267,10 +1263,6 @@ cc_proxy_hyper_pod_create (struct cc_oci_config *config)
 out:
 	if (data) {
 		json_object_unref (data);
-	}
-
-	if (ifnames) {
-		g_strfreev(ifnames);
 	}
 
 	return ret;
