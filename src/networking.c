@@ -539,22 +539,6 @@ out:
 	return macaddr;
 }
 
-/*
- * Return the predicatable interface name based on pcie address
- * Reference:
- * https://www.freedesktop.org/wiki/Software/systemd/PredictableNetworkInterfaceNames/
- *
- * \param index Index into the array that was used for the qemu
- * pcie address option as well
- *
- * \return Newly allocated string
- */
-gchar *
-get_pcie_ifname(guint index)
-{
-	return g_strdup_printf("enp0s%d", index + PCI_OFFSET);
-}
-
 /*!
  * GCompareFunc for searching through the list 
  * of existing network interfaces
