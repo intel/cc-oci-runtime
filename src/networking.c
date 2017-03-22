@@ -492,14 +492,14 @@ subnet_to_prefix(const gint family, const void *const sin_addr) {
  *
  * \param ifname \c interface name
  *
- * \return \c string containing MAC address, else \c ""
+ * \return \c string containing MAC address, else \c NULL
  */
 static gchar *
 get_mac_address(const gchar *const ifname)
 {
 	struct ifreq ifr;
 	int fd = -1;
-	gchar *macaddr;
+	gchar *macaddr = NULL;
 	guint8 *data;
 
 	if (ifname == NULL) {
@@ -511,7 +511,7 @@ get_mac_address(const gchar *const ifname)
 	if (fd < 0) {
 		g_critical("socket() failed with errno =  %d %s\n",
 			errno, strerror(errno));
-		return g_strdup("");
+		return NULL;
 	}
 
 	memset(&ifr, 0, sizeof(ifr));
@@ -520,13 +520,11 @@ get_mac_address(const gchar *const ifname)
 	if (ioctl(fd, SIOCGIFHWADDR, &ifr) < 0) {
 		g_critical("ioctl() failed with errno =  %d %s\n",
 			errno, strerror(errno));
-		macaddr = g_strdup("");
 		goto out;
 	}
 
 	if (ifr.ifr_hwaddr.sa_family != ARPHRD_ETHER) {
 		g_critical("invalid interface  %s\n", ifname);
-		macaddr = g_strdup("");
 		goto out;
 	}
 
