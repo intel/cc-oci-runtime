@@ -638,6 +638,12 @@ cc_oci_network_discover(struct cc_oci_config *const config,
 			if_cfg = g_malloc0(sizeof(*if_cfg));
 			if_cfg->ifname = g_strdup(ifname);
 			if_cfg->mac_address = get_mac_address(ifname);
+			if (! if_cfg->mac_address) {
+				/* We were not able to get the mac address.
+				 * Fail early.
+				 */
+				goto err;
+			}
 			if_cfg->tap_device = g_strdup_printf("c%s", ifname);
 			if_cfg->bridge = g_strdup_printf("b%s", ifname);
 			net->interfaces = g_slist_append(net->interfaces, if_cfg);
@@ -665,12 +671,7 @@ cc_oci_network_discover(struct cc_oci_config *const config,
 				if ( cc_oci_get_interface_mtu(if_cfg->ifname, &mtu)) {
 					if_cfg->mtu = mtu;
 				} else {
-					freeifaddrs(ifaddrs);
-					/* Free all interfaces */
-					g_slist_free_full(config->net.interfaces,
-						(GDestroyNotify)cc_oci_net_interface_free);
-					config->net.interfaces = NULL;
-					return false;
+					goto err;
 				}
 			}
 		} else if (family == AF_INET6) {
@@ -703,4 +704,14 @@ cc_oci_network_discover(struct cc_oci_config *const config,
 	g_debug("[%d] networks discovered", g_slist_length(net->interfaces));
 
 	return true;
+
+err:
+	freeifaddrs(ifaddrs);
+
+	/* Free all interfaces */
+	g_slist_free_full(config->net.interfaces,
+		(GDestroyNotify)cc_oci_net_interface_free);
+	config->net.interfaces = NULL;
+
+	return false;
 }
