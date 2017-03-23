@@ -36,6 +36,4 @@ gchar * cc_net_get_ip_address(const gint family, const void *const sin_addr);
 gboolean cc_oci_network_discover(struct cc_oci_config *const config,
 			struct netlink_handle *hndl);
 
-gchar* get_pcie_ifname(guint index);
-
 #endif /* _CC_OCI_NETWORKING_H */

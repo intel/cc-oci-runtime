@@ -145,16 +145,6 @@
 /* Path to memory cgroup directory */
 #define CGROUP_MEM_DIR "/sys/fs/cgroup/memory"
 
-/* Offset to add to the interface index for assigning the pci slot.
- * First 3 slots are in use for pc-lite machine type
- * Currently,
- * PCI: slot 0 function 0 => in use by pci-lite-device
- * PCI: slot 1 function 1 => in use by PM_LITE
- * PCI: slot 2 function 0 => in use by virtio-9p-pci
- * PCI: slot 3 function 0 => in use by virtio-serial-pci
- */
-#define PCI_OFFSET 8
-
 /** Status of an OCI container. */
 enum oci_status {
 	OCI_STATUS_CREATED = 0,

@@ -492,14 +492,14 @@ subnet_to_prefix(const gint family, const void *const sin_addr) {
  *
  * \param ifname \c interface name
  *
- * \return \c string containing MAC address, else \c ""
+ * \return \c string containing MAC address, else \c NULL
  */
 static gchar *
 get_mac_address(const gchar *const ifname)
 {
 	struct ifreq ifr;
 	int fd = -1;
-	gchar *macaddr;
+	gchar *macaddr = NULL;
 	guint8 *data;
 
 	if (ifname == NULL) {
@@ -511,7 +511,7 @@ get_mac_address(const gchar *const ifname)
 	if (fd < 0) {
 		g_critical("socket() failed with errno =  %d %s\n",
 			errno, strerror(errno));
-		return g_strdup("");
+		return NULL;
 	}
 
 	memset(&ifr, 0, sizeof(ifr));
@@ -520,13 +520,11 @@ get_mac_address(const gchar *const ifname)
 	if (ioctl(fd, SIOCGIFHWADDR, &ifr) < 0) {
 		g_critical("ioctl() failed with errno =  %d %s\n",
 			errno, strerror(errno));
-		macaddr = g_strdup("");
 		goto out;
 	}
 
 	if (ifr.ifr_hwaddr.sa_family != ARPHRD_ETHER) {
 		g_critical("invalid interface  %s\n", ifname);
-		macaddr = g_strdup("");
 		goto out;
 	}
 
@@ -539,22 +537,6 @@ get_mac_address(const gchar *const ifname)
 out:
 	close(fd);
 	return macaddr;
-}
-
-/*
- * Return the predicatable interface name based on pcie address
- * Reference:
- * https://www.freedesktop.org/wiki/Software/systemd/PredictableNetworkInterfaceNames/
- *
- * \param index Index into the array that was used for the qemu
- * pcie address option as well
- *
- * \return Newly allocated string
- */
-gchar *
-get_pcie_ifname(guint index)
-{
-	return g_strdup_printf("enp0s%d", index + PCI_OFFSET);
 }
 
 /*!
@@ -640,6 +622,12 @@ cc_oci_network_discover(struct cc_oci_config *const config,
 			if_cfg = g_malloc0(sizeof(*if_cfg));
 			if_cfg->ifname = g_strdup(ifname);
 			if_cfg->mac_address = get_mac_address(ifname);
+			if (! if_cfg->mac_address) {
+				/* We were not able to get the mac address.
+				 * Fail early.
+				 */
+				goto err;
+			}
 			if_cfg->tap_device = g_strdup_printf("c%s", ifname);
 			if_cfg->bridge = g_strdup_printf("b%s", ifname);
 			net->interfaces = g_slist_append(net->interfaces, if_cfg);
@@ -667,12 +655,7 @@ cc_oci_network_discover(struct cc_oci_config *const config,
 				if ( cc_oci_get_interface_mtu(if_cfg->ifname, &mtu)) {
 					if_cfg->mtu = mtu;
 				} else {
-					freeifaddrs(ifaddrs);
-					/* Free all interfaces */
-					g_slist_free_full(config->net.interfaces,
-						(GDestroyNotify)cc_oci_net_interface_free);
-					config->net.interfaces = NULL;
-					return false;
+					goto err;
 				}
 			}
 		} else if (family == AF_INET6) {
@@ -705,4 +688,14 @@ cc_oci_network_discover(struct cc_oci_config *const config,
 	g_debug("[%d] networks discovered", g_slist_length(net->interfaces));
 
 	return true;
+
+err:
+	freeifaddrs(ifaddrs);
+
+	/* Free all interfaces */
+	g_slist_free_full(config->net.interfaces,
+		(GDestroyNotify)cc_oci_net_interface_free);
+	config->net.interfaces = NULL;
+
+	return false;
 }
