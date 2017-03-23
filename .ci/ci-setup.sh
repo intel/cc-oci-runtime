@@ -38,6 +38,7 @@ then
 fi
 
 source $(dirname "$0")/ci-common.sh
+source "$root/installation/installation-setup.sh"
 
 if [ "$nested" = "Y" ]
 then
@@ -46,23 +47,8 @@ then
     sudo chgrp "$USER" /dev/kvm
 fi
 
-#
 # Install go
-#
-
-go_tarball="go${go_version}.linux-amd64.tar.gz"
-curl -L -O "https://storage.googleapis.com/golang/$go_tarball"
-tar xvf $go_tarball 1>/dev/null
-mv go $GOROOT
-# Unfortunately, go doesn't support vendoring outside of GOPATH (maybe in 1.8?)
-# So, we setup a GOPATH tree with our vendored dependencies.
-# See: https://github.com/golang/go/issues/14566
-mkdir -p "$GOPATH/src"
-cp -r vendor/* "$GOPATH/src"
-# We also need to put the runtime into its right place in the GOPATH so we can
-# self-import internal packages
-mkdir -p "$GOPATH/src/github.com/01org/"
-ln -s $PWD "$GOPATH/src/github.com/01org/"
+go_setup
 
 #
 # Install cc-oci-runtime dependencies
@@ -121,80 +107,13 @@ fi
 sudo apt-get -qq update
 eval sudo apt-get -qq install "$pkgs"
 
-function compile {
-	name="$1"
-	tarball="$2"
-	directory="$3"
-	configure_opts="$4"
-
-	chronic tar -xvf ${tarball}
-	pushd ${directory}
-
-	if [ -n "$configure_opts" ]
-	then
-		args="$configure_opts"
-	else
-		args=""
-		args+=" --disable-silent-rules"
-		args+=" --prefix=\"${prefix_dir}\""
-	fi
-
-	eval CC=${CC:-cc} chronic ./configure "$args"
-	chronic make -j5
-	chronic sudo make install
-	popd
-}
-
-# Determined if the specified command has already been installed
-function cmd_installed {
-    local cmd="$1"
-
-    local path="${prefix_dir}/bin/$cmd"
-
-    [ -e "$path" ]
-}
-
-# Determine if the specified library version is available
-function lib_installed {
-    local name="$1"
-    local required_version="$2"
-
-    version=$(pkg-config --print-provides "$name" 2>/dev/null | awk '{print $3}')
-
-    [ "$version" = "$required_version" ]
-}
-
 pushd "$deps_dir"
 
 # Build glib
-glib_major=`echo $glib_version | cut -d. -f1`
-glib_minor=`echo $glib_version | cut -d. -f2`
-file="glib-${glib_version}.tar.xz"
-
-if ! lib_installed "glib-2.0" "$glib_version"
-then
-    if [ ! -e "$file" ]
-    then
-        curl -L -O "$gnome_dl/glib/${glib_major}.${glib_minor}/$file"
-    fi
-
-    compile glib glib-${glib_version}.tar.xz glib-${glib_version}
-fi
+glib_setup
 
 # Build json-glib
-json_major=`echo $json_glib_version | cut -d. -f1`
-json_minor=`echo $json_glib_version | cut -d. -f2`
-file="json-glib-${json_glib_version}.tar.xz"
-
-if ! lib_installed "json-glib-1.0" "$json_glib_version"
-then
-    if [ ! -e "$file" ]
-    then
-        curl -L -O "$gnome_dl/json-glib/${json_major}.${json_minor}/$file"
-    fi
-
-    compile json-glib json-glib-${json_glib_version}.tar.xz json-glib-${json_glib_version}
-fi
+json-glib_setup
 
 # Build check
 # We need to build check as the check version in the OS used by travis isn't
@@ -211,15 +130,8 @@ then
     compile check check-${check_version}.tar.gz check-${check_version}
 fi
 
-cmd="bats"
-if ! cmd_installed "$cmd"
-then
-    # Install bats
-    [ ! -d bats ] && git clone https://github.com/sstephenson/bats.git
-    pushd bats
-    sudo ./install.sh "$prefix_dir"
-    popd
-fi
+# Install bats
+bats_setup
 
 if [ "$nested" != "Y" ]
 then
@@ -227,99 +139,11 @@ then
     exit 0
 fi
 
-cmd="gcc"
-if ! cmd_installed "$cmd"
-then
-    # build gcc (required for qemu-lite)
-    gcc_dir="gcc-${gcc_version}"
-    gcc_site="http://mirrors.kernel.org/gnu/gcc/${gcc_dir}"
-    gcc_file="gcc-${gcc_version}.tar.bz2"
-    gcc_url="${gcc_site}/${gcc_file}"
+# Build gcc
+gcc_setup
 
-    if [ ! -e "$gcc_file" ]
-    then
-        curl -L -O "$gcc_url"
-    fi
-
-    gcc_opts=""
-    gcc_opts+=" --enable-languages=c"
-    gcc_opts+=" --disable-multilib"
-    gcc_opts+=" --disable-libstdcxx"
-    gcc_opts+=" --disable-bootstrap"
-    gcc_opts+=" --disable-nls"
-    gcc_opts+=" --prefix=\"${prefix_dir}\""
-
-    compile gcc "$gcc_file" "$gcc_dir" "$gcc_opts"
-fi
-
-# Use built version of gcc
-export CC="${prefix_dir}/bin/gcc"
-
-# build qemu-lite
-cmd="qemu-system-x86_64"
-if ! cmd_installed "$cmd"
-then
-    qemu_lite_site="https://github.com/01org/qemu-lite/archive/"
-    qemu_lite_file="${qemu_lite_version}.tar.gz"
-    qemu_lite_url="${qemu_lite_site}/${qemu_lite_file}"
-    qemu_lite_dir="qemu-lite-${qemu_lite_version}"
-
-    qemu_lite_opts=""
-    qemu_lite_opts+=" --disable-bluez"
-    qemu_lite_opts+=" --disable-brlapi"
-    qemu_lite_opts+=" --disable-bzip2"
-    qemu_lite_opts+=" --disable-curl"
-    qemu_lite_opts+=" --disable-curses"
-    qemu_lite_opts+=" --disable-debug-tcg"
-    qemu_lite_opts+=" --disable-fdt"
-    qemu_lite_opts+=" --disable-glusterfs"
-    qemu_lite_opts+=" --disable-gtk"
-    qemu_lite_opts+=" --disable-libiscsi"
-    qemu_lite_opts+=" --disable-libnfs"
-    qemu_lite_opts+=" --disable-libssh2"
-    qemu_lite_opts+=" --disable-libusb"
-    qemu_lite_opts+=" --disable-linux-aio"
-    qemu_lite_opts+=" --disable-lzo"
-    qemu_lite_opts+=" --disable-opengl"
-    qemu_lite_opts+=" --disable-qom-cast-debug"
-    qemu_lite_opts+=" --disable-rbd"
-    qemu_lite_opts+=" --disable-rdma"
-    qemu_lite_opts+=" --disable-sdl"
-    qemu_lite_opts+=" --disable-seccomp"
-    qemu_lite_opts+=" --disable-slirp"
-    qemu_lite_opts+=" --disable-snappy"
-    qemu_lite_opts+=" --disable-spice"
-    qemu_lite_opts+=" --disable-strip"
-    qemu_lite_opts+=" --disable-tcg-interpreter"
-    qemu_lite_opts+=" --disable-tcmalloc"
-    qemu_lite_opts+=" --disable-tools"
-    qemu_lite_opts+=" --disable-tpm"
-    qemu_lite_opts+=" --disable-usb-redir"
-    qemu_lite_opts+=" --disable-uuid"
-    qemu_lite_opts+=" --disable-vnc"
-    qemu_lite_opts+=" --disable-vnc-{jpeg,png,sasl}"
-    qemu_lite_opts+=" --disable-vte"
-    qemu_lite_opts+=" --disable-xen"
-    qemu_lite_opts+=" --enable-attr"
-    qemu_lite_opts+=" --enable-cap-ng"
-    qemu_lite_opts+=" --enable-kvm"
-    qemu_lite_opts+=" --enable-virtfs"
-    qemu_lite_opts+=" --enable-vhost-net"
-    qemu_lite_opts+=" --target-list=x86_64-softmmu"
-    qemu_lite_opts+=" --extra-cflags=\"-fno-semantic-interposition -O3 -falign-functions=32\""
-    qemu_lite_opts+=" --prefix=\"${prefix_dir}\""
-    qemu_lite_opts+=" --datadir=\"${prefix_dir}/share/qemu-lite\""
-    qemu_lite_opts+=" --libdir=\"${prefix_dir}/lib64/qemu-lite\""
-    qemu_lite_opts+=" --libexecdir=\"${prefix_dir}/libexec/qemu-lite\""
-
-    if [ ! -e "$qemu_lite_file" ]
-    then
-        curl -L -O "${qemu_lite_url}"
-    fi
-
-    compile qemu-lite "$qemu_lite_file" \
-        "$qemu_lite_dir" "$qemu_lite_opts"
-fi
+# Build qemu-lite
+qemu-lite_setup
 
 # install kernel + Clear Containers image
 mkdir -p assets
