@@ -362,8 +362,6 @@ struct cc_oci_net_if_cfg {
 
 	/** List of IPv6 addresses on the interface */
 	GSList  *ipv6_addrs;
-
-	/** TODO: Add support for routes */
 };
 
 /** cc-specific IPv4 configuration data. */
