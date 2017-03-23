@@ -262,9 +262,6 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 
 	kernel_net_params = cc_oci_expand_net_cmdline(config);
 
-	/* Note: @NETDEV@: For multiple network we need to have a way to append
-	 * args to the hypervisor command line vs substitution
-	 */
 	struct special_tag {
 		const gchar* name;
 		const gchar* value;
