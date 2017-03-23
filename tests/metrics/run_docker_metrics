@@ -22,6 +22,8 @@ done
 # complete workload : docker run --runtime $runtime -tid $image $cmd
 bash workload_time/docker_workload_time.sh true ubuntu runc "$TIMES"
 bash workload_time/docker_workload_time.sh true ubuntu cor "$TIMES"
+bash workload_time/docker_workload_time_stress.sh true clearlinux cor
+bash workload_time/docker_workload_time_stress.sh true clearlinux runc
 
 # time that cc-oci-run-time takes to create a container:
 bash workload_time/cor_create_time.sh "$TIMES"
@@ -36,3 +38,4 @@ bash density/docker_memory_usage.sh "$MEM_CONTAINERS" "$MEM_WAIT_TIME"
 
 # kernel boot time
 bash workload_time/kernel_boot_time.sh $TIMES
+bash workload_time/kernel_boot_time_stress.sh
