@@ -123,14 +123,6 @@
 /** Architecture we expect \ref CC_OCI_CONFIG_FILE to specify. */
 #define CC_OCI_EXPECTED_ARCHITECTURE	"amd64"
 
-/** Name of file containing environment variables that will be set
- * inside the VM.
- */
-#define CC_OCI_ENV_FILE		"/.containerenv"
-
-/** Shell to use for \ref CC_OCI_WORKLOAD_FILE. */
-#define CC_OCI_WORKLOAD_SHELL		"/bin/sh"
-
 /** File that contains vm spec configuration, used if vm node
  * in CC_OCI_CONFIG_FILE bundle file
 */
