@@ -334,8 +334,8 @@ cc_oci_kill (struct cc_oci_config *config,
 	/* save current status */
 	last_status = config->state.status;
 
-	/* A sandbox is not a running container, nothing to kill here */
-	if (cc_pod_is_sandbox(config)) {
+	/* A pod sandbox is not a running container, nothing to kill here */
+	if (cc_pod_is_pod_sandbox(config)) {
 		config->state.status = OCI_STATUS_STOPPED;
 
 		/* update state file */
@@ -849,12 +849,12 @@ cc_oci_start (struct cc_oci_config *config,
 			ret = false;
 			goto out;
 		}
-	} else if (cc_pod_is_sandbox(config)) {
+	} else if (cc_pod_is_pod_sandbox(config)) {
 		cc_proxy_hyper_new_pod_container(config,
 						config->optarg_container_id,
 						config->optarg_container_id,
 						"rootfs", config->optarg_container_id);
-	} else if (! cc_pod_is_sandbox(config)) {
+	} else if (! cc_pod_is_pod_sandbox(config)) {
 		if (! cc_pod_container_start (config)) {
 			ret = false;
 			goto out;

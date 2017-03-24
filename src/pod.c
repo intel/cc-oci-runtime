@@ -443,7 +443,7 @@ cc_pod_container_id(const struct cc_oci_config *config)
 }
 
 /**
- * cc_pod_sandbox tells if a container is a pod
+ * cc_pod_is_pod_sandbox tells if a container is a pod
  * sandbox or not.
  *
  * \param config \ref cc_oci_config.
@@ -451,9 +451,28 @@ cc_pod_container_id(const struct cc_oci_config *config)
  * \return \c true if the container is a pod sanbox, \c false otherwise
  */
 gboolean
-cc_pod_is_sandbox(const struct cc_oci_config *config)
+cc_pod_is_pod_sandbox(const struct cc_oci_config *config)
 {
 	if (config && config->pod && config->pod->sandbox) {
+		return true;
+	}
+
+	return false;
+}
+
+/**
+ * cc_pod_is_pod_container tells if a container is a pod
+ * container or not. A pod container is a container
+ * running inside a pod VM. It's not a VM itself.
+ *
+ * \param config \ref cc_oci_config.
+ *
+ * \return \c true if the container is a pod container, \c false otherwise
+ */
+gboolean
+cc_pod_is_pod_container(const struct cc_oci_config *config)
+{
+	if (config && config->pod && !config->pod->sandbox) {
 		return true;
 	}
 

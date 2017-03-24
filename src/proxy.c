@@ -1379,7 +1379,7 @@ cc_proxy_run_hyper_new_container (struct cc_oci_config *config,
 			config->oci.process.cwd);
 
 	/* Only set user for a container as sandboxes may not have users defined */
-	if (! cc_pod_is_sandbox(config)) {
+	if (! cc_pod_is_pod_sandbox(config)) {
 		/* Hyperstart is not able to handle uid 0. This is a bug. */
 		if ((int)config->oci.process.user.uid == 0) {
 			json_object_set_string_member (process, "user", "root");
