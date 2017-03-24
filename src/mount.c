@@ -243,7 +243,7 @@ cc_handle_mounts(struct cc_oci_config *config, GSList *mounts, gboolean volume)
 			continue;
 		}
 
-		if ((! cc_pod_is_vm(config) || cc_pod_is_sandbox(config)) && volume) {
+		if ((! cc_pod_is_vm(config) || cc_pod_is_pod_sandbox(config)) && volume) {
 			g_snprintf (m->dest, sizeof (m->dest),
 				    "%s/%s/rootfs/%s", workload_dir, config->optarg_container_id, m->mnt.mnt_dir);
 		} else {
@@ -447,7 +447,7 @@ cc_oci_handle_unmounts (const struct cc_oci_config *config)
 	 * since namespace created by unshare in \ref cc_oci_ns_setup
 	 * is destroyed when qemu ends
 	 */
-	if (! mountns && (cc_pod_is_vm(config) && !cc_pod_is_sandbox(config))) {
+	if (! mountns && (cc_pod_is_vm(config) && !cc_pod_is_pod_sandbox(config))) {
 		return true;
 	}
 

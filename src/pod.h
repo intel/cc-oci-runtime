@@ -34,7 +34,8 @@ void cc_pod_free (struct cc_pod *pod);
 gboolean cc_pod_container_create (struct cc_oci_config *config);
 gboolean cc_pod_container_start (struct cc_oci_config *config);
 const gchar *cc_pod_container_id(const struct cc_oci_config *config);
-gboolean cc_pod_is_sandbox(const struct cc_oci_config *config);
+gboolean cc_pod_is_pod_sandbox(const struct cc_oci_config *config);
+gboolean cc_pod_is_pod_container(const struct cc_oci_config *config);
 gboolean cc_pod_is_vm(const struct cc_oci_config *config);
 
 #endif /* _CC_POD_H */
