@@ -155,6 +155,31 @@ cc_oci_get_workload_dir (struct cc_oci_config *config)
 }
 
 /*!
+ * Get the container PID.
+ *
+ * \param state Container state.
+ *
+ * \return Container PID on success, else \c -1.
+ */
+static GPid
+cc_oci_container_pid (const struct oci_state *state)
+{
+	if (! state) {
+		return -1;
+	}
+
+	if (state->vm && state->vm->pid) {
+		return state->vm->pid;
+	}
+
+	if (state->pod && ! state->pod->sandbox) {
+		return state->pid;
+	}
+
+	return -1;
+}
+
+/*!
  * Determine the containers config file, its configuration
  * and state.
  *
@@ -406,20 +431,27 @@ error:
 }
 
 /*!
- * Determine if the VM is running.
+ * Determine if the container is running.
  *
  * \param  state \ref oci_state.
  *
  * \return \c true on success, else \c false.
  */
 private gboolean
-cc_oci_vm_running (const struct oci_state *state)
+cc_oci_container_running (const struct oci_state *state)
 {
-	if (! (state && state->vm && state->vm->pid)) {
+	GPid container_pid;
+
+	if (! state) {
 		return false;
 	}
 
-	return kill (state->vm->pid, 0) == 0;
+	container_pid = cc_oci_container_pid(state);
+	if (container_pid < 0) {
+		return false;
+	}
+
+	return kill (container_pid, 0) == 0;
 }
 
 /*!
@@ -771,7 +803,7 @@ cc_oci_start (struct cc_oci_config *config,
 	}
 
 	if (state->status == OCI_STATUS_RUNNING) {
-		if (cc_oci_vm_running (state)) {
+		if (cc_oci_container_running (state)) {
 			g_critical ("container %s is already running",
 					config->optarg_container_id);
 		} else {
@@ -1017,12 +1049,15 @@ cc_oci_stop (struct cc_oci_config *config,
 		return false;
 	}
 
-	if (cc_oci_vm_running (state)) {
+	if (cc_oci_container_running (state) && ! cc_pod_is_pod_container(config)) {
 		gboolean ret;
 		ret = cc_proxy_hyper_destroy_pod(config);
 		if (! ret) {
 			return false;
 		}
+	} else if (cc_pod_is_pod_container(config)) {
+		g_debug("Cannot delete container %s (pid %u) - "
+			"it is a pod container", state->id, state->pid);
 	} else {
 		/* This isn't a fatal condition since:
 		 *
@@ -1039,8 +1074,8 @@ cc_oci_stop (struct cc_oci_config *config,
 	 * We need to update our config so that both
 	 * the pod and mount pointers are accurate.
 	 * OTOH we can't update our config before calling
-	 * cc_oci_vm_running() as config_update() clears
-	 * the state pointer and cc_oci_vm_running would
+	 * cc_oci_container_running() as config_update() clears
+	 * the state pointer and cc_oci_container_running would
 	 * always return false.
 	 */
 	if (! cc_oci_config_update (config, state)) {
@@ -1225,7 +1260,7 @@ cc_oci_list_vm (const struct oci_state *state,
 	g_assert (state);
 	g_assert (options);
 
-	if (! cc_oci_vm_running (state)) {
+	if (! cc_oci_container_running (state)) {
 		status = cc_oci_status_to_str (OCI_STATUS_STOPPED);
 	} else {
 		status = cc_oci_status_to_str (state->status);

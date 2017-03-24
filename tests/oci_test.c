@@ -40,7 +40,7 @@
 #include "../src/oci.h"
 #include "../src/util.h"
 
-gboolean cc_oci_vm_running (const struct oci_state *state);
+gboolean cc_oci_container_running (const struct oci_state *state);
 gboolean cc_oci_create_container_workload (struct cc_oci_config *config);
 gchar* get_user_home_dir(struct cc_oci_config *config, gchar *password_path);
 void set_env_home(struct cc_oci_config *config);
@@ -795,25 +795,25 @@ START_TEST(test_cc_oci_get_config_and_state) {
 START_TEST(test_cc_oci_vm_running) {
 	struct oci_state state = {0};
 
-	ck_assert (! cc_oci_vm_running (NULL));
+	ck_assert (! cc_oci_container_running (NULL));
 
 	/* no vm */
-	ck_assert (! cc_oci_vm_running (&state));
+	ck_assert (! cc_oci_container_running (&state));
 
 	state.vm = g_malloc0(sizeof(struct cc_oci_vm_cfg));
 	ck_assert(state.vm);
 
 	/* no pid for vm */
-	ck_assert (! cc_oci_vm_running (&state));
+	ck_assert (! cc_oci_container_running (&state));
 
 	/* our pid provided as hypervisor pid*/
 	state.vm->pid = getpid ();
-	ck_assert (cc_oci_vm_running (&state));
+	ck_assert (cc_oci_container_running (&state));
 
 	/* invalid pid (we hope: this is potential an unreliable test).
 	 */
 	state.vm->pid = (pid_t)INT_MAX;
-	ck_assert (! cc_oci_vm_running (&state));
+	ck_assert (! cc_oci_container_running (&state));
 
 	g_free(state.vm);
 
