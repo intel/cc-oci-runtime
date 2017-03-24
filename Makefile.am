@@ -137,7 +137,10 @@ AM_CFLAGS = -std=gnu99 -fstack-protector -Wall -pedantic \
 	-Wstrict-prototypes -Wundef -fno-common \
 	-Werror-implicit-function-declaration \
 	-Wformat -Wformat-security -Werror=format-security \
-	-Wconversion -Wunreachable-code
+	-Wconversion -Wunreachable-code \
+	-fPIE
+
+AM_LDFLAGS = -pie
 
 # We set --with-systemdunitdir here so make distcheck can run make install as a
 # normal user and not fail.
@@ -310,6 +313,9 @@ cc_shim_SOURCES = \
 
 cc_shim_CFLAGS = \
 	$(AM_CFLAGS)
+
+cc_shim_LDFLAGS = \
+	$(AM_LDFLAGS)
 
 bats_test_sources = \
 	tests/functional/common.bash.in \
