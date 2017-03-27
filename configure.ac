@@ -75,6 +75,9 @@ AS_IF([test "x$enable_debug" = "xyes"],
        LDFLAGS=`echo "$LDFLAGS" | sed -e "s/ -g\b/ -ggdb3/g"`
       ]])
 
+AS_IF([test "x$enable_debug" = "xno"],
+      [[CFLAGS=`echo "$CFLAGS" | sed -e "s/ -O[1-9s]*\b/& -D_FORTIFY_SOURCE=2/g"`]])
+
 AC_ARG_ENABLE(tests, AS_HELP_STRING([--enable-tests], [build unit tests @<:@default=yes@:>@]),
           [], [enable_tests=yes])
 AS_IF([test x"$enable_tests" = "xyes"],
