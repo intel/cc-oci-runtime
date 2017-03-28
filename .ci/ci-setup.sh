@@ -97,6 +97,15 @@ pkgs+=" lcov"
 # chronic(1)
 pkgs+=" moreutils"
 
+# CRI-O
+pkgs+=" libseccomp2"
+pkgs+=" libseccomp-dev"
+pkgs+=" seccomp"
+pkgs+=" libdevmapper-dev"
+pkgs+=" libdevmapper1.02.1"
+pkgs+=" libgpgme11"
+pkgs+=" libgpgme11-dev"
+
 # qemu-lite won't be built
 # some unit tests need qemu-system
 if [ "$nested" != "Y" ]

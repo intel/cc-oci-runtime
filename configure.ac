@@ -122,6 +122,19 @@ AS_IF([test x"$run_docker_tests" = x"yes"],
     [AC_SUBST([DOCKER_TESTS], [0])])
 AM_CONDITIONAL([DOCKER_TESTS], [test x"$run_docker_tests" = x"yes"])
 
+# CRI-O integration tests
+AC_ARG_ENABLE(crio-tests, AS_HELP_STRING([--disable-crio-tests],
+              [disable CRI-O tests @<:@default=no@:>@]))
+
+AS_IF([test x"$enable_crio_tests" = x"yes" -o x"$enable_crio_tests" = x""],
+    [run_crio_tests=yes],
+    [run_crio_tests=no])
+
+AS_IF([test x"$run_crio_tests" = x"yes"],
+    [AC_SUBST([CRIO_TESTS], [1])],
+    [AC_SUBST([CRIO_TESTS], [0])])
+AM_CONDITIONAL([CRIO_TESTS], [test x"$run_crio_tests" = x"yes"])
+
 # Checks for libraries.
 source $srcdir/versions.txt
 
@@ -305,6 +318,21 @@ AC_ARG_WITH([cc-image],
     ]
 )
 
+# CRI-O artifacts
+DEFAULT_CRIO_CACHE=$localstatedir/lib/$PACKAGE_NAME/cri-o/cache
+AC_ARG_WITH([crio-cache],
+    [AS_HELP_STRING([--with-crio-cache=[[CACHE-PATH]]],
+        [CRIO cache directory])
+    ],
+    [
+        CONTAINERS_IMG=$with_crio_cache
+        AC_SUBST([CRIO_CACHE])
+    ],
+    [
+        AC_SUBST([CRIO_CACHE],[$DEFAULT_CRIO_CACHE])
+    ]
+)
+
 AC_ARG_ENABLE([autogopath],
 	AS_HELP_STRING([--enable-autogopath], [Set GOPATH variable for you, used when packaging @<:@default=false@:>@]),
 	[case "${enableval}" in
@@ -322,6 +350,9 @@ dnl === Summary ===============================================================
 
 AS_IF([test x"$disable_docker_tests" = xno],
       [enable_docker_tests=yes], [enable_docker_tests=no])
+
+AS_IF([test x"$disable_crio_tests" = xno],
+      [enable_crio_tests=yes], [enable_crio_tests=no])
 
 AC_MSG_RESULT([
 cc-oci-runtime - $VERSION
@@ -344,6 +375,7 @@ cc-oci-runtime - $VERSION
        Unit tests               : $enable_tests
        Functional tests         : $run_functional_tests
        Docker tests             : $run_docker_tests
+       CRI-O tests              : $run_crio_tests
        Cppcheck                 : $enable_cppcheck
        Valgrind                 : $VALGRIND_ENABLED
        Code coverage            : $CODE_COVERAGE_ENABLED

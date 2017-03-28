@@ -90,6 +90,7 @@ $(GENERATED_FILES): %: %.in Makefile
 		DOCKER_ENGINE_FEDORA_VERSION="$(DOCKER_ENGINE_FEDORA_VERSION)" \
 		DOCKER_UBUNTU_VERSION="$(DOCKER_UBUNTU_VERSION)" \
 		DOCKER_ENGINE_UBUNTU_VERSION="$(DOCKER_ENGINE_UBUNTU_VERSION)" \
+		CRIO_CACHE="$(CRIO_CACHE)" \
 		abs_builddir="$(abs_builddir)" \
 		$(top_srcdir)/data/genfile.sh "$<" "$@"
 
@@ -395,6 +396,13 @@ if DOCKER_TESTS
 CHECK_DEPS += docker-tests
 docker-tests: cc-oci-runtime tests/lib/test-common.bash
 	@$(BATS_PATH) -t $(srcdir)/tests/integration/docker
+endif
+
+if CRIO_TESTS
+CHECK_DEPS += crio-tests
+GENERATED_FILES += tests/lib/test-crio.bats
+crio-tests: cc-oci-runtime cc-proxy cc-shim tests/lib/test-crio.bats
+	@$(BATS_PATH) -t $(srcdir)/tests/integration/cri-o
 endif
 
 #### tests ####

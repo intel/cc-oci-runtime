@@ -26,5 +26,6 @@ ${SED} \
 	-e 's|@DOCKER_ENGINE_FEDORA_VERSION@|'"${DOCKER_ENGINE_FEDORA_VERSION}"'|g' \
 	-e 's|@DOCKER_UBUNTU_VERSION@|'"${DOCKER_UBUNTU_VERSION}"'|g' \
 	-e 's|@DOCKER_ENGINE_UBUNTU_VERSION@|'"${DOCKER_ENGINE_UBUNTU_VERSION}"'|g' \
+	-e 's|@CRIO_CACHE@|'"${CRIO_CACHE}"'|g' \
 	-e 's|@ABS_BUILDDIR@|'"${abs_builddir}"'|g' \
 	"${in_file}" > "${out_file}"
