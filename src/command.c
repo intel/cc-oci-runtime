@@ -213,8 +213,8 @@ out:
 		cgroup_dir = g_strdup_printf ("%s/%s", CGROUP_MEM_DIR,
 			config->oci.oci_linux.cgroupsPath);
 		/* removing cgroup path will notify docker to close its event fds */
-		if (g_rmdir(cgroup_dir) != 0) {
-			g_critical("failed to remove cgroup dir: %s", cgroup_dir);
+		if (g_rmdir (cgroup_dir) != 0 && errno != ENOENT) {
+			g_critical ("failed to remove cgroup dir: %s", cgroup_dir);
 		}
 		g_free_if_set (cgroup_dir);
 	}
