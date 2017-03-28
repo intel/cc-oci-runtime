@@ -141,7 +141,7 @@ AM_CFLAGS = -std=gnu99 -fstack-protector -Wall -pedantic \
 	-Wconversion -Wunreachable-code \
 	-fPIE
 
-AM_LDFLAGS = -pie
+AM_LDFLAGS = -pie -z noexecstack -z relro -z now
 
 # We set --with-systemdunitdir here so make distcheck can run make install as a
 # normal user and not fail.
