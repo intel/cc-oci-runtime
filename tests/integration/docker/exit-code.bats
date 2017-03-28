@@ -47,3 +47,11 @@ teardown() {
 	[ "${status}" -eq "$exit_status" ]
 	$DOCKER_EXE rm -f $container
 }
+
+@test "Verifying exit code with docker ps" {
+	container=$(random_name)
+	run $DOCKER_EXE run --name $container -ti ubuntu bash -c "exit $exit_status"
+	[ "${status}" -eq "$exit_status" ]
+	run $($DOCKER_EXE ps -a | grep $container | grep "Exited ($exit_status)")
+	$DOCKER_EXE rm -f $container
+}
