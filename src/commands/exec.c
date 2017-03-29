@@ -117,7 +117,7 @@ static GOptionEntry options_exec[] =
 		NULL
 	},
 	{
-		"tty", '0' , G_OPTION_FLAG_NONE,
+		"tty", 't' , G_OPTION_FLAG_NONE,
 		G_OPTION_ARG_NONE, &start_data.allocate_tty,
 		"allocate a pseudo-TTY for the new exec process",
 		NULL
