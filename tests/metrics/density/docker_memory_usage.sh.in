@@ -22,43 +22,112 @@
 #  This test launches certain number of containers and puts them into
 #  sleep mode for a certain period of time. Then the test checks the
 #  amount of memory used by each container
-#  This test uses psstop tool to get the memory used.
+#  This test uses smem tool to get the memory used.
 
 set -e
-
-[ $# -ne 2 ] && ( echo >&2 "Usage: $0 <times to run> <wait time>"; exit 1 )
 
 SCRIPT_PATH=$(dirname "$(readlink -f "$0")")
 source "${SCRIPT_PATH}/../../lib/test-common.bash"
 
+
+# Busybox image: Choose a small workload image, this is
+# in order to measure the runtime footprint, not the workload
+# footprint.
+IMAGE='busybox'
+
 CMD='sh'
-IMAGE='ubuntu'
-TIMES="$1"
+CC_NUMBER="$1"
 WAIT_TIME="$2"
-TEST_NAME="Qemu Memory Usage"
+TEST_NAME="Clear Containers Memory Usage"
 TEST_ARGS="rootfs=${IMAGE} units=kb"
 TEST_RESULT_FILE=$(echo "${RESULT_DIR}/${TEST_NAME}" | sed 's| |-|g')
 SMEM_BIN=$(command -v smem || true)
 QEMU_BIN="@QEMU_PATH@"
+PROXY_BIN="@libexecdir@/cc-proxy"
+SHIM_BIN="@libexecdir@/cc-shim"
 
+# Show help about this script
+function help(){
+usage=$(cat << EOF
+Usage: $0 <count> <wait_time>
+   Description:
+        <count>      : Number of Clear Containers to run.
+        <wait_time>  : Time in seconds to wait before to take
+                       metrics.
+EOF
+)
+	echo "$usage"
+}
+
+# This function measures the PSS average
+# memory of a process.
+function get_pss_memory(){
+	ps="$1"
+	mem_amount=0
+	count=0
+	avg=0
+
+	data=$("$SMEM_BIN" --no-header -P "^$ps" -c "pss")
+	for i in $data;do
+		if (( $i > 0 ));then
+			mem_amount=$(( $i + $mem_amount ))
+			count=$(( $count + 1 ))
+		fi
+	done
+
+	if (( $count > 0 ));then
+		avg=$(echo "scale=2; $mem_amount / $count" | bc -l)
+	fi
+
+	echo "$avg"
+}
+
+# It calculates the memory footprint
+# of a CC.
 function get_docker_memory_usage(){
+	qemu_mem=0
+	cc_shim_mem=0
+	proxy_mem=0
+	cc_proxy_mem=0
+
 	containers=()
-	for i in $(seq 1 "$TIMES"); do
+
+	for i in $(seq 1 "$CC_NUMBER"); do
 		containers+=($(random_name))
 		${DOCKER_EXE} run --name ${containers[-1]} -tid $IMAGE $CMD
 	done
+
+	# This time will determine if the data
+	# will be taken w/o KSM working.
 	sleep "$WAIT_TIME"
-	for i in $("$SMEM_BIN" --no-header -P "^$QEMU_BIN" | awk '{print $6}'); do
-		test_data=$i
-		write_result_to_file "$TEST_NAME" "$TEST_ARGS" "$test_data" "$TEST_RESULT_FILE"
-	done
+
+	# Get PSS memory of CC components.
+	qemu_mem="$(get_pss_memory "$QEMU_BIN")"
+	cc_shim_mem="$(get_pss_memory "$SHIM_BIN")"
+	proxy_mem="$(get_pss_memory "$PROXY_BIN")"
+	cc_proxy_mem="$(echo "scale=2; $proxy_mem / $CC_NUMBER" | bc -l)"
+	cc_mem_usage=$(echo "scale=2; $qemu_mem + $cc_shim_mem + $cc_proxy_mem" | bc -l)
+
+	write_result_to_file "$TEST_NAME" "$TEST_ARGS" "$cc_mem_usage" "$TEST_RESULT_FILE"
 	docker rm -f ${containers[@]}
 }
+
+# Verify enough arguments
+if [ $# -ne 2 ];then
+	echo >&2 "error: No enough arguments"
+	help
+	exit 1;
+fi
 
 echo "Executing Test: ${TEST_NAME}"
 if [ "$SMEM_BIN" == "" ]; then
 	die "smem is not installed in your system, skipping test"
 fi
+
+# Restarting services
+systemctl restart cc-proxy
+systemctl restart docker
+
 backup_old_file "$TEST_RESULT_FILE"
 write_csv_header "$TEST_RESULT_FILE"
 get_docker_memory_usage
