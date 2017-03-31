@@ -61,6 +61,7 @@
 #include "namespace.h"
 
 extern struct start_data start_data;
+private gboolean cc_oci_container_running (const struct oci_state *state);
 
 /** Format options for VM fields to display. */
 struct format_options
@@ -345,8 +346,6 @@ cc_oci_kill (struct cc_oci_config *config,
 		int signum,
 		gboolean all_processes)
 {
-	enum oci_status last_status;
-
 	if (! (config && state)) {
 		return false;
 	}
@@ -356,9 +355,6 @@ cc_oci_kill (struct cc_oci_config *config,
 		return false;
 	}
 
-	/* save current status */
-	last_status = config->state.status;
-
 	/* A pod sandbox is not a running container, nothing to kill here */
 	if (cc_pod_is_pod_sandbox(config)) {
 		config->state.status = OCI_STATUS_STOPPED;
@@ -366,68 +362,67 @@ cc_oci_kill (struct cc_oci_config *config,
 		/* update state file */
 		if (! cc_oci_state_file_create (config, state->create_time)) {
 			g_critical ("failed to recreate state file");
-			goto error;
+			return false;
 		}
 
 		return true;
 	}
 
-	/* stopping container */
-	config->state.status = OCI_STATUS_STOPPING;
-
-	/* update state file */
-	if (! cc_oci_state_file_create (config, state->create_time)) {
-		g_critical ("failed to recreate state file");
-		goto error;
-	}
-
+	/* is cc-shim running ? */
+	if (kill (state->pid, 0) == 0) {
 #ifndef UNIT_TESTING
-	/* kill container's processes, cc-shim will catch exit code
-	 * and will end
-	 */
-	if (! cc_proxy_hyper_kill_container (config, signum, all_processes)) {
-		g_critical ("failed to kill container %s: %s",
-			config->optarg_container_id,
-			strerror (errno));
-		/* revert container status */
-		config->state.status = last_status;
-		if (! cc_oci_state_file_create (config, state->create_time)) {
-			g_critical ("failed to recreate state file");
-		}
-		return false;
-	}
-#endif //UNIT_TESTING
-
-	if (signum == SIGKILL) {
-		/* cc-shim is not able to catch the exit code of a process
-		 * finished with SIGKILL signal hence cc-shim MUST receive
-		 * this signal too
-		 */
-		if (kill (state->pid, signum) < 0 && errno != ESRCH) {
-			g_critical ("failed to stop cc-shim %u: %s",
+		if (all_processes || signum == SIGKILL) {
+			if (! cc_proxy_hyper_kill_container (config, signum, all_processes)) {
+				g_critical ("failed to kill container %s: %s",
+					config->optarg_container_id,
+					strerror (errno));
+				return false;
+			}
+		} else
+#endif // UNIT_TESTING
+		{
+			if (kill (state->pid, signum) < 0 && errno != ESRCH) {
+				g_critical ("failed to stop cc-shim %u: %s",
 					(unsigned)state->pid,
 					strerror (errno));
+				return false;
+			}
+		}
+		/*
+		 * According with
+		 * https://github.com/docker/docker/blob/master/docs/reference/commandline/stop.md
+		 *
+		 * The main process inside the container will receive SIGTERM,
+		 * and after a grace period, SIGKILL.
+		 *
+		 * SIGTERM and SIGKILL are stop signals
+		 */
+		if (signum == SIGKILL || signum == SIGTERM) {
+			config->state.status = OCI_STATUS_STOPPED;
+			/* update state file */
+			if (! cc_oci_state_file_create (config, state->create_time)) {
+				g_critical ("failed to recreate state file");
+				return false;
+			}
+		}
+	} else {
+		/* is VM running ?*/
+		if (kill (config->vm->pid, 0) == 0 &&
+				! cc_pod_is_pod_container(config)) {
+			if (! cc_proxy_hyper_destroy_pod(config)) {
+				return false;
+			}
+		}
+
+		config->state.status = OCI_STATUS_STOPPED;
+		/* update state file */
+		if (! cc_oci_state_file_create (config, state->create_time)) {
+			g_critical ("failed to recreate state file");
 			return false;
 		}
 	}
 
-	last_status = config->state.status;
-
-	config->state.status = OCI_STATUS_STOPPED;
-
-	/* update state file */
-	if (! cc_oci_state_file_create (config, state->create_time)) {
-		g_critical ("failed to recreate state file");
-		goto error;
-	}
-
 	return true;
-
-error:
-	/* revert container status */
-	config->state.status = last_status;
-
-	return false;
 }
 
 /*!
