@@ -568,6 +568,7 @@ cc_shim_launch (struct cc_oci_config *config,
 		int       proxy_io_base = -1;
 		GSocketConnection *connection = NULL;
 		GError   *error = NULL;
+		int       i = 0;
 
 		/* child */
 		close (child_err_pipe[0]);
@@ -661,25 +662,29 @@ cc_shim_launch (struct cc_oci_config *config,
 		}
 
 		/* +1 for for NULL terminator */
-		args = g_new0 (gchar *, 11+1);
+		args = g_new0 (gchar *, 12+1);
 
 		/* cc-shim path can be specified via command line */
 		if (start_data.shim_path) {
-			args[0] = g_strdup (start_data.shim_path);
+			args[i++] = g_strdup (start_data.shim_path);
 		} else {
-			args[0] = g_strdup (CC_OCI_SHIM);
+			args[i++] = g_strdup (CC_OCI_SHIM);
 		}
-		args[1] = g_strdup ("-c");
-		args[2] = g_strdup (config->optarg_container_id);
-		args[3] = g_strdup ("-p");
-		args[4] = g_strdup_printf ("%d", proxy_socket_fd);
-		args[5] = g_strdup ("-o");
-		args[6] = g_strdup_printf ("%d", proxy_io_fd);
-		args[7] = g_strdup ("-s");
-		args[8] = g_strdup_printf ("%d", proxy_io_base);
+		args[i++] = g_strdup ("-c");
+		args[i++] = g_strdup (config->optarg_container_id);
+		args[i++] = g_strdup ("-p");
+		args[i++] = g_strdup_printf ("%d", proxy_socket_fd);
+		args[i++] = g_strdup ("-o");
+		args[i++] = g_strdup_printf ("%d", proxy_io_fd);
+		args[i++] = g_strdup ("-s");
+		args[i++] = g_strdup_printf ("%d", proxy_io_base);
 		if ( ! config->oci.process.terminal) {
-			args[9] = g_strdup ("-e");
-			args[10] = g_strdup_printf ("%d", proxy_io_base + 1);
+			args[i++] = g_strdup ("-e");
+			args[i++] = g_strdup_printf ("%d", proxy_io_base + 1);
+		}
+		if (initial_workload) {
+			/* cc-shim will destroy the VM when initial workload ends */
+			args[i++] = g_strdup ("-w");
 		}
 
 		g_debug ("running command:");
