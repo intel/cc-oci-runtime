@@ -149,9 +149,7 @@ function verify_runtime_dirs()
 	[ "$status" -eq 0 ]
 
 	# state-specific tests
-	# 'kill' does not kill the VM just kill the container
-	# inside it
-	if [ "$state" = "killed" -o "$state" = "created" -o \
+	if [ "$state" = "created" -o \
 				  "$state" = "running" -o "$state" = "paused" ]
 	then
 		[ "${lines[0]}" = "console.sock" ]
@@ -167,6 +165,10 @@ function verify_runtime_dirs()
 		[ -S "$ga_tty_sock" ]
 		[ -S "$hypervisor_sock" ]
 		[ -S "$process_sock" ]
+	elif [ "$state" = "killed" ]
+	then
+		[ "${lines[0]}" = "state.json" ]
+		[ "${lines[1]}" = "" ]
 	else
 		log_msg "Invalid state: '$state'"
 		false
