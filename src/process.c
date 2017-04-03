@@ -282,6 +282,7 @@ cc_run_hook(struct oci_cfg_hook* hook, const gchar* state,
 	char c = 0;
 	int status = 1;
 	char **args = NULL;
+	int saved_errno = 0;
 
 	if (! hook) {
 		return false;
@@ -319,11 +320,13 @@ cc_run_hook(struct oci_cfg_hook* hook, const gchar* state,
 
 		/* waiting for parent setup */
 		if (read (pipe_parent_error[0], &c, sizeof(c)) > 0) {
+			saved_errno = errno;
 			g_critical ("parent setup failed");
 			goto fail_child;
 		}
 
 		if (dup2 (stdin_pipe[0], STDIN_FILENO) < 0) {
+			saved_errno = errno;
 			g_critical ("failed to dup hook stdin");
 			goto fail_child;
 		}
@@ -335,6 +338,7 @@ cc_run_hook(struct oci_cfg_hook* hook, const gchar* state,
 		}
 
 		if (execvpe (hook->path, args, hook->env) < 0) {
+			saved_errno = errno;
 			g_critical ("failed to exec hook %s: %s",
 					hook->path, strerror (errno));
 		}
@@ -347,7 +351,7 @@ fail_child:
 		close_if_set (stdin_pipe[0]);
 		close_if_set (pipe_child_error[1]);
 		close_if_set (pipe_parent_error[0]);
-		abort();
+		exit(saved_errno);
 	}
 
 	//parent
