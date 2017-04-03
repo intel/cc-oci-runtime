@@ -402,7 +402,7 @@ if CRIO_TESTS
 CHECK_DEPS += crio-tests
 GENERATED_FILES += tests/lib/test-crio.bats
 crio-tests: cc-oci-runtime cc-proxy cc-shim tests/lib/test-crio.bats
-	@$(BATS_PATH) -t $(srcdir)/tests/integration/cri-o
+	@timeout 4m $(BATS_PATH) -t $(srcdir)/tests/integration/cri-o
 endif
 
 #### tests ####

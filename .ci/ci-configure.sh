@@ -55,6 +55,7 @@ then
 else
     configure_opts+=" --disable-docker-tests"
     configure_opts+=" --disable-functional-tests"
+    configure_opts+=" --disable-crio-tests"
 fi
 
 (cd "$ci_build_dir" && \
