@@ -106,8 +106,8 @@ make -j5 && sudo make install
 popd
 
 # Configure CC by default
-mkdir -p /etc/systemd/system/docker.service.d/
-cat > /etc/systemd/system/docker.service.d/clr-containers.conf << EOF
+sudo mkdir -p /etc/systemd/system/docker.service.d/
+cat <<EOF|sudo tee /etc/systemd/system/docker.service.d/clr-containers.conf
 [Service]
 ExecStart=
 ExecStart=/usr/bin/dockerd -D --add-runtime cor=/usr/local/bin/cc-oci-runtime --default-runtime=cor
