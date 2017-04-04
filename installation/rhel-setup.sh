@@ -40,7 +40,7 @@ pkgs+=" yum-utils"
 # runtime dependencies
 pkgs+=" libuuid-devel"
 pkgs+=" libmnl"
-pkgs+=" libmnl-dev"
+pkgs+=" libmnl-devel"
 pkgs+=" libffi-devel"
 pkgs+=" pcre-devel"
 
