@@ -98,9 +98,10 @@ export PATH=$PATH:"${prefix_dir}"/go/bin
 cor=github.com/01org/cc-oci-runtime
 # Currently it is the latest version for cc-oci-runtime
 commit=tags/2.1.0
+release=${commit##*/}
 go get "$cor"
 pushd "$GOPATH/src/$cor"
-git checkout "$commit"
+git checkout -b "$release" "$commit"
 ./autogen.sh \
     --prefix="${prefix_dir}" \
     --disable-tests \
