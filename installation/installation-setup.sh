@@ -30,6 +30,10 @@ then
 	export prefix_dir=/usr/local/
 fi
 
+# if chronic(1) is available, it will be used to hide all output
+# (unless an error occurs).
+chronic=$(command -v chronic || true)
+
 # Ensure "make install" as root can find clang
 #
 # See: https://github.com/travis-ci/travis-ci/issues/2607
@@ -61,12 +65,7 @@ function compile {
 	tarball="$2"
 	directory="$3"
 	configure_opts="$4"
-	if [ "$os_distribution" = rhel ]
-	then
-		tar -xvf "${tarball}"
-	else
-		chronic tar -xvf "${tarball}"
-	fi
+	eval $chronic tar -xvf "${tarball}"
 	pushd ${directory}
 
 	if [ -n "$configure_opts" ]
@@ -78,16 +77,9 @@ function compile {
 		args+=" --prefix=\"${prefix_dir}\""
 	fi
 
-	if [ "$os_distribution" = rhel ]
-	then
-		eval ./configure "$args"
-		make -j5
-		sudo make install
-	else
-		eval CC=${CC:-cc} chronic ./configure "$args"
-		chronic make -j5
-		chronic sudo make install
-	fi
+	eval CC=${CC:-cc} "$chronic" ./configure "$args"
+	eval "$chronic make -j5"
+	eval "$chronic sudo make install"
 	popd
 }
 
