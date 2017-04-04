@@ -30,10 +30,14 @@ pkgs=""
 # general
 pkgs+=" zlib-devel"
 pkgs+=" gettext-devel"
-pkgs+=" pkgconfig"
 pkgs+=" libtool-ltdl-devel"
 pkgs+=" libtool-ltdl"
 pkgs+=" glib2-devel"
+pkgs+=" bzip2"
+pkgs+=" m4"
+
+# for yum-config-manager
+pkgs+=" yum-utils"
 
 # runtime dependencies
 pkgs+=" libuuid-devel"
@@ -56,6 +60,8 @@ pkgs+=" gcc-c++"
 
 sudo yum -y update
 eval sudo yum -y install "$pkgs"
+
+sudo yum groupinstall -y 'Development Tools'
 
 # Install pre-requisites for gcc
 curl -L -O ftp://gcc.gnu.org/pub/gcc/infrastructure/mpfr-${mpfr_version}.tar.bz2
