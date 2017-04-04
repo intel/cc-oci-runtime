@@ -22,9 +22,7 @@ SCRIPT_PATH=$(dirname "$(readlink -f "$0")")
 source "${SCRIPT_PATH}/installation-setup.sh"
 source "${SCRIPT_PATH}/../versions.txt"
 
-# Install required dependencies to build
-# glib, json-glib, libmnl-dev, check, gcc, cc-oci-runtime and qemu-lite
-
+# List of packages to install to satisfy build dependencies
 pkgs=""
 
 # general
