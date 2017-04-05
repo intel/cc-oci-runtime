@@ -948,8 +948,7 @@ cc_oci_start (struct cc_oci_config *config,
 		/*FIXME: should start delete the container? */
 
 		/* If the VM was stopped then *do not* cleanup */
-		if (config->state.status != OCI_STATUS_STOPPED &&
-			config->state.status != OCI_STATUS_STOPPING) {
+		if (config->state.status != OCI_STATUS_STOPPED) {
 			ret = cc_oci_cleanup (config);
 		}
 	} else {
