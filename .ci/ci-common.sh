@@ -31,12 +31,15 @@ nested=$(cat /sys/module/kvm_intel/parameters/nested 2>/dev/null \
 # will cause the test to fail.
 [ -z "$BATS_TEST_DIRNAME" ] && echo "INFO: Nested kvm available: $nested"
 
-if [ -n "$SEMAPHORE_CACHE_DIR" ]
+if cor_ci_env
 then
-    # Running under SemaphoreCI
-    prefix_dir="$SEMAPHORE_CACHE_DIR/cor"
-else
-    prefix_dir="$HOME/.cache/cor"
+    if [ -n "$SEMAPHORE_CACHE_DIR" ]
+    then
+        # Running under SemaphoreCI
+        prefix_dir="$SEMAPHORE_CACHE_DIR/cor"
+    else
+        prefix_dir="$HOME/.cache/cor"
+    fi
 fi
 
 deps_dir="${prefix_dir}/dependencies"
