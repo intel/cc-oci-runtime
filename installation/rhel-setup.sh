@@ -111,5 +111,5 @@ sudo mkdir -p /etc/systemd/system/docker.service.d/
 cat <<EOF|sudo tee /etc/systemd/system/docker.service.d/clr-containers.conf
 [Service]
 ExecStart=
-ExecStart=/usr/bin/dockerd -D --add-runtime cor=/usr/local/bin/cc-oci-runtime --default-runtime=cor
+ExecStart=/usr/bin/dockerd -D --add-runtime cor=${prefix_dir}/bin/cc-oci-runtime --default-runtime=cor
 EOF
