@@ -199,6 +199,10 @@ handle_command_stop (const struct subcommand *sub,
 
 	g_free_node(root);
 
+	if (! cc_oci_config_update (config, state)) {
+		goto out;
+	}
+
 	ret = cc_oci_stop (config, state);
 	if (! ret) {
 		goto out;

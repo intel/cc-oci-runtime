@@ -1044,16 +1044,19 @@ cc_oci_stop (struct cc_oci_config *config,
 		return false;
 	}
 
-	if (cc_oci_container_running (state) && ! cc_pod_is_pod_container(config)) {
-		gboolean ret;
-		ret = cc_proxy_hyper_destroy_pod(config);
-		if (! ret) {
-			return false;
+	/* is VM running? */
+	if (kill (config->vm->pid, 0) == 0) {
+		if (cc_pod_is_pod_container(config)) {
+			g_debug("Cannot delete container %s (pid %u) - "
+				"it is a pod container", state->id, state->pid);
+		} else if (cc_pod_is_pod_sandbox (config) ||
+				config->state.status != OCI_STATUS_STOPPED) {
+			if (! cc_proxy_hyper_destroy_pod(config)) {
+				g_critical ("failed to destroy pod");
+				return false;
+			}
 		}
-	} else if (cc_pod_is_pod_container(config)) {
-		g_debug("Cannot delete container %s (pid %u) - "
-			"it is a pod container", state->id, state->pid);
-	} else {
+    } else {
 		/* This isn't a fatal condition since:
 		 *
 		 * - containerd calls "delete" twice (unclear why).
@@ -1063,18 +1066,6 @@ cc_oci_stop (struct cc_oci_config *config,
 		g_warning ("Cannot delete VM %s (pid %u) - "
 				"not running",
 				state->id, state->pid);
-	}
-
-	/*
-	 * We need to update our config so that both
-	 * the pod and mount pointers are accurate.
-	 * OTOH we can't update our config before calling
-	 * cc_oci_container_running() as config_update() clears
-	 * the state pointer and cc_oci_container_running would
-	 * always return false.
-	 */
-	if (! cc_oci_config_update (config, state)) {
-		return false;
 	}
 
 	/* Allow the proxy to clean up resources */
