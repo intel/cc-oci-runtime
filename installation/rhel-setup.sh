@@ -58,11 +58,11 @@ eval sudo yum -y install "$pkgs"
 sudo yum groupinstall -y 'Development Tools'
 
 # Install pre-requisites for gcc
-curl -L -O ftp://gcc.gnu.org/pub/gcc/infrastructure/mpfr-${mpfr_version}.tar.bz2
-compile mpfr mpfr-${mpfr_version}.tar.bz2 mpfr-${mpfr_version}
-
 curl -L -O ftp://gcc.gnu.org/pub/gcc/infrastructure/gmp-${gmp_version}.tar.bz2
 compile gmp gmp-${gmp_version}.tar.bz2 gmp-${gmp_version}
+
+curl -L -O ftp://gcc.gnu.org/pub/gcc/infrastructure/mpfr-${mpfr_version}.tar.bz2
+compile mpfr mpfr-${mpfr_version}.tar.bz2 mpfr-${mpfr_version}
 
 curl -L -O ftp://gcc.gnu.org/pub/gcc/infrastructure/mpc-${mpc_version}.tar.gz
 compile mpc mpc-${mpc_version}.tar.gz mpc-${mpc_version}
