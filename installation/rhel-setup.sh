@@ -127,3 +127,7 @@ cat <<EOF|sudo tee /etc/systemd/system/docker.service.d/clr-containers.conf
 ExecStart=
 ExecStart=/usr/bin/dockerd -D --add-runtime cor=${prefix_dir}/bin/cc-oci-runtime --default-runtime=cor
 EOF
+
+sudo systemctl daemon-reload
+sudo systemctl restart docker
+sudo systemctl start cc-proxy.socket
