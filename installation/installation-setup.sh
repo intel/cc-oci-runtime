@@ -18,17 +18,17 @@
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-SCRIPT_PATH=$(dirname "$(readlink -f "$0")")
-source "${SCRIPT_PATH}/../.ci/ci-common.sh"
-source "${SCRIPT_PATH}/../versions.txt"
-
-
 os_distribution=`cat /etc/os-release | grep -w ID | cut -d '=' -f2 | sed s/\"//g`
 
 if [ "$os_distribution" = rhel -o "$os_distribution" = centos ]
 then
-	export prefix_dir=/usr/local/
+	export prefix_dir="/usr/local/"
 fi
+
+SCRIPT_PATH=$(dirname "$(readlink -f "$0")")
+source "${SCRIPT_PATH}/../.ci/ci-common.sh"
+source "${SCRIPT_PATH}/../versions.txt"
+
 
 # if chronic(1) is available, it will be used to hide all output
 # (unless an error occurs).
