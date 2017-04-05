@@ -82,6 +82,20 @@ gcc_setup
 # Install qemu-lite
 qemu-lite_setup
 
+# Install docker
+sudo mkdir -p /etc/yum.repos.d/
+sudo tee /etc/yum.repos.d/docker.repo <<EOF
+[dockerrepo]
+name=Docker Repository
+baseurl=https://yum.dockerproject.org/repo/main/centos/7/
+enabled=1
+gpgcheck=1
+gpgkey=https://yum.dockerproject.org/gpg
+EOF
+sudo yum install -y \
+    docker-engine-1.12.1-1.el7.centos.x86_64 \
+    docker-engine-selinux-1.12.1-1.el7.centos.noarch
+
 # Install kernel and CC image
 sudo yum-config-manager --add-repo http://download.opensuse.org/repositories/home:/clearlinux:/preview:/clear-containers-2.1/RHEL_7/home:clearlinux:preview:clear-containers-2.1.repo
 sudo yum -y update
