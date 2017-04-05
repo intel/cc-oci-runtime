@@ -114,6 +114,7 @@ git checkout -b "$release" "$commit"
     --prefix="${prefix_dir}" \
     --disable-tests \
     --disable-functional-tests \
+    --enable-autogopath \
     --with-cc-image=/usr/share/clear-containers/clear-containers.img \
     --with-cc-kernel=/usr/share/clear-containers/vmlinux.container \
     --with-qemu-path="${prefix_dir}"/bin/qemu-system-x86_64
