@@ -50,10 +50,6 @@ pkgs+=" libcap-devel"
 pkgs+=" libcap-ng-devel"
 pkgs+=" pixman-devel"
 
-# gcc
-pkgs+=" gmp-devel"
-pkgs+=" mpfr-devel"
-pkgs+=" libmpc-devel"
 pkgs+=" gcc-c++"
 
 sudo yum -y update
