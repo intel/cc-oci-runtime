@@ -64,7 +64,7 @@ function bandwidth_multiple_tcp_connections {
         multiple_tcp_result=$(mktemp)
         $DOCKER_EXE run -d --name=iperf-server ${image} bash -c "iperf -p ${port} -s" > /dev/null && \
 	server_address=`$DOCKER_EXE inspect --format "{{.NetworkSettings.IPAddress}}" $($DOCKER_EXE ps -ql)` && \
-        $DOCKER_EXE run -ti --rm --name=iperf-client ${image} bash -c "iperf -c ${server_address} -P ${multiple_tcp_result} -t ${time}"  > "$multiple_tcp_result"
+        $DOCKER_EXE run -ti --rm --name=iperf-client ${image} bash -c "iperf -c ${server_address} -P ${number_tcp_connections} -t ${time}"  > "$multiple_tcp_result"
         total_multiple_tcp=`cat $multiple_tcp_result | tail -1 | awk '{print $(NF-1), $NF}'`
         $DOCKER_EXE rm -f iperf-server > /dev/null
         rm -f $multiple_tcp_result
