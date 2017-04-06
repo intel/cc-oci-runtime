@@ -17,6 +17,10 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+#
+# Description:
+#  Test inter (docker<->docker) netwrok bandwidths and jitters
+# using iperf2
 
 SCRIPT_PATH=$(dirname "$(readlink -f "$0")")
 
@@ -36,6 +40,7 @@ function setup {
 
 # This script will perform all the measurements using a local setup
 
+# Test single TCP docker->docker iperf bandwidth
 function bandwidth {
         setup
         bandwidth_result=$(mktemp)
@@ -47,6 +52,7 @@ function bandwidth {
         rm -f $bandwidth_result
 }
 
+# Test single UDP docker->docker jitter
 function jitter {
         setup
         jitter_result=$(mktemp)
@@ -58,6 +64,7 @@ function jitter {
         rm -f $jitter_result
 }
 
+# Test TCP docker->docker bandwidth with multiple network connections (parallelism)
 function bandwidth_multiple_tcp_connections {
         setup
         number_tcp_connections=8
