@@ -17,6 +17,8 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+#
+# Test inter-container network bandwidth and jitter using iperf3
 
 SCRIPT_PATH=$(dirname "$(readlink -f "$0")")
 
@@ -36,6 +38,7 @@ function setup {
 
 # This script will perform all the measurements using a local setup using iperf3
 
+# Test single direction TCP bandwith
 function iperf3_bandwidth {
 	setup
 	bandwidth_result=$(mktemp)
@@ -47,6 +50,7 @@ function iperf3_bandwidth {
 	rm -f $bandwidth_result
 }
 
+# Test jitter on single direction UDP
 function iperf3_jitter {
 	setup
 	jitter_result=$(mktemp)
@@ -58,6 +62,7 @@ function iperf3_jitter {
 	rm -f $jitter_result
 }
 
+# Run bi-directional TCP test, and extract results for both directions
 function iperf3_bidirectional_bandwidth_client_server {
 	setup
 	bidirectional_bandwidth_result=$(mktemp)
