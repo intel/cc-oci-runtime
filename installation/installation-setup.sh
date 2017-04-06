@@ -23,6 +23,7 @@ os_distribution=`cat /etc/os-release | grep -w ID | cut -d '=' -f2 | sed s/\"//g
 if [ "$os_distribution" = rhel -o "$os_distribution" = centos ]
 then
 	export prefix_dir="/usr/local/"
+	export GOROOT="$prefix_dir/go"
 	export deps_dir="$PWD/dependencies"
 	mkdir -p "$deps_dir"
 fi
