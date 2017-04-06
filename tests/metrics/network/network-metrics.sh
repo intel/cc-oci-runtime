@@ -59,7 +59,7 @@ function jitter {
         $DOCKER_EXE run -d --name=iperf-server ${image} bash -c "iperf -p ${port} -u -s" > /dev/null && \
         server_address=`$DOCKER_EXE inspect --format "{{.NetworkSettings.IPAddress}}" $($DOCKER_EXE ps -ql)` && \
         $DOCKER_EXE run -ti --rm --name=iperf-client ${image} bash -c "iperf -c ${server_address} -u -t ${time}" > "$jitter_result"
-        total_jitter=`cat $jitter_result | tail -1  | awk '{print $(NF-4), $(NF-3)}'`
+        total_jitter=`cat $jitter_result | tail -1 | awk '{print $(NF-4), $(NF-3)}'`
         $DOCKER_EXE rm -f iperf-server > /dev/null
         rm -f $jitter_result
 }
