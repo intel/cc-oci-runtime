@@ -69,7 +69,7 @@ function iperf3_bidirectional_bandwidth_client_server {
 	$DOCKER_EXE run -d --name=iperf3-server ${image} bash -c "mount -t ramfs -o size=20M ramfs /tmp && iperf3 -p ${port} -s" > /dev/null && \
 	server_address=`$DOCKER_EXE inspect --format "{{.NetworkSettings.IPAddress}}" $($DOCKER_EXE ps -ql)` && \
 	$DOCKER_EXE run -ti --rm --name=iperf3-client ${image} bash -c "mount -t ramfs -o size=20M ramfs /tmp && iperf3 -c ${server_address} -d -t ${time}" > "$bidirectional_bandwidth_result"
-	total_bidirectional_client_bandwidth=`cat $bidirectional_bandwidth_result | tail -n 3 | head -1 |  awk '{print $(NF-2), $(NF-1)}'`
+	total_bidirectional_client_bandwidth=`cat $bidirectional_bandwidth_result | tail -n 3 | head -1 | awk '{print $(NF-2), $(NF-1)}'`
 	total_bidirectional_server_bandwidth=`cat $bidirectional_bandwidth_result | tail -n 4 | head -1 | awk '{print $(NF-3), $(NF-2)}'`
 	$DOCKER_EXE rm -f iperf3-server > /dev/null
 	rm -f $bidirectional_bandwidth_result
