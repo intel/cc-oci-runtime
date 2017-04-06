@@ -42,7 +42,7 @@ then
     fi
 fi
 
-deps_dir="${prefix_dir}/dependencies"
+[ -n "$deps_dir" ] || deps_dir="${prefix_dir}/dependencies"
 cor_ci_env && mkdir -p "$deps_dir" || :
 
 export LD_LIBRARY_PATH="${prefix_dir}/lib:$LD_LIBRARY_PATH"

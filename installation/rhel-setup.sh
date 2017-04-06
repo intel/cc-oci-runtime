@@ -57,6 +57,8 @@ eval sudo yum -y install "$pkgs"
 
 sudo yum groupinstall -y 'Development Tools'
 
+pushd "$deps_dir"
+
 # Install pre-requisites for gcc
 curl -L -O ftp://gcc.gnu.org/pub/gcc/infrastructure/gmp-${gmp_version}.tar.bz2
 compile gmp gmp-${gmp_version}.tar.bz2 gmp-${gmp_version}
@@ -81,6 +83,8 @@ gcc_setup
 
 # Install qemu-lite
 qemu-lite_setup
+
+popd
 
 # Install docker
 sudo mkdir -p /etc/yum.repos.d/
