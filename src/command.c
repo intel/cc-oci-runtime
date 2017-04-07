@@ -199,6 +199,10 @@ handle_command_stop (const struct subcommand *sub,
 
 	g_free_node(root);
 
+	if (! cc_oci_config_update (config, state)) {
+		goto out;
+	}
+
 	ret = cc_oci_stop (config, state);
 	if (! ret) {
 		goto out;
@@ -213,8 +217,8 @@ out:
 		cgroup_dir = g_strdup_printf ("%s/%s", CGROUP_MEM_DIR,
 			config->oci.oci_linux.cgroupsPath);
 		/* removing cgroup path will notify docker to close its event fds */
-		if (g_rmdir(cgroup_dir) != 0) {
-			g_critical("failed to remove cgroup dir: %s", cgroup_dir);
+		if (g_rmdir (cgroup_dir) != 0 && errno != ENOENT) {
+			g_critical ("failed to remove cgroup dir: %s", cgroup_dir);
 		}
 		g_free_if_set (cgroup_dir);
 	}

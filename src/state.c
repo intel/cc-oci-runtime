@@ -124,7 +124,6 @@ static struct cc_oci_map oci_status_map[] =
 	{ OCI_STATUS_RUNNING , "running" },
 	{ OCI_STATUS_PAUSED  , "paused"  },
 	{ OCI_STATUS_STOPPED , "stopped" },
-	{ OCI_STATUS_STOPPING, "stopping"},
 
 	{ OCI_STATUS_INVALID , NULL      }
 };
