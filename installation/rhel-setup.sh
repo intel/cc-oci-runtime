@@ -102,7 +102,6 @@ sudo yum install -y \
 
 # Install kernel and CC image
 sudo yum-config-manager --add-repo http://download.opensuse.org/repositories/home:/clearlinux:/preview:/clear-containers-2.1/RHEL_7/home:clearlinux:preview:clear-containers-2.1.repo
-sudo yum -y update
 sudo yum -y install linux-container clear-containers-image
 
 # Configure cc-oci-runtime
