@@ -134,6 +134,11 @@ ccimage_systemdfilesdir= @CC_IMAGE_SYSTEMDSYSTEMUNIT_PATH@
 ccimage_systemdfiles_DATA = $(cc_image_systemd_files)
 endif
 
+if CC_IMAGE_BOOTCHART_CONFIG
+ccimage_bootchart_filesdir = @CC_IMAGE_BOOTCHART_CONFIG_DIR@
+ccimage_bootchart_files_DATA = data/cc-bootchart.conf
+endif
+
 AM_CFLAGS = -std=gnu99 -fstack-protector -Wall -pedantic \
 	-Wstrict-prototypes -Wundef -fno-common \
 	-Werror-implicit-function-declaration \
@@ -366,7 +371,8 @@ EXTRA_DIST = \
 	tests/metrics/density/docker_memory_usage.sh.in \
 	tests/metrics/workload_time/cor_create_time.sh.in \
 	vendor \
-	data/genfile.sh
+	data/genfile.sh \
+	data/cc-bootchart.conf
 
 if CPPCHECK
 CHECK_DEPS += cppcheck

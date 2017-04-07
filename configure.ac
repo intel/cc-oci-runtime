@@ -178,6 +178,19 @@ AC_ARG_WITH([cc-image-systemdsystemunitdir],
 AM_CONDITIONAL([CC_IMAGE_SYSTEMDSYSTEMUNIT],[test x"$CC_IMAGE_SYSTEMDSYSTEMUNIT_PATH" != xno])
 
 		AC_SUBST([CC_IMAGE_SYSTEMDSYSTEMUNIT], [1])
+
+AC_ARG_WITH([cc-image-bootchart-config-dir],
+	AS_HELP_STRING([--with-cc-image-bootchart-config-dir=DIR],
+				   [path to bootchart config directory for cc-image]),
+	[
+		CC_IMAGE_BOOTCHART_CONFIG_DIR=${withval}
+		AC_SUBST(CC_IMAGE_BOOTCHART_CONFIG_DIR)
+	],
+	[WITH_CC_IMAGE_BOOTCHART_CONFIG=no]
+)
+
+AM_CONDITIONAL([CC_IMAGE_BOOTCHART_CONFIG],[test x"$WITH_CC_IMAGE_BOOTCHART_CONFIG" != xno])
+
 #Check for qemu
 DEFAULT_QEMU_PATH=/usr/bin/qemu-system-x86_64
 
