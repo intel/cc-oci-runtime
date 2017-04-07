@@ -122,6 +122,19 @@ AS_IF([test x"$run_docker_tests" = x"yes"],
     [AC_SUBST([DOCKER_TESTS], [0])])
 AM_CONDITIONAL([DOCKER_TESTS], [test x"$run_docker_tests" = x"yes"])
 
+# Metrics tests
+AC_ARG_ENABLE(metrics-tests, AS_HELP_STRING([--disable-metrics-tests],
+              [disable metrics tests @<:@default=no@:>@]))
+
+AS_IF([test x"$enable_metrics_tests" = x"yes" -o x"$enable_metrics_tests" = x""],
+    [run_metrics_tests=yes],
+    [run_metrics_tests=no])
+
+AS_IF([test x"$run_metrics_tests" = x"yes"],
+    [AC_SUBST([METRICS_TESTS], [1])],
+    [AC_SUBST([METRICS_TESTS], [0])])
+AM_CONDITIONAL([METRICS_TESTS], [test x"$run_metrics_tests" = x"yes"])
+
 # CRI-O integration tests
 AC_ARG_ENABLE(crio-tests, AS_HELP_STRING([--disable-crio-tests],
               [disable CRI-O tests @<:@default=no@:>@]))
