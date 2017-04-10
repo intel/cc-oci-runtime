@@ -2,7 +2,7 @@
 -name
 @NAME@
 -machine
-pc-lite,accel=kvm,kernel_irqchip,nvdimm
+pc,accel=kvm,kernel_irqchip,nvdimm
 -device
 nvdimm,memdev=mem0,id=nv0
 -object
