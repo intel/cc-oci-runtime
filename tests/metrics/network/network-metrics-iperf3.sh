@@ -30,6 +30,7 @@ port=5201:5201
 image=gabyct/network
 # Measurement time (seconds)
 time=5
+set -e
 
 function setup {
 	runtime_docker
@@ -42,10 +43,14 @@ function setup {
 function iperf3_bandwidth {
 	setup
 	bandwidth_result=$(mktemp)
-	$DOCKER_EXE run -d --name=iperf3-server ${image} bash -c "mount -t ramfs -o size=20M ramfs /tmp && iperf3 -p ${port} -s" > /dev/null && \
-	server_address=`$DOCKER_EXE inspect --format "{{.NetworkSettings.IPAddress}}" $($DOCKER_EXE ps -ql)` && \
-	$DOCKER_EXE run -ti --rm --name=iperf3-client ${image} bash -c "mount -t ramfs -o size=20M ramfs /tmp && iperf3 -c ${server_address} -t ${time}" > "$bandwidth_result"
-	total_bandwidth=`cat $bandwidth_result | tail -n 3 | head -1 | awk '{print $(NF-2), $(NF-1)}'`
+	server_command="mount -t ramfs -o size=20M ramfs /tmp && iperf3 -p ${port} -s"
+	$DOCKER_EXE run -d --name=iperf3-server ${image} bash -c "${server_command}" > /dev/null
+	server_address=$($DOCKER_EXE inspect --format "{{.NetworkSettings.IPAddress}}" $($DOCKER_EXE ps -ql))
+
+	client_command="mount -t ramfs -o size=20M ramfs /tmp && iperf3 -c ${server_address} -t ${time}"
+	$DOCKER_EXE run -ti --rm --name=iperf3-client ${image} bash -c "${client_command}" > "$bandwidth_result"
+
+	total_bandwidth=$(cat $bandwidth_result | tail -n 3 | head -1 | awk '{print $(NF-2), $(NF-1)}')
 	$DOCKER_EXE rm -f iperf3-server > /dev/null
 	rm -f $bandwidth_result
 }
@@ -54,10 +59,14 @@ function iperf3_bandwidth {
 function iperf3_jitter {
 	setup
 	jitter_result=$(mktemp)
-	$DOCKER_EXE run -d --name=iperf3-server ${image} bash -c "mount -t ramfs -o size=20M ramfs /tmp && iperf3 -s -V" > /dev/null && \
-	server_address=`$DOCKER_EXE inspect --format "{{.NetworkSettings.IPAddress}}" $($DOCKER_EXE ps -ql)` && \
-	$DOCKER_EXE run -ti --rm --name=iperf3-client ${image} bash -c "mount -t ramfs -o size=20M ramfs /tmp && iperf3 -c ${server_address} -u -t ${time}"  > "$jitter_result"
-	total_jitter=`cat $jitter_result | tail -n 4 | head -1 | awk '{print $(NF-4), $(NF-3)}'`
+	server_command="mount -t ramfs -o size=20M ramfs /tmp && iperf3 -s -V"
+	$DOCKER_EXE run -d --name=iperf3-server ${image} bash -c "${server_command}" > /dev/null
+	server_address=$($DOCKER_EXE inspect --format "{{.NetworkSettings.IPAddress}}" $($DOCKER_EXE ps -ql))
+
+	client_command="mount -t ramfs -o size=20M ramfs /tmp && iperf3 -c ${server_address} -u -t ${time}"
+	$DOCKER_EXE run -ti --rm --name=iperf3-client ${image} bash -c "${client_command}"  > "$jitter_result"
+
+	total_jitter=$(cat $jitter_result | tail -n 4 | head -1 | awk '{print $(NF-4), $(NF-3)}')
 	$DOCKER_EXE rm -f iperf3-server > /dev/null
 	rm -f $jitter_result
 }
@@ -66,11 +75,15 @@ function iperf3_jitter {
 function iperf3_bidirectional_bandwidth_client_server {
 	setup
 	bidirectional_bandwidth_result=$(mktemp)
-	$DOCKER_EXE run -d --name=iperf3-server ${image} bash -c "mount -t ramfs -o size=20M ramfs /tmp && iperf3 -p ${port} -s" > /dev/null && \
-	server_address=`$DOCKER_EXE inspect --format "{{.NetworkSettings.IPAddress}}" $($DOCKER_EXE ps -ql)` && \
-	$DOCKER_EXE run -ti --rm --name=iperf3-client ${image} bash -c "mount -t ramfs -o size=20M ramfs /tmp && iperf3 -c ${server_address} -d -t ${time}" > "$bidirectional_bandwidth_result"
-	total_bidirectional_client_bandwidth=`cat $bidirectional_bandwidth_result | tail -n 3 | head -1 | awk '{print $(NF-2), $(NF-1)}'`
-	total_bidirectional_server_bandwidth=`cat $bidirectional_bandwidth_result | tail -n 4 | head -1 | awk '{print $(NF-3), $(NF-2)}'`
+	server_command="mount -t ramfs -o size=20M ramfs /tmp && iperf3 -p ${port} -s"
+	$DOCKER_EXE run -d --name=iperf3-server ${image} bash -c "${server_command}" > /dev/null
+	server_address=$($DOCKER_EXE inspect --format "{{.NetworkSettings.IPAddress}}" $($DOCKER_EXE ps -ql))
+
+	client_command="mount -t ramfs -o size=20M ramfs /tmp && iperf3 -c ${server_address} -d -t ${time}"
+	$DOCKER_EXE run -ti --rm --name=iperf3-client ${image} bash -c "${client_command}" > "$bidirectional_bandwidth_result"
+
+	total_bidirectional_client_bandwidth=$(cat $bidirectional_bandwidth_result | tail -n 3 | head -1 | awk '{print $(NF-2), $(NF-1)}')
+	total_bidirectional_server_bandwidth=$(cat $bidirectional_bandwidth_result | tail -n 4 | head -1 | awk '{print $(NF-3), $(NF-2)}')
 	$DOCKER_EXE rm -f iperf3-server > /dev/null
 	rm -f $bidirectional_bandwidth_result
 }
