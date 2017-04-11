@@ -1417,6 +1417,14 @@ cc_proxy_run_hyper_new_container (struct cc_oci_config *config,
 	json_object_set_boolean_member (newcontainer_payload,
 			"initialize", false);
 
+	if (config->oci.process.columns > 0) {
+		json_object_set_int_member (process, "columns", config->oci.process.columns);
+	}
+
+	if (config->oci.process.rows > 0) {
+		json_object_set_int_member (process, "rows", config->oci.process.rows);
+	}
+
 	json_object_set_array_member (process, "args", args);
 	json_object_set_array_member (process, "envs", envs);
 	json_object_set_object_member (newcontainer_payload,
