@@ -1,13 +1,9 @@
 #clear-containers image
 
-##Debian:
+This source rpm is the mini-os image used to boot clear-containers. 
+To update and generate an rpm spec and dsc to create rpm and deb packages, 
+you need to run:
 
-To build debian package you need to download the linux kernel that is pointed at
-``Source0:`` at clear-containers-image.spec
+``./update_image.sh``
 
-Then create tarball:
-
-``clear-containers-image_{version}.orig.tar.xz``
-
-``tar -cJf clear-containers-image_{version}.orig.tar.xz clear-{version}-containers.img.xz LICENSE``
-
+By default it will generate the specs using the version specified in ../../../versions.txt
