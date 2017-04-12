@@ -5,13 +5,13 @@
 #
 
 Name:           linux-container
-Version:        4.9.4
-Release:        53
+Version:        @VERSION@
+Release:        @RELEASE@
 License:        GPL-2.0
 Summary:        The Linux kernel optimized for running inside a container
 Url:            http://www.kernel.org/
 Group:          kernel
-Source0:        https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.9.4.tar.xz
+Source0:        https://www.kernel.org/pub/linux/kernel/v4.x/linux-@VERSION@.tar.xz
 Source1:        config
 
 %define kversion %{version}-%{release}.container
@@ -37,7 +37,6 @@ BuildRequires:  bison
 Patch0001: cve-2016-8632.patch
 
 # Serie    01XX: Clear Linux patches
-#Patch0101: 0101-msleep-warning.patch
 Patch0102: 0102-cpuidle-skip-synchronize_rcu-on-single-CPU-systems.patch
 Patch0103: 0103-sysrq-skip-synchronize_rcu-if-there-is-no-old-op.patch
 Patch0104: 0104-fbcon-enable-no-blink-by-default.patch
@@ -68,7 +67,7 @@ Patch0208: 0208-Show-restart-information-using-info-log.patch
 The Linux kernel.
 
 %prep
-%setup -q -n linux-4.9.4
+%setup -q -n linux-@VERSION@
 
 #     00XX  mainline, CVE, bugfixes patches
 %patch0001 -p1
@@ -133,6 +132,10 @@ InstallKernel() {
 
     mkdir   -p ${KernelDir}
 
+    cp $KernelImage ${KernelDir}/vmlinuz-$KernelVer
+    chmod 755 ${KernelDir}/vmlinuz-$KernelVer
+    ln -sf vmlinuz-$KernelVer ${KernelDir}/vmlinuz.container
+
     cp $KernelImageRaw ${KernelDir}/vmlinux-$KernelVer
     chmod 755 ${KernelDir}/vmlinux-$KernelVer
     ln -sf vmlinux-$KernelVer ${KernelDir}/vmlinux.container
@@ -149,3 +152,5 @@ rm -rf %{buildroot}/usr/lib/firmware
 %dir /usr/share/clear-containers
 /usr/share/clear-containers/vmlinux-%{kversion}
 /usr/share/clear-containers/vmlinux.container
+/usr/share/clear-containers/vmlinuz-%{kversion}
+/usr/share/clear-containers/vmlinuz.container
