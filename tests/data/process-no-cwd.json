@@ -1,5 +1,9 @@
 {
 	"process": {
+		"consoleSize": {
+			"height": 15,
+			"width": 15
+		},
 		"terminal": true,
 		"user": {
 			"uid": 0,
