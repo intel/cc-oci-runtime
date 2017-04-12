@@ -1,0 +1,4 @@
+clear-containers-image_*
+clear-containers-image.spec
+wd/debian/rules
+clear-*-containers.img.xz
