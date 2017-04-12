@@ -539,6 +539,120 @@ out:
 	return macaddr;
 }
 
+/*
+ * Get and store the iptable rules set in the
+ * network namespace. These need to be re-applied
+ * within the container.
+ *
+ * \param config \ref cc_oci_config
+ *
+ * \return \c true on success, else \c false.
+ */
+static gboolean
+get_iptable_rules(struct cc_oci_config *config)
+{
+	gboolean ret;
+	GError *error = NULL;
+	gint exit_status = 0;
+	char *cmd = "iptables-save";
+	char *args[] = { cmd, NULL };
+
+	if (! config) {
+		return false;
+	}
+
+	g_debug("Running command : %s", cmd);
+	ret = g_spawn_sync (NULL,
+              args,
+              NULL,
+              G_SPAWN_SEARCH_PATH | G_SPAWN_STDERR_TO_DEV_NULL,
+              NULL,
+              NULL,
+              &(config->net.iptable_rules),
+              NULL,
+              &exit_status,
+              &error);
+
+	if ( !ret || exit_status) {
+		if (! ret) {
+			g_critical("Error spawning process for %s:%s",
+				cmd, error->message);
+			g_clear_error(&error);
+		}
+
+		if (! g_spawn_check_exit_status(exit_status, &error)) {
+			g_critical("Error running command %s: %s",
+				cmd, error->message);
+			g_clear_error(&error);
+		}
+		g_free_if_set(config->net.iptable_rules);
+	}
+
+	return ret;
+}
+
+/*
+ * Flush all iptable rules set in network namespace.
+ * We need to do this as rules get applied to the
+ * packets crossing the tap bridge.
+ *
+ * \return \c true on success, else \c false.
+ */
+static gboolean
+purge_iptable_rules(void)
+{
+	gboolean ret;
+	GError *error = NULL;
+	gint exit_status = 0;
+
+	/* Set the default policies for the built-in chains to ACCEPT,
+	 * flush nat and mangle tables, flush all chains(-F) and
+	 * delete all user chains(-X).
+	 */
+	char *iptables_drop_command = "iptables -P INPUT ACCEPT "
+			"&& iptables -P FORWARD ACCEPT "
+			"&& iptables -P OUTPUT ACCEPT "
+			"&& iptables -t nat -F "
+			"&& iptables -t mangle -F "
+			"&& iptables -F "
+			"&& iptables -X";
+
+	char *args[] = { "/bin/sh", "-c", iptables_drop_command, NULL};
+
+	g_debug("Running commands for dropping iptables");
+	for (gchar** p = args; p && *p; p++) {
+		g_debug ("arg: '%s'", *p);
+	}
+
+	ret = g_spawn_sync (NULL,
+              args,
+              NULL,
+              G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL,
+              NULL,
+              NULL,
+              NULL,
+              NULL,
+              &exit_status,
+              &error);
+
+	if ( !ret || exit_status) {
+		if (! ret) {
+			g_critical("Error spawning process for dropping "
+				"iptable rules: %s",
+				 error->message);
+			g_clear_error(&error);
+		}
+
+		if (! g_spawn_check_exit_status(exit_status, &error)) {
+			g_critical("Error dropping iptable rules: %s",
+				error->message);
+			g_clear_error(&error);
+		}
+	}
+
+	return ret;
+}
+
 /*!
  * GCompareFunc for searching through the list 
  * of existing network interfaces
@@ -686,6 +800,21 @@ cc_oci_network_discover(struct cc_oci_config *const config,
 	net->dns_ip2 = g_strdup("");
 
 	g_debug("[%d] networks discovered", g_slist_length(net->interfaces));
+
+	if (! get_iptable_rules(config)) {
+		return false;
+	}
+
+	/*
+	* We are currently flushing all iptable rules in the net namespace,
+	* a better approach would have been to turn off applying the rules
+	* for packets crossing the bridge we set up. (See:
+	* http://wiki.libvirt.org/page/Net.bridge.bridge-nf-call_and_sysctl.conf)
+	* But the bridge sysctls are not available per namespace.
+	*/
+	if (! purge_iptable_rules()) {
+		return false;
+	}
 
 	return true;
 
