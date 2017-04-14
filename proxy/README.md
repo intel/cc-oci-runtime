@@ -8,8 +8,8 @@ used for several different VMs.
 ![High-level Architecture Diagram](../documentation/high-level-overview.png)
 
 - The `hyperstart` interface consists of:
-    - A control channel on which the [`hyperstart` API]
-      (https://github.com/hyperhq/runv/tree/master/hyperstart/api/json) is
+    - A control channel on which the [`hyperstart` API](
+      https://github.com/hyperhq/runv/tree/master/hyperstart/api/json) is
       delivered.
     - An I/O channel with the stdin/stout/stderr streams of the processes
       running inside the VM multiplexed onto.
