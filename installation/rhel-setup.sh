@@ -52,6 +52,18 @@ pkgs+=" pixman-devel"
 
 pkgs+=" gcc-c++"
 
+if [ "$os_distribution" = rhel ]
+then
+    cc_repo_url="http://download.opensuse.org/repositories/home:/clearlinux:/preview:/clear-containers-2.1/RHEL_7/home:clearlinux:preview:clear-containers-2.1.repo"
+elif [ "$os_distribution" = centos ]
+then
+    cc_repo_url="http://download.opensuse.org/repositories/home:/clearlinux:/preview:/clear-containers-2.1/CentOS_7/home:clearlinux:preview:clear-containers-2.1.repo"
+else
+    echo >&2 "ERROR: Unrecognised distribution: $os_distribution"
+    echo >&2 "ERROR: This script is designed to work on CentOS and RHEL systems only."
+    exit 1
+fi
+
 sudo yum -y update
 eval sudo yum -y install "$pkgs"
 
@@ -101,7 +113,7 @@ sudo yum install -y \
     docker-engine-selinux-1.12.1-1.el7.centos.noarch
 
 # Install kernel and CC image
-sudo yum-config-manager --add-repo http://download.opensuse.org/repositories/home:/clearlinux:/preview:/clear-containers-2.1/RHEL_7/home:clearlinux:preview:clear-containers-2.1.repo
+sudo yum-config-manager --add-repo "${cc_repo_url}"
 sudo yum -y install linux-container clear-containers-image
 
 # Configure cc-oci-runtime
