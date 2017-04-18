@@ -18,6 +18,10 @@
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+# Description: This script installs Clear Containers on a
+#   CentOS 7 or RHEL 7 system.
+#
+
 SCRIPT_PATH=$(dirname "$(readlink -f "$0")")
 source "${SCRIPT_PATH}/installation-setup.sh"
 source "${SCRIPT_PATH}/../versions.txt"
