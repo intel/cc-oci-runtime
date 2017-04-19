@@ -1,6 +1,6 @@
 Format: 3.0 (quilt)
 Source: cc-oci-runtime
-Version: 2.1.1
+Version: @VERSION@
 Section: devel
 Priority: optional
 Maintainer: clearlinux.org team <dev@lists.clearlinux.org>

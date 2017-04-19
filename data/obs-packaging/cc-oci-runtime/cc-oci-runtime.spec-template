@@ -1,6 +1,6 @@
 %undefine _missing_build_ids_terminate_build
 Name:      cc-oci-runtime
-Version:   2.1.1
+Version:   @VERSION@
 Release:   0
 Source0:   %{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
@@ -44,7 +44,6 @@ Requires:  clear-containers-selinux
 Requires:  qemu-lite
 Requires:  linux-container
 Patch1: update_commit_id.patch
-Patch2: genfile.patch
 
 %description
 .. contents::
@@ -87,7 +86,6 @@ extras components for the cc-oci-runtime package.
 %prep
 %setup -q
 %patch1 -p1
-%patch2 -p1
 
 %build
 export LANG=C
@@ -100,7 +98,8 @@ sh ./autogen.sh --disable-static --enable-valgrind \
 --with-cc-kernel=/usr/share/clear-containers/vmlinux.container \
 --with-cc-image=/usr/share/clear-containers/clear-containers.img \
 --with-cc-image-systemdsystemunitdir=/usr/lib/systemd/system \
---enable-autogopath
+--enable-autogopath \
+--disable-crio-tests
 make V=1  %{?_smp_mflags}
 
 %check
@@ -160,4 +159,4 @@ rm -rf %{buildroot}
 %post
 /usr/bin/systemctl enable cc-proxy.socket
 /usr/bin/systemctl daemon-reload
-/usr/bin/systemctl restart cc-proxy.socket
+/usr/bin/systemctl restart cc-proxy

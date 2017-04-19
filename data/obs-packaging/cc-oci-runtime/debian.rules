@@ -16,7 +16,8 @@ override_dh_auto_configure:
 	--with-cc-image=/usr/share/clear-containers/clear-containers.img \
 	--with-cc-image-systemdsystemunitdir=/usr/lib/systemd/system \
 	--with-systemdsystemunitdir=/usr/lib/systemd/system \
-	--enable-autogopath
+	--enable-autogopath \
+	--disable-crio-tests
 
 override_dh_auto_build:
 	make V=1
