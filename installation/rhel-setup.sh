@@ -29,6 +29,8 @@ source "${SCRIPT_PATH}/../versions.txt"
 # List of packages to install to satisfy build dependencies
 pkgs=""
 
+mnl_dev_pkg="libmnl-devel"
+
 # general
 pkgs+=" zlib-devel"
 pkgs+=" gettext-devel"
@@ -44,7 +46,7 @@ pkgs+=" yum-utils"
 # runtime dependencies
 pkgs+=" libuuid-devel"
 pkgs+=" libmnl"
-pkgs+=" libmnl-devel"
+pkgs+=" ${mnl_dev_pkg}"
 pkgs+=" libffi-devel"
 pkgs+=" pcre-devel"
 
@@ -55,6 +57,30 @@ pkgs+=" libcap-ng-devel"
 pkgs+=" pixman-devel"
 
 pkgs+=" gcc-c++"
+
+if [ "$os_distribution" = rhel ]
+then
+    # RHEL doesn't provide "*-devel" packages unless the "Optional RPMS"
+    # repository is enabled. However, to make life fun, there isn't a
+    # clean way to determine if that repository is enabled (the output
+    # format of "yum repolist" seems to change frequently and
+    # subscription-manager's output isn't designed for easy script
+    # consumption).
+    #
+    # Therefore, the safest approach seems to be to check if a known
+    # required development package is known to yum(8). If it isn't, the
+    # user will need to enable the extra repository.
+    #
+    # Note that this issue is unique to RHEL: yum on CentOS provides
+    # access to developemnt packages by default.
+
+    yum info "${mnl_dev_pkg}" >/dev/null 2>&1
+    if [ $? -ne 0 ]
+    then
+        echo >&2 "ERROR: You must enable the 'optional' repository for '*-devel' packages"
+        exit 1
+    fi
+fi
 
 if [ "$os_distribution" = rhel ]
 then
