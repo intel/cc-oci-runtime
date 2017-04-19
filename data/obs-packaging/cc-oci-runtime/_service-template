@@ -5,7 +5,7 @@
     <param name="exclude">.git</param>
     <param name="filename">cc-oci-runtime</param>
     <param name="versionformat">@PARENT_TAG@+git.%h</param>
-    <param name="revision">2.1.1</param>
+    <param name="revision">@VERSION@</param>
  </service>
  <service name="recompress">
     <param name="file">*.tar*</param>
