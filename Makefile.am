@@ -411,6 +411,15 @@ crio-tests: cc-oci-runtime cc-proxy cc-shim tests/lib/test-crio.bats
 	@timeout 4m $(BATS_PATH) -t $(srcdir)/tests/integration/cri-o
 endif
 
+if METRICS_TESTS
+METRICS_PATH := "$(abs_top_srcdir)/tests/metrics"
+metrics-tests: cc-oci-runtime cc-proxy cc-shim $(GENERATED_FILES)
+	@pushd $(METRICS_PATH); \
+	./run_docker_metrics; \
+	popd ; \
+	echo "Metrics results can be found on $(METRICS_PATH)/results"
+endif
+
 #### tests ####
 if BUILD_TESTS
 
