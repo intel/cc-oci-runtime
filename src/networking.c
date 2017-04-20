@@ -693,6 +693,7 @@ cc_oci_network_discover(struct cc_oci_config *const config,
 	gint family;
 	gchar *ifname;
 	unsigned int mtu;
+	guint discovered_networks = 0;
 
 	if (!config) {
 		return false;
@@ -799,7 +800,20 @@ cc_oci_network_discover(struct cc_oci_config *const config,
 	net->dns_ip1 = g_strdup("");
 	net->dns_ip2 = g_strdup("");
 
-	g_debug("[%d] networks discovered", g_slist_length(net->interfaces));
+	discovered_networks = g_slist_length(net->interfaces);
+	g_debug("[%d] networks discovered", discovered_networks);
+
+	/*
+	 * Skip any iptable configuration while running tests.
+	 * We create a separate network namespace with zero networks while 
+	 * running functional tests.
+	 *
+	 * The reason is we currently have a minimal set of kernel configs 
+	 * enabled for iptable rules set in Docker Swarm mode.
+	 */
+	if (discovered_networks == 0) {
+		return true;
+	}
 
 	if (! get_iptable_rules(config)) {
 		return false;
