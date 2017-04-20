@@ -31,21 +31,24 @@ nested=$(cat /sys/module/kvm_intel/parameters/nested 2>/dev/null \
 # will cause the test to fail.
 [ -z "$BATS_TEST_DIRNAME" ] && echo "INFO: Nested kvm available: $nested"
 
-if [ -n "$SEMAPHORE_CACHE_DIR" ]
+if cor_ci_env
 then
-    # Running under SemaphoreCI
-    prefix_dir="$SEMAPHORE_CACHE_DIR/cor"
-else
-    prefix_dir="$HOME/.cache/cor"
+    if [ -n "$SEMAPHORE_CACHE_DIR" ]
+    then
+        # Running under SemaphoreCI
+        prefix_dir="$SEMAPHORE_CACHE_DIR/cor"
+    else
+        prefix_dir="$HOME/.cache/cor"
+    fi
 fi
 
-deps_dir="${prefix_dir}/dependencies"
+[ -n "$deps_dir" ] || deps_dir="${prefix_dir}/dependencies"
 cor_ci_env && mkdir -p "$deps_dir" || :
 
 export LD_LIBRARY_PATH="${prefix_dir}/lib:$LD_LIBRARY_PATH"
 export PKG_CONFIG_PATH="${prefix_dir}/lib/pkgconfig:$PKG_CONFIG_PATH"
 export ACLOCAL_FLAGS="-I \"${prefix_dir}/share/aclocal\" $ACLOCAL_FLAG"
-export GOROOT=$HOME/go
+export GOROOT=${GOROOT:-$HOME/go}
 export GOPATH=$HOME/gopath
 export PATH=$GOROOT/bin:$GOPATH/bin:$PATH
 export PATH="${prefix_dir}/bin:${prefix_dir}/sbin:$PATH"
