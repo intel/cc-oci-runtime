@@ -321,6 +321,12 @@ struct cc_oci_net_cfg {
 
 	/** Network routes. */
 	GSList   *routes;
+
+	/** Iptable rules.
+	 * These are populated in Swarm mode for portmapping
+	 * and DNS.
+	 */
+	gchar *iptable_rules;
 };
 
 /** cc-specific network route data for ipv4 family. */

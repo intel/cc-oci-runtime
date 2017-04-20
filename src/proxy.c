@@ -1253,6 +1253,11 @@ cc_proxy_hyper_pod_create (struct cc_oci_config *config)
 
 	json_object_set_array_member(data, "routes", routes_array);
 
+	if (config->net.iptable_rules && *(config->net.iptable_rules)) {
+		json_object_set_string_member(data, "iptableRules",
+				config->net.iptable_rules);
+	}
+
 	if (! cc_proxy_run_hyper_cmd (config, "startpod", data)) {
 		g_critical("failed to run pod create");
 		goto out;

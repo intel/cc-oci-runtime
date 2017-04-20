@@ -74,7 +74,6 @@ setup() {
 }
 
 @test "check that the replicas' names are different" {
-	skip "this test is not working properly (see https://github.com/01org/cc-oci-runtime/issues/578)"
 	# this will help to obtain the hostname of
 	# the replicas from the curl
 	unset http_proxy
