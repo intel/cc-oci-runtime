@@ -365,6 +365,9 @@ struct cc_oci_net_if_cfg {
 	/** Name of the QEMU tap device */
 	gchar  *tap_device;
 
+	/** Path of OVS-DPDK vhost-user socket */
+	gchar	*ovs_socket_path;
+
 	/** mtu of interface **/
 	unsigned int mtu;
 
