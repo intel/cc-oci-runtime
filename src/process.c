@@ -69,6 +69,8 @@
 #include "proxy.h"
 #include "command.h"
 
+#define SHIM_ARG_COUNT 12
+
 extern struct start_data start_data;
 
 static GMainLoop* main_loop = NULL;
@@ -282,6 +284,7 @@ cc_run_hook(struct oci_cfg_hook* hook, const gchar* state,
 	char c = 0;
 	int status = 1;
 	char **args = NULL;
+	int saved_errno = 0;
 
 	if (! hook) {
 		return false;
@@ -319,11 +322,13 @@ cc_run_hook(struct oci_cfg_hook* hook, const gchar* state,
 
 		/* waiting for parent setup */
 		if (read (pipe_parent_error[0], &c, sizeof(c)) > 0) {
+			saved_errno = errno;
 			g_critical ("parent setup failed");
 			goto fail_child;
 		}
 
 		if (dup2 (stdin_pipe[0], STDIN_FILENO) < 0) {
+			saved_errno = errno;
 			g_critical ("failed to dup hook stdin");
 			goto fail_child;
 		}
@@ -335,6 +340,7 @@ cc_run_hook(struct oci_cfg_hook* hook, const gchar* state,
 		}
 
 		if (execvpe (hook->path, args, hook->env) < 0) {
+			saved_errno = errno;
 			g_critical ("failed to exec hook %s: %s",
 					hook->path, strerror (errno));
 		}
@@ -347,7 +353,7 @@ fail_child:
 		close_if_set (stdin_pipe[0]);
 		close_if_set (pipe_child_error[1]);
 		close_if_set (pipe_parent_error[0]);
-		abort();
+		exit(saved_errno);
 	}
 
 	//parent
@@ -564,6 +570,7 @@ cc_shim_launch (struct cc_oci_config *config,
 		int       proxy_io_base = -1;
 		GSocketConnection *connection = NULL;
 		GError   *error = NULL;
+		int       i = 0;
 
 		/* child */
 		close (child_err_pipe[0]);
@@ -657,25 +664,35 @@ cc_shim_launch (struct cc_oci_config *config,
 		}
 
 		/* +1 for for NULL terminator */
-		args = g_new0 (gchar *, 11+1);
+		args = g_new0 (gchar *, SHIM_ARG_COUNT+1);
 
 		/* cc-shim path can be specified via command line */
 		if (start_data.shim_path) {
-			args[0] = g_strdup (start_data.shim_path);
+			args[i++] = g_strdup (start_data.shim_path);
 		} else {
-			args[0] = g_strdup (CC_OCI_SHIM);
+			args[i++] = g_strdup (CC_OCI_SHIM);
 		}
-		args[1] = g_strdup ("-c");
-		args[2] = g_strdup (config->optarg_container_id);
-		args[3] = g_strdup ("-p");
-		args[4] = g_strdup_printf ("%d", proxy_socket_fd);
-		args[5] = g_strdup ("-o");
-		args[6] = g_strdup_printf ("%d", proxy_io_fd);
-		args[7] = g_strdup ("-s");
-		args[8] = g_strdup_printf ("%d", proxy_io_base);
+		args[i++] = g_strdup ("-c");
+		args[i++] = g_strdup (config->optarg_container_id);
+		args[i++] = g_strdup ("-p");
+		args[i++] = g_strdup_printf ("%d", proxy_socket_fd);
+		args[i++] = g_strdup ("-o");
+		args[i++] = g_strdup_printf ("%d", proxy_io_fd);
+		args[i++] = g_strdup ("-s");
+		args[i++] = g_strdup_printf ("%d", proxy_io_base);
 		if ( ! config->oci.process.terminal) {
-			args[9] = g_strdup ("-e");
-			args[10] = g_strdup_printf ("%d", proxy_io_base + 1);
+			args[i++] = g_strdup ("-e");
+			args[i++] = g_strdup_printf ("%d", proxy_io_base + 1);
+		}
+		if (initial_workload) {
+			/* cc-shim will destroy the VM when initial workload ends */
+			args[i++] = g_strdup ("-w");
+		}
+
+		if (i > SHIM_ARG_COUNT) {
+			g_critical("args index exceeds SHIM_ARG_COUNT: %d > %d",
+				i, SHIM_ARG_COUNT);
+			goto child_failed;
 		}
 
 		g_debug ("running command:");

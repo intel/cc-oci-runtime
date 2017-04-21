@@ -276,7 +276,6 @@ handle_signals(struct cc_shim *shim) {
 					shim->io_seq_no, ws.ws_row, ws.ws_col);
 			shim_debug("handled SIGWINCH for container %s (row=%d, column=%d)\n",
 				shim->container_id, ws.ws_row, ws.ws_col);
-
 		} else {
 			cmd = cmds[1];
 			ret = asprintf(&buf, "{\"container\":\"%s\", \"signal\":%d}",
@@ -455,6 +454,9 @@ handle_proxy_output(struct cc_shim *shim)
 		shim->exiting = true;
 		goto out;
 	} else if (shim->exiting && stream_len == (STREAM_HEADER_SIZE+1)) {
+		if (shim->initial_workload) {
+			send_proxy_hyper_message(shim->proxy_sock_fd, "destroypod", "\"\"");
+		}
 		code = *(buf + STREAM_HEADER_SIZE); 	// hyperstart has sent the exit status
 		shim_debug("Exit status for container: %d\n", code);
 		free(buf);
@@ -534,25 +536,27 @@ parse_numeric_option(char *input) {
 void
 print_usage(void) {
 	printf("%s: Usage\n", program_name);
-        printf("  -c,  --container-id   Container id\n");
-        printf("  -p,  --proxy-sock-fd  File descriptor of the socket connected to cc-proxy\n");
-        printf("  -o,  --proxy-io-fd    File descriptor of I/0 fd sent by the cc-proxy\n");
-        printf("  -s,  --seq-no         Sequence no for stdin and stdout\n");
-        printf("  -e,  --err-seq-no     Sequence no for stderr\n");
-        printf("  -d,  --debug          Enable debug output\n");
-        printf("  -h,  --help           Display this help message\n");
+        printf("  -c,  --container-id     Container id\n");
+        printf("  -p,  --proxy-sock-fd    File descriptor of the socket connected to cc-proxy\n");
+        printf("  -o,  --proxy-io-fd      File descriptor of I/0 fd sent by the cc-proxy\n");
+        printf("  -s,  --seq-no           Sequence no for stdin and stdout\n");
+        printf("  -e,  --err-seq-no       Sequence no for stderr\n");
+        printf("  -d,  --debug            Enable debug output\n");
+        printf("  -h,  --help             Display this help message\n");
+        printf("  -w,  --initial-workload This instance represents the initial workload and will destroy the VM when it finishes\n");
 }
 
 int
 main(int argc, char **argv)
 {
 	struct cc_shim shim = {
-		.container_id   =  NULL,
-		.proxy_sock_fd  = -1,
-		.proxy_io_fd    = -1,
-		.io_seq_no      =  0,
-		.err_seq_no     =  0,
-		.exiting        =  false,
+		.container_id     =  NULL,
+		.proxy_sock_fd    = -1,
+		.proxy_io_fd      = -1,
+		.io_seq_no        =  0,
+		.err_seq_no       =  0,
+		.exiting          =  false,
+		.initial_workload =  false,
 	};
 	int                ret;
 	struct sigaction   sa;
@@ -570,10 +574,11 @@ main(int argc, char **argv)
 		{"err-seq-no", required_argument, 0, 'e'},
 		{"debug", no_argument, 0, 'd'},
 		{"help", no_argument, 0, 'h'},
+		{"initial-workload", no_argument, 0, 'w'},
 		{ 0, 0, 0, 0},
 	};
 
-	while ((c = getopt_long(argc, argv, "c:p:o:s:e:dh", prog_opts, NULL))!= -1) {
+	while ((c = getopt_long(argc, argv, "c:p:o:s:e:dhw", prog_opts, NULL))!= -1) {
 		switch (c) {
 			case 'c':
 				shim.container_id = strdup(optarg);
@@ -606,6 +611,9 @@ main(int argc, char **argv)
 				break;
 			case 'd':
 				debug = true;
+				break;
+			case 'w':
+				shim.initial_workload = true;
 				break;
 			case 'h':
 				print_usage();

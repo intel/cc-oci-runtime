@@ -37,6 +37,25 @@ setup() {
 	$DOCKER_EXE rm $container
 }
 
+@test "Kill container with SIGUSR1" {
+	container=$(random_name)
+	exit_code=15
+	attempts=5
+	signal=SIGUSR1
+	$DOCKER_EXE run -dti --name $container ubuntu bash -c "trap \"exit ${exit_code}\" $signal ; while : ; do sleep 1; done"
+	$DOCKER_EXE kill -s $signal $container
+	# waiting kill signal
+	for i in `seq 1 $attempts` ; do
+		if [ "$($DOCKER_EXE ps -a | grep $container | grep Exited)" != "" ]; then
+			break
+		fi
+		sleep 1
+	done
+	# check exit code
+	$DOCKER_EXE ps -a | grep $container | grep "Exited (${exit_code})"
+	$DOCKER_EXE rm $container
+}
+
 teardown() {
 	check_no_processes_up
 }

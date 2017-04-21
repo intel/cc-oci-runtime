@@ -143,7 +143,6 @@ enum oci_status {
 	OCI_STATUS_RUNNING,
 	OCI_STATUS_PAUSED,
 	OCI_STATUS_STOPPED,
-	OCI_STATUS_STOPPING,
 	OCI_STATUS_INVALID = -1
 };
 
@@ -227,6 +226,12 @@ struct oci_cfg_process {
 	gboolean             terminal;
 
 	struct oci_cfg_user  user;
+
+	/** terminal rows */
+	int rows;
+
+	/** terminal columns */
+	int columns;
 
 	/** Stream IO ids allocated by \c cc_proxy_allocate_io */
 	gint                 stdio_stream;
@@ -322,6 +327,12 @@ struct cc_oci_net_cfg {
 
 	/** Network routes. */
 	GSList   *routes;
+
+	/** Iptable rules.
+	 * These are populated in Swarm mode for portmapping
+	 * and DNS.
+	 */
+	gchar *iptable_rules;
 };
 
 /** cc-specific network route data for ipv4 family. */

@@ -42,6 +42,25 @@ handle_user_section (GNode *root, struct cc_oci_config *config)
 	}
 }
 
+/*!
+ * function to handle consoleSize section
+ *
+ * \param root contains mount section.
+ * \param config \ref cc_oci_config..
+ */
+static void
+handle_console_size_section (GNode *root, struct cc_oci_config *config) {
+	if (! (root && config)) {
+		return;
+	}
+
+	if (g_strcmp0(root->data, "height") == 0) {
+		config->oci.process.rows = (int)atoi (root->children->data);
+	} else if (g_strcmp0(root->data, "width") == 0) {
+		config->oci.process.columns = (int)atoi (root->children->data);
+	}
+}
+
 static void
 handle_process_section(GNode* root, struct cc_oci_config* config) {
 	if (! (root && root->children)) {
@@ -64,6 +83,9 @@ handle_process_section(GNode* root, struct cc_oci_config* config) {
 	} else if(g_strcmp0(root->data, "user") == 0) {
 		g_node_children_foreach (root, G_TRAVERSE_ALL,
 				(GNodeForeachFunc)handle_user_section, config);
+	} else if(g_strcmp0(root->data, "consoleSize") == 0) {
+		g_node_children_foreach (root, G_TRAVERSE_ALL,
+				(GNodeForeachFunc)handle_console_size_section, config);
 	} else if(g_strcmp0(root->data, "stdio_stream") == 0) {
 		config->oci.process.stdio_stream = atoi (root->children->data);
 	} else if(g_strcmp0(root->data, "stderr_stream") == 0) {
@@ -86,6 +108,8 @@ process_handle_section(GNode* root, struct cc_oci_config* config)
 
 	config->oci.process.stdio_stream = -1;
 	config->oci.process.stderr_stream = -1;
+	config->oci.process.rows = -1;
+	config->oci.process.columns = -1;
 
 	g_node_children_foreach(root, G_TRAVERSE_ALL,
 		(GNodeForeachFunc)handle_process_section, config);

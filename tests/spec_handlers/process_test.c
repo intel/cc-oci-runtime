@@ -34,6 +34,7 @@ static struct spec_handler_test tests[] = {
 	{ TEST_DATA_DIR "/process-invalid-relative-cwd.json" , false },
 	{ TEST_DATA_DIR "/process-no-cwd.json"               , false },
 	{ TEST_DATA_DIR "/process-no-args-cwd.json"          , false },
+	{ TEST_DATA_DIR "/process-no-consolesize.json"       , true  },
 	{ TEST_DATA_DIR "/process.json"                      , true  },
 	{ NULL                                               , false },
 };

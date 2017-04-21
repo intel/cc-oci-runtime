@@ -1,9 +1,5 @@
 {
 	"process": {
-		"consoleSize": {
-			"height": 15,
-			"width": 15
-		},
 		"terminal": true,
 		"user": {
 			"uid": 0,
@@ -16,6 +12,6 @@
 			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 			"TERM=xterm"
 		],
-		"cwd": "../../tmp"
+		"cwd": "/"
 	}
 }

@@ -21,7 +21,7 @@
 #
 
 AC_PREREQ([2.69])
-AC_INIT([cc-oci-runtime], [2.1.2])
+AC_INIT([cc-oci-runtime], [2.1.5])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([foreign -Wall -Werror -Wno-portability silent-rules subdir-objects color-tests no-dist-gzip dist-xz])
 AM_SILENT_RULES([yes])
@@ -122,6 +122,19 @@ AS_IF([test x"$run_docker_tests" = x"yes"],
     [AC_SUBST([DOCKER_TESTS], [0])])
 AM_CONDITIONAL([DOCKER_TESTS], [test x"$run_docker_tests" = x"yes"])
 
+# Metrics tests
+AC_ARG_ENABLE(metrics-tests, AS_HELP_STRING([--disable-metrics-tests],
+              [disable metrics tests @<:@default=no@:>@]))
+
+AS_IF([test x"$enable_metrics_tests" = x"yes" -o x"$enable_metrics_tests" = x""],
+    [run_metrics_tests=yes],
+    [run_metrics_tests=no])
+
+AS_IF([test x"$run_metrics_tests" = x"yes"],
+    [AC_SUBST([METRICS_TESTS], [1])],
+    [AC_SUBST([METRICS_TESTS], [0])])
+AM_CONDITIONAL([METRICS_TESTS], [test x"$run_metrics_tests" = x"yes"])
+
 # CRI-O integration tests
 AC_ARG_ENABLE(crio-tests, AS_HELP_STRING([--disable-crio-tests],
               [disable CRI-O tests @<:@default=no@:>@]))
@@ -178,6 +191,19 @@ AC_ARG_WITH([cc-image-systemdsystemunitdir],
 AM_CONDITIONAL([CC_IMAGE_SYSTEMDSYSTEMUNIT],[test x"$CC_IMAGE_SYSTEMDSYSTEMUNIT_PATH" != xno])
 
 		AC_SUBST([CC_IMAGE_SYSTEMDSYSTEMUNIT], [1])
+
+AC_ARG_WITH([cc-image-bootchart-config-dir],
+	AS_HELP_STRING([--with-cc-image-bootchart-config-dir=DIR],
+				   [path to bootchart config directory for cc-image]),
+	[
+		CC_IMAGE_BOOTCHART_CONFIG_DIR=${withval}
+		AC_SUBST(CC_IMAGE_BOOTCHART_CONFIG_DIR)
+	],
+	[WITH_CC_IMAGE_BOOTCHART_CONFIG=no]
+)
+
+AM_CONDITIONAL([CC_IMAGE_BOOTCHART_CONFIG],[test x"$WITH_CC_IMAGE_BOOTCHART_CONFIG" != xno])
+
 #Check for qemu
 DEFAULT_QEMU_PATH=/usr/bin/qemu-system-x86_64
 
