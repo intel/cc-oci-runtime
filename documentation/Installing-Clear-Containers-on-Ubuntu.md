@@ -24,7 +24,7 @@ curl -fsSL https://yum.dockerproject.org/gpg | sudo apt-key add -
 sudo add-apt-repository "deb https://apt.dockerproject.org/repo/ ubuntu-xenial main"
 sudo apt-get update
 sudo apt-get install -y --allow-downgrades docker-engine=1.12.1-0~xenial
-sudo sudo apt-mark hold docker-engine
+sudo apt-mark hold docker-engine
 ```
 
 ## Setup the repository for Clear Container
