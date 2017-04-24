@@ -152,9 +152,15 @@ cor=github.com/01org/cc-oci-runtime
 # Currently it is the latest version for cc-oci-runtime
 commit=tags/2.1.0
 release=${commit##*/}
+# autoconf-archive url
+autoconf_archive_url="http://git.savannah.gnu.org/gitweb/?p=autoconf-archive.git;a=blob_plain;f=m4"
 go get "$cor"
 pushd "$GOPATH/src/$cor"
 git checkout -b "$release" "$commit"
+mkdir -p m4/
+# autoconf-archive package does not exist in RHEL we need to download all m4 files required
+curl -L "${autoconf_archive_url}/ax_code_coverage.m4" -o m4/ax_code_coverage.m4
+curl -L "${autoconf_archive_url}/ax_valgrind_check.m4" -o m4/ax_valgrind_check.m4
 ./autogen.sh \
     --prefix="${prefix_dir}" \
     --disable-tests \
