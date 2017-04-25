@@ -22,6 +22,8 @@ set -e
 
 export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/lib/pkgconfig
 
+mkdir -p m4/
+
 autoreconf --force --install --symlink --warnings=all
 
 args="\
