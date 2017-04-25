@@ -291,7 +291,7 @@ cc_proxy_sources =			\
 
 cc_proxy_extra_dist =			\
 	proxy/README.md			\
-	proxy/COPYING
+	proxy/LICENSE
 
 CHECK_DEPS += check-proxy
 
@@ -311,6 +311,10 @@ cc_shim_SOURCES = \
 	shim/utils.h \
 	shim/log.c \
 	shim/log.h
+
+cc_shim_extra_dist = \
+	shim/README.md \
+	shim/LICENSE
 
 cc_shim_CFLAGS = \
 	$(AM_CFLAGS)
@@ -353,6 +357,7 @@ EXTRA_DIST = \
 	$(cc_image_systemd_files) \
 	$(cc_proxy_sources) \
 	$(cc_proxy_extra_dist) \
+	$(cc_shim_extra_dist) \
 	$(systemdservice_in_files) \
 	data/cc-oci-runtime.sh.in \
 	data/dockerFiles/Dockerfile.fedora.in \
