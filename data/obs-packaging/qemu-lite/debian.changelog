@@ -1,3 +1,9 @@
+qemu-lite (2.7.1) stable; urgency=medium
+
+  * Update qemu-lite with patch on heap size. 
+
+ -- Geronimo Orozco <geronimo.orozco@intel.com>  Tue, 07 Mar 2017 15:27:52 -0600
+
 qemu-lite (2.7) stable; urgency=medium
 
   * Update qemu-lite with proper version.

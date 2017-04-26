@@ -1,14 +1,12 @@
 Name: qemu-lite
 Version: 2.7.1
 Release: 0
-#URL      : https://github.com/01org/qemu-lite/archive/e92ce82614409b7e640db5c43fa42207f4b9ff62.tar.gz
-#Source0  : https://github.com/01org/qemu-lite/archive/e92ce82614409b7e640db5c43fa42207f4b9ff62.tar.gz
 Source0:   %{name}-%{version}.tar.gz
 Source1: qemu-lite-rpmlintrc
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}
 Summary  : OpenBIOS development utilities
 Group    : Development/Tools
-License  : Apache-2.0 BSD-2-Clause BSD-3-Clause GPL-2.0 GPL-2.0+ GPL-3.0 LGPL-2.0+ LGPL-2.1 LGPL-3.0 MIT
+License  : BSD-2-Clause BSD-3-Clause GPL-2.0 GPL-2.0+ LGPL-2.0+ LGPL-2.1
 Requires: qemu-lite-bin
 Requires: qemu-lite-data
 BuildRequires : attr-dev
@@ -34,20 +32,9 @@ BuildRequires : pkgconfig(pixman-1)
 Patch1: configure.patch
 
 %description
-This package contains the OpenBIOS development new utilities.
-
-There are
-* toke - an IEEE 1275-1994 compliant FCode tokenizer
-* detok - an IEEE 1275-1994 compliant FCode detokenizer
-* paflof - a forth kernel running in user space
-* an fcode bytecode evaluator running in paflof
-
-See /usr/share/doc/packages/openbios for details and examples.
-
-Authors:
---------
-    Stefan Reinauer <stepan@openbios.net>
-    Segher Boessenkool <segher@openbios.net>
+===========
+QEMU is a generic and open source machine & userspace emulator and
+virtualizer.
 
 %package bin
 Summary: bin components for the qemu-lite package.
