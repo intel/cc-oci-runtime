@@ -32,10 +32,15 @@ AC_LANG(C)
 
 LT_INIT
 
-AX_VALGRIND_DFLT([sgcheck], [off])
-AX_VALGRIND_CHECK
+# Check for macros
+AC_DEFUN_ONCE([MACRO_CHECK],
+[
+	ifdef([$1], true, [AC_FATAL([Please install autoconf-archive],)])
+])
 
-AX_CODE_COVERAGE
+MACRO_CHECK([AX_VALGRIND_DFLT])
+MACRO_CHECK([AX_VALGRIND_CHECK])
+MACRO_CHECK([AX_CODE_COVERAGE])
 
 # Checks for programs.
 AC_PROG_CC
@@ -369,6 +374,10 @@ AC_ARG_ENABLE([autogopath],
 	[autogopath=false]
 )
 AM_CONDITIONAL([AUTOGOPATH], [test x$autogopath = xtrue])
+
+AX_VALGRIND_DFLT([sgcheck], [off])
+AX_VALGRIND_CHECK
+AX_CODE_COVERAGE
 
 AC_OUTPUT
 

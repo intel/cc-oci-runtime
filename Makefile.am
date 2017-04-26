@@ -426,7 +426,14 @@ if BUILD_TESTS
 if VALGRIND_ENABLED
 @VALGRIND_CHECK_RULES@
 VALGRIND_memcheck_FLAGS = --tool=memcheck --error-exitcode=1 --leak-check=full --errors-for-leak-kinds=definite,indirect --show-possibly-lost=no
-CHECK_DEPS += check-valgrind
+# by default ax_valgrind_check.m4 adds fatal-warnings and fatal-criticals to G_DEBUG causing
+# that glib aborts the program at the first call to g_warning() or g_critical().
+# this target is quite similar to check-valgrind but without fatal-warnings and fatal-criticals
+check-valgrind-local:
+	$(A''M_V_at)$(foreach tool,$(valgrind_enabled_tools), \
+		VALGRIND_TESTS_ENVIRONMENT=$(VALGRIND_TESTS_ENVIRONMENT) G_DEBUG=gc-friendly $(MAKE) -e $(AM_MAKEFLAGS) -k check-valgrind-$(tool) \
+	)
+CHECK_DEPS += check-valgrind-local
 endif
 
 if CODE_COVERAGE_ENABLED

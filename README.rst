@@ -198,6 +198,7 @@ installed on your system:
 - json-glib
 - libmnl
 - uuid
+- autoconf-archive
 
 Configure Stage
 ~~~~~~~~~~~~~~~
