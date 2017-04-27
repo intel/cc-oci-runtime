@@ -9,25 +9,20 @@ Group    : Development/Tools
 License  : BSD-2-Clause BSD-3-Clause GPL-2.0 GPL-2.0+ LGPL-2.0+ LGPL-2.1
 Requires: qemu-lite-bin
 Requires: qemu-lite-data
-BuildRequires : attr-dev
-BuildRequires : automake-dev
+BuildRequires : automake
 BuildRequires : bison
 BuildRequires : flex
-BuildRequires : glib-dev
-%if 0%{?centos_version} || 0%{?scientificlinux_version}
+BuildRequires : glib2-devel
 BuildRequires : libattr-devel
 BuildRequires : libcap-devel
 BuildRequires : libcap-ng-devel
-%else
-BuildRequires : libcap-dev
-BuildRequires : libcap-ng-dev
-%endif
 BuildRequires : libtool
-BuildRequires : libtool-dev
+BuildRequires : libtool-ltdl-devel
+BuildRequires : libtool
 BuildRequires : m4
-BuildRequires : numactl-dev
-BuildRequires : python-dev
-BuildRequires : zlib-dev
+BuildRequires : numactl-devel
+BuildRequires : python-devel
+BuildRequires : zlib
 BuildRequires : pkgconfig(pixman-1)
 Patch1: configure.patch
 
