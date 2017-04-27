@@ -1,5 +1,6 @@
 #!/bin/bash
-# Default image to build is the one specified in ../../../versions.txt
+# Default image to build is the one specified in file versions.txt
+# located at the root of the repository.
 AUTHOR=${AUTHOR:-$(git config user.name)}
 AUTHOR_EMAIL=${AUTHOR_EMAIL:-$(git config user.email)}
 DEFAULT_VERSION=`cat ../../../versions.txt  | grep clear_vm_image_version | cut -d "=" -f 2`

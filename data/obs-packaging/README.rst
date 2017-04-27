@@ -2,11 +2,12 @@
 .. sectnum::
 
 ``Clear Containers OBS spec files``
-====================================
+===================================
 
 
-The `Clear Containers`_ packages were made available via `Open Build Service`_ to allow interested parties the opportunity to try out the technology, even if they are not using Clear Linux directly.
-Once `cc-oci-runtime`_ or any of its components are updated we release a new package or set of packages.
+The `Clear Containers`_ packages are made available via `Open Build Service`_ to allow interested parties the opportunity to try out the technology, even if they are not using `Clear Linux` directly.
+
+Once `cc-oci-runtime`_ or any of its components are updated, we release a new package or set of packages.
 
 Repository:
 
@@ -15,14 +16,19 @@ Repository:
 Components
 ----------
 
-- `cc-oci-runtime`_
-- `clear-containers-image`_
-- `clear-containers-selinux`_
-- `linux-container`_
-- `qemu-lite`_
+- `cc-oci-runtime`_: The Clear Containers runtime.
+- `clear-containers-image`_: Contains the mini-OS required to run Clear
+  Containers. 
+- `clear-containers-selinux`_: SELinux policy module to run Clear Containers in
+  environments with SELinux enabled.
+- `linux-container`_: The optimised guest kernel required to run Clear
+  Containers
+- `qemu-lite`_: An optimised version of the QEMU hypervisor.
 
 
 .. _`Clear Containers`:  https://clearlinux.org/features/intel%C2%AE-clear-containers
+
+.. _`Clear Linux`: https://clearlinux.org
 
 .. _`cc-oci-runtime`: https://github.com/01org/cc-oci-runtime
 

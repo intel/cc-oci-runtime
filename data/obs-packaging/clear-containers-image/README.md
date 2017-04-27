@@ -6,4 +6,5 @@ you need to run:
 
 ``./update_image.sh``
 
-By default it will generate the specs using the version specified in ../../../versions.txt
+By default it will generate the specs using the version specified in the file
+``versions.txt`` at the the root of the repository
