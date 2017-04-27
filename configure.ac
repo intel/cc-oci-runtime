@@ -32,10 +32,12 @@ AC_LANG(C)
 
 LT_INIT
 
+source $srcdir/versions.txt
+
 # Check for macros
 AC_DEFUN_ONCE([MACRO_CHECK],
 [
-	ifdef([$1], true, [AC_FATAL([Please install autoconf-archive],)])
+	ifdef([$1], true, [AC_FATAL([Please install autoconf-archive version ${autoconf_archive_version}],)])
 ])
 
 MACRO_CHECK([AX_VALGRIND_DFLT])
@@ -154,8 +156,6 @@ AS_IF([test x"$run_crio_tests" = x"yes"],
 AM_CONDITIONAL([CRIO_TESTS], [test x"$run_crio_tests" = x"yes"])
 
 # Checks for libraries.
-source $srcdir/versions.txt
-
 PKG_CHECK_MODULES([GLIB], [glib-2.0 >= "$glib_version"], have_required_glib=yes, have_required_glib=no)
 AS_IF([test "$have_required_glib" != "yes"], AC_MSG_ERROR([ERROR: need glib ${glib_version}+ for the `G_FILE_MONITOR_WATCH_MOVES' flag]))
 
