@@ -92,9 +92,6 @@ Group    : Development/Tools
 The compression and decompression library
 
 %package -n libpng-dev
-#%if 0%{?centos_version}
-#Prefer: -libpng12-devel
-#%endif
 %if 0%{?suse_version}
 Requires : libpng16-devel
 %else

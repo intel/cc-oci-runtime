@@ -54,7 +54,6 @@ data components for the qemu-lite package.
 
 
 %prep
-#%setup -q -n qemu-2.6.0
 %setup -q
 %patch1 -p1
 

@@ -6,18 +6,17 @@ export LANG=C
 
 override_dh_auto_configure:
 	sh ./autogen.sh --disable-static \
-	--enable-valgrind \
 	--disable-cppcheck \
 	--disable-tests \
 	--disable-valgrind-memcheck \
 	--disable-functional-tests \
 	--disable-docker-tests \
+	--disable-crio-tests \
 	--with-cc-kernel=/usr/share/clear-containers/vmlinux.container \
 	--with-cc-image=/usr/share/clear-containers/clear-containers.img \
 	--with-cc-image-systemdsystemunitdir=/usr/lib/systemd/system \
 	--with-systemdsystemunitdir=/usr/lib/systemd/system \
-	--enable-autogopath \
-	--disable-crio-tests
+	--enable-autogopath
 
 override_dh_auto_build:
 	make V=1

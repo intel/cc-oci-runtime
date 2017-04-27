@@ -6,4 +6,5 @@ you need to run:
 
 ``./update_runtime.sh``
 
-By default it will generate the specs using the version specified in ../../../configure.ac
+By default it will generate the specs using the version specified in the file
+``configure.ac`` at the the root of the repository

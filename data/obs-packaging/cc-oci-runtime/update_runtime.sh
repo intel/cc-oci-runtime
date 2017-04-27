@@ -1,11 +1,10 @@
 #!/bin/bash
-# $1 new version defaults to 2.1.4
-#
+# Automation script to create specs to build cc-oci-runtime.
 # TODO
 # Create an OBS Clear-Builder user to update cc-oci-runtime
 AUTHOR=${AUTHOR:-$(git config user.name)}
 AUTHOR_EMAIL=${AUTHOR_EMAIL:-$(git config user.email)}
-DEFAULT_VERSION=`cat ../../../configure.ac  | grep cc-oci-runtime | grep AC_INIT | tr -d '[](),' | awk '{print $2}'
+DEFAULT_VERSION=`cat ../../../configure.ac  | grep cc-oci-runtime | grep AC_INIT | tr -d '[](),' | awk '{print $2}'`
 VERSION=${1:-$DEFAULT_VERSION}
 echo "Packaging cc-oci-runtime $VERSION"
 function changelog_update {

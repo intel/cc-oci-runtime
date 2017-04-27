@@ -95,11 +95,11 @@ sh ./autogen.sh --disable-static --enable-valgrind \
 --disable-valgrind-memcheck \
 --disable-functional-tests \
 --disable-docker-tests \
+--disable-crio-tests \
 --with-cc-kernel=/usr/share/clear-containers/vmlinux.container \
 --with-cc-image=/usr/share/clear-containers/clear-containers.img \
 --with-cc-image-systemdsystemunitdir=/usr/lib/systemd/system \
---enable-autogopath \
---disable-crio-tests
+--enable-autogopath
 make V=1  %{?_smp_mflags}
 
 %check
@@ -129,9 +129,6 @@ rm -rf %{buildroot}
 %exclude /usr/lib/systemd/system/cc-agent.target
 %exclude /usr/lib/systemd/system/container-workload.service
 %exclude /usr/lib/systemd/system/container.target
-%exclude /usr/lib/systemd/system/opt-rootfs-proc.mount
-%exclude /usr/lib/systemd/system/opt-rootfs-sys.mount
-%exclude /usr/lib/systemd/system/opt-rootfs.mount
 /usr/lib/systemd/system/cc-proxy.service
 /usr/lib/systemd/system/cc-proxy.socket
 
@@ -152,9 +149,6 @@ rm -rf %{buildroot}
 /usr/lib/systemd/system/cc-agent.target
 /usr/lib/systemd/system/container-workload.service
 /usr/lib/systemd/system/container.target
-/usr/lib/systemd/system/opt-rootfs-proc.mount
-/usr/lib/systemd/system/opt-rootfs-sys.mount
-/usr/lib/systemd/system/opt-rootfs.mount
 
 %post
 /usr/bin/systemctl enable cc-proxy.socket
