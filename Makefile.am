@@ -67,6 +67,7 @@ GENERATED_FILES = \
 	tests/metrics/density/docker_cpu_usage.sh \
 	tests/metrics/density/docker_memory_usage.sh \
 	tests/metrics/workload_time/cor_create_time.sh \
+	tests/metrics/network/network-metrics-cpu-consumption.sh \
 	tests/lib/test-common.bash
 
 $(GENERATED_FILES): %: %.in Makefile
@@ -370,6 +371,7 @@ EXTRA_DIST = \
 	tests/metrics/density/docker_cpu_usage.sh.in \
 	tests/metrics/density/docker_memory_usage.sh.in \
 	tests/metrics/workload_time/cor_create_time.sh.in \
+	tests/metrics/network/network-metrics-cpu-consumption.sh.in \
 	vendor \
 	data/genfile.sh \
 	data/cc-bootchart.conf
