@@ -88,6 +88,8 @@ For more information on github 'force push' workflows see [here](http://blog.ada
 
 It is perfectly fine for your Pull Request to contain more than one patch - use as many patches as you need to implement the Request (see the previously mentioned 'small patch' thoughts). Each Pull Request should only cover one topic - if you mix up different items in your patches or pull requests then you will most likely be asked to rework them.
 
+All pull requests must include a reference to the issue or issues they solve, see [Closing Issues](#Closing-issues).
+
 ## Reviews
 
 Before your Pull Requests are merged into the main code base, they will be reviewed. Anybody can review any Pull Request and leave feedback (in fact, it is encouraged), but this project runs a rotational GateKeeper schedule for who is ultimately responsible for merging the Pull Requests into the main code base. See [here](https://github.com/01org/cc-oci-runtime/wiki/GateKeeper-Schedule).
@@ -120,16 +122,21 @@ visibility on the problem and work toward resolution.
 
 ## Closing issues
 
-You can either close issues manually by adding the fixing commit SHA1 to the issue
-comments or by adding the `Fixes` keyword to your commit message:
+You must add a `Fixes` keyword along with the issues fixed in the body
+of one of your commits:
 
 ```
-Fix handling of semvers with only a single pre-release field
+install: Remove RHEL-specific code to handle missing chronic(1).
 
-Fixes #121
+Don't conditionally call chronic(1) if not running under RHEL - just
+check if chronic is available and use it if it is.
 
-Signed-off-by: James Hunt <james.o.hunt@intel.com>
+Fixes #789.
+
+Signed-off-by: James O. D. Hunt <james.o.hunt@intel.com>
 ```
 
 Github will then automatically close that issue when parsing the
 [commit message](https://help.github.com/articles/closing-issues-via-commit-messages/).
+
+If there is no an associated issue number, please create one.
