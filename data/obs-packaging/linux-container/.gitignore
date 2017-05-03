@@ -1,6 +1,0 @@
-linux-container.spec
-linux-*.tar.xz
-linux-container_*
-wd/debian/config
-wd/debian/patches/*.patch
-wd/net/*
