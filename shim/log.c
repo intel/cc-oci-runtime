@@ -28,7 +28,7 @@ static bool debug;
  */
 void shim_log_init(bool _debug)
 {
-	int syslog_options = (LOG_CONS | LOG_PID | LOG_PERROR | LOG_NOWAIT);
+	int syslog_options = (LOG_PID | LOG_NOWAIT);
 
 	debug = _debug;
 	openlog(0, syslog_options, LOG_USER);
