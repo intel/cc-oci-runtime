@@ -69,7 +69,7 @@
 #include "proxy.h"
 #include "command.h"
 
-#define SHIM_ARG_COUNT 12
+#define SHIM_ARG_COUNT 13
 
 extern struct start_data start_data;
 
@@ -687,6 +687,13 @@ cc_shim_launch (struct cc_oci_config *config,
 		if (initial_workload) {
 			/* cc-shim will destroy the VM when initial workload ends */
 			args[i++] = g_strdup ("-w");
+		}
+
+		/* Pass debug flag to shim if the runtime is invoked
+		 * with debug flag
+		 */
+		if (start_data.debug) {
+			args[i++] = g_strdup("-d");
 		}
 
 		if (i > SHIM_ARG_COUNT) {

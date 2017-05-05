@@ -399,6 +399,7 @@ handle_arguments (int argc, char **argv)
 		g_debug ("%s %s called as: %s %s", PACKAGE_STRING, GIT_COMMIT,
 			program_name, str);
 		g_free (str);
+		start_data.debug = true;
 	}
 
 	/* Now, deal with the sub-commands
