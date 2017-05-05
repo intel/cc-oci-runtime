@@ -16,6 +16,7 @@ env:
   - coverity_scan_run_condition='"$CC" = gcc'
 
 before_script:
+- "./.ci/ci-pre-checks.sh"
 - "./.ci/ci-setup.sh"
 
 script:
