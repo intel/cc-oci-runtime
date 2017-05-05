@@ -35,6 +35,7 @@ BuildRequires : qemu-lite
 BuildRequires : systemd-devel
 BuildRequires : valgrind
 BuildRequires : libtool
+BuildRequires : autoconf-archive
 %if 0%{?suse_version}
 BuildRequires : autoconf
 BuildRequires : automake
@@ -127,8 +128,6 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %exclude /usr/lib/systemd/system/cc-agent.service
 %exclude /usr/lib/systemd/system/cc-agent.target
-%exclude /usr/lib/systemd/system/container-workload.service
-%exclude /usr/lib/systemd/system/container.target
 /usr/lib/systemd/system/cc-proxy.service
 /usr/lib/systemd/system/cc-proxy.socket
 
@@ -147,8 +146,6 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 /usr/lib/systemd/system/cc-agent.service
 /usr/lib/systemd/system/cc-agent.target
-/usr/lib/systemd/system/container-workload.service
-/usr/lib/systemd/system/container.target
 
 %post
 /usr/bin/systemctl enable cc-proxy.socket
