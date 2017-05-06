@@ -24,7 +24,7 @@ BuildRequires:  elfutils
 BuildRequires:  elfutils-devel
 BuildRequires:  make >= 3.78
 BuildRequires:  openssl
-BuildRequires:  openssl-dev
+BuildRequires:  openssl-devel
 BuildRequires:  flex
 BuildRequires:  bison
 

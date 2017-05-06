@@ -1,3 +1,9 @@
+linux-container (4.9.25-58) stable; urgency=medium
+
+  * Update kernel to 4.9.25
+
+ -- Geronimo Orozco <geronimo.orozco@intel.com>  Fri, 05 May 2017 11:46:17 -0600
+
 linux-container (4.9.4-57) stable; urgency=medium
 
   * Enable REDIRECT target for iptables

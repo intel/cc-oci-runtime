@@ -2,24 +2,31 @@
 # -*- mode: shell-script; indent-tabs-mode: nil; sh-basic-offset: 4; -*-
 # ex: ts=8 sw=4 sts=4 et filetype=sh
 
-# Default kernel to build is the one specified in ../../../versions.txt
+# Automation script to create specs to build cc-oci-runtime
+# Default image to build is the one specified in file configure.ac
+# located at the root of the repository.
+# set -x
 AUTHOR=${AUTHOR:-$(git config user.name)}
 AUTHOR_EMAIL=${AUTHOR_EMAIL:-$(git config user.email)}
 
 CC_VERSIONS_FILE="../../../versions.txt"
-DEFAULT_VERSION=`cat ${CC_VERSIONS_FILE}  | grep clear_vm_kernel_version | cut -d "=" -f 2 | cut -d'-' -f 1`
-VERSION=${1:-$DEFAULT_VERSION}
+source "$CC_VERSIONS_FILE"
+VERSION=${1:-$clear_vm_kernel_version}
 
-echo "Packaging kernel $VERSION"
+OBS_PUSH=${OBS_PUSH:-false}
+
+last_release=`cat wd/debian/changelog | head -1 | awk '{print $2}' | cut -d'-' -f2 | tr -d ')'`
+next_release=$(( $last_release + 1 ))
+
+echo "Running: $0 $@"
+echo "Update linux-container to: $VERSION-$next_release"
 
 function changelog_update {
     d=`date +"%a, %d %b %Y %H:%M:%S"`
-    last_release=`cat wd/debian/changelog | head -1 | awk '{print $2}' | cut -d'-' -f2 | tr -d ')'`
-    next_release=$(( $last_release + 1 ))
     cp wd/debian/changelog wd/debian/changelog-bk
     cat <<< "linux-container ($VERSION-$next_release) stable; urgency=medium
 
-  * Update kernel to $VERSION
+  * Update kernel $VERSION
 
  -- $AUTHOR <$AUTHOR_EMAIL>  $d -0600
 " > wd/debian/changelog
@@ -44,4 +51,22 @@ cp config wd/debian/
 cd wd
 debuild -S -sa
 
-rm debian/patches/*.patch
+if [ $? = 0 ] && [ "$OBS_PUSH" = true ]
+then
+    cd ..
+    rm wd/debian/patches/*.patch
+    rm linux-container_$VERSION-${next_release}_source.build \
+    linux-container_$VERSION-${next_release}_source.changes
+    osc co home:clearlinux:preview:clear-containers-staging/linux-container
+    cd home\:clearlinux\:preview\:clear-containers-staging/linux-container/
+    osc rm linux-*.tar.xz
+    osc rm linux-container*.dsc
+    mv ../../linux-*.tar.xz .
+    mv ../../linux-container*.dsc .
+    mv ../../linux-container.spec .
+    cp ../../cmdline .
+    cp ../../config .
+    osc add linux-*.tar.xz
+    osc add linux-container*.dsc
+    osc commit -m "Update linux-container to: $VERSION-$next_release"
+fi
