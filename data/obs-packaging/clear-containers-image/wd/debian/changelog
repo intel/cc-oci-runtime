@@ -1,3 +1,9 @@
+clear-containers-image (14700-18) stable; urgency=medium
+
+  * Update to version 14700.
+
+ -- Geronimo Orozco <geronimo.orozco@intel.com>  Fri, 05 May 2017 11:38:26 -0700
+
 clear-containers-image (14590-17) stable; urgency=medium
 
   * Update to version 14590.
