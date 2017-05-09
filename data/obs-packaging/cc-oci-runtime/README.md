@@ -1,10 +1,11 @@
-#cc-oci-runtime
+# cc-oci-runtime
 
-This source rpm is the clear-containers runtime used to create clear-containers. 
-To update and generate an rpm spec and dsc to create rpm and deb packages, 
-you need to run:
+This source rpm is the Intel® Clear Containers runtime needed to create Clear
+Containers. To update and generate an rpm spec and dsc to create rpm and deb
+packages, run:
 
 ``./update_runtime.sh``
 
-By default it will generate the specs using the version specified in the file
-``configure.ac`` at the the root of the repository
+By default, the script generates the specifications using the version
+specified in the ``configure.ac`` file found at the the repository's root.
+

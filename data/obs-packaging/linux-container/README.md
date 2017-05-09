@@ -1,10 +1,10 @@
-#linux-container kernel 
+# Linux\* container kernel 
 
-This source specs is the kernel used to boot clear-containers. 
-To update and generate an rpm spec and dsc to create rpm and deb packages, 
-you need to run:
+This source specifications contain the kernel needed to boot Clear
+Containers. To update and generate an rpm spec and dsc to create rpm and deb
+packages, you need to run:
 
 ``./update_kernel.sh``
 
-By default it will generate the specs using the version specified in the file
-``versions.txt`` at the the root of the repository
+By default, the script generates the specifications using the version
+specified in the ``versions.txt`` file found at the the repository's root.
