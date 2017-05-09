@@ -1,17 +1,18 @@
-#linux-container
+# Linux\* container kernel
 
 This directory contains the sources to update rpm specfiles and debian source
-control files to generate ``cc-oci-runtime`` packages for Fedora and Ubuntu.
+control files to generate ``linux-container``, the kernel needed to boot 
+Intel® Clear Containers.
 
-There is a script to generate specs and dsc automatically, to be pushed to
-Open Build Service (http://openbuildservice.org/) and generate packages for you.
+With these files we generated fedora and ubuntu packages for this component.
 
+``./update_kernel.sh [VERSION]``
 
-``./update_kernel.sh``
+This scirpt will generate/update teh sources to create ``linux-container``
+packages.
 
-This scirpt will generate/update teh sources to create ``linux-container`` packages
   * linux-container.spec
   * lnux-container_X.X.XX-XX.dsc
 
-By default it will generate the specs using the version specified in the file
-``versions.txt`` at the the root of the repository
+By default, the script will get VERSION specified in the ``versions.txt`` file
+found at the the repository's root.

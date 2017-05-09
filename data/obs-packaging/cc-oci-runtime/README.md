@@ -1,18 +1,17 @@
-#cc-oci-runtime
+# cc-oci-runtime
 
-This directory contains the sources to update rpm specfiles and debian source
-control files to generate ``cc-oci-runtime`` packages for Fedora and Ubuntu.
+This directory contains the sources to create rpm specfiles and debian source
+control files to create ``cc-oci-runtime`` The runtime of Intel® Clear 
+Containers.
 
-There is a script to generate specs and dsc automatically, to be pushed to
-Open Build Service (http://openbuildservice.org/) and generate packages for you.
+With these files we generated fedora and ubuntu packages for this component.
 
+``./update_runtime.sh [VERSION]``
 
-``./update_runtime.sh``
+This script will update the sources to create ``cc-oci-runtime`` packages.
 
-This script will generate/update the sources to create ``cc-oci-runtime`` packages.
   * cc-oci-runtime.dsc
   * cc-oci-runtime.spec
 
-
-By default it will generate the specs using the version specified in the file
-``configure.ac`` at the the root of the repository
+By default, the script will get VERSION specified in the ``versions.txt`` file
+found at the the repository's root.

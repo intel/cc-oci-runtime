@@ -1,3 +1,4 @@
-#clear-containers-selinux
+# Intel® Clear Containers SELinux
 
-Create a tarball called clear-containers-selinux-0.1.tar.gz of the directory clear-containers-selinux-01
+Create a tarball called clear-containers-selinux-0.1.tar.gz from the 
+`clear-containers-selinux-01` directory.
