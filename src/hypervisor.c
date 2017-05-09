@@ -31,6 +31,7 @@
 
 #include "oci.h"
 #include "util.h"
+#include "networking.h"
 #include "hypervisor.h"
 #include "common.h"
 
@@ -107,6 +108,54 @@ out:
 	return g_strdup("");
 }
 
+/*
+ *
+ *
+ */
+#define DPDK_CMDLINE_OBJ "memory-backend-file,id=dpdkmem,size=2048M,mem-path=/dev/hugepages,share=on,prealloc=on"
+#define DPDK_CMDLINE_NUMA "node,memdev=dpdkmem"
+#define DPDK_CMDLINE_CHAR "socket,id=char%d,path=" VHOSTUSER_PORT_PATH
+#define DPDK_CMDLINE_NETD "type=vhost-user,id=mynet%d,chardev=char%d,vhostforce"
+#define DPDK_CMDLINE_DEV  "virtio-net-pci,netdev=mynet%d,mac=%s"
+
+/*!
+ * Expand vhostuser qemu option for character device
+ *
+ * \param if_cfg \ref cc_oci_net_if_cfg.
+ */
+static gchar *
+cc_oci_expand_vhostuser_chardev_params(struct cc_oci_net_if_cfg *if_cfg, guint index) {
+	struct cc_oci_net_ipv4_cfg *ipv4_cfg = NULL;
+	gchar *vhostuser_port_path = NULL;
+	guint i;
+
+	if (if_cfg == NULL) {
+		goto out;
+	}
+
+	/*
+	 * Need to append the interface's IP in order to identify the full
+	 * vhostuser port path.  It isn't expected that there'd be multiple IPs
+	 * associated with the interface, but to be safe, walk through the
+	 * list and double checking that the file exists on the system.
+	 */
+	for (i=0; i < g_slist_length(if_cfg->ipv4_addrs); i++) {
+		ipv4_cfg = (struct cc_oci_net_ipv4_cfg *)
+			g_slist_nth_data(if_cfg->ipv4_addrs, i);
+
+		vhostuser_port_path = g_strdup_printf(VHOSTUSER_PORT_PATH, ipv4_cfg->ip_address);
+
+		if (g_file_test (vhostuser_port_path, G_FILE_TEST_EXISTS)) {
+			// this is the match
+			g_free(vhostuser_port_path);
+			return g_strdup_printf(DPDK_CMDLINE_CHAR, index, ipv4_cfg->ip_address);
+		}
+		g_free(vhostuser_port_path);
+	}
+out:
+	return g_strdup("");
+}
+
 /*!
  * Append qemu options for networking
  *
@@ -119,6 +168,9 @@ cc_oci_append_network_args(struct cc_oci_config *config,
 {
 	gchar *netdev_params = NULL;
 	gchar *net_device_params = NULL;
+	gchar *vhostuser_params = NULL;
+	struct cc_oci_net_if_cfg *if_cfg = NULL;
+	guint vhostuser_flag = 0;
 
 	if (! (config && additional_args)) {
 		return;
@@ -128,13 +180,50 @@ cc_oci_append_network_args(struct cc_oci_config *config,
 		g_ptr_array_add(additional_args, g_strdup("-net\nnone\n"));
 	} else {
 		for (guint index = 0; index < g_slist_length(config->net.interfaces); index++) {
-			netdev_params = cc_oci_expand_netdev_cmdline(config, index);
-			net_device_params = cc_oci_expand_net_device_cmdline(config, index);
 
-			g_ptr_array_add(additional_args, g_strdup("-netdev"));
-			g_ptr_array_add(additional_args, netdev_params);
-			g_ptr_array_add(additional_args, g_strdup("-device"));
-			g_ptr_array_add(additional_args, net_device_params);
+			if_cfg = (struct cc_oci_net_if_cfg *)
+				g_slist_nth_data(config->net.interfaces, index);
+
+			if (if_cfg == NULL)
+				continue;
+
+			/*
+			 * vhostuser based networking interfaces are a special case which
+			 * requires additional parameters
+			 */
+			if (if_cfg->vhostuser_socket_path != NULL ) {
+				vhostuser_flag = 1;
+
+				g_ptr_array_add(additional_args, g_strdup("-chardev"));
+				vhostuser_params = cc_oci_expand_vhostuser_chardev_params(if_cfg, index);
+				g_ptr_array_add(additional_args, vhostuser_params);
+
+				g_ptr_array_add(additional_args, g_strdup("-netdev"));
+				g_ptr_array_add(additional_args, g_strdup_printf(DPDK_CMDLINE_NETD,index,index));
+
+				g_ptr_array_add(additional_args, g_strdup("-device"));
+				g_ptr_array_add(additional_args, g_strdup_printf(DPDK_CMDLINE_DEV,index,if_cfg->mac_address));
+			} else {
+				netdev_params = cc_oci_expand_netdev_cmdline(config, index);
+				net_device_params = cc_oci_expand_net_device_cmdline(config, index);
+				g_ptr_array_add(additional_args, g_strdup("-netdev"));
+				g_ptr_array_add(additional_args, netdev_params);
+				g_ptr_array_add(additional_args, g_strdup("-device"));
+				g_ptr_array_add(additional_args, net_device_params);
+			}
+		}
+
+		/*
+		 * If any of the interfaces detected are vhost-user based, the VM
+		 * needs to be setup as a NUMA device.  The parameter needs to
+		 * be set only once, so doing outside the loop in case there
+		 * are multiple vhost-user interfaces attached
+		 */
+		if (vhostuser_flag) {
+			g_ptr_array_add(additional_args, g_strdup("-object"));
+			g_ptr_array_add(additional_args, g_strdup(DPDK_CMDLINE_OBJ));
+			g_ptr_array_add(additional_args, g_strdup("-numa"));
+			g_ptr_array_add(additional_args, g_strdup(DPDK_CMDLINE_NUMA));
 		}
         }
 }

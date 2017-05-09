@@ -76,6 +76,7 @@
 #include "oci.h"
 #include "util.h"
 #include "netlink.h"
+#include "networking.h"
 
 #define TUNDEV "/dev/net/tun"
 
@@ -128,6 +129,7 @@ cc_oci_net_interface_free (struct cc_oci_net_if_cfg *if_cfg)
 	g_free_if_set (if_cfg->ifname);
 	g_free_if_set (if_cfg->bridge);
 	g_free_if_set (if_cfg->tap_device);
+	g_free_if_set (if_cfg->vhostuser_socket_path);
 
 	if (if_cfg->ipv4_addrs) {
 		g_slist_free_full(if_cfg->ipv4_addrs,
@@ -317,7 +319,10 @@ gboolean
 cc_oci_network_create(const struct cc_oci_config *const config,
 		      struct netlink_handle *const hndl) {
 	struct cc_oci_net_if_cfg *if_cfg = NULL;
+	struct cc_oci_net_ipv4_cfg *ipv4_cfg = NULL;
 	guint index = 0;
+	guint j = 0;
+	gchar *vhostuser_port_path = NULL;
 
 	if (config == NULL) {
 		return false;
@@ -335,6 +340,32 @@ cc_oci_network_create(const struct cc_oci_config *const config,
 
 		if_cfg = (struct cc_oci_net_if_cfg *)
 			g_slist_nth_data(config->net.interfaces, index);
+
+		/* Check to see if we are dealing with an vhost-user interface.
+		 *  To do so, we look for a particular socket file of format
+		 * v_(end-point's IP address)
+		 */
+		for (j=0; j<g_slist_length(if_cfg->ipv4_addrs); j++) {
+			ipv4_cfg = (struct cc_oci_net_ipv4_cfg *)
+				g_slist_nth_data(if_cfg->ipv4_addrs, j);
+			vhostuser_port_path = g_strdup_printf(VHOSTUSER_PORT_PATH, ipv4_cfg->ip_address);
+
+			if (g_file_test(vhostuser_port_path, G_FILE_TEST_EXISTS))  {
+				g_debug("found vhostuser port: %s", vhostuser_port_path);
+				if_cfg->vhostuser_socket_path = vhostuser_port_path;
+				continue;
+			} else {
+				g_free(vhostuser_port_path);
+			}
+		}
+		/* If we are dealing with vhost-user interface, we do
+		 * not need to setup anything -- they are already tap interfaces
+		 * and can be directly connected
+		 */
+		if( if_cfg->vhostuser_socket_path != NULL)
+			continue;
+
+
 
 		if (!cc_oci_tap_create(if_cfg->tap_device)) {
 			goto out;
