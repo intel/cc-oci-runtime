@@ -1,3 +1,9 @@
+linux-container (4.9.27-59) stable; urgency=medium
+
+  * Update kernel 4.9.27
+
+ -- Geronimo Orozco <geronimo.orozco@intel.com>  Wed, 10 May 2017 11:12:35 -0600
+
 linux-container (4.9.25-58) stable; urgency=medium
 
   * Update kernel to 4.9.25
