@@ -102,9 +102,28 @@ function get_docker_memory_usage(){
 	sleep "$WAIT_TIME"
 
 	# Get PSS memory of CC components.
+	# And check that the smem search has found the process - we get a "0"
+	#  back if that procedure fails (such as if a process has changed its name
+	#  or is not running when expected to be so)
+	# As an added bonus - this script must be run as root (or at least as
+	#  a user with enough rights to allow smem to read the smap stats for
+	#  the docker owned processes). Now if you do not have enough rights
+	#  the smem failure to read the stats will also be trapped.
 	qemu_mem="$(get_pss_memory "$QEMU_BIN")"
+	if [ "$qemu_mem" == "0" ]; then
+		die "Failed to find PSS for $QEMU_BIN"
+	fi
+
 	cc_shim_mem="$(get_pss_memory "$SHIM_BIN")"
+	if [ "$cc_shim_mem" == "0" ]; then
+		die "Failed to find PSS for $SHIM_BIN"
+	fi
+
 	proxy_mem="$(get_pss_memory "$PROXY_BIN")"
+	if [ "$proxy_mem" == "0" ]; then
+		die "Failed to find PSS for $PROXY_BIN"
+	fi
+
 	cc_proxy_mem="$(echo "scale=2; $proxy_mem / $CC_NUMBER" | bc -l)"
 	cc_mem_usage=$(echo "scale=2; $qemu_mem + $cc_shim_mem + $cc_proxy_mem" | bc -l)
 
