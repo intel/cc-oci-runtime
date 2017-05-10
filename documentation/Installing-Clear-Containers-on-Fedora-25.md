@@ -59,7 +59,9 @@ Note: this should not be necessary if you update `--default-runtime` setting in 
 ## Increase limits (optional)
 If you are running a recent enough kernel (4.3+), you should consider
 increasing the `TasksMax=` systemd setting. Without this, the number of
-Clear Containers you are able to run will be limited.  A sample of the error which may manifest can be seen at [issue 154] (https://github.com/01org/cc-oci-runtime/issues/154).
+Clear Containers you are able to run will be limited.  A example of the error
+which may occur can be seen at:
+[issue 154](https://github.com/01org/cc-oci-runtime/issues/154).
 
 
 Run the commands below and if they display `OK`, proceed, else skip this
