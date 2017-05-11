@@ -4,7 +4,7 @@ This directory contains the sources to create rpm specfiles and debian source
 control files to create ``cc-oci-runtime`` The runtime of Intel® Clear 
 Containers.
 
-With these files we generated fedora and ubuntu packages for this component.
+With these files we generated Fedora and Ubuntu packages for this component.
 
 ``./update_runtime.sh [VERSION]``
 
