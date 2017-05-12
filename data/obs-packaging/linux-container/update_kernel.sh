@@ -11,6 +11,7 @@ AUTHOR_EMAIL=${AUTHOR_EMAIL:-$(git config user.email)}
 
 CC_VERSIONS_FILE="../../../versions.txt"
 source "$CC_VERSIONS_FILE"
+clear_vm_kernel_version=$(echo $clear_vm_kernel_version | cut -d'-' -f1)
 VERSION=${1:-$clear_vm_kernel_version}
 
 OBS_PUSH=${OBS_PUSH:-false}
