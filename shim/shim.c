@@ -434,10 +434,8 @@ handle_proxy_output(struct cc_shim *shim)
 
 	buf = read_IO_message(shim, &seq, &stream_len);
 	if ((! buf) || (stream_len <= 0) || (stream_len > HYPERSTART_MAX_RECV_BYTES)) {
-		/*TODO: is exiting here more appropriate, since this denotes
-		 * error communicating with proxy or proxy has exited
-		 */
-		goto out;
+		shim_error("Misbehaving proxy. Exiting");
+		exit(EXIT_FAILURE);
 	}
 
 	if (seq == shim->io_seq_no) {
