@@ -389,7 +389,7 @@ read_IO_message(struct cc_shim *shim, uint64_t *seq, ssize_t *stream_len) {
 
 			/* Ensure amount of data is within expected bounds */
 			if (*stream_len > max_bytes) {
-				shim_warning("message too big (limit is %lu, but proxy returned %lu)",
+				shim_error("message too big (limit is %lu, but proxy returned %lu)",
 						(unsigned long int)max_bytes,
 						(unsigned long int)stream_len);
 				goto err;
