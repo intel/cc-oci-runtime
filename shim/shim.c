@@ -231,7 +231,7 @@ send_proxy_hyper_message(int fd, const char *hyper_cmd, const char *json) {
 
 	while (offset < len) {
 		ret = write(fd, proxy_ctl_msg + offset, len-offset);
-		if (ret == EINTR) {
+		if (ret == -1 && errno == EINTR) {
 			continue;
 		}
 		if (ret <= 0 ) {
