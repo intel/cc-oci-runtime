@@ -280,7 +280,7 @@ handle_signals(struct cc_shim *shim) {
 			cmd = cmds[1];
 			ret = asprintf(&buf, "{\"container\":\"%s\", \"signal\":%d}",
                                                         shim->container_id, sig);
-			shim_debug("Killed container %s with signal %d\n", shim->container_id, sig);
+			shim_debug("Sending signal %d to container %s\n", sig, shim->container_id);
 		}
 		if (ret == -1) {
 			abort();
