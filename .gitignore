@@ -70,3 +70,14 @@ data/dockerFiles/Dockerfile.ubuntu
 tests/lib/test-common.bash
 tests/functional/run-functional-tests.sh
 tests/integration/docker/test.sh
+data/obs-packaging/linux-container/wd/debian/config
+data/obs-packaging/linux-container/linux-container_*
+data/obs-packaging/linux-container/linux-*.tar.xz
+data/obs-packaging/linux-container/linux-container.spec
+data/obs-packaging/linux-container/wd/debian/patches/*.patch
+data/obs-packaging/linux-container/wd/net
+data/obs-packaging/clear-containers-image/clear-*-containers.img.xz
+data/obs-packaging/clear-containers-image/wd/debian/rules
+data/obs-packaging/clear-containers-image/clear-containers-image.spec
+data/obs-packaging/clear-containers-image/clear-containers-image_*
+home\:clearlinux*
