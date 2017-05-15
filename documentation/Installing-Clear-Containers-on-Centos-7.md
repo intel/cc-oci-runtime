@@ -1,11 +1,17 @@
 # Install the Clear Containers runtime on Centos 7
 
-
 ## Introduction
 
-Installing Clear Containers on CentOS is slightly more difficult than on other distributions mainly due to the fact that it does not provide current versions of gcc and glibc.
+Installing Clear Containers on CentOS is slightly more difficult than on other
+distributions mainly due to the fact that it does not provide current versions
+of gcc and glibc.
 
-Hence, this guide explains how to install updated packages in `/usr/local`, to avoid conflicting with the base packages.
+Hence, this guide explains how to install updated packages in `/usr/local`,
+to avoid conflicting with the base packages.
+
+Clear Containers supports the latest version of Docker CE (currently 17.05), with
+the exception of Swarm. If you want to use Swarm, you must install Docker
+version 1.12.1.
 
 ## Warning
 
@@ -137,7 +143,14 @@ $ popd
 
 ```
 
-## Install docker 1.12
+## Install docker
+
+This step is optional and required only in the case where docker is not installed
+on the system, or the explicitly supported version of docker is required.
+
+Follow one of the two options below:
+
+### Option 1) Docker 1.12.1 (for compatibility with Swarm)
 
 ```
 $ sudo tee /etc/yum.repos.d/docker.repo <<EOF
@@ -153,9 +166,21 @@ $ sudo yum install docker-engine-1.12.1-1.el7.centos.x86_64 docker-engine-selinu
 
 ```
 
-For more information on docker installation, see:
-- https://docs.docker.com/engine/installation/linux/centos/
+### Option 2) Docker 17
 
+**Warning:** Clear Containers 2.1 and Swarm will not work correctly on Docker 17.
+
+```
+$ sudo yum install -y yum-utils
+$ sudo yum-config-manager \
+    --add-repo \
+    https://download.docker.com/linux/centos/docker-ce.repo
+$ sudo yum makecache fast
+$ sudo yum install docker-ce
+```
+
+For more information on installing Docker please refer to the
+[Docker Guide](https://docs.docker.com/engine/installation/linux/centos)
 
 ## Configure docker to use Clear Containers by default
 
