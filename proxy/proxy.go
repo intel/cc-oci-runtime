@@ -333,20 +333,22 @@ func (proxy *proxy) init() error {
 	return nil
 }
 
-var nextClientID = uint64(1)
+var nextClientID = uint64(0)
 
 func (proxy *proxy) serveNewClient(proto *protocol, newConn net.Conn) {
+	// Unfortunately it's hard to find out information on the peer
+	// at the other end of a unix socket. We use a per-client ID to
+	// identify connections.  This ID needs to be unique.  To ensure
+	// this, the ID is first incremented and then assigned to prevent
+	// two peers from having the same ID.
+	atomic.AddUint64(&nextClientID, 1)
+
 	newClient := &client{
 		id:    nextClientID,
 		proxy: proxy,
 		conn:  newConn,
 	}
 
-	atomic.AddUint64(&nextClientID, 1)
-
-	// Unfortunately it's hard to find out information on the peer
-	// at the other end of a unix socket. We use a per-client ID to
-	// identify connections.
 	newClient.info(1, "client connected")
 
 	if err := proto.Serve(newConn, newClient); err != nil && err != io.EOF {
