@@ -253,14 +253,6 @@ netlink_link_add_bridge(struct netlink_handle *const hndl,
 	 */
 	#ifdef IFLA_BR_MAX
 		if (IFLA_BR_MAX > 23) {
-			/* Undefining this macro, to use the kernel
-			 * definition instead. This is not required, as the
-			 * numeric value associated with the kernel enum element will
-			 * not change, but always better to use the kernel enum
-			 * instead.
-			 */
-			#undef IFLA_BR_MCAST_SNOOPING
-
 			disable_snooping = true;
 			g_debug("Turning off multicast snooping for bridge %s",
 				name);
