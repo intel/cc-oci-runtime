@@ -39,6 +39,13 @@
 #include "util.h"
 #include "networking.h"
 
+/* We need to define this as this enum may not be present
+ * in older kernels. There isn't a way to check for its presence
+ * as the definition associated (IFLA_BR_MAX) with this enum
+ * is not available as preprocessor time.
+ */
+#define IFLA_BR_MCAST_SNOOPING 23
+
 /*!
  * Setup the netlink socket to use with netlink
  * transactions.
@@ -246,6 +253,14 @@ netlink_link_add_bridge(struct netlink_handle *const hndl,
 	 */
 	#ifdef IFLA_BR_MAX
 		if (IFLA_BR_MAX > 23) {
+			/* Undefining this macro, to use the kernel
+			 * definition instead. This is not required, as the
+			 * numeric value associated with the kernel enum element will
+			 * not change, but always better to use the kernel enum
+			 * instead.
+			 */
+			#undef IFLA_BR_MCAST_SNOOPING
+
 			disable_snooping = true;
 			g_debug("Turning off multicast snooping for bridge %s",
 				name);
