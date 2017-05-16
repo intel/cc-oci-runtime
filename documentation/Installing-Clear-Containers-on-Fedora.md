@@ -2,10 +2,10 @@
 
 ## Introduction
 
-Clear Containers 2.1 is available for Fedora versions **24** and **25**.
-Clear Containers supports the latest version of Docker CE (currently 17.05), with
-the exception of Swarm. If you want to use Swarm, you must install Docker
-version 1.12.1.
+Clear Containers 2.1 is available for Fedora\* versions **24** and **25**.
+Clear Containers supports the latest version of Docker\* CE, currently 17.05,
+with the exception of Swarm\*. If you require Swarm, install Docker version
+1.12.1.
 
 
 ## Install the Clear Containers runtime
@@ -15,16 +15,17 @@ http://download.opensuse.org/repositories/home:clearlinux:preview:clear-containe
 $ sudo dnf install cc-oci-runtime linux-container
 ```
 
-## Install docker
+## Install Docker
 
-This step is optional and required only in the case where docker is not installed
-on the system, or the explicitly supported version of docker is required.
+This step is optional and only required in case Docker is not
+installed on the system or an specific version of Docker is
+required.
 
-Follow one of the two options below:
+Execute the commands for only one of the two following options.
 
-### Option 1) Docker 1.12.1 (for compatibility with Swarm)
+### Option 1) Docker 1.12.1 compatible with Swarm
 
-Docker 1.12.1 is not available in Fedora 25, so we will pull from the Fedora 24 repository:
+Docker 1.12.1 is not available in Fedora 25. Therefore, pull from the Fedora 24 repository:
 
 ```
 $ sudo dnf config-manager --add-repo \
@@ -43,7 +44,7 @@ $ sudo dnf install docker-engine-1.12.1-1.fc24
 
 ### Option 2) Docker 17
 
-**Warning:** Clear Containers 2.1 and Swarm will not work correctly on Docker 17.
+**Caution:** Clear Containers 2.1 and Swarm will not work correctly on Docker 17.
 
 ```
 $ sudo dnf -y install dnf-plugins-core

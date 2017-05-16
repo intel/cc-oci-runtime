@@ -2,16 +2,16 @@
 
 ## Introduction
 
-Installing Clear Containers on CentOS is slightly more difficult than on other
-distributions mainly due to the fact that it does not provide current versions
-of gcc and glibc.
+Installing Clear Containers on CentOS\* is slightly more difficult than on
+other distributions. The cause is, mainly, its lack of current versions of gcc
+and glibc.
 
-Hence, this guide explains how to install updated packages in `/usr/local`,
+Hence, this guide explains how to install the updated packages in `/usr/local`,
 to avoid conflicting with the base packages.
 
-Clear Containers supports the latest version of Docker CE (currently 17.05), with
-the exception of Swarm. If you want to use Swarm, you must install Docker
-version 1.12.1.
+Clear Containers supports the latest version of Docker\* CE, currently 17.05,
+with the exception of Swarm\*. If you require Swarm, install Docker version
+1.12.1.
 
 ## Warning
 
@@ -143,14 +143,15 @@ $ popd
 
 ```
 
-## Install docker
+## Install Docker
 
-This step is optional and required only in the case where docker is not installed
-on the system, or the explicitly supported version of docker is required.
+This step is optional and only required in case Docker is not
+installed on the system or an specific version of Docker is
+required.
 
-Follow one of the two options below:
+Execute the commands for only one of the two following options.
 
-### Option 1) Docker 1.12.1 (for compatibility with Swarm)
+### Option 1) Docker 1.12.1 compatible with Swarm
 
 ```
 $ sudo tee /etc/yum.repos.d/docker.repo <<EOF
@@ -168,7 +169,7 @@ $ sudo yum install docker-engine-1.12.1-1.el7.centos.x86_64 docker-engine-selinu
 
 ### Option 2) Docker 17
 
-**Warning:** Clear Containers 2.1 and Swarm will not work correctly on Docker 17.
+**Caution:** Clear Containers 2.1 and Swarm will not work correctly on Docker 17.
 
 ```
 $ sudo yum install -y yum-utils
