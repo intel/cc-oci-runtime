@@ -14,4 +14,3 @@ qemu_lite_version=741f430a960b5b67745670e8270db91aeb083c5f
 mpfr_version=3.1.4
 gmp_version=6.1.0
 mpc_version=1.0.3
-autoconf_archive_version=2017.03.21
