@@ -156,6 +156,7 @@ DISTCHECK_CONFIGURE_FLAGS = \
 	--enable-valgrind \
 	--disable-valgrind-helgrind \
 	--disable-valgrind-drd \
+	--disable-valgrind-sgcheck \
 	--enable-code-coverage \
 	--enable-functional-tests \
 	--with-systemdsystemunitdir=/tmp/cc-distcheck/systemdunitdir/

@@ -38,7 +38,6 @@ AC_DEFUN_ONCE([MACRO_CHECK],
 	ifdef([$1], true, [AC_FATAL([Please install autoconf-archive],)])
 ])
 
-MACRO_CHECK([AX_VALGRIND_DFLT])
 MACRO_CHECK([AX_VALGRIND_CHECK])
 MACRO_CHECK([AX_CODE_COVERAGE])
 
@@ -375,7 +374,6 @@ AC_ARG_ENABLE([autogopath],
 )
 AM_CONDITIONAL([AUTOGOPATH], [test x$autogopath = xtrue])
 
-AX_VALGRIND_DFLT([sgcheck], [off])
 AX_VALGRIND_CHECK
 AX_CODE_COVERAGE
 
