@@ -22,39 +22,38 @@
 # This will measure latency when we do a ping
 # from one container to another (docker <-> docker)
 
-set -e
-
 SCRIPT_PATH=$(dirname "$(readlink -f "$0")")
 
 source "${SCRIPT_PATH}/../../lib/test-common.bash"
+source "${SCRIPT_PATH}/lib/network-test-common.bash"
 
-# Image name (ping installed by default)
-image=busybox
-# Number of packets (sent)
-number=10
-
-function setup {
-	runtime_docker
-	kill_processes_before_start
-}
+set -e
 
 # This script will perform all the measurements using a local setup
 
 # Test latency docker<->docker using ping
 
 function latency {
+	# Image name (ping installed by default)
+	local image=busybox
+	# Number of packets (sent)
+	local number=10
+	# Name of the containers
+	local server_name="network-server"
+	local client_name="network-client"
+	# Arguments to run the client
+	local extra_args="-ti --rm"
+
 	setup
-	latency_result=$(mktemp)
-	container_name="first_container"
-	second_container_name="second_container"
-	$DOCKER_EXE run -tid --name ${container_name} ${image} sh > /dev/null
-	ip_address=$($DOCKER_EXE inspect --format "{{.NetworkSettings.IPAddress}}" ${container_name})
-	$DOCKER_EXE run -ti --rm --name ${second_container_name} ${image} sh -c "ping -c ${number} ${ip_address}" > "$latency_result"
-	latency_average=$(cat $latency_result | grep avg | tail -1 | awk '{print $4}' | cut -d '/' -f 2)
-	$DOCKER_EXE rm -f ${container_name} > /dev/null
-	rm -f "$latency_result"
+	local server_command="sleep 30"
+	local server_address=$(start_server "$server_name" "$image" "$server_command")
+
+	local client_command="ping -c ${number} ${server_address}"
+	start_client "$extra_args" "$client_name" "$image" "$client_command" > "$result"
+
+	local latency_average=$(cat $result | grep avg | tail -1 | awk '{print $4}' | cut -d '/' -f 2)
+	echo "The average latency is : $latency_average ms"
+	clean_environment "$server_name"
 }
 
 latency
-echo "The average latency is : $latency_average ms"
-

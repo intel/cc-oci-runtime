@@ -23,6 +23,7 @@
 SCRIPT_PATH=$(dirname "$(readlink -f "$0")")
 
 source "${SCRIPT_PATH}/../../lib/test-common.bash"
+source "${SCRIPT_PATH}/lib/network-test-common.bash"
 
 # Port number where the server will run
 port=5201:5201
@@ -30,73 +31,64 @@ port=5201:5201
 image=gabyct/network
 # Measurement time (seconds)
 time=5
-set -e
+# Name of the containers
+server_name="network-server"
+client_name="network-client"
+# Arguments to run the client
+extra_args="-ti --rm"
 
-function setup {
-	runtime_docker
-	kill_processes_before_start
-}
+set -e
 
 # This script will perform all the measurements using a local setup using iperf3
 
 # Test single direction TCP bandwith
 function iperf3_bandwidth {
 	setup
-	bandwidth_result=$(mktemp)
-	server_command="mount -t ramfs -o size=20M ramfs /tmp && iperf3 -p ${port} -s"
-	$DOCKER_EXE run -d --name=iperf3-server ${image} bash -c "${server_command}" > /dev/null
-	server_address=$($DOCKER_EXE inspect --format "{{.NetworkSettings.IPAddress}}" $($DOCKER_EXE ps -ql))
+	local server_command="mount -t ramfs -o size=20M ramfs /tmp && iperf3 -p ${port} -s"
+	local server_address=$(start_server "$server_name" "$image" "$server_command")
 
-	client_command="mount -t ramfs -o size=20M ramfs /tmp && iperf3 -c ${server_address} -t ${time}"
-	$DOCKER_EXE run -ti --rm --name=iperf3-client ${image} bash -c "${client_command}" > "$bandwidth_result"
+	local client_command="mount -t ramfs -o size=20M ramfs /tmp && iperf3 -c ${server_address} -t ${time}"
+	start_client "$extra_args" "$client_name" "$image" "$client_command" > "$result"
 
-	total_bandwidth=$(cat $bandwidth_result | tail -n 3 | head -1 | awk '{print $(NF-2), $(NF-1)}')
-	$DOCKER_EXE rm -f iperf3-server > /dev/null
-	rm -f $bandwidth_result
+	local total_bandwidth=$(cat $result | tail -n 3 | head -1 | awk '{print $(NF-2), $(NF-1)}')
+	echo "Network bandwidth is : $total_bandwidth"
+	clean_environment "$server_name"
 }
 
 # Test jitter on single direction UDP
 function iperf3_jitter {
 	setup
-	jitter_result=$(mktemp)
-	server_command="mount -t ramfs -o size=20M ramfs /tmp && iperf3 -s -V"
-	$DOCKER_EXE run -d --name=iperf3-server ${image} bash -c "${server_command}" > /dev/null
-	server_address=$($DOCKER_EXE inspect --format "{{.NetworkSettings.IPAddress}}" $($DOCKER_EXE ps -ql))
+	local server_command="mount -t ramfs -o size=20M ramfs /tmp && iperf3 -s -V"
+	local server_address=$(start_server "$server_name" "$image" "$server_command")
 
-	client_command="mount -t ramfs -o size=20M ramfs /tmp && iperf3 -c ${server_address} -u -t ${time}"
-	$DOCKER_EXE run -ti --rm --name=iperf3-client ${image} bash -c "${client_command}"  > "$jitter_result"
+	local client_command="mount -t ramfs -o size=20M ramfs /tmp && iperf3 -c ${server_address} -u -t ${time}"
+	start_client "$extra_args" "$client_name" "$image" "$client_command" > "$result"
 
-	total_jitter=$(cat $jitter_result | tail -n 4 | head -1 | awk '{print $(NF-4), $(NF-3)}')
-	$DOCKER_EXE rm -f iperf3-server > /dev/null
-	rm -f $jitter_result
+	local total_jitter=$(cat $result | tail -n 4 | head -1 | awk '{print $(NF-4), $(NF-3)}')
+	echo "Network jitter is : $total_jitter"
+	clean_environment "$server_name"
 }
 
 # Run bi-directional TCP test, and extract results for both directions
 function iperf3_bidirectional_bandwidth_client_server {
 	setup
-	bidirectional_bandwidth_result=$(mktemp)
-	server_command="mount -t ramfs -o size=20M ramfs /tmp && iperf3 -p ${port} -s"
-	$DOCKER_EXE run -d --name=iperf3-server ${image} bash -c "${server_command}" > /dev/null
-	server_address=$($DOCKER_EXE inspect --format "{{.NetworkSettings.IPAddress}}" $($DOCKER_EXE ps -ql))
+	local server_command="mount -t ramfs -o size=20M ramfs /tmp && iperf3 -p ${port} -s"
+	local server_address=$(start_server "$server_name" "$image" "$server_command")
 
-	client_command="mount -t ramfs -o size=20M ramfs /tmp && iperf3 -c ${server_address} -d -t ${time}"
-	$DOCKER_EXE run -ti --rm --name=iperf3-client ${image} bash -c "${client_command}" > "$bidirectional_bandwidth_result"
+	local client_command="mount -t ramfs -o size=20M ramfs /tmp && iperf3 -c ${server_address} -d -t ${time}"
+	start_client "$extra_args" "$client_name" "$image" "$client_command" > "$result"
 
-	total_bidirectional_client_bandwidth=$(cat $bidirectional_bandwidth_result | tail -n 3 | head -1 | awk '{print $(NF-2), $(NF-1)}')
-	total_bidirectional_server_bandwidth=$(cat $bidirectional_bandwidth_result | tail -n 4 | head -1 | awk '{print $(NF-3), $(NF-2)}')
-	$DOCKER_EXE rm -f iperf3-server > /dev/null
-	rm -f $bidirectional_bandwidth_result
+	local total_bidirectional_client_bandwidth=$(cat $result | tail -n 3 | head -1 | awk '{print $(NF-2), $(NF-1)}')
+	local total_bidirectional_server_bandwidth=$(cat $result | tail -n 4 | head -1 | awk '{print $(NF-3), $(NF-2)}')
+	echo "Network bidirectional bandwidth (client to server) is : $total_bidirectional_client_bandwidth"
+	echo "Network bidirectional bandwidth (server to client) is : $total_bidirectional_server_bandwidth"
+	clean_environment "$server_name"
 }
 
 echo "Currently this script is using ramfs for tmp (see https://github.com/01org/cc-oci-runtime/issues/152)"
 
 iperf3_bandwidth
-echo "Network bandwidth is : $total_bandwidth"
 
 iperf3_jitter
-echo "Network jitter is : $total_jitter"
 
 iperf3_bidirectional_bandwidth_client_server
-echo "Network bidirectional bandwidth (client to server) is : $total_bidirectional_client_bandwidth"
-echo "Network bidirectional bandwidth (server to client) is : $total_bidirectional_server_bandwidth"
-

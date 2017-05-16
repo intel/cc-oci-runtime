@@ -25,39 +25,41 @@
 SCRIPT_PATH=$(dirname "$(readlink -f "$0")")
 
 source "${SCRIPT_PATH}/../../lib/test-common.bash"
+source "${SCRIPT_PATH}/lib/network-test-common.bash"
 
 set -e
-# Currently default nuttcp has a bug
-# see https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=745051
-# Image name
-image=gabyct/nuttcp
-# Measurement time (seconds)
-time=5
-
-function setup {
-	runtime_docker
-	kill_processes_before_start
-}
 
 # This script will perform all the measurements using a local setup
 
 # Test single docker->docker udp bandwidth
 
 function udp_bandwidth {
-	setup
-	bandwidth_result=$(mktemp)
-	server_command="/root/nuttcp -u -S"
-	$DOCKER_EXE run -tid --name=nuttcp-server ${image} bash > /dev/null
-	server_address=$($DOCKER_EXE inspect --format "{{.NetworkSettings.IPAddress}}" $($DOCKER_EXE ps -ql))
-	
-	client_command="/root/nuttcp -T${time} -u -Ru -i1 -l${bl} ${server_address}"	
-	$DOCKER_EXE exec nuttcp-server bash -c "${server_command}"
-	$DOCKER_EXE run -ti --rm --name=nuttcp-client ${image} bash -c "${client_command}" > "$bandwidth_result"
+	# Currently default nuttcp has a bug
+	# see https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=745051
+	# Image name
+	local image=gabyct/nuttcp
+	# Measurement time (seconds)
+	local time=5
+	# Name of the containers
+	local server_name="network-server"
+	local client_name="network-client"
+	# Arguments to run the client
+	local extra_args="-ti --rm"
 
-	total_bandwidth=$(cat "$bandwidth_result" | tail -1 | cut -d'=' -f2 | awk '{print $(NF-11), $(NF-10)}')
-	total_loss=$(cat "$bandwidth_result" | tail -1 | awk '{print $(NF-1), $(NF)}')
-	$DOCKER_EXE rm -f nuttcp-server > /dev/null
-	rm -f "$bandwidth_result"
+	setup
+	local server_command="sleep 30"
+	local server_address=$(start_server "$server_name" "$image" "$server_command")
+
+	local client_command="/root/nuttcp -T${time} -u -Ru -i1 -l${bl} ${server_address}"
+	local server_command="/root/nuttcp -u -S"
+	$DOCKER_EXE exec ${server_name} sh -c "${server_command}"
+	start_client "$extra_args" "$client_name" "$image" "$client_command" > "$result"
+
+	local total_bandwidth=$(cat "$result" | tail -1 | cut -d'=' -f2 | awk '{print $(NF-11), $(NF-10)}')	
+	local total_loss=$(cat "$result" | tail -1 | awk '{print $(NF-1), $(NF)}')
+	echo "UDP bandwidth is (${bl} buffer size) : $total_bandwidth"
+	echo "UDP % of packet loss is (${bl} buffer size) : $total_loss"
+	clean_environment "$server_name"
 }
 
 function udp_default_buffer_size {
@@ -81,9 +83,5 @@ function udp_specific_buffer_size {
 }
 
 udp_default_buffer_size
-echo "UDP bandwidth is (${bl} buffer size) : $total_bandwidth"
-echo "UDP % of packet loss is (${bl} buffer size) : $total_loss"
 
 udp_specific_buffer_size
-echo "UDP bandwidth is (${bl} buffer size) : $total_bandwidth"
-echo "UDP % of packet loss is (${bl} buffer size) : $total_loss"
