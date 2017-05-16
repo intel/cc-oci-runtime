@@ -231,7 +231,7 @@ send_proxy_hyper_message(int fd, const char *hyper_cmd, const char *json) {
 
 	while (offset < len) {
 		ret = write(fd, proxy_ctl_msg + offset, len-offset);
-		if (ret == EINTR) {
+		if (ret == -1 && errno == EINTR) {
 			continue;
 		}
 		if (ret <= 0 ) {
@@ -280,7 +280,7 @@ handle_signals(struct cc_shim *shim) {
 			cmd = cmds[1];
 			ret = asprintf(&buf, "{\"container\":\"%s\", \"signal\":%d}",
                                                         shim->container_id, sig);
-			shim_debug("Killed container %s with signal %d\n", shim->container_id, sig);
+			shim_debug("Sending signal %d to container %s\n", sig, shim->container_id);
 		}
 		if (ret == -1) {
 			abort();
@@ -389,7 +389,7 @@ read_IO_message(struct cc_shim *shim, uint64_t *seq, ssize_t *stream_len) {
 
 			/* Ensure amount of data is within expected bounds */
 			if (*stream_len > max_bytes) {
-				shim_warning("message too big (limit is %lu, but proxy returned %lu)",
+				shim_error("message too big (limit is %lu, but proxy returned %lu)",
 						(unsigned long int)max_bytes,
 						(unsigned long int)stream_len);
 				goto err;
@@ -434,10 +434,8 @@ handle_proxy_output(struct cc_shim *shim)
 
 	buf = read_IO_message(shim, &seq, &stream_len);
 	if ((! buf) || (stream_len <= 0) || (stream_len > HYPERSTART_MAX_RECV_BYTES)) {
-		/*TODO: is exiting here more appropriate, since this denotes
-		 * error communicating with proxy or proxy has exited
-		 */
-		goto out;
+		shim_error("Misbehaving proxy. Exiting");
+		exit(EXIT_FAILURE);
 	}
 
 	if (seq == shim->io_seq_no) {
