@@ -64,13 +64,13 @@ func ReadMessage(reader io.Reader, msg interface{}) error {
 		return errors.New("couldn't read the full header")
 	}
 
-	header := header{
+	hdr := header{
 		length: binary.BigEndian.Uint32(buf[0:4]),
 		flags:  binary.BigEndian.Uint32(buf[4:8]),
 	}
 
 	received := 0
-	need := int(header.length)
+	need := int(hdr.length)
 	data := make([]byte, need)
 	for received < need {
 		n, err := reader.Read(data[received:need])
