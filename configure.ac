@@ -257,9 +257,7 @@ AC_DEFINE_UNQUOTED([QEMU_PATH], ["$QEMU_PATH"], "Path to qemu with pc-lite suppo
 AC_SUBST([CMDLINE], [$(cat $srcdir/data/kernel-cmdline)])
 
 # Read Dockerfile parameters
-AC_SUBST([DOCKER_FEDORA_VERSION], [$docker_fedora_version])
 AC_SUBST([DOCKER_ENGINE_FEDORA_VERSION], [$docker_engine_fedora_version])
-AC_SUBST([DOCKER_UBUNTU_VERSION], [$docker_ubuntu_version])
 AC_SUBST([DOCKER_ENGINE_UBUNTU_VERSION], [$docker_engine_ubuntu_version])
 
 # Sytemd unit files (host)
