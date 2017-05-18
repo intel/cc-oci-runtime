@@ -57,6 +57,7 @@ configure_opts+=" --enable-valgrind"
 configure_opts+=" --disable-valgrind-helgrind"
 configure_opts+=" --disable-valgrind-drd"
 configure_opts+=" --disable-silent-rules"
+configure_opts+=" --disable-valgrind-sgcheck"
 
 if [ "$nested" = "Y" ]
 then

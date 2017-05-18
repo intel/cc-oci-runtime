@@ -29,7 +29,8 @@ autoreconf --force --install --symlink --warnings=all
 args="\
 --sysconfdir=/etc \
 --localstatedir=/var \
---prefix=/usr"
+--prefix=/usr \
+--disable-valgrind-sgcheck"
 
 set -x
 ./configure $args "$@"
