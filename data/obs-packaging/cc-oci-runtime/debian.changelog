@@ -1,8 +1,8 @@
-cc-oci-runtime (f57a266) stable; urgency=medium
+cc-oci-runtime (2.1.9) stable; urgency=medium
 
-  * Update cc-oci-runtime f57a266 f57a266
+  * Update cc-oci-runtime 2.1.9 2b6b95b
 
- -- Geronimo Orozco <geronimo.orozco@intel.com>  Fri, 19 May 2017 13:39:58 -0600
+ -- Geronimo Orozco <geronimo.orozco@intel.com>  Fri, 19 May 2017 17:25:37 -0600
 
 cc-oci-runtime (2.1.8) stable; urgency=medium
 
