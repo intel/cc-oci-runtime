@@ -58,8 +58,6 @@ GENERATED_FILES = \
 	data/cc-oci-runtime.sh \
 	data/config.json \
 	data/run-bats.sh \
-	data/dockerFiles/Dockerfile.fedora \
-	data/dockerFiles/Dockerfile.ubuntu \
 	data/vm.json \
 	tests/functional/common.bash \
 	tests/functional/run-functional-tests.sh \
@@ -363,9 +361,6 @@ EXTRA_DIST = \
 	$(cc_shim_extra_dist) \
 	$(systemdservice_in_files) \
 	data/cc-oci-runtime.sh.in \
-	data/dockerFiles/Dockerfile.fedora.in \
-	data/dockerFiles/Dockerfile.ubuntu.in \
-	data/dockerFiles/Dockerfile.clearlinux \
 	$(bats_test_sources) \
 	tests/functional/run-functional-tests.sh.in \
 	tests/integration \
