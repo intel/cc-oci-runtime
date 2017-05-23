@@ -339,12 +339,12 @@ func (proxy *proxy) serveNewClient(proto *protocol, newConn net.Conn) {
 	// Unfortunately it's hard to find out information on the peer
 	// at the other end of a unix socket. We use a per-client ID to
 	// identify connections.  This ID needs to be unique.  To ensure
-	// this, the ID is first incremented and then assigned to prevent
-	// two peers from having the same ID.
-	atomic.AddUint64(&nextClientID, 1)
+	// this, the ID is first incremented and then assigned locally
+	// to prevent two peers from having the same ID.
+	id := atomic.AddUint64(&nextClientID, 1)
 
 	newClient := &client{
-		id:    nextClientID,
+		id:    id,
 		proxy: proxy,
 		conn:  newConn,
 	}
