@@ -17,19 +17,20 @@ hash_tag=$(git log --oneline --pretty="%H %d" --decorate --tags --no-walk | grep
 [ -z "$hash_tag" ] && hash_tag=$VERSION || :
 
 OBS_PUSH=${OBS_PUSH:-false}
+OBS_RUNTIME_REPO=${OBS_RUNTIME_REPO:-home:clearlinux:preview:clear-containers-staging/cc-oci-runtime}
 
 echo "Running: $0 $@"
 echo "Update cc-oci-runtime $VERSION: ${hash_tag:0:7}"
 
 function changelog_update {
-    d=`date +"%a, %d %b %Y %H:%M:%S"`
+    d=$(date +"%a, %d %b %Y %H:%M:%S %z")
     git checkout debian.changelog
     cp debian.changelog debian.changelog-bk
     cat <<< "cc-oci-runtime ($VERSION) stable; urgency=medium
 
   * Update cc-oci-runtime $VERSION ${hash_tag:0:7}
 
- -- $AUTHOR <$AUTHOR_EMAIL>  $d -0600
+ -- $AUTHOR <$AUTHOR_EMAIL>  $d
 " > debian.changelog
     cat debian.changelog-bk >> debian.changelog
     rm debian.changelog-bk
@@ -41,12 +42,12 @@ sed "s/@VERSION@/$VERSION/g;" cc-oci-runtime.dsc-template > cc-oci-runtime.dsc
 sed "s/@VERSION@/$VERSION/g;" _service-template > _service
 sed "s/@HASH_TAG@/$hash_tag/g;" update_commit_id.patch-template > update_commit_id.patch
 
-# Update and package OBS
+ Update and package OBS
 if [ "$OBS_PUSH" = true ]
 then
     temp=$(basename $0)
     TMPDIR=$(mktemp -d -t ${temp}.XXXXXXXXXXX) || exit 1
-    osc co home:clearlinux:preview:clear-containers-staging/cc-oci-runtime -o $TMPDIR
+    osc co "$OBS_RUNTIME_REPO" -o $TMPDIR
     mv cc-oci-runtime.spec \
         cc-oci-runtime.dsc \
         _service \
