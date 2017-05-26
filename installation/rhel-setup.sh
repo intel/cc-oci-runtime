@@ -150,7 +150,7 @@ sudo yum -y install linux-container clear-containers-image
 export PATH=$PATH:"${prefix_dir}"/go/bin
 cor=github.com/01org/cc-oci-runtime
 # Currently it is the latest version for cc-oci-runtime
-commit=tags/2.1.0
+commit=tags/2.1.9
 release=${commit##*/}
 # autoconf-archive url
 autoconf_archive_url="http://git.savannah.gnu.org/gitweb/?p=autoconf-archive.git;a=blob_plain;f=m4"
