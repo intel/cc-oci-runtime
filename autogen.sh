@@ -22,12 +22,15 @@ set -e
 
 export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/lib/pkgconfig
 
+mkdir -p m4/
+
 autoreconf --force --install --symlink --warnings=all
 
 args="\
 --sysconfdir=/etc \
 --localstatedir=/var \
---prefix=/usr"
+--prefix=/usr \
+--disable-valgrind-sgcheck"
 
 set -x
 ./configure $args "$@"

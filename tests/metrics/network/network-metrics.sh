@@ -19,104 +19,44 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 # Description:
-#  Test inter (docker<->docker) network bandwidths and jitters
-# using iperf2
+#  Test inter (docker<->docker) bidirectional network bandwidth using iperf2
 
 SCRIPT_PATH=$(dirname "$(readlink -f "$0")")
 
 source "${SCRIPT_PATH}/../../lib/test-common.bash"
+source "${SCRIPT_PATH}/lib/network-test-common.bash"
 
-# Port number where the server will run
-port=5001:5001
-# Image name
-image=gabyct/network
-# Measurement time (seconds)
-time=5
 set -e
 
-function setup {
-        runtime_docker
-        kill_processes_before_start
-}
-
 # This script will perform all the measurements using a local setup
-
-# Test single TCP docker->docker iperf bandwidth
-function bandwidth {
-	setup
-	bandwidth_result=$(mktemp)
-	server_command="iperf -p ${port} -s"
-	$DOCKER_EXE run -d --name=iperf-server ${image} bash -c "${server_command}" > /dev/null
-	server_address=$($DOCKER_EXE inspect --format "{{.NetworkSettings.IPAddress}}" $($DOCKER_EXE ps -ql))
-
-	client_command="iperf -c ${server_address} -t ${time}"
-	$DOCKER_EXE run -ti --rm --name=iperf-client ${image} bash -c "${client_command}" > "$bandwidth_result"
-
-	total_bandwidth=$(cat $bandwidth_result | tail -1 | awk '{print $(NF-1), $NF}')
-	$DOCKER_EXE rm -f iperf-server > /dev/null
-	rm -f $bandwidth_result
-}
-
-# Test single UDP docker->docker jitter
-function jitter {
-	setup
-	jitter_result=$(mktemp)
-	server_command="iperf -p ${port} -u -s"
-	$DOCKER_EXE run -d --name=iperf-server ${image} bash -c "${server_command}" > /dev/null
-	server_address=$($DOCKER_EXE inspect --format "{{.NetworkSettings.IPAddress}}" $($DOCKER_EXE ps -ql))
-
-	client_command="iperf -c ${server_address} -u -t ${time}"
-	$DOCKER_EXE run -ti --rm --name=iperf-client ${image} bash -c "${client_command}" > "$jitter_result"
-
-	total_jitter=$(cat $jitter_result | tail -1 | awk '{print $(NF-4), $(NF-3)}')
-	$DOCKER_EXE rm -f iperf-server > /dev/null
-	rm -f $jitter_result
-}
-
-# Test TCP docker->docker bandwidth with multiple network connections (parallelism)
-function bandwidth_multiple_tcp_connections {
-	setup
-	number_tcp_connections=8
-	multiple_tcp_result=$(mktemp)
-	server_command="iperf -p ${port} -s"
-	$DOCKER_EXE run -d --name=iperf-server ${image} bash -c "${server_command}" > /dev/null
-	server_address=$($DOCKER_EXE inspect --format "{{.NetworkSettings.IPAddress}}" $($DOCKER_EXE ps -ql))
-
-	client_command="iperf -c ${server_address} -P ${number_tcp_connections} -t ${time}"
-	$DOCKER_EXE run -ti --rm --name=iperf-client ${image} bash -c "${client_command}"  > "$multiple_tcp_result"
-
-	total_multiple_tcp=$(cat $multiple_tcp_result | tail -1 | awk '{print $(NF-1), $NF}')
-	$DOCKER_EXE rm -f iperf-server > /dev/null
-	rm -f $multiple_tcp_result
-}
 
 # Test TCP bandwidth bi-directionally (docker_iperf_server<->docker_iperf_client)
 # Extract bandwidth results for both directions from the one test
 function bidirectional_bandwidth_server_client {
+	# Port number where the server will run
+	local port=5001:5001
+	# Image name
+	local image=gabyct/network
+	# Measurement time (seconds)
+	local time=5
+	# Name of the containers
+	local server_name="network-server"
+	local client_name="network-client"
+	# Arguments to run the client
+	local extra_args="-ti --rm"
+
 	setup
-	bidirectional_bandwidth_result=$(mktemp)
 	server_command="iperf -p ${port} -s"
-	$DOCKER_EXE run -d --name=iperf-server ${image} bash -c "${server_command}" > /dev/null
-	server_address=$($DOCKER_EXE inspect --format "{{.NetworkSettings.IPAddress}}" $($DOCKER_EXE ps -ql))
+	local server_address=$(start_server "$server_name" "$image" "$server_command")
 
 	client_command="iperf -c ${server_address} -d -t ${time}"
-	$DOCKER_EXE run -ti --rm --name=iperf-client ${image} bash -c "${client_command}" > "$bidirectional_bandwidth_result"
+	start_client "$extra_args" "$client_name" "$image" "$client_command" > "$result"
 
-	total_bidirectional_server_bandwidth=$(cat $bidirectional_bandwidth_result | tail -1 | awk '{print $(NF-1), $NF}')
-	total_bidirectional_client_bandwidth=$(cat $bidirectional_bandwidth_result | tail -n 2 | head -1 | awk '{print $(NF-1), $NF}')
-	$DOCKER_EXE rm -f iperf-server > /dev/null
-	rm -f $bidirectional_bandwidth_result
+	local total_bidirectional_server_bandwidth=$(cat $result | tail -1 | awk '{print $(NF-1), $NF}')
+	local total_bidirectional_client_bandwidth=$(cat $result | tail -n 2 | head -1 | awk '{print $(NF-1), $NF}')
+	echo "Bi-directional network bandwidth is (client to server) : $total_bidirectional_client_bandwidth"
+	echo "Bi-directional network bandwidth is (server to server) : $total_bidirectional_server_bandwidth"
+	clean_environment "$server_name"
 }
 
-bandwidth
-echo "Network bandwidth is : $total_bandwidth"
-
-jitter
-echo "Network jitter is : $total_jitter"
-
-bandwidth_multiple_tcp_connections
-echo "Network bandwidth for multiple TCP connections is : $total_multiple_tcp"
-
 bidirectional_bandwidth_server_client
-echo "Bi-directional network bandwidth is (client to server) : $total_bidirectional_client_bandwidth"
-echo "Bi-directional network bandwidth is (server to server) : $total_bidirectional_server_bandwidth"

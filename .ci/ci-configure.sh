@@ -19,7 +19,20 @@
 
 set -e -x
 
+# autoconf-archive url
+autoconf_archive_url="http://git.savannah.gnu.org/gitweb/?p=autoconf-archive.git;a=blob_plain;f=m4"
+
 source $(dirname "$0")/ci-common.sh
+
+mkdir -p m4/
+
+# autoconf-archive package in Ubuntu Trusty does not have code coverage and valgrind
+curl -L "${autoconf_archive_url}/ax_code_coverage.m4" -o m4/ax_code_coverage.m4
+curl -L "${autoconf_archive_url}/ax_valgrind_check.m4" -o m4/ax_valgrind_check.m4
+
+# Fix running valgrind under Travis
+# https://github.com/01org/cc-oci-runtime/commit/c4660de7672ee62a1bb63760c4928913afbc7edd
+sed -i 's|define valgrind_tool_rule =| define valgrind_tool_rule|g' m4/ax_valgrind_check.m4
 
 ./autogen.sh
 
@@ -44,6 +57,7 @@ configure_opts+=" --enable-valgrind"
 configure_opts+=" --disable-valgrind-helgrind"
 configure_opts+=" --disable-valgrind-drd"
 configure_opts+=" --disable-silent-rules"
+configure_opts+=" --disable-valgrind-sgcheck"
 
 if [ "$nested" = "Y" ]
 then

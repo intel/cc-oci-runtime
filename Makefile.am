@@ -58,8 +58,6 @@ GENERATED_FILES = \
 	data/cc-oci-runtime.sh \
 	data/config.json \
 	data/run-bats.sh \
-	data/dockerFiles/Dockerfile.fedora \
-	data/dockerFiles/Dockerfile.ubuntu \
 	data/vm.json \
 	tests/functional/common.bash \
 	tests/functional/run-functional-tests.sh \
@@ -67,6 +65,9 @@ GENERATED_FILES = \
 	tests/metrics/density/docker_cpu_usage.sh \
 	tests/metrics/density/docker_memory_usage.sh \
 	tests/metrics/workload_time/cor_create_time.sh \
+	tests/metrics/network/network-metrics-cpu-consumption.sh \
+	tests/metrics/network/network-metrics-memory-pss.sh \
+	tests/metrics/network/network-metrics-memory-rss-1g.sh \
 	tests/lib/test-common.bash
 
 $(GENERATED_FILES): %: %.in Makefile
@@ -122,12 +123,7 @@ defaults_DATA = data/vm.json data/hypervisor.args data/kernel-cmdline
 
 cc_image_systemd_files = \
 	data/cc-agent.target \
-	data/cc-agent.service \
-	data/container.target \
-	data/opt-rootfs.mount \
-	data/opt-rootfs-proc.mount \
-	data/opt-rootfs-sys.mount \
-	data/container-workload.service
+	data/cc-agent.service
 
 if CC_IMAGE_SYSTEMDSYSTEMUNIT
 ccimage_systemdfilesdir= @CC_IMAGE_SYSTEMDSYSTEMUNIT_PATH@
@@ -159,6 +155,7 @@ DISTCHECK_CONFIGURE_FLAGS = \
 	--enable-valgrind \
 	--disable-valgrind-helgrind \
 	--disable-valgrind-drd \
+	--disable-valgrind-sgcheck \
 	--enable-code-coverage \
 	--enable-functional-tests \
 	--with-systemdsystemunitdir=/tmp/cc-distcheck/systemdunitdir/
@@ -296,7 +293,7 @@ cc_proxy_sources =			\
 
 cc_proxy_extra_dist =			\
 	proxy/README.md			\
-	proxy/COPYING
+	proxy/LICENSE
 
 CHECK_DEPS += check-proxy
 
@@ -316,6 +313,10 @@ cc_shim_SOURCES = \
 	shim/utils.h \
 	shim/log.c \
 	shim/log.h
+
+cc_shim_extra_dist = \
+	shim/README.md \
+	shim/LICENSE
 
 cc_shim_CFLAGS = \
 	$(AM_CFLAGS)
@@ -358,11 +359,9 @@ EXTRA_DIST = \
 	$(cc_image_systemd_files) \
 	$(cc_proxy_sources) \
 	$(cc_proxy_extra_dist) \
+	$(cc_shim_extra_dist) \
 	$(systemdservice_in_files) \
 	data/cc-oci-runtime.sh.in \
-	data/dockerFiles/Dockerfile.fedora.in \
-	data/dockerFiles/Dockerfile.ubuntu.in \
-	data/dockerFiles/Dockerfile.clearlinux \
 	$(bats_test_sources) \
 	tests/functional/run-functional-tests.sh.in \
 	tests/integration \
@@ -370,6 +369,9 @@ EXTRA_DIST = \
 	tests/metrics/density/docker_cpu_usage.sh.in \
 	tests/metrics/density/docker_memory_usage.sh.in \
 	tests/metrics/workload_time/cor_create_time.sh.in \
+	tests/metrics/network/network-metrics-cpu-consumption.sh.in \
+	tests/metrics/network/network-metrics-memory-rss-1g.sh.in \
+	tests/metrics/network/network-metrics-memory-pss.sh.in \
 	vendor \
 	data/genfile.sh \
 	data/cc-bootchart.conf
@@ -411,13 +413,29 @@ crio-tests: cc-oci-runtime cc-proxy cc-shim tests/lib/test-crio.bats
 	@timeout 4m $(BATS_PATH) -t $(srcdir)/tests/integration/cri-o
 endif
 
+if METRICS_TESTS
+METRICS_PATH := "$(abs_top_srcdir)/tests/metrics"
+metrics-tests: cc-oci-runtime cc-proxy cc-shim $(GENERATED_FILES)
+	@pushd $(METRICS_PATH); \
+	./run_docker_metrics; \
+	popd ; \
+	echo "Metrics results can be found on $(METRICS_PATH)/results"
+endif
+
 #### tests ####
 if BUILD_TESTS
 
 if VALGRIND_ENABLED
 @VALGRIND_CHECK_RULES@
 VALGRIND_memcheck_FLAGS = --tool=memcheck --error-exitcode=1 --leak-check=full --errors-for-leak-kinds=definite,indirect --show-possibly-lost=no
-CHECK_DEPS += check-valgrind
+# by default ax_valgrind_check.m4 adds fatal-warnings and fatal-criticals to G_DEBUG causing
+# that glib aborts the program at the first call to g_warning() or g_critical().
+# this target is quite similar to check-valgrind but without fatal-warnings and fatal-criticals
+check-valgrind-local:
+	$(A''M_V_at)$(foreach tool,$(valgrind_enabled_tools), \
+		VALGRIND_TESTS_ENVIRONMENT=$(VALGRIND_TESTS_ENVIRONMENT) G_DEBUG=gc-friendly $(MAKE) -e $(AM_MAKEFLAGS) -k check-valgrind-$(tool) \
+	)
+CHECK_DEPS += check-valgrind-local
 endif
 
 if CODE_COVERAGE_ENABLED

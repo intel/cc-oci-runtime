@@ -1253,6 +1253,11 @@ cc_proxy_hyper_pod_create (struct cc_oci_config *config)
 
 	json_object_set_array_member(data, "routes", routes_array);
 
+	if (config->net.iptable_rules && *(config->net.iptable_rules)) {
+		json_object_set_string_member(data, "iptableRules",
+				config->net.iptable_rules);
+	}
+
 	if (! cc_proxy_run_hyper_cmd (config, "startpod", data)) {
 		g_critical("failed to run pod create");
 		goto out;
@@ -1416,6 +1421,14 @@ cc_proxy_run_hyper_new_container (struct cc_oci_config *config,
 	// FIXME match with config or find a good default
 	json_object_set_boolean_member (newcontainer_payload,
 			"initialize", false);
+
+	if (config->oci.process.columns > 0) {
+		json_object_set_int_member (process, "columns", config->oci.process.columns);
+	}
+
+	if (config->oci.process.rows > 0) {
+		json_object_set_int_member (process, "rows", config->oci.process.rows);
+	}
 
 	json_object_set_array_member (process, "args", args);
 	json_object_set_array_member (process, "envs", envs);

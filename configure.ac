@@ -21,7 +21,7 @@
 #
 
 AC_PREREQ([2.69])
-AC_INIT([cc-oci-runtime], [2.1.4])
+AC_INIT([cc-oci-runtime], [2.1.9])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([foreign -Wall -Werror -Wno-portability silent-rules subdir-objects color-tests no-dist-gzip dist-xz])
 AM_SILENT_RULES([yes])
@@ -32,10 +32,14 @@ AC_LANG(C)
 
 LT_INIT
 
-AX_VALGRIND_DFLT([sgcheck], [off])
-AX_VALGRIND_CHECK
+# Check for macros
+AC_DEFUN_ONCE([MACRO_CHECK],
+[
+	ifdef([$1], true, [AC_FATAL([Please install autoconf-archive],)])
+])
 
-AX_CODE_COVERAGE
+MACRO_CHECK([AX_VALGRIND_CHECK])
+MACRO_CHECK([AX_CODE_COVERAGE])
 
 # Checks for programs.
 AC_PROG_CC
@@ -121,6 +125,19 @@ AS_IF([test x"$run_docker_tests" = x"yes"],
     [AC_SUBST([DOCKER_TESTS], [1])],
     [AC_SUBST([DOCKER_TESTS], [0])])
 AM_CONDITIONAL([DOCKER_TESTS], [test x"$run_docker_tests" = x"yes"])
+
+# Metrics tests
+AC_ARG_ENABLE(metrics-tests, AS_HELP_STRING([--disable-metrics-tests],
+              [disable metrics tests @<:@default=no@:>@]))
+
+AS_IF([test x"$enable_metrics_tests" = x"yes" -o x"$enable_metrics_tests" = x""],
+    [run_metrics_tests=yes],
+    [run_metrics_tests=no])
+
+AS_IF([test x"$run_metrics_tests" = x"yes"],
+    [AC_SUBST([METRICS_TESTS], [1])],
+    [AC_SUBST([METRICS_TESTS], [0])])
+AM_CONDITIONAL([METRICS_TESTS], [test x"$run_metrics_tests" = x"yes"])
 
 # CRI-O integration tests
 AC_ARG_ENABLE(crio-tests, AS_HELP_STRING([--disable-crio-tests],
@@ -239,9 +256,7 @@ AC_DEFINE_UNQUOTED([QEMU_PATH], ["$QEMU_PATH"], "Path to qemu with pc-lite suppo
 AC_SUBST([CMDLINE], [$(cat $srcdir/data/kernel-cmdline)])
 
 # Read Dockerfile parameters
-AC_SUBST([DOCKER_FEDORA_VERSION], [$docker_fedora_version])
 AC_SUBST([DOCKER_ENGINE_FEDORA_VERSION], [$docker_engine_fedora_version])
-AC_SUBST([DOCKER_UBUNTU_VERSION], [$docker_ubuntu_version])
 AC_SUBST([DOCKER_ENGINE_UBUNTU_VERSION], [$docker_engine_ubuntu_version])
 
 # Sytemd unit files (host)
@@ -356,6 +371,9 @@ AC_ARG_ENABLE([autogopath],
 	[autogopath=false]
 )
 AM_CONDITIONAL([AUTOGOPATH], [test x$autogopath = xtrue])
+
+AX_VALGRIND_CHECK
+AX_CODE_COVERAGE
 
 AC_OUTPUT
 

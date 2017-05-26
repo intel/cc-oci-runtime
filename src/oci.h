@@ -227,6 +227,12 @@ struct oci_cfg_process {
 
 	struct oci_cfg_user  user;
 
+	/** terminal rows */
+	int rows;
+
+	/** terminal columns */
+	int columns;
+
 	/** Stream IO ids allocated by \c cc_proxy_allocate_io */
 	gint                 stdio_stream;
 	gint                 stderr_stream;
@@ -321,6 +327,12 @@ struct cc_oci_net_cfg {
 
 	/** Network routes. */
 	GSList   *routes;
+
+	/** Iptable rules.
+	 * These are populated in Swarm mode for portmapping
+	 * and DNS.
+	 */
+	gchar *iptable_rules;
 };
 
 /** cc-specific network route data for ipv4 family. */

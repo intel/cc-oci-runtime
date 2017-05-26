@@ -217,6 +217,8 @@ cc_oci_config_free (struct cc_oci_config *config)
                 (GDestroyNotify)cc_oci_net_ipv4_route_free);
 	}
 
+	g_free_if_set (config->net.iptable_rules);
+
 	cc_proxy_free (config->proxy);
 
 	g_free (config);

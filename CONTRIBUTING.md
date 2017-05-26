@@ -1,6 +1,6 @@
 # Contributing to cc-oci-runtime
 
-cc-oci-runtime is an open source project licensed under the [GPL v2 License] (https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html).
+cc-oci-runtime is an open source project licensed under the [GPL v2 License](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html).
 
 ## Coding Style (C)
 
@@ -39,7 +39,7 @@ contains a few common errors to be mindful of.
 
 ## Certificate of Origin
 
-In order to get a clear contribution chain of trust we use the [signed-off-by language] (https://01.org/community/signed-process)
+In order to get a clear contribution chain of trust we use the [signed-off-by language](https://01.org/community/signed-process)
 used by the Linux kernel project.
 
 ## Patch format
@@ -76,21 +76,23 @@ It is recommended that each of your patches fixes one thing. Smaller patches are
 
 ## Pull requests
 
-We accept [github pull requests] (https://github.com/01org/cc-oci-runtime/pulls).
+We accept [github pull requests](https://github.com/01org/cc-oci-runtime/pulls).
 
-Github has a basic introduction to the process [here] (https://help.github.com/articles/using-pull-requests/).
+Github has a basic introduction to the process [here](https://help.github.com/articles/using-pull-requests/).
 
 When submitting your Pull Request (PR), treat the Pull Request message the same you would a patch message, including pre-fixing the title with a subsystem name. Github by default seems to copy the message from your first patch, which many times is appropriate, but please ensure your message is accurate and complete for the whole Pull Request, as it ends up in the git log as the merge message.
 
 Your pull request may get some feedback and comments, and require some rework. The recommended procedure for reworking is to rework your branch to a new clean state and 'force push' it to your github. GitHub understands this action, and does sensible things in the online comment history. Do not pile patches on patches to rework your branch. Any relevant information from the github comments section should be re-worked into your patch set, as the ultimate place where your patches are documented is in the git log, and not in the github comments section.
 
-For more information on github 'force push' workflows see [here] (http://blog.adamspiers.org/2015/03/24/why-and-how-to-correctly-amend-github-pull-requests/).
+For more information on github 'force push' workflows see [here](http://blog.adamspiers.org/2015/03/24/why-and-how-to-correctly-amend-github-pull-requests/).
 
 It is perfectly fine for your Pull Request to contain more than one patch - use as many patches as you need to implement the Request (see the previously mentioned 'small patch' thoughts). Each Pull Request should only cover one topic - if you mix up different items in your patches or pull requests then you will most likely be asked to rework them.
 
+All pull requests must include a reference to the issue or issues they solve, see [Closing Issues](#Closing-issues).
+
 ## Reviews
 
-Before your Pull Requests are merged into the main code base, they will be reviewed. Anybody can review any Pull Request and leave feedback (in fact, it is encouraged), but this project runs a rotational GateKeeper schedule for who is ultimately responsible for merging the Pull Requests into the main code base. See [here] (https://github.com/01org/cc-oci-runtime/wiki/GateKeeper-Schedule).
+Before your Pull Requests are merged into the main code base, they will be reviewed. Anybody can review any Pull Request and leave feedback (in fact, it is encouraged), but this project runs a rotational GateKeeper schedule for who is ultimately responsible for merging the Pull Requests into the main code base. See [here](https://github.com/01org/cc-oci-runtime/wiki/GateKeeper-Schedule).
 
 We use an 'acknowledge' system for people to note if they agree, or disagree, with a Pull Request. We utilise some automated systems that can spot common acknowledge patterns, which include placing any of these at the beginning of a comment line:
 
@@ -120,16 +122,21 @@ visibility on the problem and work toward resolution.
 
 ## Closing issues
 
-You can either close issues manually by adding the fixing commit SHA1 to the issue
-comments or by adding the `Fixes` keyword to your commit message:
+You must add a `Fixes` keyword along with the issues fixed in the body
+of one of your commits:
 
 ```
-Fix handling of semvers with only a single pre-release field
+install: Remove RHEL-specific code to handle missing chronic(1).
 
-Fixes #121
+Don't conditionally call chronic(1) if not running under RHEL - just
+check if chronic is available and use it if it is.
 
-Signed-off-by: James Hunt <james.o.hunt@intel.com>
+Fixes #789.
+
+Signed-off-by: James O. D. Hunt <james.o.hunt@intel.com>
 ```
 
 Github will then automatically close that issue when parsing the
 [commit message](https://help.github.com/articles/closing-issues-via-commit-messages/).
+
+If there is no an associated issue number, please create one.

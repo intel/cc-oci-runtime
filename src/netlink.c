@@ -39,6 +39,13 @@
 #include "util.h"
 #include "networking.h"
 
+/* We need to define this as this enum may not be present
+ * in older kernels. There isn't a way to check for its presence
+ * as the definition associated (IFLA_BR_MAX) with this enum
+ * is not available as preprocessor time.
+ */
+#define IFLA_BR_MCAST_SNOOPING 23
+
 /*!
  * Setup the netlink socket to use with netlink
  * transactions.
@@ -213,6 +220,7 @@ netlink_link_add_bridge(struct netlink_handle *const hndl,
 	struct nlmsghdr *nlh = NULL;
 	struct ifinfomsg *ifm = NULL;
 	struct nlattr* link_attr = NULL;
+	bool disable_snooping = false;
 
 	if ((hndl == NULL) || (name == NULL)) {
 		g_critical("%s NULL parameter", __func__);
@@ -230,8 +238,36 @@ netlink_link_add_bridge(struct netlink_handle *const hndl,
 	mnl_attr_put_str(nlh, IFLA_IFNAME, name);
 	link_attr = mnl_attr_nest_start(nlh, IFLA_LINKINFO);
 	mnl_attr_put_str(nlh, IFLA_INFO_KIND, "bridge");
-	mnl_attr_nest_end(nlh, link_attr);
 
+	/* Disable multicast snooping on the bridge.
+	 * Netlink support for this was added in kernel 4.4 where
+	 * IFLA_BR_MCAST_SNOOPING was defined with value 23 in an enum.
+	 * Reference:
+	 * https://github.com/torvalds/linux/blob/master/include/uapi/linux/if_link.h
+	 *
+	 * So check if the last value of the enum is greater than 23, before
+	 * adding the value to the netlink nested attributes to be compatible
+	 * with earlier kernels.
+	 * If CONFIG_BRIDGE_IGMP_SNOOPING is disabled in a newer kernel,this
+	 * attribute is simply ignored.
+	 */
+	#ifdef IFLA_BR_MAX
+		if (IFLA_BR_MAX > 23) {
+			disable_snooping = true;
+			g_debug("Turning off multicast snooping for bridge %s",
+				name);
+			struct nlattr *link_data = mnl_attr_nest_start(nlh,
+						IFLA_INFO_DATA);
+			mnl_attr_put_u8(nlh, IFLA_BR_MCAST_SNOOPING, 0);
+			mnl_attr_nest_end(nlh, link_data);
+		}
+	#endif
+
+	if (! disable_snooping) {
+		g_debug("Not possible to turn off bridge multicast snooping");
+	}
+
+	mnl_attr_nest_end(nlh, link_attr);
 	return netlink_execute(hndl, nlh);
 }
 

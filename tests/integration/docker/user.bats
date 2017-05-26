@@ -60,7 +60,7 @@ teardown() {
 @test "Run with additional groups" {
 	run $DOCKER_EXE run --rm --group-add audio --group-add nogroup busybox id
 	[ "${status}" -eq 0 ]
-	echo "${output}" | grep "uid=0(root) gid=0(root) groups=[wheel10,()]*29(audio),99(nogroup)"
+	echo "${output}" | egrep "uid=0\(root\) gid=0\(root\) groups=[wheel10,()]*29\(audio\),[0-9]+\(nogroup\)"
 }
 
 @test "Run with non-existing numeric gid" {

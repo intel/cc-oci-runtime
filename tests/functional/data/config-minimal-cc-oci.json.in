@@ -5,6 +5,10 @@
 		"arch": "amd64"
 	},
 	"process": {
+		"consoleSize": {
+			"height": 15,
+			"width": 15
+		},
 		"terminal": false,
 		"user": {
 			"uid": 0,
