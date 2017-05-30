@@ -29,7 +29,7 @@ to this network will be connected via an L2 bridge-domain provided by VPP.
 
 ## Example: Launch two Clear Containers using VPP
 
-To use VPP, use Docker to create a network which uses the OVS-DPDK switch.
+To use VPP, use Docker to create a network which will make use of VPP.
 For example:
 
 ```
