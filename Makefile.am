@@ -68,6 +68,7 @@ GENERATED_FILES = \
 	tests/metrics/network/network-metrics-cpu-consumption.sh \
 	tests/metrics/network/network-metrics-memory-pss.sh \
 	tests/metrics/network/network-metrics-memory-rss-1g.sh \
+	tests/metrics/network/network-metrics-memory-pss-1g.sh \
 	tests/lib/test-common.bash
 
 $(GENERATED_FILES): %: %.in Makefile
@@ -372,6 +373,7 @@ EXTRA_DIST = \
 	tests/metrics/network/network-metrics-cpu-consumption.sh.in \
 	tests/metrics/network/network-metrics-memory-rss-1g.sh.in \
 	tests/metrics/network/network-metrics-memory-pss.sh.in \
+	tests/metrics/network/network-metrics-memory-pss-1g.sh.in \
 	vendor \
 	data/genfile.sh \
 	data/cc-bootchart.conf

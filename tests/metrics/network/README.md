@@ -61,6 +61,10 @@ with iperf. PSS is a meaningful representation of the memory applications use.
 `network-metrics-memory-rss-1g` measures the Resident Set Size (RSS) memory using smem while running a transfer of one Gb with nuttcp.
 RSS is a standard measure to monitor memory usage in a physical memory scheme.
 
+### `network-metrics-memory-pss-1g`
+
+`network-metrics-memory-pss-1g` measures the Proportional Set Size (PSS) memory using smem while running a transfer of one Gb with nuttcp.
+
 ## Running the networking tests
 
 Before the network tests can be run, some files must be pre-processed.
