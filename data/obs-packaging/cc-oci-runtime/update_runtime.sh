@@ -42,7 +42,7 @@ sed "s/@VERSION@/$VERSION/g;" cc-oci-runtime.dsc-template > cc-oci-runtime.dsc
 sed "s/@VERSION@/$VERSION/g;" _service-template > _service
 sed "s/@HASH_TAG@/$hash_tag/g;" update_commit_id.patch-template > update_commit_id.patch
 
- Update and package OBS
+# Update and package OBS
 if [ "$OBS_PUSH" = true ]
 then
     temp=$(basename $0)
