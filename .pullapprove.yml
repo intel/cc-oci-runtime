@@ -50,6 +50,7 @@ groups:
     users:
       - rcaballeromx
       - mltullis
+      - iphutch
     approve_by_comment:
       enabled: true
       approve_regex: '^docs-passed'
