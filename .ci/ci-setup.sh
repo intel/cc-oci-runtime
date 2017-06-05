@@ -22,6 +22,10 @@ set -e -x
 root=$(cd `dirname "$0"`/..; pwd -P)
 source "$root/versions.txt"
 
+# Run checks on commit meta-data before attempting to run the build
+# and test phases.
+$(dirname "$0")/ci-pre-checks.sh
+
 if [ "$SEMAPHORE" = true ]
 then
     # SemaphoreCI has different environments that builds can run in. The
