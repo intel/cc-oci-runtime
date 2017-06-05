@@ -15,7 +15,7 @@ clear_vm_kernel_version=$(echo $clear_vm_kernel_version | cut -d'-' -f1)
 VERSION=${1:-$clear_vm_kernel_version}
 
 OBS_PUSH=${OBS_PUSH:-false}
-OBS_CC_KERNEL_REPO=${OBS_RUNTIME_REPO:-home:clearlinux:preview:clear-containers-staging/linux-container}
+OBS_CC_KERNEL_REPO=${OBS_CC_KERNEL_REPO:-home:clearlinux:preview:clear-containers-staging/linux-container}
 
 git checkout wd/debian/changelog
 last_release=`cat wd/debian/changelog | head -1 | awk '{print $2}' | cut -d'-' -f2 | tr -d ')'`
