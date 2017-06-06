@@ -298,7 +298,7 @@ cc_proxy_extra_dist =			\
 CHECK_DEPS += check-proxy
 
 check-proxy: $(cc_proxy_sources) | $(PROXY_DEPS)
-	$(AM_V_GEN)proxy_test_common_args="-v -timeout 2s $(srcdir)/proxy" ; \
+	$(AM_V_GEN)proxy_test_common_args="-v -timeout 2s $(srcdir)/proxy $(srcdir)/proxy/api" ; \
 	go test -race $$proxy_test_common_args || go test $$proxy_test_common_args
 
 check-go:
