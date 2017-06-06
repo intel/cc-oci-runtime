@@ -14,7 +14,7 @@ source "$CC_VERSIONS_FILE"
 VERSION=${1:-$clear_vm_image_version}
 
 OBS_PUSH=${OBS_PUSH:-false}
-OBS_CC_IMAGE_REPO=${OBS_RUNTIME_REPO:-home:clearlinux:preview:clear-containers-staging/clear-containers-image}
+OBS_CC_IMAGE_REPO=${OBS_CC_IMAGE_REPO:-home:clearlinux:preview:clear-containers-staging/clear-containers-image}
 
 git checkout wd/debian/changelog
 last_release=`cat wd/debian/changelog | head -1 | awk '{print $2}' | cut -d'-' -f2 | tr -d ')'`
@@ -54,8 +54,8 @@ then
     TMPDIR=$(mktemp -d -t ${temp}.XXXXXXXXXXX) || exit 1
     cd ..
     cc_image_dir=$(pwd)
-    rm clear-containers-image_$VERSION-${next_release}_source.build \
-    clear-containers-image_$VERSION-${next_release}_source.changes
+    rm clear-containers-image_*_source.build \
+    clear-containers-image_*_source.changes
     osc co "$OBS_CC_IMAGE_REPO" -o $TMPDIR
     cd $TMPDIR
     osc rm clear-*-containers.img.xz
