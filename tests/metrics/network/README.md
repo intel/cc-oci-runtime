@@ -63,16 +63,21 @@ RSS is a standard measure to monitor memory usage in a physical memory scheme.
 
 ## Running the networking tests
 
-1. Generate the necessary files to run the individual tests with the following command:
+Before the network tests can be run, some files must be pre-processed.
+The following command will both pre-process the required files and then run
+the tests:
 
 ```
-$ sudo -E make metrics tests
+$ sudo -E make metrics-tests
 
 ```
-2. Run the networking tests using `sudo` with the following commands:
+
+Once the necessary files have been pre-processed via the above command,
+individual tests may be run by hand, for example:
 
 ```
 $ cd tests/metrics
 $ bash network/network-metrics.sh
 
 ```
+Note, some tests require `root` priviledges to operate correctly.
