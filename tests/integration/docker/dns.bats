@@ -28,9 +28,11 @@ number_of_replicas=1
 total_number_of_tests=3
 # number of attempts
 number_of_attempts=5
+# timeout to wait for swarm commands (seconds)
+timeout=120
 
 setup() {
-        source $SRC/test-common.bash
+	source $SRC/test-common.bash
 	runtime_docker
 	kill_processes_before_start
 	clean_swarm_status
@@ -42,19 +44,37 @@ setup() {
                     break;
                 fi
         done
+	info "init swarm"
 	$DOCKER_EXE swarm init ${swarm_interface_arg}
-	$DOCKER_EXE service create --name testswarm1 --replicas $number_of_replicas --publish 8080:80 nginx /bin/bash -c "hostname > /usr/share/nginx/html/hostname; nginx -g \"daemon off;\""
-	$DOCKER_EXE service create --name testswarm2 --replicas $number_of_replicas --publish 8082:80 nginx /bin/bash -c "hostname > /usr/share/nginx/html/hostname; nginx -g \"daemon off;\""	
-	$DOCKER_EXE service create --name testdns --replicas $number_of_replicas --publish 8084:80 mcastelino/nettools sleep 60000
-	while :
-        do
-                total_tests=`$DOCKER_EXE ps --filter status=running --filter ancestor=nginx:latest --filter ancestor=mcastelino/nettools:latest | wc -l`
-                if [ $total_tests -lt $total_number_of_tests ]; then
-                    sleep 1
-                else
-                        break;
-                fi
-        done
+
+	info "create service testswarm1"
+	$DOCKER_EXE service create \
+	--name testswarm1 \
+	--replicas $number_of_replicas \
+	--publish 8080:80 nginx /bin/bash \
+	-c "hostname > /usr/share/nginx/html/hostname; nginx -g \"daemon off;\""
+
+	info "create service testswarm2"
+	$DOCKER_EXE service create \
+	--name testswarm2 \
+	--replicas $number_of_replicas \
+	--publish 8082:80 nginx /bin/bash \
+	-c "hostname > /usr/share/nginx/html/hostname; nginx -g \"daemon off;\""
+
+	info "create service testdns"
+	$DOCKER_EXE service create \
+	--name testdns \
+	--replicas $number_of_replicas \
+	--publish 8084:80 \
+	mcastelino/nettools sleep 60000
+
+	info "check service testswarm1"
+	check_swarm_replicas "$number_of_replicas" "testswarm1" "$timeout"
+	info "check service testswarm2"
+	check_swarm_replicas "$number_of_replicas" "testswarm2" "$timeout"
+	info "check service testdns"
+	check_swarm_replicas "$number_of_replicas" "testdns" "$timeout"
+
 }
 
 @test "DNS test to check Server and IP Address" {
