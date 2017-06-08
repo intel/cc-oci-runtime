@@ -96,6 +96,11 @@ $(GENERATED_FILES): %: %.in Makefile
 		abs_builddir="$(abs_builddir)" \
 		$(top_srcdir)/data/genfile.sh "$<" "$@"
 
+# Sometimes you just want to generate the generated files without having
+# to do a full build or run some tests - so add a simple target rule
+# to allow that.
+generate-files: $(GENERATED_FILES)
+
 if FUNCTIONAL_TESTS
 if AUTO_BUNDLE_CREATION
 
