@@ -31,4 +31,4 @@ checkcommits \
     --need-sign-offs \
     --body-length 72 \
     --subject-length 75 \
-    --verbose
+    --verbose || true
