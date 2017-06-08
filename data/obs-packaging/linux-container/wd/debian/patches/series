@@ -1,4 +1,3 @@
-cve-2016-8632.patch
 0102-cpuidle-skip-synchronize_rcu-on-single-CPU-systems.patch
 0103-sysrq-skip-synchronize_rcu-if-there-is-no-old-op.patch
 0104-fbcon-enable-no-blink-by-default.patch
