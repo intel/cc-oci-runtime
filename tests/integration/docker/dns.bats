@@ -30,6 +30,9 @@ total_number_of_tests=3
 number_of_attempts=5
 # timeout to wait for swarm commands (seconds)
 timeout=120
+SERVICE1_NAME="nginx_service1"
+SERVICE2_NAME="nginx_service2"
+DNS_TEST_SERVICE_NAME="dnstest"
 
 setup() {
 	source $SRC/test-common.bash
@@ -47,48 +50,48 @@ setup() {
 	info "init swarm"
 	$DOCKER_EXE swarm init ${swarm_interface_arg}
 
-	info "create service testswarm1"
+	info "create service ${SERVICE1_NAME}"
 	$DOCKER_EXE service create \
-	--name testswarm1 \
+	--name "${SERVICE1_NAME}" \
 	--replicas $number_of_replicas \
 	--publish 8080:80 nginx /bin/bash \
 	-c "hostname > /usr/share/nginx/html/hostname; nginx -g \"daemon off;\""
 
-	info "create service testswarm2"
+	info "create service ${SERVICE2_NAME}"
 	$DOCKER_EXE service create \
-	--name testswarm2 \
+	--name "${SERVICE2_NAME}" \
 	--replicas $number_of_replicas \
 	--publish 8082:80 nginx /bin/bash \
 	-c "hostname > /usr/share/nginx/html/hostname; nginx -g \"daemon off;\""
 
-	info "create service testdns"
+	info "create service ${DNS_TEST_SERVICE_NAME}"
 	$DOCKER_EXE service create \
-	--name testdns \
+	--name "${DNS_TEST_SERVICE_NAME}" \
 	--replicas $number_of_replicas \
 	--publish 8084:80 \
 	mcastelino/nettools sleep 60000
 
-	info "check service testswarm1"
-	check_swarm_replicas "$number_of_replicas" "testswarm1" "$timeout"
-	info "check service testswarm2"
-	check_swarm_replicas "$number_of_replicas" "testswarm2" "$timeout"
-	info "check service testdns"
-	check_swarm_replicas "$number_of_replicas" "testdns" "$timeout"
+	info "check service ${SERVICE1_NAME}"
+	check_swarm_replicas "$number_of_replicas" "${SERVICE1_NAME}" "$timeout"
+	info "check service ${SERVICE2_NAME}"
+	check_swarm_replicas "$number_of_replicas" "${SERVICE2_NAME}" "$timeout"
+	info "check service ${DNS_TEST_SERVICE_NAME}"
+	check_swarm_replicas "$number_of_replicas" "${DNS_TEST_SERVICE_NAME}" "$timeout"
 
 }
 
 @test "DNS test to check Server and IP Address" {
 	skip "this is not working (this is related with https://github.com/01org/cc-oci-runtime/issues/578)"
-	container_id_dns=`$DOCKER_EXE ps -qf "name=testdns"`
-	expected_virtual_ip_1=`$DOCKER_EXE service inspect testswarm1 -f '{{if eq 1 (len .Endpoint.VirtualIPs)}}{{with index .Endpoint.VirtualIPs 0}}{{.Addr}}{{end}}{{end}}' | cut -d "/" -f1`
+	container_id_dns=`$DOCKER_EXE ps -qf "name=${DNS_TEST_SERVICE_NAME}"`
+	expected_virtual_ip_1=`$DOCKER_EXE service inspect "${SERVICE1_NAME}" -f '{{if eq 1 (len .Endpoint.VirtualIPs)}}{{with index .Endpoint.VirtualIPs 0}}{{.Addr}}{{end}}{{end}}' | cut -d "/" -f1`
 	ip_1=$(mktemp)
-	$DOCKER_EXE exec -it $container_id_dns nslookup testswarm1 | grep Address | tail -1 | cut -d ':' -f2 | tr -d ' ' > "$ip_1"
+	$DOCKER_EXE exec -it $container_id_dns nslookup "${SERVICE1_NAME}" | grep Address | tail -1 | cut -d ':' -f2 | tr -d ' ' > "$ip_1"
 	final_ip_1=$(mktemp)
 	sed 's/\r//g' $ip_1 > "$final_ip_1"
 	cat $final_ip_1 | grep ${expected_virtual_ip_1}
-	expected_virtual_ip_2=`$DOCKER_EXE service inspect testswarm2 -f '{{if eq 1 (len .Endpoint.VirtualIPs)}}{{with index .Endpoint.VirtualIPs 0}}{{.Addr}}{{end}}{{end}}' | cut -d "/" -f1`
+	expected_virtual_ip_2=`$DOCKER_EXE service inspect "${SERVICE2_NAME}" -f '{{if eq 1 (len .Endpoint.VirtualIPs)}}{{with index .Endpoint.VirtualIPs 0}}{{.Addr}}{{end}}{{end}}' | cut -d "/" -f1`
 	ip_2=$(mktemp)
-	$DOCKER_EXE exec -it $container_id_dns nslookup testswarm2 | grep Address | tail -1 | cut -d ':' -f2 | tr -d ' ' > "$ip_2"
+	$DOCKER_EXE exec -it $container_id_dns nslookup "${SERVICE2_NAME}" | grep Address | tail -1 | cut -d ':' -f2 | tr -d ' ' > "$ip_2"
 	final_ip_2=$(mktemp)
 	sed 's/\r//g' $ip_2 > "$final_ip_2"
 	cat $final_ip_2 | grep ${expected_virtual_ip_2}	
@@ -97,16 +100,16 @@ setup() {
 
 @test "DNS test to check hostname" {
 	skip "this is not working (this is related with https://github.com/01org/cc-oci-runtime/issues/578)"
-	container_id_dns=`$DOCKER_EXE ps -qf "name=testdns"`
-	container_id_1=`$DOCKER_EXE ps -qf "name=testswarm1"`
+	container_id_dns=`$DOCKER_EXE ps -qf "name=${DNS_TEST_SERVICE_NAME}"`
+	container_id_1=`$DOCKER_EXE ps -qf "name=${SERVICE1_NAME}"`
 	hostname_1=$(mktemp)
-	$DOCKER_EXE exec -it $container_id_dns curl testswarm1:/hostname > "$hostname_1"
+	$DOCKER_EXE exec -it $container_id_dns curl "${SERVICE1_NAME}:/hostname" > "$hostname_1"
 	final_hostname_1=$(mktemp)
 	sed 's/\r//g' $hostname_1 > "$final_hostname_1"
 	cat $final_hostname_1 | grep ${container_id_1}
-	container_id_2=`$DOCKER_EXE ps -qaf "name=testswarm2"`
+	container_id_2=`$DOCKER_EXE ps -qaf "name=${SERVICE2_NAME}"`
 	hostname_2=$(mktemp)
-	$DOCKER_EXE exec -it $container_id_dns curl testswarm2:/hostname > "$hostname_2"
+	$DOCKER_EXE exec -it $container_id_dns curl "${SERVICE2_NAME}:/hostname" > "$hostname_2"
 	final_hostname_2=$(mktemp)
 	sed 's/\r//g' $hostname_2 > "$final_hostname_2"
 	cat $final_hostname_2 | grep ${container_id_2}
@@ -114,7 +117,7 @@ setup() {
 }
 
 teardown () {
-	$DOCKER_EXE service remove testswarm1 testswarm2 testdns
+	$DOCKER_EXE service remove "${SERVICE1_NAME}" "${SERVICE2_NAME}" "${DNS_TEST_SERVICE_NAME}"
 	clean_swarm_status
 	check_no_processes_up
 }
