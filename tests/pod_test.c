@@ -31,9 +31,16 @@
 #include "oci.h"
 #include "oci-config.h"
 
+enum pod_namespace_id {
+	CC_POD_OCID = 0,
+	CC_POD_CRIO,
+	CC_POD_INVALID = -1
+};
+
 const gchar *cc_pod_container_id(const struct cc_oci_config *config);
 gboolean cc_pod_is_sandbox(const struct cc_oci_config *config);
 gboolean cc_pod_is_vm(const struct cc_oci_config *config);
+enum pod_namespace_id pod_namespace_present(struct oci_cfg_annotation *annotation);
 
 START_TEST(test_cc_pod_container_id) {
 	struct cc_oci_config *config = NULL;
@@ -127,6 +134,27 @@ START_TEST(test_cc_pod_is_vm) {
 	cc_oci_config_free (config);
 } END_TEST
 
+START_TEST(test_pod_namespace) {
+	struct oci_cfg_annotation *annotation = NULL;
+
+	ck_assert(pod_namespace_present(annotation) == CC_POD_INVALID);
+
+	annotation = g_malloc0 (sizeof (struct oci_cfg_annotation));
+	ck_assert(pod_namespace_present(annotation) == CC_POD_INVALID);
+
+	annotation->key = "foo";
+	ck_assert(pod_namespace_present(annotation) == CC_POD_INVALID);
+
+	annotation->key = "ocid/foo";
+	ck_assert(pod_namespace_present(annotation) == CC_POD_OCID);
+
+	annotation->key = "io.kubernetes.cri-o.foo";
+	ck_assert(pod_namespace_present(annotation) == CC_POD_CRIO);
+
+	/* clean up */
+	g_free(annotation);
+} END_TEST
+
 Suite* make_pod_suite(void) {
 	Suite* s = suite_create(__FILE__);
 
@@ -134,6 +162,7 @@ Suite* make_pod_suite(void) {
 	ADD_TEST (test_cc_pod_is_pod_sandbox, s);
 	ADD_TEST (test_cc_pod_is_pod_container, s);
 	ADD_TEST (test_cc_pod_is_vm, s);
+	ADD_TEST (test_pod_namespace, s);
 
 	return s;
 }

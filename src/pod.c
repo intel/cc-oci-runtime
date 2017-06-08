@@ -18,19 +18,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-/* Sandbox rootfs */
-#define CC_POD_SANDBOX_ROOTFS "workloads"
-
-/* CRI-O/ocid namespaces */
-#define CC_POD_OCID_NAMESPACE "ocid/"
-#define CC_POD_OCID_NAMESPACE_SIZE 5
-
-#define CC_POD_OCID_CONTAINER_TYPE "ocid/container_type"
-#define CC_POD_OCID_SANDBOX        "sandbox"
-#define CC_POD_OCID_CONTAINER      "container"
-
-#define CC_POD_OCID_SANDBOX_NAME "ocid/sandbox_name"
-
 #include <errno.h>
 #include <string.h>
 #include <sys/mount.h>
@@ -40,10 +27,38 @@
 #include <glib.h>
 #include <gio/gunixconnection.h>
 
+#include "common.h"
 #include "pod.h"
 #include "process.h"
 #include "proxy.h"
 #include "state.h"
+
+/* Sandbox rootfs */
+#define CC_POD_SANDBOX_ROOTFS "workloads"
+
+/* ocid namespaces */
+#define CC_POD_OCID_NAMESPACE "ocid/"
+#define CC_POD_OCID_NAMESPACE_SIZE 5
+#define CC_POD_OCID_SANDBOX_NAME "ocid/sandbox_name"
+#define CC_POD_OCID_CONTAINER_TYPE "ocid/container_type"
+
+/* CRI-O namespaces */
+#define CC_POD_CRIO_NAMESPACE "io.kubernetes.cri-o."
+#define CC_POD_CRIO_NAMESPACE_SIZE 20
+#define CC_POD_CRIO_SANDBOX_NAME "io.kubernetes.cri-o.SandboxName"
+#define CC_POD_CRIO_CONTAINER_TYPE "io.kubernetes.cri-o.ContainerType"
+
+#define CC_POD_OCID_SANDBOX        "sandbox"
+#define CC_POD_OCID_CONTAINER      "container"
+
+enum pod_namespace_id {
+	CC_POD_OCID = 0,
+	CC_POD_CRIO,
+	CC_POD_INVALID = -1
+};
+
+static char *sandbox_name[] = {CC_POD_OCID_SANDBOX_NAME, CC_POD_CRIO_SANDBOX_NAME};
+static char *container_type[] = {CC_POD_OCID_CONTAINER_TYPE, CC_POD_CRIO_CONTAINER_TYPE};
 
 /**
  * Creates a mount point structure for a
@@ -105,6 +120,35 @@ error:
 	return false;
 }
 
+/**
+ * Returns a pod namespace ID from an OCI annotation.
+ *
+ * \param annotation \ref oci_cfg_annotation.
+ *
+ * \return a valid pod namespace ID on success, and CC_POD_INVALID on failure.
+ */
+private enum pod_namespace_id
+pod_namespace_present(struct oci_cfg_annotation *annotation)
+{
+	if (annotation == NULL || annotation->key == NULL) {
+		return CC_POD_INVALID;
+	}
+
+	/* We only handle CRI-O and ocid annotations for now */
+	/* Let's check for CRI-O first */
+	if (strncmp(annotation->key, CC_POD_CRIO_NAMESPACE,
+		    CC_POD_CRIO_NAMESPACE_SIZE) == 0) {
+		return CC_POD_CRIO;
+	}
+
+	/* Then we check for the legacy ocid namespace */
+	if (strncmp(annotation->key, CC_POD_OCID_NAMESPACE,
+		    CC_POD_OCID_NAMESPACE_SIZE) == 0) {
+		return CC_POD_OCID;
+	}
+
+	return CC_POD_INVALID;
+}
 
 /**
  * Handle pod related OCI annotations.
@@ -119,6 +163,8 @@ error:
 int
 cc_pod_handle_annotations(struct cc_oci_config *config, struct oci_cfg_annotation *annotation)
 {
+	enum pod_namespace_id namespace_id;
+
 	if (! (config && annotation)) {
 		return -EINVAL;
 	}
@@ -127,9 +173,8 @@ cc_pod_handle_annotations(struct cc_oci_config *config, struct oci_cfg_annotatio
 		return -EINVAL;
 	}
 
-	/* We only handle CRI-O/ocid annotations for now */
-	if (strncmp(annotation->key, CC_POD_OCID_NAMESPACE,
-		    CC_POD_OCID_NAMESPACE_SIZE) != 0) {
+	namespace_id = pod_namespace_present(annotation);
+	if (namespace_id == CC_POD_INVALID) {
 		return 0;
 	}
 
@@ -140,7 +185,7 @@ cc_pod_handle_annotations(struct cc_oci_config *config, struct oci_cfg_annotatio
 		}
 	}
 
-	if (g_strcmp0(annotation->key, CC_POD_OCID_CONTAINER_TYPE) == 0) {
+	if (g_strcmp0(annotation->key, container_type[namespace_id]) == 0) {
 		if (g_strcmp0(annotation->value, CC_POD_OCID_SANDBOX) == 0) {
 			config->pod->sandbox = true;
 			config->pod->sandbox_name = g_strdup(config->optarg_container_id);
@@ -158,7 +203,7 @@ cc_pod_handle_annotations(struct cc_oci_config *config, struct oci_cfg_annotatio
 		} else if (g_strcmp0(annotation->value, CC_POD_OCID_CONTAINER) == 0) {
 			config->pod->sandbox = false;
 		}
-	} else if (g_strcmp0(annotation->key, CC_POD_OCID_SANDBOX_NAME) == 0) {
+	} else if (g_strcmp0(annotation->key, sandbox_name[namespace_id]) == 0) {
 		if (config->pod->sandbox_name) {
 			g_free(config->pod->sandbox_name);
 		}
