@@ -2,16 +2,18 @@
 
 ## Introduction
 
-Clear Containers 2.1 is available for Fedora\* versions **24** and **25**.
+Clear Containers 2.1 is available for Fedora\* versions **24**, **25** and **26**.
 Clear Containers supports the latest version of Docker\* CE, currently 17.05,
 with the exception of Swarm\*. If you require Swarm, install Docker version
 1.12.1.
 
 
 ## Install the Clear Containers runtime
+
 ```
+$ source /etc/os-release
 $ sudo -E dnf config-manager --add-repo \
-http://download.opensuse.org/repositories/home:clearlinux:preview:clear-containers-2.1/Fedora\_25/home:clearlinux:preview:clear-containers-2.1.repo
+http://download.opensuse.org/repositories/home:clearlinux:preview:clear-containers-2.1/Fedora\_$VERSION_ID/home:clearlinux:preview:clear-containers-2.1.repo
 $ sudo dnf install cc-oci-runtime linux-container
 ```
 
