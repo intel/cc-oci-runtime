@@ -67,6 +67,8 @@ then
     cd $TMPDIR
     osc rm linux-*.tar.xz
     osc rm linux-container*.dsc
+    rm *.patch
+    cp $cc_kernel_dir/*.patch .
     mv $cc_kernel_dir/linux-*.tar.xz .
     mv $cc_kernel_dir/linux-container*.dsc .
     mv $cc_kernel_dir/linux-container.spec .
