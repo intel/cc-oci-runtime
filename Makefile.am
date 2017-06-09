@@ -818,6 +818,26 @@ endif
 
 check: $(CHECK_DEPS)
 
+artifacts: | install-image install-kernel
+
+# Get clear containers image path
+IMAGE_PATH := $(shell dirname $(CONTAINERS_IMG))
+install-image:
+	@if [ $(shell id -u) -ne 0 ]; then \
+		$(srcdir)/installation/install_clear_image.sh $(CLEAR_VM_IMAGE_VERSION) $(IMAGE_PATH) ; \
+	else \
+		>&2 echo "ERROR: do not run $@ as root" ; \
+	fi
+
+# Get clear containers kernel path
+KERNEL_PATH := $(shell dirname $(CONTAINER_KERNEL))
+install-kernel:
+	@if [ $(shell id -u) -ne 0 ]; then \
+		$(srcdir)/installation/install_clear_kernel.sh $(CLEAR_VM_IMAGE_VERSION) $(CLEAR_VM_KERNEL_VERSION) $(KERNEL_PATH) ; \
+	else \
+		>&2 echo "ERROR: do not run $@ as root" ; \
+	fi
+
 clean-local:
 	rm -f commit_id
 if AUTOGOPATH

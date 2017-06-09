@@ -15,7 +15,7 @@ Overview
 --------
 
 ``cc-oci-runtime`` is an Open Containers Initiative (OCI_) "runtime"
-that launches an Intel_ VT-x secured Clear Containers 2.0 hypervisor,
+that launches an Intel_ VT-x secured Clear Containers 2.1 hypervisor,
 rather than a standard Linux container. It leverages the highly
 optimised `Clear Linux`_ technology to achieve this goal.
 
@@ -214,6 +214,16 @@ If you have specific requirements, run::
 ... then add the extra "``configure``" flags you want to use::
 
   $ ./autogen.sh --enable-foo --disable-bar && make
+
+Artifacts
+---------
+
+- clear-containers-image
+- clear-containers-kernel
+
+To download and install artifacts for Clear Containers, run::
+
+  $ make artifacts
 
 Tests
 -----
