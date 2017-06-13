@@ -27,6 +27,11 @@ number_of_replicas=1
 # number of attempts
 number_of_attempts=5
 
+#Name of service to test swarm
+SERVICE_NAME="testswarm"
+# timeout to wait for swarm commands (seconds)
+timeout=120
+
 setup() {
 	source $SRC/test-common.bash
 	runtime_docker
@@ -40,16 +45,23 @@ setup() {
 			break;
 		fi
 	done
-	$DOCKER_EXE swarm init ${swarm_interface_arg}
-	$DOCKER_EXE service create --name testswarm --replicas "$number_of_replicas" --publish 8080:80 nginx /bin/bash -c "hostname > /usr/share/nginx/html/hostname; nginx -g \"daemon off;\"" 2> /dev/null
-	while [ `$DOCKER_EXE ps --filter status=running --filter ancestor=nginx:latest -q | wc -l` -lt "$number_of_replicas" ]; do
-		sleep 1
-	done
+
+	cmd='$DOCKER_EXE swarm init ${swarm_interface_arg}'
+	info "running '$cmd'"
+	eval $cmd
+
+	info 'running $DOCKER_EXE service create --name "$SERVICE_NAME" --replicas "'
+	$DOCKER_EXE service create --name "$SERVICE_NAME" \
+	--replicas "$number_of_replicas" \
+	--publish 8080:80 nginx /bin/bash \
+	-c "hostname > /usr/share/nginx/html/hostname; nginx -g \"daemon off;\""
+	info 'check_replicas ...'
+	check_swarm_replicas "$number_of_replicas" "$SERVICE_NAME" "$timeout"
 }
 
 @test "Checking MTU values in different interfaces" {
 	ip_addresses=$(mktemp)
-	container_id=`$DOCKER_EXE ps -qf "name=testswarm"`
+	container_id=`$DOCKER_EXE ps -qf "name=${SERVICE_NAME}"`
 	network_settings_file=`$DOCKER_EXE inspect "$container_id" | grep "SandboxKey" | cut -d ':' -f2 | cut -d '"' -f2`
 	[ -f "$network_settings_file" ]
 	nsenter --net="$network_settings_file" ip a > "$ip_addresses"
@@ -63,7 +75,7 @@ setup() {
 }
 
 teardown() {
-	$DOCKER_EXE service remove testswarm
+	$DOCKER_EXE service remove "${SERVICE_NAME}"
 	clean_swarm_status
 	check_no_processes_up
 }

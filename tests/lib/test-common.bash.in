@@ -39,6 +39,17 @@ die(){
 	echo "ERROR: $msg" >&2
 	exit 1
 }
+#used it to fail a bats test and show an error message
+fail (){
+	msg="$*"
+	echo "FAIL: $msg" >&2
+	false
+}
+
+info (){
+	msg="$*"
+	echo "INFO: $msg" >&2
+}
 
 function backup_old_file(){
 	if [ -f "$1" ]; then
@@ -134,3 +145,40 @@ function clean_swarm_status() {
 	done
 }
 
+#Check that n swarm replicas are running
+# $1 : amount of replicas that must be running
+# $2 : swarm service name
+# $3 : timeout in seconds to wait for replicas
+check_swarm_replicas(){
+	local amount="$1"
+	[[ "$amount" =~ ^[0-9]+$ ]] || fail "amount not a number"
+
+	local service="$2"
+	[ -n "$service" ] || fail "service is empty"
+	docker service ls --filter name="$service"
+
+	local timeout="$3"
+	[[ "$timeout" =~ ^[0-9]+$ ]] || fail "timeout not a number"
+
+	# Parse docker service output like:
+	# CID testswarm.1  nginx  ubuntu1610-test  Running     Running 6 minutes ago
+	running_regex='Running\s+\d+\s(seconds|minutes)\s+ago'
+	info "wait for $timeout"
+	for i in $(seq "$timeout") ; do
+		# Docker 17 does not filter status of swarm containers using:
+		# docker ps --filter status=Up--filter ancestor=IMAGE_NAME
+		# lets use docker service ps
+		info "try $i"
+		docker service ls --filter name="$service"
+		docker service ps "$service"
+		replicas_running=$(docker service ps "$service" | grep -P "${running_regex}"  | wc -l)
+		info "replicas running : ${replicas_running}/${amount}"
+		if [ "$replicas_running" -ge "$amount" ] ; then
+			break
+		fi
+		sleep 1s
+	done
+	if [ "$replicas_running" -lt "$amount" ] ; then
+		fail "failed to wait for ${amount} replicas from  service ${service}"
+	fi
+}

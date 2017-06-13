@@ -37,6 +37,11 @@ declare -a NAMES_IPS_REPLICAS
 # saves the ip of the replicas
 declare -a IPS_REPLICAS
 
+#Name of service to test swarm
+SERVICE_NAME="testswarm"
+# timeout to wait for swarm commands (seconds)
+timeout=120
+
 setup() {
 	source $SRC/test-common.bash
 	runtime_docker
@@ -51,10 +56,12 @@ setup() {
 		fi
 	done
 	$DOCKER_EXE swarm init ${swarm_interface_arg}
-	$DOCKER_EXE service create --name testswarm --replicas $number_of_replicas --publish 8080:80 nginx /bin/bash -c "hostname > /usr/share/nginx/html/hostname; nginx -g \"daemon off;\"" 2> /dev/null
-	while [ `$DOCKER_EXE ps --filter status=running --filter ancestor=nginx:latest -q | wc -l` -lt $number_of_replicas ]; do
-		sleep 1
-	done
+	$DOCKER_EXE service create \
+	--name "${SERVICE_NAME}" \
+	--replicas $number_of_replicas \
+	--publish 8080:80 nginx /bin/bash \
+	-c "hostname > /usr/share/nginx/html/hostname; nginx -g \"daemon off;\""
+	check_swarm_replicas "$number_of_replicas" "${SERVICE_NAME}" "$timeout"
 }
 
 @test "ping among replicas on their overlay ip" {
@@ -74,6 +81,7 @@ setup() {
 }
 
 @test "check that the replicas' names are different" {
+	skip "https://github.com/01org/cc-oci-runtime/issues/969"
 	# this will help to obtain the hostname of
 	# the replicas from the curl
 	unset http_proxy
@@ -114,7 +122,7 @@ setup() {
 }
 
 @test "check service ip among the replicas" {
-	service_name=`$DOCKER_EXE service ls --filter name=testswarm -q`
+	service_name=`$DOCKER_EXE service ls --filter name="${SERVICE_NAME}" -q`
 	ip_service=`$DOCKER_EXE service inspect $service_name --format='{{range .Endpoint.VirtualIPs}}{{.Addr}}{{end}}' | cut -d'/' -f1`
 	REPLICAS_UP=(`$DOCKER_EXE ps -q`)
 	for i in ${REPLICAS_UP[@]}; do
@@ -155,7 +163,7 @@ setup() {
 }
 
 teardown () {
-	$DOCKER_EXE service remove testswarm
+	$DOCKER_EXE service remove "${SERVICE_NAME}"
 	clean_swarm_status
 	check_no_processes_up
 }
