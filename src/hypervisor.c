@@ -21,6 +21,7 @@
 #include <stdbool.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
@@ -46,11 +47,264 @@
 private gchar *sysconfdir = SYSCONFDIR;
 private gchar *defaultsdir = DEFAULTSDIR;
 
+/*!
+ * Check to see if interface is VF based
+ *
+ * \param config \ref cc_oci_config.
+ * \param index \ref guint.
+ *
+ * \return \c true on success, else \c false.
+ */
+static gboolean
+config_net_check_vf(struct cc_oci_config *config, guint index)
+{
+	struct cc_oci_net_if_cfg *if_cfg = NULL;
+
+	if (! config) {
+		g_critical ("config passed is null");
+		return false;
+	}
+
+	if_cfg = (struct cc_oci_net_if_cfg *)
+		g_slist_nth_data(config->net.interfaces, index);
+
+	if (!if_cfg) {
+		g_critical ("no interface at index %d", index);
+		return false;
+	}
+
+	return if_cfg->vf_based;
+}
+
+/*!
+ * Switch VF interface to container
+ *
+ * \param d_info \ref cc_oci_device.
+ * \param g_pid \ ref GPid
+ *
+ * \return \c true on success, else \c false.
+ */
+gboolean
+cc_oci_switch_iface_to_container (struct cc_oci_device* d_info, GPid g_pid)
+{
+
+	GDir *dir;
+	GError *error = NULL;
+
+	gboolean retval = false;
+	guint pid;
+	gchar *netns_path = NULL, *iface_name = NULL, *iface_dir_path = NULL, *pid_str = NULL;
+	if (! d_info) {
+		g_critical("d_info passed in is null");
+		return false;
+	}
+
+	pid = (unsigned) g_pid;
+
+	netns_path = g_strdup_printf("/proc/%d/ns/net", pid);
+
+	iface_dir_path = g_strdup_printf("/sys/bus/pci/devices/%s/net", d_info->bdf);
+
+	dir = g_dir_open(iface_dir_path, 0, &error);
+	if (! dir) {
+		/* Failed to open the directory */
+		g_debug("%s", error->message);
+		goto out;
+	}
+
+	iface_name = (gchar *) g_dir_read_name(dir);
+
+	if (! iface_name) {
+		g_debug("error: %s doesn't contain interface name",iface_dir_path);
+		goto out;
+	}
+
+	/* call tear down script */
+	gchar *std_output = NULL;
+	gchar *std_err = NULL;
+	int exit_status=0;
+	pid_str = g_strdup_printf("%d", pid);
+
+	char *argv[] = 	{ SRIOV_TEARDOWN_SCRIPT, pid_str, iface_name, NULL };
+
+	g_debug ("running command:");
+	for (gchar** p = argv; p && *p; p++) {
+		g_debug ("arg: '%s'", *p);
+	}
+
+	if (!g_spawn_sync(NULL, argv, NULL, 0, NULL, NULL, &std_output, &std_err, &exit_status, &error)) {
+		g_debug("%s: exit status: %d; error: %s", argv[0], exit_status, error->message);
+	} else {
+		g_debug("%s: called successfully", argv[0]);
+	}
+	retval = true;
+out:
+	g_free(iface_dir_path);
+	g_free(iface_name);
+	g_free(netns_path);
+	g_free(pid_str);
+	g_dir_close(dir);
+
+	return retval;
+}
+/*!
+ * Bind given device to host.  This is used to return the device and its
+ * driver setup to original configuration.
+ *
+ * \param d_info \ref cc_oci_device.
+ *
+ * \return \c true on success, else \c false.
+ */
+gboolean
+cc_oci_bind_host (struct cc_oci_device* d_info)
+{
+	FILE* f;
+	gchar *bind_driver_path = NULL, *unbind_driver_path = NULL;
+	gboolean retval = false;
+
+	if (! d_info) {
+		g_critical("bind_host: d_info passed in is null");
+		return false;
+	}
+
+	bind_driver_path = g_strdup_printf("/sys/bus/pci/drivers/%s/bind",
+				d_info->driver);
+	unbind_driver_path = g_strdup_printf("/sys/bus/pci/devices/%s/driver/unbind",
+				d_info->bdf);
+
+	/* unbind from VFIO-pci driver */
+	f = fopen(unbind_driver_path, "w");
+	if (!f) {
+		g_debug ("bind_host: failed to open %s - error: %d", unbind_driver_path, errno);
+		goto out;
+	}
+	fprintf(f, "%s", d_info->bdf);
+	fclose(f);
+
+	/* bind back to original host driver */
+	f = fopen (bind_driver_path, "w");
+	if (!f) {
+		g_debug ("bind_host: failed to open %s - error: %d", bind_driver_path, errno);
+		goto out;
+	}
+	fprintf(f, "%s", d_info->bdf);
+	fclose(f);
+
+	/* to prevent new VFs from binding to VFIO-PCI, remove_id */
+	f = fopen(VFIO_RMID_PATH, "w");
+	if (!f) {
+		g_debug ("bind_host: failed to open %s - error: %d", VFIO_RMID_PATH, errno);
+		goto out;
+	}
+	fprintf(f, "%s", d_info->vd_id);
+	fclose(f);
+
+	retval = true;
+out:
+	g_free(bind_driver_path);
+	g_free(unbind_driver_path);
+	return retval;
+}
+
+/*!
+ * Unbind a given interface from the host and add it as
+ * a vfio pci device for the guest's consumption.
+ *
+ * \param config \ref cc_oci_config*
+ * \param index \ref guint
+ *
+ * \return \c true on success, else \c false.
+ */
+gboolean
+cc_oci_unbind_host(struct cc_oci_config *config, guint index)
+{
+	struct cc_oci_net_if_cfg *if_cfg = NULL;
+	FILE* f;
+	gchar *bind_driver_path = NULL, *unbind_driver_path = NULL;
+	gboolean retval = false;
+
+	if ( !config )
+		goto out;
+
+	if_cfg = (struct cc_oci_net_if_cfg *)
+		g_slist_nth_data(config->net.interfaces, index);
+
+	if (!if_cfg)
+		goto out;
+
+	if (!if_cfg->vf_based)
+		goto out;
+
+	/* add device ID to vfio-pci driver's bind list */
+	f = fopen(VFIO_NEWID_PATH, "w");
+	if (!f) {
+		g_debug ("unbind_host: error opening %s - error: %d", VFIO_NEWID_PATH, errno);
+		goto out;
+	}
+	fprintf(f, "%s", if_cfg->vd_id);
+	fclose(f);
+
+	bind_driver_path = g_strdup_printf(PCI_DRIVER_BIND_PATH, "vfio-pci");
+	unbind_driver_path = g_strdup_printf(PCI_DRIVER_UNBIND_PATH, if_cfg->bdf);
+
+	/* unbind from host driver */
+	f = fopen(unbind_driver_path, "w");
+	if (!f) {
+		g_debug ("unbind_host: error opening %s - error: %d", unbind_driver_path, errno);
+		goto out;
+	}
+	fprintf(f, "%s", if_cfg->bdf);
+	fclose(f);
+
+	/* bind device to vfio-pci driver */
+	f = fopen(bind_driver_path, "w");
+	if (!f) {
+		g_debug ("unbind_host: error opening %s - error: %d", bind_driver_path, errno);
+		goto out;
+	}
+	fprintf(f, "%s", if_cfg->bdf);
+	fclose(f);
+
+	retval = true;
+out:
+	g_free(bind_driver_path);
+	g_free(unbind_driver_path);
+	return retval;
+}
+
+static gchar*
+cc_oci_expand_device_passthrough(struct cc_oci_config *config, guint index)
+{
+	struct cc_oci_net_if_cfg *if_cfg = NULL;
+	gchar *expanded_device = NULL;
+	gchar **fields = NULL;
+
+	if ( !config )
+		goto out;
+
+	if_cfg = (struct cc_oci_net_if_cfg *)
+		g_slist_nth_data(config->net.interfaces, index);
+
+	if (!if_cfg)
+		goto out;
+
+	if (!if_cfg->vf_based)
+		goto out;
+
+	fields = g_strsplit (if_cfg->bdf, ":", 2);
+	expanded_device = g_strdup_printf("vfio-pci,host=%s",fields[1]);
+	g_strfreev(fields);
+
+	return expanded_device;
+out:
+	return g_strdup("");
+}
+
 static gchar *
 cc_oci_expand_net_cmdline(struct cc_oci_config *config) {
 	/* www.kernel.org/doc/Documentation/filesystems/nfs/nfsroot.txt
-        * ip=<client-ip>:<server-ip>:<gw-ip>:<netmask>:<hostname>:
-         * <device>:<autoconf>:<dns0-ip>:<dns1-ip>
+	 * ip=<client-ip>:<server-ip>:<gw-ip>:<netmask>:<hostname>:
+	 * <device>:<autoconf>:<dns0-ip>:<dns1-ip>
 	 */
 
 	if (! config) {
@@ -203,6 +457,15 @@ cc_oci_append_network_args(struct cc_oci_config *config,
 
 				g_ptr_array_add(additional_args, g_strdup("-device"));
 				g_ptr_array_add(additional_args, g_strdup_printf(DPDK_CMDLINE_DEV,index,if_cfg->mac_address));
+			/*
+			 * Check for SRIOV-VF special case: if this is a VF interface,
+			 * unbind it from the host and then add command line arguments
+			 */
+			} else if (config_net_check_vf(config, index)) {
+				if (cc_oci_unbind_host(config, index)) {
+					g_ptr_array_add(additional_args, g_strdup("-device"));
+					g_ptr_array_add(additional_args, cc_oci_expand_device_passthrough(config, 0));
+				}
 			} else {
 				netdev_params = cc_oci_expand_netdev_cmdline(config, index);
 				net_device_params = cc_oci_expand_net_device_cmdline(config, index);
@@ -211,6 +474,7 @@ cc_oci_append_network_args(struct cc_oci_config *config,
 				g_ptr_array_add(additional_args, g_strdup("-device"));
 				g_ptr_array_add(additional_args, net_device_params);
 			}
+
 		}
 
 		/*
@@ -225,7 +489,10 @@ cc_oci_append_network_args(struct cc_oci_config *config,
 			g_ptr_array_add(additional_args, g_strdup("-numa"));
 			g_ptr_array_add(additional_args, g_strdup(DPDK_CMDLINE_NUMA));
 		}
-        }
+	}
+
+	/* the mac/bdf hash is no longer necessary, since networking is now setup */
+
 }
 
 /*!
@@ -314,13 +581,13 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 	for(size_t i=0; i<sizeof(uuid_t) && uuid_index < sizeof(uuid_pattern); ++i) {
 		/* hex to char */
 		uuid_index += g_snprintf(uuid_str+uuid_index,
-		                  sizeof(uuid_pattern)-(gulong)uuid_index,
-		                  "%02x", uuid[i]);
+				  sizeof(uuid_pattern)-(gulong)uuid_index,
+				  "%02x", uuid[i]);
 
 		/* copy separator '-' */
 		if (uuid_pattern[uuid_index] == '-') {
 			uuid_index += g_snprintf(uuid_str+uuid_index,
-			                  sizeof(uuid_pattern)-(gulong)uuid_index, "-");
+					  sizeof(uuid_pattern)-(gulong)uuid_index, "-");
 		}
 	}
 

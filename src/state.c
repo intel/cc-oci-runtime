@@ -41,6 +41,7 @@
 #include "json.h"
 #include "config.h"
 #include "spec_handler.h"
+#include "networking.h"
 
 #define update_subelements_and_strdup(node, data, member) \
 	if (node && node->data) { \
@@ -60,6 +61,7 @@ static void handle_state_status_section(GNode*, struct handler_data*);
 static void handle_state_created_section(GNode*, struct handler_data*);
 static void handle_state_mounts_section(GNode*, struct handler_data*);
 static void handle_state_namespaces_section(GNode*, struct handler_data*);
+static void handle_state_devices_section(GNode*, struct handler_data*);
 static void handle_state_console_section(GNode*, struct handler_data*);
 static void handle_state_vm_section(GNode*, struct handler_data*);
 static void handle_state_proxy_section(GNode*, struct handler_data*);
@@ -96,6 +98,7 @@ static struct state_handler {
 	{ "vm"          , handle_state_vm_section          , 6 , 0 },
 	{ "proxy"       , handle_state_proxy_section       , 2 , 0 },
 	{ "pod"         , handle_state_pod_section         , 0 , 0 },
+	{ "device"	, handle_state_devices_section     , 0 , 0 },
 	{ "annotations" , handle_state_annotations_section , 0 , 0 },
 	{ "namespaces"  , handle_state_namespaces_section  , 0 , 0 },
 
@@ -281,6 +284,48 @@ handle_state_mounts_section(GNode* node, struct handler_data* data) {
 		if (l) {
 			m = (struct cc_oci_mount*)l->data;
 			m->directory_created = g_strdup((char*)node->children->data);
+		}
+	}
+}
+
+/*!
+ * handler for devices section
+ *
+ * \param node \c GNode.
+ * \param data \ref handler_data.
+ */
+static void
+handle_state_devices_section(GNode* node, struct handler_data* data) {
+		struct cc_oci_device* d;
+
+	if (! (node && node->data)) {
+		return;
+	}
+
+	if (! data) {
+		return;
+	}
+
+	if (! (node->children && node->children->data)) {
+		g_critical("%s missing value", (char*)node->data);
+		return;
+	}
+
+	if (! g_strcmp0(node->data, "bdf")) {
+		d = g_new0 (struct cc_oci_device, 1);
+		d->bdf = g_strdup ((char *)node->children->data);
+		data->state->devices = g_slist_append(data->state->devices, d);
+	} else if (! g_strcmp0(node->data, "vd_id")) {
+		GSList *l = g_slist_last(data->state->devices);
+		if (l) {
+			d = (struct cc_oci_device*)l->data;
+			d->vd_id = g_strdup((char*)node->children->data);
+		}
+	} else if (! g_strcmp0(node->data, "driver")) {
+		GSList *l = g_slist_last(data->state->devices);
+		if (l) {
+			d = (struct cc_oci_device*)l->data;
+			d->driver = g_strdup((char*)node->children->data);
 		}
 	}
 }
@@ -540,27 +585,27 @@ handle_state_pod_section(GNode* node, struct handler_data* data) {
 static void
 handle_state_annotations_section(GNode* node, struct handler_data* data)
 {
-        struct oci_cfg_annotation *ann = NULL;
+	struct oci_cfg_annotation *ann = NULL;
 
-        if (! (node && node->data)) {
-                return;
-        }
+	if (! (node && node->data)) {
+		return;
+	}
 
-        if (! (node->children && node->children->data)) {
-                g_critical("%s missing value", (char*)node->data);
-                return;
-        }
+	if (! (node->children && node->children->data)) {
+		g_critical("%s missing value", (char*)node->data);
+		return;
+	}
 
-        g_assert(data->state);
+	g_assert(data->state);
 
-        ann = g_new0 (struct oci_cfg_annotation, 1);
-        ann->key = g_strdup ((gchar *)node->data);
-        if (node->children->data) {
-                ann->value = g_strdup ((gchar *)node->children->data);
-        }
+	ann = g_new0 (struct oci_cfg_annotation, 1);
+	ann->key = g_strdup ((gchar *)node->data);
+	if (node->children->data) {
+		ann->value = g_strdup ((gchar *)node->children->data);
+	}
 
-        data->state->annotations = g_slist_prepend(data->state->annotations,
-                                                        ann);
+	data->state->annotations = g_slist_prepend(data->state->annotations,
+					ann);
 }
 
 /*!
@@ -782,9 +827,9 @@ cc_oci_state_free (struct oci_state *state)
 		g_free (state->vm);
 	}
 
-        if (state->annotations) {
-                cc_oci_annotations_free_all(state->annotations);
-        }
+	if (state->annotations) {
+		cc_oci_annotations_free_all(state->annotations);
+	}
 
 	if (state->proxy) {
 		g_free_if_set(state->proxy->agent_ctl_socket);
@@ -802,6 +847,40 @@ cc_oci_state_free (struct oci_state *state)
 	}
 
 	g_free (state);
+}
+
+
+
+/*!
+ * Add devices to state JSON file
+ *
+ * \param config \ref cc_oci_config
+ *
+ * \return \c JsonObject for network device
+ */
+static JsonObject *
+cc_oci_devices_to_json (const struct cc_oci_config *config)
+{
+	JsonObject *device = NULL;
+	guint i;
+	struct cc_oci_device *d_info = NULL;
+
+	if (! config) {
+		return NULL;
+	}
+
+	for (i=0; i < g_slist_length(config->devices); i++) {
+		d_info = (struct cc_oci_device *)
+		g_slist_nth_data(config->devices, i);
+
+		if (d_info->bdf) {
+			device = json_object_new ();
+			json_object_set_string_member (device, "bdf", d_info->bdf);
+			json_object_set_string_member (device, "driver", d_info->driver);
+			json_object_set_string_member (device, "vd_id", d_info->vd_id);
+	}
+	}
+	return device;
 }
 
 /*!
@@ -827,6 +906,7 @@ cc_oci_state_file_create (struct cc_oci_config *config,
 	JsonArray   *namespaces = NULL;
 	JsonObject  *process = NULL;
 	JsonObject  *pod = NULL;
+	JsonObject  *device = NULL;
 	gchar       *str = NULL;
 	gsize        str_len = 0;
 	GError      *err = NULL;
@@ -924,6 +1004,18 @@ cc_oci_state_file_create (struct cc_oci_config *config,
 	}
 
 	json_object_set_array_member (obj, "namespaces", namespaces);
+
+	/*Add an array of devices to allow "delete" to recreate network
+	 interfaces*/
+	device = cc_oci_network_devices_to_json (config);
+	if (device) {
+		json_object_set_object_member (obj, "device", device);
+	}
+
+	device = cc_oci_devices_to_json (config);
+	if (device) {
+		json_object_set_object_member (obj, "device", device);
+ }
 
 	/* Add an process object to allow "start" command  what workload
 	 * will be used

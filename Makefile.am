@@ -162,7 +162,7 @@ DISTCHECK_CONFIGURE_FLAGS = \
 	--with-systemdsystemunitdir=/tmp/cc-distcheck/systemdunitdir/
 
 bin_PROGRAMS = cc-oci-runtime
-dist_bin_SCRIPTS = data/cc-oci-runtime.sh
+dist_bin_SCRIPTS = data/cc-oci-runtime.sh data/cc-sriovdownscript.sh
 
 common_sources = \
 	src/util.c src/util.h \

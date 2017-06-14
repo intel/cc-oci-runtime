@@ -24,6 +24,7 @@
 #include "config.h"
 #include "state.h"
 #include "oci-config.h"
+#include "hypervisor.h"
 
 #include <errno.h>
 #include <glib/gstdio.h>
@@ -155,6 +156,7 @@ handle_command_stop (const struct subcommand *sub,
 	gboolean           ret;
 	GNode*             root = NULL;
 	gchar             *cgroup_dir = NULL;
+	guint		  index;
 
 	g_assert (sub);
 	g_assert (config);
@@ -199,14 +201,53 @@ handle_command_stop (const struct subcommand *sub,
 
 	g_free_node(root);
 
+	/* Check for devices which were passed through to the clear container
+	 * If found, bind it back to the original host driver and change the
+	 * interface back to the child process' namespace
+	 */
+	if (state->devices) {
+
+		/* Flag to mark successful unbind/bind back to original device
+		 * driver configuraiton.  If none of the devices transfer correctly,
+		 * then return unsuccessfully
+		 */
+		gboolean device_bind_success = false;
+
+		for (index=0; index<g_slist_length(state->devices); index++) {
+			struct cc_oci_device* device = (struct cc_oci_device *)
+				g_slist_nth_data(state->devices, index);
+
+			if (!cc_oci_bind_host(device)) {
+				g_debug("failed to bind device %s back to host", device->bdf);
+				continue;
+			}
+
+			/* brute-force hacks for changing the interface to
+			 * child process network namespace
+			 */
+			if (!cc_oci_switch_iface_to_container(device, state->pid)) {
+				g_debug ("failed to switch device %s to container",device->bdf);
+				continue;
+			}
+
+			device_bind_success = true;
+		}
+
+		if (device_bind_success == false) {
+			goto out;
+		}
+	}
+
 	if (! cc_oci_config_update (config, state)) {
 		goto out;
 	}
 
 	ret = cc_oci_stop (config, state);
+
 	if (! ret) {
 		goto out;
 	}
+
 
 	ret = true;
 

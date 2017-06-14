@@ -30,5 +30,7 @@ gboolean cc_oci_expand_cmdline (struct cc_oci_config *config,
 		gchar **args);
 void cc_oci_populate_extra_args(struct cc_oci_config *config,
                 GPtrArray *additional_args);
-
+gboolean cc_oci_bind_host(struct cc_oci_device* d_info);
+gboolean cc_oci_switch_iface_to_container(struct cc_oci_device* d_info,
+		GPid pid);
 #endif /* _CC_OCI_HYPERVISOR_H */

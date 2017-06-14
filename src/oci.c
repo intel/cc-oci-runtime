@@ -213,7 +213,7 @@ cc_oci_get_config_and_state (gchar **config_file,
 	*state = cc_oci_state_file_read (config->state.state_file_path);
 	if (! (*state)) {
 		g_critical("failed to read state file for container %s",
-		           config->optarg_container_id);
+			config->optarg_container_id);
 		goto err;
 	}
 
@@ -1055,7 +1055,7 @@ cc_oci_stop (struct cc_oci_config *config,
 				return false;
 			}
 		}
-    } else {
+	} else {
 		/* This isn't a fatal condition since:
 		 *
 		 * - containerd calls "delete" twice (unclear why).
@@ -1626,6 +1626,11 @@ cc_oci_config_update (struct cc_oci_config *config,
 	if(state->process && ! config->oci.process.args) {
 		config->oci.process = *state->process;
 		g_free_if_set (state->process);
+	}
+
+	if (state->devices) {
+		config->devices = state->devices;
+		state->devices = NULL;
 	}
 
 	if (state->console) {

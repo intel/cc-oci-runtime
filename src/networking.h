@@ -29,6 +29,14 @@
  */
 #define VHOSTUSER_PORT_PATH "/tmp/v_%s"
 
+#define SRIOV_TEARDOWN_SCRIPT	"/usr/bin/cc-sriovdownscript.sh"
+
+/* bind/unbind paths to aid in SRIOV VF bring-up/restore */
+#define PCI_DRIVER_UNBIND_PATH	"/sys/bus/pci/devices/%s/driver/unbind"
+#define PCI_DRIVER_BIND_PATH	"/sys/bus/pci/drivers/%s/bind"
+#define VFIO_RMID_PATH		"/sys/bus/pci/drivers/vfio-pci/remove_id"
+#define VFIO_NEWID_PATH		"/sys/bus/pci/drivers/vfio-pci/new_id"
+
 void cc_oci_net_interface_free (struct cc_oci_net_if_cfg *if_cfg);
 
 void cc_oci_net_ipv4_route_free(struct cc_oci_net_ipv4_route *route);
@@ -44,4 +52,5 @@ gboolean cc_oci_network_discover(struct cc_oci_config *const config,
 
 gboolean is_interface_ovs(struct cc_oci_net_if_cfg* if_cfg);
 
+JsonObject * cc_oci_network_devices_to_json (const struct cc_oci_config *config);
 #endif /* _CC_OCI_NETWORKING_H */
