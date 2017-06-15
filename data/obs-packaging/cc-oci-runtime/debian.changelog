@@ -1,3 +1,9 @@
+cc-oci-runtime (2.1.10) stable; urgency=medium
+
+  * Update cc-oci-runtime 2.1.10 edebf40
+
+ -- Geronimo Orozco <geronimo.orozco@intel.com>  Mon, 05 Jun 2017 10:52:21 -0500
+
 cc-oci-runtime (2.1.9) stable; urgency=medium
 
   * Update cc-oci-runtime 2.1.9 2b6b95b

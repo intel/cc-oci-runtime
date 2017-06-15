@@ -18,6 +18,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 )
 
@@ -26,6 +27,18 @@ const headerLength = 8 // in bytes
 type header struct {
 	length uint32
 	flags  uint32
+}
+
+const maxPayloadLength = 1 * 1024 * 1024
+
+func (hdr *header) validate() error {
+	if hdr.length > maxPayloadLength {
+		return fmt.Errorf("payload size too big: %d (max: %d)", hdr.length, maxPayloadLength)
+	}
+	if hdr.flags != 0 {
+		return fmt.Errorf("unexpected flags: 0x%x", hdr.flags)
+	}
+	return nil
 }
 
 // A Request is a JSON message sent from a client to the proxy. This message
@@ -69,6 +82,10 @@ func ReadMessage(reader io.Reader, msg interface{}) error {
 		flags:  binary.BigEndian.Uint32(buf[4:8]),
 	}
 
+	if err := hdr.validate(); err != nil {
+		return err
+	}
+
 	received := 0
 	need := int(hdr.length)
 	data := make([]byte, need)
@@ -97,8 +114,16 @@ func WriteMessage(writer io.Writer, msg interface{}) error {
 		return err
 	}
 
+	hdr := header{
+		length: uint32(len(data)),
+	}
+	if err := hdr.validate(); err != nil {
+		return err
+	}
+
 	buf := make([]byte, headerLength)
-	binary.BigEndian.PutUint32(buf[0:4], uint32(len(data)))
+	binary.BigEndian.PutUint32(buf[0:4], hdr.length)
+
 	n, err := writer.Write(buf)
 	if err != nil {
 		return err

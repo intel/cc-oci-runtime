@@ -68,6 +68,7 @@ GENERATED_FILES = \
 	tests/metrics/network/network-metrics-cpu-consumption.sh \
 	tests/metrics/network/network-metrics-memory-pss.sh \
 	tests/metrics/network/network-metrics-memory-rss-1g.sh \
+	tests/metrics/network/network-metrics-memory-pss-1g.sh \
 	tests/lib/test-common.bash
 
 $(GENERATED_FILES): %: %.in Makefile
@@ -298,7 +299,7 @@ cc_proxy_extra_dist =			\
 CHECK_DEPS += check-proxy
 
 check-proxy: $(cc_proxy_sources) | $(PROXY_DEPS)
-	$(AM_V_GEN)proxy_test_common_args="-v -timeout 2s $(srcdir)/proxy" ; \
+	$(AM_V_GEN)proxy_test_common_args="-v -timeout 2s $(srcdir)/proxy $(srcdir)/proxy/api" ; \
 	go test -race $$proxy_test_common_args || go test $$proxy_test_common_args
 
 check-go:
@@ -372,6 +373,7 @@ EXTRA_DIST = \
 	tests/metrics/network/network-metrics-cpu-consumption.sh.in \
 	tests/metrics/network/network-metrics-memory-rss-1g.sh.in \
 	tests/metrics/network/network-metrics-memory-pss.sh.in \
+	tests/metrics/network/network-metrics-memory-pss-1g.sh.in \
 	vendor \
 	data/genfile.sh \
 	data/cc-bootchart.conf
