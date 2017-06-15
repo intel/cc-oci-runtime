@@ -16,3 +16,17 @@ This script will generate and update sources to create
 
 By default, the script will get VERSION specified in the ``versions.txt`` file
 found at the the repository's root.
+
+Open Build Service
+------------------
+
+The script has two OBS related variables. Using them, the CI can push changes
+to the [OBS website] (https://build.opensuse.org/).
+
+  * ``OBS_PUSH`` default ``false``
+  * ``OBS_CC_IMAGE_REPO`` default ``home:clearlinux:preview:clear-containers-staging/clear-containers-image``
+
+To push your changes and trigger a new build of the runtime to the OBS repo,
+set the variables in the environment running the script before calling
+``update_image.sh`` as follows:
+

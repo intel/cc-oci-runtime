@@ -5,7 +5,7 @@
 # Automation script to create specs to build cc-oci-runtime
 # Default image to build is the one specified in file configure.ac
 # located at the root of the repository.
-# set -x
+set -x
 AUTHOR=${AUTHOR:-$(git config user.name)}
 AUTHOR_EMAIL=${AUTHOR_EMAIL:-$(git config user.email)}
 
@@ -15,7 +15,9 @@ clear_vm_kernel_version=$(echo $clear_vm_kernel_version | cut -d'-' -f1)
 VERSION=${1:-$clear_vm_kernel_version}
 
 OBS_PUSH=${OBS_PUSH:-false}
+OBS_CC_KERNEL_REPO=${OBS_CC_KERNEL_REPO:-home:clearlinux:preview:clear-containers-staging/linux-container}
 
+git checkout wd/debian/changelog
 last_release=`cat wd/debian/changelog | head -1 | awk '{print $2}' | cut -d'-' -f2 | tr -d ')'`
 next_release=$(( $last_release + 1 ))
 
@@ -23,13 +25,13 @@ echo "Running: $0 $@"
 echo "Update linux-container to: $VERSION-$next_release"
 
 function changelog_update {
-    d=`date +"%a, %d %b %Y %H:%M:%S"`
+    d=$(date +"%a, %d %b %Y %H:%M:%S %z")
     cp wd/debian/changelog wd/debian/changelog-bk
     cat <<< "linux-container ($VERSION-$next_release) stable; urgency=medium
 
   * Update kernel $VERSION
 
- -- $AUTHOR <$AUTHOR_EMAIL>  $d -0600
+ -- $AUTHOR <$AUTHOR_EMAIL>  $d
 " > wd/debian/changelog
 
     cat wd/debian/changelog-bk >> wd/debian/changelog
@@ -54,20 +56,24 @@ debuild -S -sa
 
 if [ $? = 0 ] && [ "$OBS_PUSH" = true ]
 then
+    temp=$(basename $0)
+    TMPDIR=$(mktemp -d -t ${temp}.XXXXXXXXXXX) || exit 1
     cd ..
+    cc_kernel_dir=$(pwd)
     rm wd/debian/patches/*.patch
     rm linux-container_$VERSION-${next_release}_source.build \
     linux-container_$VERSION-${next_release}_source.changes
-    osc co home:clearlinux:preview:clear-containers-staging/linux-container
-    cd home\:clearlinux\:preview\:clear-containers-staging/linux-container/
+    osc co "$OBS_CC_KERNEL_REPO" -o $TMPDIR
+    cd $TMPDIR
     osc rm linux-*.tar.xz
     osc rm linux-container*.dsc
-    mv ../../linux-*.tar.xz .
-    mv ../../linux-container*.dsc .
-    mv ../../linux-container.spec .
-    cp ../../cmdline .
-    cp ../../config .
-    osc add linux-*.tar.xz
-    osc add linux-container*.dsc
+    rm *.patch
+    cp $cc_kernel_dir/*.patch .
+    mv $cc_kernel_dir/linux-*.tar.xz .
+    mv $cc_kernel_dir/linux-container*.dsc .
+    mv $cc_kernel_dir/linux-container.spec .
+    cp $cc_kernel_dir/cmdline .
+    cp $cc_kernel_dir/config .
+    osc addremove
     osc commit -m "Update linux-container to: $VERSION-$next_release"
 fi

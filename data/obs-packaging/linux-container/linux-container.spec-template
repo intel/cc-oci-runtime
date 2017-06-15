@@ -33,9 +33,6 @@ BuildRequires:  bison
 %define debug_package %{nil}
 %define __strip /bin/true
 
-# Serie    00XX: mainline, CVE, bugfixes patches
-Patch0001: cve-2016-8632.patch
-
 # Serie    01XX: Clear Linux patches
 Patch0102: 0102-cpuidle-skip-synchronize_rcu-on-single-CPU-systems.patch
 Patch0103: 0103-sysrq-skip-synchronize_rcu-if-there-is-no-old-op.patch
@@ -68,9 +65,6 @@ The Linux kernel.
 
 %prep
 %setup -q -n linux-@VERSION@
-
-#     00XX  mainline, CVE, bugfixes patches
-%patch0001 -p1
 
 #     01XX  Clear Linux KVM patches
 #%patch0101 -p1
