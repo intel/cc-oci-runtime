@@ -69,6 +69,7 @@ GENERATED_FILES = \
 	tests/metrics/network/network-metrics-memory-pss.sh \
 	tests/metrics/network/network-metrics-memory-rss-1g.sh \
 	tests/metrics/network/network-metrics-memory-pss-1g.sh \
+	tests/lib/send_results.sh \
 	tests/lib/test-common.bash
 
 $(GENERATED_FILES): %: %.in Makefile

@@ -22,6 +22,7 @@ DOCKER_EXE="docker"
 DOCKER_SERVICE="docker-cor"
 SCRIPT_PATH=$(dirname $(readlink -f $0))
 RESULT_DIR="${SCRIPT_PATH}/../results"
+LIB_DIR="${SCRIPT_PATH}/../../lib"
 HYPERVISOR_PATH="@QEMU_PATH@"
 CC_SHIM_PATH="/usr/libexec/cc-shim"
 number_of_attempts=5
@@ -72,6 +73,22 @@ function write_result_to_file(){
 	os_ver_id=$(grep "^VERSION_ID" /usr/lib/os-release | cut -d= -f2)
 	os_ver=$(echo "$os_id-$os_ver_id")
 	echo "$test_name,$test_args,$test_data,$test_platform,$os_ver" >> "$test_file"
+}
+
+# Save a test/metric result.
+# This is a wrapper function to the send_results.sh command, which ultimately decides
+# where and in what format to store or process the data.
+# Arguments:
+#  Test name
+#  Test arguments
+#  Test result
+#  Test result unit of measurement
+function save_results(){
+	if [ $# != 4 ]; then
+		die "save_results() requires 4 parameters, not $#"
+	fi
+
+	bash $LIB_DIR/send_results.sh -n "$1" -a "$2" -r "$3" -u "$4"
 }
 
 function get_average(){
