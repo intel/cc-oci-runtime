@@ -155,6 +155,9 @@ AM_CONDITIONAL([CRIO_TESTS], [test x"$run_crio_tests" = x"yes"])
 # Checks for libraries.
 source $srcdir/versions.txt
 
+AC_SUBST([CLEAR_VM_IMAGE_VERSION], [$clear_vm_image_version])
+AC_SUBST([CLEAR_VM_KERNEL_VERSION], [$clear_vm_kernel_version])
+
 PKG_CHECK_MODULES([GLIB], [glib-2.0 >= "$glib_version"], have_required_glib=yes, have_required_glib=no)
 AS_IF([test "$have_required_glib" != "yes"], AC_MSG_ERROR([ERROR: need glib ${glib_version}+ for the `G_FILE_MONITOR_WATCH_MOVES' flag]))
 
