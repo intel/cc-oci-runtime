@@ -508,6 +508,12 @@ struct cc_oci_mount {
 	 * NULL if no directory was created to mount dest
 	 */
 	gchar          *directory_created;
+
+	/** Path of bind mount created on the hyperstart shared directory
+	 * This will be passed in the fsmap struct to hyperstart to bind
+	 * mount it on the overlay/block device within the VM
+	 */
+	gchar          *host_path;
 };
 
 /**
@@ -625,6 +631,14 @@ struct cc_oci_config {
 	 * This will be {CC_OCI_RUNTIME_DIR_PREFIX}/{containerid}/workload
 	 */
 	gchar workload_dir[PATH_MAX];
+
+	/** List containing a single entry of \ref cc_oci_mount
+	 *
+	 * This is the bind mount for the container rootfs in the hyperstart
+	 * shared directory.
+	 *
+	 */
+	GSList *rootfs_mount;
 };
 
 gchar *cc_oci_config_file_path (const gchar *bundle_path);

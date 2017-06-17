@@ -180,6 +180,10 @@ cc_oci_config_free (struct cc_oci_config *config)
 	cc_oci_mounts_free_all (config->oci.mounts);
 	cc_oci_annotations_free_all (config->oci.annotations);
 
+	if (config->rootfs_mount) {
+		cc_oci_mounts_free_all (config->rootfs_mount);
+	}
+
 	g_free_if_set (config->oci.platform.os);
 	g_free_if_set (config->oci.platform.arch);
 

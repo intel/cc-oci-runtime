@@ -22,6 +22,7 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <inttypes.h>
 
 #include <glib/gstdio.h>
 
@@ -104,6 +105,7 @@ cc_oci_mount_free (struct cc_oci_mount *m)
 	g_free_if_set (m->mnt.mnt_type);
 	g_free_if_set (m->mnt.mnt_opts);
 	g_free_if_set (m->directory_created);
+	g_free_if_set (m->host_path);
 
 	g_free (m);
 }
@@ -243,13 +245,46 @@ cc_handle_mounts(struct cc_oci_config *config, GSList *mounts, gboolean volume)
 			continue;
 		}
 
-		if ((! cc_pod_is_vm(config) || cc_pod_is_pod_sandbox(config)) && volume) {
+		if (! volume) {
+			/* bind mount container rootfs. We do this for regular
+			 * container as well for a pod sandbox.
+			 */
 			g_snprintf (m->dest, sizeof (m->dest),
-				    "%s/%s/rootfs/%s", workload_dir, config->optarg_container_id, m->mnt.mnt_dir);
+					"%s/%s",
+					workload_dir, m->mnt.mnt_dir);
 		} else {
+			/* mount volume to the shared workload directory
+			 * instead of the container rootfs directory for pods
+			 * as well as regular containers. Hyperstart will take
+			 * care of mounting to the correct location within VM
+			 * using a fsmap structure. We do this to handle mounts
+			 * tranparently for devicemapper case.
+			 */
+
+			/* Generate unique name for the file within the hyperstart
+			 * shared directory
+			 */
+			uint64_t *bytes = (uint64_t*)get_random_bytes(8);
+			if (! bytes) {
+				return false;
+			}
+
+			gchar *base_name = g_path_get_basename(m->mnt.mnt_dir);
+
+			g_free_if_set(m->host_path);
+			m->host_path = g_strdup_printf("%"PRIx64"-%s",
+							*bytes,
+							base_name);
+
 			g_snprintf (m->dest, sizeof (m->dest),
-				    "%s/%s",
-				    workload_dir, m->mnt.mnt_dir);
+					"%s/%s",
+					workload_dir, m->host_path);
+
+			g_debug("Mounting mount %s for mnt_dir %s", m->dest,
+					m->mnt.mnt_dir);
+
+			g_free(bytes);
+			g_free(base_name);
 		}
 
 		if (m->mnt.mnt_fsname[0] == '/') {
@@ -368,6 +403,33 @@ error:
 }
 
 /*!
+ * Setup rootfs bind mount for standalone container.
+ *
+ * \param config \ref cc_oci_config.
+ *
+ * \return \c true on success, else \c false.
+ */
+gboolean
+cc_oci_add_rootfs_mount(struct cc_oci_config *config) {
+
+	struct cc_oci_mount *m;
+
+	if ( !config || config->pod) {
+		return false;
+	}
+
+	m = rootfs_bind_mount(config);
+	if (! m) {
+		return false;
+	}
+
+	config->rootfs_mount = g_slist_append(config->rootfs_mount, m);
+	g_debug("Added rootfs bind mount for container %s",
+			config->optarg_container_id);
+
+	return true;
+}
+/*!
  * Setup required OCI mounts.
  *
  * \param config \ref cc_oci_config.
@@ -399,6 +461,23 @@ cc_pod_handle_mounts (struct cc_oci_config *config)
 	}
 
 	return cc_handle_mounts(config, config->pod->rootfs_mounts, false);
+}
+
+/*!
+ * Setup container rootfs mount point.
+ *
+ * \param config \ref cc_oci_config.
+ *
+ * \return \c true on success, else \c false.
+ */
+gboolean
+cc_handle_rootfs_mount (struct cc_oci_config *config)
+{
+	if ( !config || config->pod) {
+		return true;
+	}
+
+	return cc_handle_mounts(config, config->rootfs_mount, false);
 }
 
 /*!

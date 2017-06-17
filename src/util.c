@@ -709,6 +709,38 @@ dup_over_stdio(int *fdp){
 	return ret;
 }
 
+/**
+ * Generated random bytes.
+ *
+ * \param size Number of bytes to be generated.
+ *
+ * \return \c Newly allocated buffer on success, NULL otherwise.
+ **/
+uint8_t *
+get_random_bytes(uint num) {
+	int fd;
+	char *file = "/dev/urandom";
+	uint8_t *buf;
+
+	fd = open(file, O_RDONLY);
+	if (fd < 0) {
+		g_critical("Error opening %s: %s", file, strerror(errno));
+		return NULL;
+	}
+
+	buf = g_malloc0(num);
+
+	if (read(fd, buf, num) == -1) {
+		g_free(buf);
+		g_critical("Error reading %s: %s", file, strerror(errno));
+		close(fd);
+		return NULL;
+	}
+
+	close(fd);
+	return buf;
+}
+
 #ifdef DEBUG
 static gboolean
 cc_oci_node_dump_aux(GNode* node, gpointer data) {

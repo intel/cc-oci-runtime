@@ -22,6 +22,7 @@
 #define _CC_OCI_UTIL_H
 
 #include <stdio.h>
+#include <stdint.h>
 
 #include <glib.h>
 #include <json-glib/json-glib.h>
@@ -94,5 +95,6 @@ gboolean cc_oci_enable_networking (void);
 guint32 cc_oci_get_big_endian_32(const guint8 *buf);
 gboolean cc_oci_handle_signals (void);
 gboolean dup_over_stdio(int *fdp);
+uint8_t *get_random_bytes(uint size);
 
 #endif /* _CC_OCI_UTIL_H */

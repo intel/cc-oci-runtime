@@ -690,6 +690,21 @@ cc_oci_create (struct cc_oci_config *config)
 	}
 
 	/**
+	 * Bind mount container rootfs
+	 */
+	if (! config->pod) {
+		if (! cc_oci_add_rootfs_mount(config)) {
+			g_critical("failed to add container rootfs bind mount");
+			return false;
+		}
+
+		if (! cc_handle_rootfs_mount(config)) {
+			g_critical("failed to mount container rootfs");
+			return false;
+		}
+	}
+
+	/**
 	 * Pod mounts should happen on the host mount namespace.
 	 */
 	if (! cc_pod_handle_mounts(config)) {
