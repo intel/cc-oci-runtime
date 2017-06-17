@@ -461,6 +461,9 @@ struct oci_state {
 
 	/* Needed by start to create a new container workload  */
 	struct oci_cfg_process *process;
+
+	gchar           *block_fstype;
+	int              block_index;
 };
 
 /** clr-specific state fields. */
@@ -497,6 +500,14 @@ struct cc_oci_container_state {
 
 	/** OCI status of container. */
 	enum oci_status status;
+
+	/* File system of the block device mount if the container rootfs
+	 * is a block device, NULL otherwise.
+	 */
+	gchar           *block_fstype;
+
+	/* Index of the drive/block device passed to the hypervisor */
+	int             block_index;
 };
 
 /** clr-specific mount details. */
@@ -651,6 +662,12 @@ struct cc_oci_config {
 	 *
 	 */
 	GSList *rootfs_mount;
+
+	/** Name of the underlying block device for the container rootfs if
+	 * present
+	 */
+	gchar *device_name;
+
 };
 
 gchar *cc_oci_config_file_path (const gchar *bundle_path);

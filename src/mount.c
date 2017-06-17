@@ -32,6 +32,12 @@
 #include "namespace.h"
 #include "pod.h"
 
+/* This incrementing index is used for deriving the drive name.
+ * Drives passed to qemu are assigned names in the order that they are 
+ * passed
+ */
+static int block_index = 0;
+
 /** Mounts that will be ignored.
  *
  * These are standard mounts that will be created within the VM
@@ -874,4 +880,63 @@ cc_get_device_and_fstype(gchar *mount_point, gchar **device_name, gchar **fstype
 
 	endmntent(file);
 	return ret;
+}
+
+/*!
+ * Check for block storage device for container rootfs.
+ * If block device is detected, set the
+ * config->device_name to the device found.
+ *
+ * \param config \ref cc_oci_config.
+ *
+ * \return \c true on success, else \c false.
+ */
+gboolean
+cc_oci_rootfs_is_block_device(struct cc_oci_config *config)
+{
+       uint major, minor;
+       char *fstype = NULL;
+
+       if (! config) {
+               return false;
+       }
+
+       gchar *container_root = config->oci.root.path;
+
+       if (! cc_device_for_path(container_root, &major, &minor)) {
+               g_critical("Could not get the underlying device for rootfs");
+               return false;
+       }
+
+       if (! cc_is_blockdevice(major, minor)) {
+               return false;
+       }
+
+       g_debug("Devicemapper block device detected for container %s",
+                       config->optarg_container_id);
+
+       gchar *mount_pnt =  cc_mount_point_for_path(container_root);
+       if ( ! mount_pnt) {
+               g_critical("Could not get mount point for %s\n",
+                               container_root);
+               return false;
+       }
+
+       if (! cc_get_device_and_fstype(mount_pnt, &(config->device_name), &fstype)) {
+               g_critical("Could not get device name for mountpoint %s",
+                               mount_pnt);
+               g_free(mount_pnt);
+               return false;
+       }
+
+       g_debug("Device name, fstype fetched for container %s: %s, %s",
+                       config->optarg_container_id,
+                       config->device_name, fstype);
+
+       config->state.block_fstype = fstype;
+       config->state.block_index = block_index;
+       block_index++;
+
+       g_free(mount_pnt);
+       return true;
 }

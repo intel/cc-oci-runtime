@@ -61,4 +61,6 @@ JsonArray *cc_oci_mounts_to_json (const struct cc_oci_config *config);
 JsonArray *cc_oci_rootfs_mount_to_json (const struct cc_oci_config *config);
 JsonArray *cc_pod_mounts_to_json (const struct cc_oci_config *config);
 
+gboolean cc_oci_rootfs_is_block_device(struct cc_oci_config *config);
+
 #endif /* _CC_OCI_MOUNT_H */
