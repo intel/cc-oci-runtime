@@ -619,6 +619,12 @@ struct cc_oci_config {
 	gboolean detached_mode;
 
 	struct cc_proxy *proxy;
+
+	/** Workload directory for regular container
+	 *
+	 * This will be {CC_OCI_RUNTIME_DIR_PREFIX}/{containerid}/workload
+	 */
+	gchar workload_dir[PATH_MAX];
 };
 
 gchar *cc_oci_config_file_path (const gchar *bundle_path);

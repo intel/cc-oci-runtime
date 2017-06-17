@@ -152,7 +152,7 @@ cc_oci_get_workload_dir (struct cc_oci_config *config)
 		return config->pod->sandbox_workloads;
 	}
 
-	return config->oci.root.path;
+	return config->workload_dir;
 }
 
 /*!
