@@ -1638,6 +1638,11 @@ cc_oci_config_update (struct cc_oci_config *config,
 		state->mounts = NULL;
 	}
 
+	if (state->rootfs_mount) {
+		config->rootfs_mount = state->rootfs_mount;
+		state->rootfs_mount = NULL;
+	}
+
 	if (state->namespaces) {
 		config->oci.oci_linux.namespaces = state->namespaces;
 		state->namespaces = NULL;
@@ -1675,6 +1680,14 @@ cc_oci_config_update (struct cc_oci_config *config,
 		g_strlcpy (config->state.procsock_path,
 				state->procsock_path,
 				sizeof (config->state.procsock_path));
+	}
+
+	if (state->workload_dir) {
+		g_strlcpy (config->workload_dir,
+				state->workload_dir,
+				sizeof (config->workload_dir));
+		g_free(state->workload_dir);
+		state->workload_dir = NULL;
 	}
 
 	return true;

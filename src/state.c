@@ -91,7 +91,7 @@ static struct state_handler {
 	{ "bundlePath"  , handle_state_bundlePath_section  , 1 , 0 },
 	{ "commsPath"   , handle_state_commsPath_section   , 1 , 0 },
 	{ "processPath" , handle_state_processPath_section , 1 , 0 },
-	{ "workloadDir" , handle_state_workloadDir_section , 1 , 0 },
+	{ "workloadDir" , handle_state_workloadDir_section , 0 , 0 },
 	{ "status"      , handle_state_status_section      , 1 , 0 },
 	{ "created"     , handle_state_created_section     , 1 , 0 },
 	{ "mounts"      , handle_state_mounts_section      , 0 , 0 },
@@ -921,7 +921,7 @@ cc_oci_state_file_create (struct cc_oci_config *config,
 	if ( ! config->state.procsock_path[0]) {
 		return false;
 	}
-	if ( ! config->workload_dir[0]) {
+	if ( !config->pod  && !config->workload_dir[0]) {
 		return false;
 	}
 	if (! config->vm) {
@@ -965,8 +965,10 @@ cc_oci_state_file_create (struct cc_oci_config *config,
 	json_object_set_string_member (obj, "processPath",
 			config->state.procsock_path);
 
-	json_object_set_string_member (obj, "workloadDir",
+	if (config->workload_dir[0]) {
+		json_object_set_string_member (obj, "workloadDir",
 			config->workload_dir);
+	}
 
 	status = cc_oci_status_get (config);
 	if (! status) {
@@ -988,11 +990,9 @@ cc_oci_state_file_create (struct cc_oci_config *config,
 	json_object_set_array_member (obj, "mounts", mounts);
 
 	rootfs_mount = cc_oci_rootfs_mount_to_json (config);
-	if (! rootfs_mount) {
-		goto out;
+	if ( rootfs_mount) {
+		json_object_set_array_member (obj, "rootfsMount", rootfs_mount);
 	}
-
-	json_object_set_array_member (obj, "rootfsMount", rootfs_mount);
 
 	/* Add an array of namespaces to allow join to them and
 	 * umount or clear all resources
