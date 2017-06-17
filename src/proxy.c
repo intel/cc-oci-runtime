@@ -1330,6 +1330,7 @@ cc_proxy_run_hyper_new_container (struct cc_oci_config *config,
 	JsonArray *additional_gids = NULL;
 	gchar     *uid_str = NULL;
 	gchar     *gid_str = NULL;
+	gchar     *drive_name = NULL;
 
 	/* json stanza for NEWCONTAINER*/
 	/*
@@ -1378,9 +1379,20 @@ cc_proxy_run_hyper_new_container (struct cc_oci_config *config,
 
 	json_object_set_array_member (newcontainer_payload, "fsmap", cc_get_hyper_fsmap(config));
 
-	json_object_set_string_member (newcontainer_payload, "rootfs", rootfs);
+	if (config->state.block_fstype) {
+		drive_name = cc_get_virtio_drive_name(config->state.block_index);
+		if (! drive_name) {
+			return false;
+		}
 
-	json_object_set_string_member (newcontainer_payload, "image", image);
+		json_object_set_string_member (newcontainer_payload, "image", drive_name);
+		json_object_set_string_member (newcontainer_payload, "fstype", config->state.block_fstype);
+		json_object_set_string_member (newcontainer_payload, "rootfs", "rootfs");
+	} else {
+		json_object_set_string_member (newcontainer_payload, "rootfs", rootfs);
+		json_object_set_string_member (newcontainer_payload, "image", image);
+	}
+
 	/*json_object_set_string_member (newcontainer_payload, "image",
 	  config->optarg_container_id);
 	  */
@@ -1479,6 +1491,7 @@ cc_proxy_run_hyper_new_container (struct cc_oci_config *config,
 		return false;
 	}
 
+	g_free_if_set(drive_name);
 	return true;
 }
 

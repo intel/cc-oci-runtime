@@ -33,6 +33,11 @@
 #include "util.h"
 #include "config.h"
 
+/* Length for virtio disk name
+ * Ref: https://github.com/torvalds/linux/blob/08c521a2011ff492490aa9ed6cc574be4235ce2b/include/linux/genhd.h#L61
+ */
+#define DISK_NAME_LEN 32
+
 /** Full path to \c rm(1) command. */
 #define CC_OCI_RM_CMD "/bin/rm"
 
@@ -739,6 +744,65 @@ get_random_bytes(uint num) {
 
 	close(fd);
 	return buf;
+}
+
+// Legacy naming scheme for virtio block devices
+// Reference : https://github.com/torvalds/linux/blob/master/drivers/block/virtio_blk.c @c0aa3e0916d7e531e69b02e426f7162dfb1c6c0f
+static int
+virtblk_name_format(char *prefix, int index, char *buf, int buflen)
+{
+	char *p;
+	int unit;
+
+	if (! (prefix && buf)) {
+		return -1;
+	}
+
+	const int base = 'z' - 'a' + 1;
+	char *begin = buf + strlen(prefix);
+	char *end = buf + buflen;
+
+	p = end - 1;
+	*p = '\0';
+	unit = base;
+
+	do {
+		if (p == begin) {
+			return -EINVAL;
+		}
+
+		*--p = (char)('a' + (index % unit));
+		index = (index / unit) - 1;
+	} while (index >= 0);
+
+	memmove(begin, p, (size_t)(end - p));
+	memcpy(buf, prefix, strlen(prefix));
+
+	return 0;
+}
+
+/*!
+ * Get the name of a virtio-block drive
+ *
+ * \param buf Buffer storing the big endian value
+ *
+ * \return \c guint32 in big endian order.
+ */
+
+gchar *
+cc_get_virtio_drive_name(int index)
+{
+	char disk_name[DISK_NAME_LEN];
+
+	if (index < 0) {
+		return NULL;
+	}
+
+	if (virtblk_name_format("vd", index, disk_name, DISK_NAME_LEN) != 0) {
+		return NULL;
+	}
+
+	return strdup(disk_name);
 }
 
 #ifdef DEBUG
