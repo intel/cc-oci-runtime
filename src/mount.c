@@ -729,3 +729,30 @@ cc_device_for_path(gchar *path, uint *major, uint *minor)
 	return true;
 }
 
+/*!
+ * Check if a device is a devicemapper block device.
+ *
+ * \param major Major number of device.
+ * \param minor Minor number of device.
+ *
+ * \return \c true on success, else \c false.
+ */
+private gboolean
+cc_is_blockdevice(uint major, uint minor)
+{
+	int ret;
+	gchar *sys_path = NULL;
+	struct stat buf;
+
+	sys_path = g_strdup_printf("/sys/dev/block/%d:%d/dm", major, minor);
+
+	ret = stat(sys_path, &buf);
+	g_free(sys_path);
+
+	if (ret == -1) {
+		return false;
+	}
+
+	return true;
+}
+
