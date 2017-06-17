@@ -48,6 +48,7 @@ gboolean cc_oci_handle_mounts (struct cc_oci_config *config);
 gboolean cc_pod_handle_mounts (struct cc_oci_config *config);
 gboolean cc_oci_handle_unmounts (const struct cc_oci_config *config);
 gboolean cc_pod_handle_unmounts (const struct cc_oci_config *config);
+gboolean cc_oci_handle_rootfs_unmount (const struct cc_oci_config *config);
 
 struct cc_oci_mount* rootfs_bind_mount(struct cc_oci_config *config);
 gboolean cc_oci_add_rootfs_mount(struct cc_oci_config *config);

@@ -557,6 +557,11 @@ cc_oci_cleanup (struct cc_oci_config *config)
 		return false;
 	}
 
+	/* Container rootfs unmount should happen after volume unmounts */
+	if (! cc_oci_handle_rootfs_unmount(config)) {
+		return false;
+	}
+
 	/* Pod unmounts should happen after the volume unmounts */
 	if (! cc_pod_handle_unmounts(config)) {
 		return false;

@@ -610,6 +610,23 @@ cc_pod_handle_unmounts (const struct cc_oci_config *config)
 }
 
 /*!
+ * Unmount container rootfs mount point.
+ *
+ * \param config \ref cc_oci_config.
+ *
+ * \return \c true on success, else \c false.
+ */
+gboolean
+cc_oci_handle_rootfs_unmount (const struct cc_oci_config *config)
+{
+	if ( !config || config->pod) {
+		return true;
+	}
+
+	return cc_handle_unmounts(config->rootfs_mount);
+}
+
+/*!
  * Convert a list of mounts to a JSON array.
  *
  * Note that the returned array will be empty unless any of the list of
