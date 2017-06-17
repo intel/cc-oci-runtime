@@ -703,14 +703,16 @@ cc_oci_create (struct cc_oci_config *config)
 	 * Bind mount container rootfs
 	 */
 	if (! config->pod) {
-		if (! cc_oci_add_rootfs_mount(config)) {
-			g_critical("failed to add container rootfs bind mount");
-			return false;
-		}
+		if (! cc_oci_rootfs_is_block_device(config)) {
+			if (! cc_oci_add_rootfs_mount(config)) {
+				g_critical("failed to add container rootfs bind mount");
+				return false;
+			}
 
-		if (! cc_handle_rootfs_mount(config)) {
-			g_critical("failed to mount container rootfs");
-			return false;
+			if (! cc_handle_rootfs_mount(config)) {
+				g_critical("failed to mount container rootfs");
+				return false;
+			}
 		}
 	}
 

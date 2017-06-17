@@ -149,6 +149,15 @@ cc_oci_append_storage_args(struct cc_oci_config *config,
 		return false;
 	}
 
+	if (config->device_name) {
+		g_ptr_array_add(additional_args, g_strdup("-device"));
+		g_ptr_array_add(additional_args, g_strdup_printf("virtio-blk,drive=drive-%d,scsi=off,config-wce=off",
+			       config->state.block_index));
+		g_ptr_array_add(additional_args, g_strdup_printf("-drive\nid=drive-%d,file=%s,aio=threads,format=raw,if=none",
+			       config->state.block_index, 
+			       config->device_name));
+	}
+
 	workload_dir = cc_oci_get_workload_dir(config);
 	if (! workload_dir) {
 		g_critical ("No workload");
