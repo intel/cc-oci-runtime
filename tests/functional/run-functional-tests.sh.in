@@ -18,7 +18,8 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-export PROXY_SOCKET_PATH="@ABS_BUILDDIR@/tests/functional/proxy.sock"
+set -e
+export PROXY_SOCKET_PATH="$(mktemp -d --suffix=-cor-test)/proxy.sock"
 export SHIM_PATH="@ABS_BUILDDIR@/cc-shim"
 echo 'Running a new instance of cc-proxy'
 @ABS_BUILDDIR@/cc-proxy -socket-path="${PROXY_SOCKET_PATH}" &
