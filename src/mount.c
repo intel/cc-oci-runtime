@@ -309,6 +309,65 @@ cc_handle_mounts(struct cc_oci_config *config, GSList *mounts, gboolean volume)
 }
 
 /*!
+ * Return a rootfs bind mount for container.
+ *
+ * \param config \ref cc_oci_config.
+ *
+ * \return \c cc_oci_mount on success, else \c NULL.
+ */
+struct cc_oci_mount*
+rootfs_bind_mount(struct cc_oci_config *config)
+{
+	struct cc_oci_mount *m;
+
+	if (! config ) {
+		return NULL;
+	}
+
+	m = g_malloc0 (sizeof (struct cc_oci_mount));
+	if (! m) {
+		goto error;
+	}
+
+	m->flags = MS_BIND;
+
+	/* Destination */
+	m->mnt.mnt_dir = g_malloc0(PATH_MAX);
+	if (! m->mnt.mnt_dir) {
+		goto error;
+	}
+
+	g_snprintf(m->mnt.mnt_dir, PATH_MAX, "/%s/rootfs",
+		   config->optarg_container_id);
+
+	/* Source */
+	m->mnt.mnt_fsname = g_strdup(config->oci.root.path);
+	if (! m->mnt.mnt_fsname) {
+		goto error;
+	}
+
+	/* Type */
+	m->mnt.mnt_type = g_strdup("bind");
+	if (! m->mnt.mnt_type) {
+		goto error;
+	}
+
+	g_debug("Created rootfs bind mount object for container %s",
+			config->optarg_container_id);
+	return m;
+
+error:
+	if (m) {
+		g_free_if_set(m->mnt.mnt_dir);
+		g_free_if_set(m->mnt.mnt_fsname);
+		g_free_if_set(m->mnt.mnt_type);
+		g_free_if_set(m);
+	}
+
+	return NULL;
+}
+
+/*!
  * Setup required OCI mounts.
  *
  * \param config \ref cc_oci_config.

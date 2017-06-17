@@ -28,6 +28,7 @@
 #include <gio/gunixconnection.h>
 
 #include "common.h"
+#include "mount.h"
 #include "pod.h"
 #include "process.h"
 #include "proxy.h"
@@ -76,48 +77,15 @@ add_container_mount(struct cc_oci_config *config) {
 		return false;
 	}
 
-	m = g_malloc0 (sizeof (struct cc_oci_mount));
+	m = rootfs_bind_mount(config);
 	if (! m) {
-		goto error;
-	}
-
-	m->flags = MS_BIND;
-
-	/* Destination */
-	m->mnt.mnt_dir = g_malloc0(PATH_MAX);
-	if (! m->mnt.mnt_dir) {
-		goto error;
-	}
-
-	g_snprintf(m->mnt.mnt_dir, PATH_MAX, "/%s/rootfs",
-		   config->optarg_container_id);
-
-	/* Source */
-	m->mnt.mnt_fsname = g_strdup(config->oci.root.path);
-	if (! m->mnt.mnt_fsname) {
-		goto error;
-	}
-
-	/* Type */
-	m->mnt.mnt_type = g_strdup("bind");
-	if (! m->mnt.mnt_type) {
-		goto error;
+		return false;
 	}
 
 	/* Add our pod container rootfs mount to the pod mount points */
 	config->pod->rootfs_mounts = g_slist_append(config->pod->rootfs_mounts, m);
 
 	return true;
-
-error:
-	if (m) {
-		g_free_if_set(m->mnt.mnt_dir);
-		g_free_if_set(m->mnt.mnt_fsname);
-		g_free_if_set(m->mnt.mnt_type);
-		g_free_if_set(m);
-	}
-
-	return false;
 }
 
 /**
