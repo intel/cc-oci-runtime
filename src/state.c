@@ -68,6 +68,8 @@ static void handle_state_proxy_section(GNode*, struct handler_data*);
 static void handle_state_pod_section(GNode*, struct handler_data*);
 static void handle_state_annotations_section(GNode*, struct handler_data*);
 static void handle_state_process_section(GNode* node, struct handler_data* data);
+static void handle_state_blockFstype_section(GNode*, struct handler_data*);
+static void handle_state_blockIndex_section(GNode* node, struct handler_data* data);
 
 /*! Used to handle each section in \ref CC_OCI_STATE_FILE. */
 static struct state_handler {
@@ -102,6 +104,8 @@ static struct state_handler {
 	{ "pod"         , handle_state_pod_section         , 0 , 0 },
 	{ "annotations" , handle_state_annotations_section , 0 , 0 },
 	{ "namespaces"  , handle_state_namespaces_section  , 0 , 0 },
+	{ "blockFstype" , handle_state_blockFstype_section , 0 , 0 },
+	{ "blockIndex"  , handle_state_blockIndex_section  , 0 , 0 },
 
 	/* terminator */
 	{ NULL, NULL, 0, 0 }
@@ -624,6 +628,42 @@ handle_state_annotations_section(GNode* node, struct handler_data* data)
 }
 
 /*!
+ *  handler for block fstype section
+ *
+ * \param node \c GNode.
+ * \param data \ref handler_data.
+ */
+static void
+handle_state_blockFstype_section(GNode* node, struct handler_data* data) {
+	update_subelements_and_strdup(node, data, block_fstype);
+}
+
+/*!
+ *  handler for block index section
+ *
+ * \param node \c GNode.
+ * \param data \ref handler_data.
+ */
+static void
+handle_state_blockIndex_section(GNode* node, struct handler_data* data) {
+	gchar* endptr = NULL;
+
+	if (node) {
+		if (! node->data) {
+			return;
+		}
+		data->state->block_index =
+			(GPid)g_ascii_strtoll((char*)node->data, &endptr, 10);
+		if (endptr != node->data) {
+			(*(data->subelements_count))++;
+		} else {
+			g_critical("failed to convert '%s' to int",
+			    (char*)node->data);
+		}
+	}
+}
+
+/*!
 * handler for process section usig oci spec handlers
 *
 * \param node \c GNode.
@@ -816,6 +856,7 @@ cc_oci_state_free (struct oci_state *state)
 	g_free_if_set (state->workload_dir);
 	g_free_if_set (state->create_time);
 	g_free_if_set (state->console);
+	g_free_if_set (state->block_fstype);
 
 	if(state->process) {
 		if (state->process->args) {
@@ -968,6 +1009,13 @@ cc_oci_state_file_create (struct cc_oci_config *config,
 	if (config->workload_dir[0]) {
 		json_object_set_string_member (obj, "workloadDir",
 			config->workload_dir);
+	}
+
+	if (config->state.block_fstype) {
+		json_object_set_string_member (obj, "blockFstype",
+			config->state.block_fstype);
+		json_object_set_int_member (obj, "blockIndex",
+			config->state.block_index);
 	}
 
 	status = cc_oci_status_get (config);

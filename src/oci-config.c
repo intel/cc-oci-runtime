@@ -151,6 +151,7 @@ cc_oci_config_free (struct cc_oci_config *config)
 	g_free_if_set (config->bundle_path);
 	g_free_if_set (config->root_dir);
 	g_free_if_set (config->pid_file);
+	g_free_if_set (config->device_name);
 
 	if (config->vm) {
 		g_free_if_set (config->vm->kernel_params);

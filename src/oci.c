@@ -229,6 +229,11 @@ cc_oci_get_config_and_state (gchar **config_file,
 			(*state)->procsock_path,
 			sizeof (config->state.procsock_path));
 
+	if((*state)->block_fstype) {
+		config->state.block_fstype = g_strdup((*state)->block_fstype);
+		config->state.block_index = (*state)->block_index;
+	}
+
 	*config_file = cc_oci_config_file_path ((*state)->bundle_path);
 	if (! (*config_file)) {
 		goto err;
@@ -1688,6 +1693,12 @@ cc_oci_config_update (struct cc_oci_config *config,
 				sizeof (config->workload_dir));
 		g_free(state->workload_dir);
 		state->workload_dir = NULL;
+	}
+
+	if (state->block_fstype) {
+		config->state.block_fstype = g_strdup(state->block_fstype);
+		config->state.block_index = state->block_index;
+		state->block_fstype = NULL;
 	}
 
 	return true;
