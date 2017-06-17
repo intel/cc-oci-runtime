@@ -646,6 +646,14 @@ cc_mounts_to_json (GSList *mounts)
 				m->directory_created);
 		}
 
+		json_object_set_string_member (mount, "mnt_dir",
+			m->mnt.mnt_dir);
+
+		if (m->host_path) {
+			json_object_set_string_member (mount, "host_path",
+				m->host_path);
+		}
+
 		json_array_add_object_element (array, mount);
 	}
 

@@ -282,6 +282,19 @@ handle_state_mounts_section(GNode* node, struct handler_data* data) {
 			m = (struct cc_oci_mount*)l->data;
 			m->directory_created = g_strdup((char*)node->children->data);
 		}
+	} else if (! g_strcmp0(node->data, "mnt_dir")) {
+		GSList *l = g_slist_last(data->state->mounts);
+		if (l) {
+			m = (struct cc_oci_mount*)l->data;
+			m->mnt.mnt_dir = g_strdup((char*)node->children->data);
+
+		}
+	} else if (! g_strcmp0(node->data, "host_path")) {
+		GSList *l = g_slist_last(data->state->mounts);
+		if (l) {
+			m = (struct cc_oci_mount*)l->data;
+			m->host_path = g_strdup((char*)node->children->data);
+		}
 	}
 }
 
