@@ -678,6 +678,23 @@ cc_oci_mounts_to_json (const struct cc_oci_config *config)
 }
 
 /*!
+ * Convert container rootfs mount to a JSON array.
+ *
+ * \param config \ref cc_oci_config.
+ *
+ * \return \c JsonArray on success, else \c NULL.
+ */
+JsonArray *
+cc_oci_rootfs_mount_to_json (const struct cc_oci_config *config)
+{
+	if (!config || config->pod) {
+		return NULL;
+	}
+
+	return cc_mounts_to_json(config->rootfs_mount);
+}
+
+/*!
  * Convert the list of pod mounts to a JSON array.
  *
  * \param config \ref cc_oci_config.

@@ -418,6 +418,8 @@ struct oci_state {
 	gchar           *bundle_path;
 	gchar           *comms_path;
 
+	gchar           *workload_dir;
+
 	/** path to the process socket, used to determine when the VM
 	 * has shut down.
 	 */
@@ -431,6 +433,14 @@ struct oci_state {
 	 * so there is no \c oci_cfg_mount type.
 	 */
 	GSList          *mounts;
+
+	/** List containing a single entry of \ref cc_oci_mount
+	 *
+	 * This is the bind mount for the container rootfs in the hyperstart
+	 * shared directory.
+	 *
+	 */
+	GSList          *rootfs_mount;
 
         /** List of \ref oci_cfg_annotation annotations.
          *

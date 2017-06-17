@@ -57,6 +57,7 @@ void cc_oci_mounts_free_all (GSList *mounts);
 void cc_oci_mount_free (struct cc_oci_mount *m);
 
 JsonArray *cc_oci_mounts_to_json (const struct cc_oci_config *config);
+JsonArray *cc_oci_rootfs_mount_to_json (const struct cc_oci_config *config);
 JsonArray *cc_pod_mounts_to_json (const struct cc_oci_config *config);
 
 #endif /* _CC_OCI_MOUNT_H */
