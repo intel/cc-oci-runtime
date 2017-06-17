@@ -5,6 +5,7 @@
   "bundlePath" : "/tmp/bundle/",
   "commsPath" : "/run/cc-oci-runtime/foo/hypervisor.sock",
   "processPath": "/run/cc-oci-runtime/foo/process.sock",
+  "workloadDir": "/run/cc-oci-runtime/foo/workload",
   "status" : "running",
   "created" : "2016-05-18T17:02:55.250085Z",
   "console" : {

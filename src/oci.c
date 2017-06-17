@@ -229,6 +229,11 @@ cc_oci_get_config_and_state (gchar **config_file,
 			(*state)->procsock_path,
 			sizeof (config->state.procsock_path));
 
+	g_strlcpy (config->workload_dir,
+			(*state)->workload_dir,
+			sizeof (config->workload_dir));
+
+
 	if((*state)->block_fstype) {
 		config->state.block_fstype = g_strdup((*state)->block_fstype);
 		config->state.block_index = (*state)->block_index;
