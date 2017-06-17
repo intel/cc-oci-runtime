@@ -75,6 +75,10 @@ START_TEST(test_cc_oci_handle_mounts) {
 	config = cc_oci_config_create ();
 	ck_assert (config);
 
+	g_strlcpy (config->workload_dir,
+			"/tmp",
+			sizeof (config->workload_dir));
+
 	cc_oci_json_parse(&node, TEST_DATA_DIR "/mounts.json");
 	mounts_spec_handler.handle_section(
 	    node_find_child(node, mounts_spec_handler.name), config);
@@ -108,11 +112,9 @@ START_TEST(test_cc_oci_handle_umounts) {
 	mounts_spec_handler.handle_section(
 	    node_find_child(node, mounts_spec_handler.name), config);
 
-	/**
-	 * cc_oci_handle_unmounts returns true when there
-	 * is not a mount namespace with path
+	/* We no longer check for mount namespace
 	 */
-	ck_assert(cc_oci_handle_unmounts(config));
+	ck_assert(! cc_oci_handle_unmounts(config));
 
 	cc_oci_config_free(config);
 	g_free_node(node);
