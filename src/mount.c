@@ -23,6 +23,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <inttypes.h>
+#include <sys/types.h>
 
 #include <glib/gstdio.h>
 
@@ -698,3 +699,33 @@ cc_pod_mounts_to_json (const struct cc_oci_config *config)
 
 	return cc_mounts_to_json(config->pod->rootfs_mounts);
 }
+
+/*!
+ * Get underlying device for a path.
+ *
+ * \param path Path of the file.
+ * \param[out] major Major number of device.
+ * \param[out] minor Minor number of device.
+ *
+ * \return \c true on success, else \c false.
+ */
+private gboolean
+cc_device_for_path(gchar *path, uint *major, uint *minor)
+{
+	struct stat buf;
+
+	if (! (path && major && minor)) {
+		return false;
+	}
+
+	if (stat(path, &buf) == -1) {
+		g_debug("Stat failed for %s : %s", path, strerror(errno));
+		return false;
+	}
+
+	*major = major(buf.st_dev);
+	*minor = minor(buf.st_dev);
+
+	return true;
+}
+
