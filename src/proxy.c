@@ -1510,7 +1510,8 @@ cc_proxy_hyper_new_container (struct cc_oci_config *config)
 	return cc_proxy_hyper_new_pod_container(config,
 						config->optarg_container_id,
 						config->optarg_container_id,
-						"", "");
+						"rootfs",
+						 config->optarg_container_id);
 }
 
 /**
