@@ -756,3 +756,69 @@ cc_is_blockdevice(uint major, uint minor)
 	return true;
 }
 
+/*!
+ * Get the mount point for a path.
+ *
+ * For eg. if a device is mounted at "/a/b", passing path
+ * "a/b/c" to this function should return "/a/b".
+ *
+ * \param path Path to get the mount point for.
+ *
+ * \return Newly-allocated string on success, else \c NULL.
+ */
+private gchar *
+cc_mount_point_for_path(const gchar *path) {
+	int ret = -1;
+	gchar *mount_point = NULL;
+	gchar *parent_dir = NULL;
+	struct stat parent_stat, cur_stat;
+
+	if (! path) {
+		return NULL;
+	}
+
+	if ( *path != '/') {
+		g_warning("Absolute path not provided %s", path);
+		return NULL;
+	}
+
+	if (g_strcmp0(path, "/") == 0 ) {
+		return g_strdup(path);
+	}
+
+	if (stat(path, &cur_stat) == -1) {
+		g_warning("Could not stat %s: %s", path, strerror(errno));
+		return NULL;
+	}
+
+	mount_point = strdup(path);
+
+	while (g_strcmp0(mount_point, "/") != 0) {
+		parent_dir = g_path_get_dirname(mount_point);
+
+		ret = lstat(parent_dir, &parent_stat);
+		if ( ret == -1) {
+			g_free(parent_dir);
+			g_free(mount_point);
+			return NULL;
+		}
+
+		if (cur_stat.st_dev != parent_stat.st_dev) {
+			break;
+		}
+
+		g_free(mount_point);
+		mount_point = parent_dir;
+		cur_stat = parent_stat;
+	}
+
+	g_free(parent_dir);
+
+	if (g_strcmp0(mount_point, "/") == 0) {
+		g_free(mount_point);
+		return NULL;
+	}
+
+	return mount_point;
+}
+
