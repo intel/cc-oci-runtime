@@ -556,37 +556,8 @@ cc_handle_unmounts (GSList *mounts)
 gboolean
 cc_oci_handle_unmounts (const struct cc_oci_config *config)
 {
-	GSList  *l;
-	struct oci_cfg_namespace *ns;
-	gboolean mountns = false;
-
 	if (! config) {
 		return false;
-	}
-
-	/**
-	 * At this point qemu is not running if there is
-	 * a mount namespace with a path we have join
-	 * it and umount all mounted resources
-	 */
-	for (l = config->oci.oci_linux.namespaces;
-			l && l->data;
-			l = g_slist_next (l)) {
-		ns = (struct oci_cfg_namespace *)l->data;
-
-		if (ns->type == OCI_NS_MOUNT && ns->path) {
-			mountns = cc_oci_ns_join (ns);
-			break;
-		}
-	}
-
-	/**
-	 * if there is NOT a specific mount namespace return true
-	 * since namespace created by unshare in \ref cc_oci_ns_setup
-	 * is destroyed when qemu ends
-	 */
-	if (! mountns && (cc_pod_is_vm(config) && !cc_pod_is_pod_sandbox(config))) {
-		return true;
 	}
 
 	return cc_handle_unmounts(config->oci.mounts);
