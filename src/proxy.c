@@ -1274,6 +1274,40 @@ out:
 }
 
 /**
+ * Construct an hyperstart fsmap structure
+ *
+ * \param config \ref cc_oci_config.
+ *
+ * \return \c JsonArray on success, else \c NULL.
+ */
+JsonArray *
+cc_get_hyper_fsmap(struct cc_oci_config *config)
+{
+	JsonArray  *fsmap_arr;
+	JsonObject *fsmap_desc;
+	GSList     *l;
+
+	if (! config) {
+		return NULL;
+	}
+
+	fsmap_arr = json_array_new();
+	for (l = config->oci.mounts; l && l->data; l = g_slist_next (l)) {
+		struct cc_oci_mount *m = (struct cc_oci_mount *)l->data;
+
+		if (m->host_path) {
+			fsmap_desc  = json_object_new ();
+			json_object_set_string_member(fsmap_desc, "path", m->mnt.mnt_dir);
+			json_object_set_string_member(fsmap_desc, "source", m->host_path);
+
+			json_array_add_object_element (fsmap_arr, fsmap_desc);
+		}
+	}
+
+	return fsmap_arr;
+}
+
+/**
  * Prepare an hyperstart newcontainer command using
  * the initial worload from \ref cc_oci_config and
  * then request \ref CC_OCI_PROXY to send it.
@@ -1341,6 +1375,9 @@ cc_proxy_run_hyper_new_container (struct cc_oci_config *config,
 
 	json_object_set_string_member (newcontainer_payload, "id",
 				container_id);
+
+	json_object_set_array_member (newcontainer_payload, "fsmap", cc_get_hyper_fsmap(config));
+
 	json_object_set_string_member (newcontainer_payload, "rootfs", rootfs);
 
 	json_object_set_string_member (newcontainer_payload, "image", image);
