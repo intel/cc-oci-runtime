@@ -822,3 +822,56 @@ cc_mount_point_for_path(const gchar *path) {
 	return mount_point;
 }
 
+/*!
+ * Get device and fstype for a mountpoint.
+ *
+ * \param mount_point Mount point at which device is mounted.
+ * \param[out] device_name Device name
+ * \param[out] fstype File system type of the mount.
+ *
+ * \return \c true on success, else \c false.
+ */
+gboolean
+cc_get_device_and_fstype(gchar *mount_point, gchar **device_name, gchar **fstype)
+{
+	gboolean ret = false;
+	struct mntent ent = { 0 };
+	struct mntent *mntent;
+	char buf[BUFSIZ];
+	FILE *file = NULL;
+
+	if (! (mount_point && device_name && fstype)) {
+		g_debug("Invalid input for proc_mounts_path");
+		return ret;
+	}
+
+	/* note: glib api "g_unix_mounts_get" for fetching mount info fails in
+	 * case of bind mounts. Use getmntent_r instead.
+	 */
+
+	file = setmntent(PROC_MOUNTS_FILE, "r");
+	if (! file) {
+		g_critical("Could not open file %s", PROC_MOUNTS_FILE);
+		return ret;
+	}
+
+	while ((mntent = getmntent_r (file, &ent, buf, 
+					sizeof (buf))) != NULL) {
+		if (mntent->mnt_fsname) {
+			if (g_strcmp0(mntent->mnt_dir, mount_point) == 0) {
+				*device_name = g_strdup(mntent->mnt_fsname);
+				*fstype = g_strdup(mntent->mnt_type);
+				ret = true;
+				break;
+			}
+		}
+	}
+
+	if (! mntent) {
+		g_warning("Could not find device name for mount %s", 
+				mount_point);
+	}
+
+	endmntent(file);
+	return ret;
+}

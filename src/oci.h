@@ -137,6 +137,8 @@
 /* Path to memory cgroup directory */
 #define CGROUP_MEM_DIR "/sys/fs/cgroup/memory"
 
+#define PROC_MOUNTS_FILE "/proc/mounts"
+
 /** Status of an OCI container. */
 enum oci_status {
 	OCI_STATUS_CREATED = 0,
