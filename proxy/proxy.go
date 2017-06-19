@@ -32,6 +32,10 @@ import (
 	"github.com/golang/glog"
 )
 
+// In linux the max socket path is 108 including null character
+// see http://man7.org/linux/man-pages/man7/unix.7.html
+const socketPathMaxLength = 107
+
 // Main struct holding the proxy state
 type proxy struct {
 	// Protect concurrent accesses from separate client goroutines to this
@@ -308,6 +312,11 @@ func (proxy *proxy) init() error {
 		socketPath := DefaultSocketPath
 		if len(*ArgSocketPath) != 0 {
 			socketPath = *ArgSocketPath
+		}
+
+		if len(socketPath) > socketPathMaxLength {
+			return fmt.Errorf("socket path too long: %d (max %d)",
+				len(socketPath), socketPathMaxLength)
 		}
 
 		socketDir := filepath.Dir(socketPath)
