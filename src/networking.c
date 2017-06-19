@@ -77,6 +77,7 @@
 #include "util.h"
 #include "netlink.h"
 #include "networking.h"
+#include "process.h"
 
 #define TUNDEV "/dev/net/tun"
 
@@ -130,15 +131,18 @@ cc_oci_net_interface_free (struct cc_oci_net_if_cfg *if_cfg)
 	g_free_if_set (if_cfg->bridge);
 	g_free_if_set (if_cfg->tap_device);
 	g_free_if_set (if_cfg->vhostuser_socket_path);
+	g_free_if_set (if_cfg->bdf);
+	g_free_if_set (if_cfg->device_driver);
+	g_free_if_set (if_cfg->vd_id);
 
 	if (if_cfg->ipv4_addrs) {
 		g_slist_free_full(if_cfg->ipv4_addrs,
-                (GDestroyNotify)cc_oci_net_ipv4_free);
+		(GDestroyNotify)cc_oci_net_ipv4_free);
 	}
 
 	if (if_cfg->ipv6_addrs) {
 		g_slist_free_full(if_cfg->ipv6_addrs,
-                (GDestroyNotify)cc_oci_net_ipv6_free);
+		(GDestroyNotify)cc_oci_net_ipv6_free);
 	}
 
 	g_free (if_cfg);
@@ -209,6 +213,43 @@ out:
 	}
 
 	return ret;
+}
+
+extern GHashTable* mac_hash;
+
+/*!
+ * Helper function for checking if interface is VF based
+ *
+ * \param if_cfg Network interface configuration struct Interface name.
+ *
+ * \return \c true on success, else \c false.
+ */
+static gboolean
+check_vf_based_iface(struct cc_oci_net_if_cfg *if_cfg) {
+
+	struct cc_oci_device *d_info = NULL;
+
+	if (!if_cfg) {
+		g_debug ("null if_cfg passed");
+		return false;
+	}
+
+	d_info = g_hash_table_lookup(mac_hash, if_cfg->mac_address);
+
+	if (!d_info)
+		return false;
+
+	if (!d_info->bdf)
+		return false;
+
+	if_cfg->bdf = d_info->bdf;
+	if_cfg->device_driver = d_info->driver;
+	if_cfg->vd_id = d_info->vd_id;
+	if_cfg->vf_based = true;
+
+	g_debug("vf interface found: %s, vendor/devid id: %s, driver: %s",d_info->bdf, d_info->vd_id, d_info->driver);
+
+	return true;
 }
 
 /*!
@@ -323,9 +364,10 @@ cc_oci_network_create(const struct cc_oci_config *const config,
 	guint index = 0;
 	guint j = 0;
 	gchar *vhostuser_port_path = NULL;
+	gboolean retval = false;
 
 	if (config == NULL) {
-		return false;
+		goto out;
 	}
 
 	for (index=0; index<g_slist_length(config->net.interfaces); index++) {
@@ -333,6 +375,7 @@ cc_oci_network_create(const struct cc_oci_config *const config,
 		 * same mac address prefix for tap interfaces on the host
 		 * side. This method scales to support upto 2^16 networks
 		 */
+
 		guint8 mac[6] = {0x02, 0x00, 0xCA, 0xFE,
 				(guint8)(index >> 8), (guint8)index};
 		guint tap_index, veth_index, bridge_index;
@@ -365,7 +408,12 @@ cc_oci_network_create(const struct cc_oci_config *const config,
 		if( if_cfg->vhostuser_socket_path != NULL)
 			continue;
 
-
+		/* If we are dealing with a virtual function based SRIOV
+		 * interface, we do not need to setup anything -- skip tap
+		 * setup.
+		 */
+		if (check_vf_based_iface(if_cfg))
+			continue;
 
 		if (!cc_oci_tap_create(if_cfg->tap_device)) {
 			goto out;
@@ -407,9 +455,48 @@ cc_oci_network_create(const struct cc_oci_config *const config,
 		}
 	}
 
-	return true;
+	retval = true;
 out:
-	return false;
+	/* network is created, no longer need mac to BDF hash table */
+	mac_hash_free();		
+
+	return retval;
+}
+
+
+/*!
+ * Add network devices to state JSON file
+ *
+ * \param config \ref cc_oci_config
+ *
+ * \return \c JsonObject for network device
+ */
+JsonObject *
+cc_oci_network_devices_to_json (const struct cc_oci_config *config)
+{
+	JsonObject *device = NULL;
+	guint i;
+	struct cc_oci_net_if_cfg *if_cfg = NULL;
+
+	if (! config) {
+		return NULL;
+	}
+
+	for (i=0; i < g_slist_length(config->net.interfaces); i++) {
+		if_cfg = (struct cc_oci_net_if_cfg *)
+		        g_slist_nth_data(config->net.interfaces, i);
+
+		if (if_cfg->vf_based) {
+		        g_debug("interface %s is vf based - bdf: %s, vendor/device id: %s, driver: %s",
+				if_cfg->ifname, if_cfg->bdf,
+				if_cfg->vd_id, if_cfg->device_driver);
+		        device = json_object_new ();
+		        json_object_set_string_member (device, "bdf", if_cfg->bdf);
+		        json_object_set_string_member (device, "driver", if_cfg->device_driver);
+		        json_object_set_string_member (device, "vd_id", if_cfg->vd_id);
+		}
+	}
+	return device;
 }
 
 /*!
@@ -451,12 +538,12 @@ cc_net_get_ip_address(const gint family, const void *const sin_addr)
 static guint
 prefix(guint8 *val, guint size)
 {
-        guint8 *addr = val;
-        guint byte, bit, plen = 0;
+	guint8 *addr = val;
+	guint byte, bit, plen = 0;
 
-        for (byte = 0; byte < size; byte++, plen += 8) {
-                if (addr[byte] != 0xff) {
-                        break;
+	for (byte = 0; byte < size; byte++, plen += 8) {
+		if (addr[byte] != 0xff) {
+		        break;
 		}
 	}
 
@@ -465,24 +552,24 @@ prefix(guint8 *val, guint size)
 	}
 
 	for (bit = 7; bit != 0; bit--, plen++) {
-                if (!(addr[byte] & (1 << bit))) {
-                        break;
+		if (!(addr[byte] & (1 << bit))) {
+		        break;
 		}
 	}
 
 	/* Handle errors */
-        for (; bit != 0; bit--) {
-                if (addr[byte] & (1 << bit)) {
-                        return(0);
+	for (; bit != 0; bit--) {
+		if (addr[byte] & (1 << bit)) {
+		        return(0);
 		}
 	}
-        byte++;
-        for (; byte < size; byte++) {
-                if (addr[byte]) {
-                        return(0);
+	byte++;
+	for (; byte < size; byte++) {
+		if (addr[byte]) {
+		        return(0);
 		}
 	}
-        return (plen);
+	return (plen);
 }
 
 /*!
@@ -594,15 +681,15 @@ get_iptable_rules(struct cc_oci_config *config)
 
 	g_debug("Running command : %s", cmd);
 	ret = g_spawn_sync (NULL,
-              args,
-              NULL,
-              G_SPAWN_SEARCH_PATH | G_SPAWN_STDERR_TO_DEV_NULL,
-              NULL,
-              NULL,
-              &(config->net.iptable_rules),
-              NULL,
-              &exit_status,
-              &error);
+	      args,
+	      NULL,
+	      G_SPAWN_SEARCH_PATH | G_SPAWN_STDERR_TO_DEV_NULL,
+	      NULL,
+	      NULL,
+	      &(config->net.iptable_rules),
+	      NULL,
+	      &exit_status,
+	      &error);
 
 	if ( !ret || exit_status) {
 		if (! ret) {
@@ -656,15 +743,15 @@ purge_iptable_rules(void)
 	}
 
 	ret = g_spawn_sync (NULL,
-              args,
-              NULL,
-              G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL,
-              NULL,
-              NULL,
-              NULL,
-              NULL,
-              &exit_status,
-              &error);
+	      args,
+	      NULL,
+	      G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL,
+	      NULL,
+	      NULL,
+	      NULL,
+	      NULL,
+	      &exit_status,
+	      &error);
 
 	if ( !ret || exit_status) {
 		if (! ret) {

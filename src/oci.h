@@ -371,11 +371,24 @@ struct cc_oci_net_if_cfg {
 	/** mtu of interface **/
 	unsigned int mtu;
 
+	/** Flag indicated interface is a virtual function */
+	gboolean vf_based;
+
+	/** BDF associated with this VF device */
+	gchar *bdf;
+
+	/** device driver associated with this VF device */
+	gchar *device_driver;
+
+	/** vendor and device ID associated with this VF */
+	gchar *vd_id;
+
 	/** List of IPv4 addresses on the interface */
 	GSList  *ipv4_addrs;
 
 	/** List of IPv6 addresses on the interface */
 	GSList  *ipv6_addrs;
+
 };
 
 /** cc-specific IPv4 configuration data. */
@@ -435,10 +448,12 @@ struct oci_state {
 	 */
 	GSList          *mounts;
 
-        /** List of \ref oci_cfg_annotation annotations.
-         *
-         */
-        GSList          *annotations;
+	GSList          *devices;
+
+	/** List of \ref oci_cfg_annotation annotations.
+	 *
+	 */
+	GSList          *annotations;
 
 	/** List of \ref oci_cfg_namespace namespaces */
 	GSList          *namespaces;
@@ -573,6 +588,17 @@ struct cc_pod {
 	GSList   *rootfs_mounts;
 };
 
+struct cc_oci_device {
+	/* bdf of device */
+	gchar *bdf;
+
+	/* original driver associated with device */
+	gchar *driver;
+
+	/* vendor and device ID associated with device */
+	gchar *vd_id;
+};
+
 /** The main object holding all configuration data.
  *
  * \note The main user of this object is "start" - other commands
@@ -591,6 +617,8 @@ struct cc_oci_config {
 
 	/** Network configuration. */
 	struct cc_oci_net_cfg           net;
+
+	GSList *devices;
 
 	/** Container-specific state. */
 	struct cc_oci_container_state  state;
@@ -638,7 +666,7 @@ gboolean cc_oci_get_config_and_state (gchar **config_file,
 		struct oci_state **state);
 void cc_oci_state_free (struct oci_state *state);
 gboolean cc_oci_stop (struct cc_oci_config *config,
-        struct oci_state *state);
+		struct oci_state *state);
 gboolean cc_oci_toggle (struct cc_oci_config *config,
 		struct oci_state *state, gboolean pause);
 gboolean cc_oci_exec (struct cc_oci_config *config,
