@@ -61,9 +61,9 @@ fi
 
 # Uncomment to enable the global log which will persist after a Clear
 # Container is destroyed.
-## runtime_args="$runtime_args --global-log=\"$global_log\""
+runtime_args="$runtime_args --global-log=\"$global_log\""
 
 # Uncomment to supplement the log with debug information
-## runtime_args="$runtime_args --debug"
+runtime_args="$runtime_args --debug"
 
 eval exec "$runtime" "$runtime_args" $@
