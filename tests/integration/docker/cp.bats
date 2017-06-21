@@ -34,6 +34,11 @@ setup() {
 	content="test"
 	testfile=$(mktemp --tmpdir="$BATS_TMPDIR" --suffix=-cor-test)
 	$DOCKER_EXE run --name $container -tid ubuntu bash
+	driver=$($DOCKER_EXE inspect --format '{{ .GraphDriver.Name }}' $container)
+	if [ "$driver" == "devicemapper" ] ; then
+		$DOCKER_EXE rm -f $container
+		skip
+	fi
 	echo $content > $testfile
 	$DOCKER_EXE cp $testfile $container:/root/
 	$DOCKER_EXE exec -i $container bash -c "ls /root/$(basename $testfile)"
