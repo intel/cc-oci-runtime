@@ -152,7 +152,7 @@ cc_oci_get_workload_dir (struct cc_oci_config *config)
 		return config->pod->sandbox_workloads;
 	}
 
-	return config->oci.root.path;
+	return config->workload_dir;
 }
 
 /*!
@@ -228,6 +228,16 @@ cc_oci_get_config_and_state (gchar **config_file,
 	g_strlcpy (config->state.procsock_path,
 			(*state)->procsock_path,
 			sizeof (config->state.procsock_path));
+
+	g_strlcpy (config->workload_dir,
+			(*state)->workload_dir,
+			sizeof (config->workload_dir));
+
+
+	if((*state)->block_fstype) {
+		config->state.block_fstype = g_strdup((*state)->block_fstype);
+		config->state.block_index = (*state)->block_index;
+	}
 
 	*config_file = cc_oci_config_file_path ((*state)->bundle_path);
 	if (! (*config_file)) {
@@ -557,6 +567,11 @@ cc_oci_cleanup (struct cc_oci_config *config)
 		return false;
 	}
 
+	/* Container rootfs unmount should happen after volume unmounts */
+	if (! cc_oci_handle_rootfs_unmount(config)) {
+		return false;
+	}
+
 	/* Pod unmounts should happen after the volume unmounts */
 	if (! cc_pod_handle_unmounts(config)) {
 		return false;
@@ -687,6 +702,23 @@ cc_oci_create (struct cc_oci_config *config)
 		}
 
 		return false;
+	}
+
+	/**
+	 * Bind mount container rootfs
+	 */
+	if (! config->pod) {
+		if (! cc_oci_rootfs_is_block_device(config)) {
+			if (! cc_oci_add_rootfs_mount(config)) {
+				g_critical("failed to add container rootfs bind mount");
+				return false;
+			}
+
+			if (! cc_handle_rootfs_mount(config)) {
+				g_critical("failed to mount container rootfs");
+				return false;
+			}
+		}
 	}
 
 	/**
@@ -1618,6 +1650,11 @@ cc_oci_config_update (struct cc_oci_config *config,
 		state->mounts = NULL;
 	}
 
+	if (state->rootfs_mount) {
+		config->rootfs_mount = state->rootfs_mount;
+		state->rootfs_mount = NULL;
+	}
+
 	if (state->namespaces) {
 		config->oci.oci_linux.namespaces = state->namespaces;
 		state->namespaces = NULL;
@@ -1655,6 +1692,20 @@ cc_oci_config_update (struct cc_oci_config *config,
 		g_strlcpy (config->state.procsock_path,
 				state->procsock_path,
 				sizeof (config->state.procsock_path));
+	}
+
+	if (state->workload_dir) {
+		g_strlcpy (config->workload_dir,
+				state->workload_dir,
+				sizeof (config->workload_dir));
+		g_free(state->workload_dir);
+		state->workload_dir = NULL;
+	}
+
+	if (state->block_fstype) {
+		config->state.block_fstype = g_strdup(state->block_fstype);
+		config->state.block_index = state->block_index;
+		state->block_fstype = NULL;
 	}
 
 	return true;

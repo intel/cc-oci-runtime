@@ -151,6 +151,7 @@ cc_oci_config_free (struct cc_oci_config *config)
 	g_free_if_set (config->bundle_path);
 	g_free_if_set (config->root_dir);
 	g_free_if_set (config->pid_file);
+	g_free_if_set (config->device_name);
 
 	if (config->vm) {
 		g_free_if_set (config->vm->kernel_params);
@@ -179,6 +180,10 @@ cc_oci_config_free (struct cc_oci_config *config)
 
 	cc_oci_mounts_free_all (config->oci.mounts);
 	cc_oci_annotations_free_all (config->oci.annotations);
+
+	if (config->rootfs_mount) {
+		cc_oci_mounts_free_all (config->rootfs_mount);
+	}
 
 	g_free_if_set (config->oci.platform.os);
 	g_free_if_set (config->oci.platform.arch);

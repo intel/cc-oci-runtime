@@ -139,6 +139,46 @@ cc_oci_append_network_args(struct cc_oci_config *config,
         }
 }
 
+static gboolean
+cc_oci_append_storage_args(struct cc_oci_config *config,
+			GPtrArray *additional_args)
+{
+	gchar *workload_dir;
+
+	if (! (config && additional_args)) {
+		return false;
+	}
+
+	if (config->device_name) {
+		g_ptr_array_add(additional_args, g_strdup("-device"));
+		g_ptr_array_add(additional_args, g_strdup_printf("virtio-blk,drive=drive-%d,scsi=off,config-wce=off",
+			       config->state.block_index));
+		g_ptr_array_add(additional_args, g_strdup_printf("-drive\nid=drive-%d,file=%s,aio=threads,format=raw,if=none",
+			       config->state.block_index, 
+			       config->device_name));
+	}
+
+	workload_dir = cc_oci_get_workload_dir(config);
+	if (! workload_dir) {
+		g_critical ("No workload");
+		return false;
+	}
+
+	if (!(workload_dir[0]
+		&& g_file_test (workload_dir, G_FILE_TEST_IS_DIR))) {
+		g_critical ("workload directory: %s does not exist",
+			    workload_dir);
+		return false;
+	}
+
+	g_ptr_array_add(additional_args, g_strdup("-device"));
+	g_ptr_array_add(additional_args, g_strdup("virtio-9p-pci,fsdev=workload9p,mount_tag=rootfs"));
+	g_ptr_array_add(additional_args, g_strdup("-fsdev"));
+	g_ptr_array_add(additional_args, g_strdup_printf("local,id=workload9p,path=%s,security_model=none", workload_dir));
+
+	return true;
+}
+
 /*!
  * Replace any special tokens found in \p args with their expanded
  * values.
@@ -158,7 +198,6 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 	gchar           **arg;
 	gchar            *bytes = NULL;
 	gchar            *console_device = NULL;
-	gchar            *workload_dir;
 	gchar		 *hypervisor_console = NULL;
 	g_autofree gchar *procsock_device = NULL;
 
@@ -194,11 +233,6 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 
 	/* We're about to launch the hypervisor so validate paths.*/
 
-	workload_dir = cc_oci_get_workload_dir(config);
-	if (! workload_dir) {
-		g_critical ("No workload");
-		goto out;
-	}
 
 	if ((!config->vm->image_path[0])
 		|| stat (config->vm->image_path, &st) < 0) {
@@ -211,13 +245,6 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 		&& g_file_test (config->vm->kernel_path, G_FILE_TEST_EXISTS))) {
 		g_critical ("kernel image: %s does not exist",
 			    config->vm->kernel_path);
-		return false;
-	}
-
-	if (!(workload_dir[0]
-		&& g_file_test (workload_dir, G_FILE_TEST_IS_DIR))) {
-		g_critical ("workload directory: %s does not exist",
-			    workload_dir);
 		return false;
 	}
 
@@ -266,7 +293,6 @@ cc_oci_expand_cmdline (struct cc_oci_config *config,
 		const gchar* name;
 		const gchar* value;
 	} special_tags[] = {
-		{ "@WORKLOAD_DIR@"      , workload_dir               },
 		{ "@KERNEL@"            , config->vm->kernel_path    },
 		{ "@KERNEL_PARAMS@"     , config->vm->kernel_params  },
 		{ "@KERNEL_NET_PARAMS@" , kernel_net_params          },
@@ -497,6 +523,7 @@ cc_oci_populate_extra_args(struct cc_oci_config *config ,
 	//g_ptr_array_add(additional_args, g_strdup("-device testdevice"));
 
 	cc_oci_append_network_args(config, additional_args);
+	cc_oci_append_storage_args(config, additional_args);
 
 	return;
 }

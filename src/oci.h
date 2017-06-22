@@ -137,6 +137,8 @@
 /* Path to memory cgroup directory */
 #define CGROUP_MEM_DIR "/sys/fs/cgroup/memory"
 
+#define PROC_MOUNTS_FILE "/proc/mounts"
+
 /** Status of an OCI container. */
 enum oci_status {
 	OCI_STATUS_CREATED = 0,
@@ -418,6 +420,8 @@ struct oci_state {
 	gchar           *bundle_path;
 	gchar           *comms_path;
 
+	gchar           *workload_dir;
+
 	/** path to the process socket, used to determine when the VM
 	 * has shut down.
 	 */
@@ -431,6 +435,14 @@ struct oci_state {
 	 * so there is no \c oci_cfg_mount type.
 	 */
 	GSList          *mounts;
+
+	/** List containing a single entry of \ref cc_oci_mount
+	 *
+	 * This is the bind mount for the container rootfs in the hyperstart
+	 * shared directory.
+	 *
+	 */
+	GSList          *rootfs_mount;
 
         /** List of \ref oci_cfg_annotation annotations.
          *
@@ -449,6 +461,9 @@ struct oci_state {
 
 	/* Needed by start to create a new container workload  */
 	struct oci_cfg_process *process;
+
+	gchar           *block_fstype;
+	int              block_index;
 };
 
 /** clr-specific state fields. */
@@ -485,6 +500,14 @@ struct cc_oci_container_state {
 
 	/** OCI status of container. */
 	enum oci_status status;
+
+	/* File system of the block device mount if the container rootfs
+	 * is a block device, NULL otherwise.
+	 */
+	gchar           *block_fstype;
+
+	/* Index of the drive/block device passed to the hypervisor */
+	int             block_index;
 };
 
 /** clr-specific mount details. */
@@ -508,6 +531,12 @@ struct cc_oci_mount {
 	 * NULL if no directory was created to mount dest
 	 */
 	gchar          *directory_created;
+
+	/** Path of bind mount created on the hyperstart shared directory
+	 * This will be passed in the fsmap struct to hyperstart to bind
+	 * mount it on the overlay/block device within the VM
+	 */
+	gchar          *host_path;
 };
 
 /**
@@ -619,6 +648,26 @@ struct cc_oci_config {
 	gboolean detached_mode;
 
 	struct cc_proxy *proxy;
+
+	/** Workload directory for regular container
+	 *
+	 * This will be {CC_OCI_RUNTIME_DIR_PREFIX}/{containerid}/workload
+	 */
+	gchar workload_dir[PATH_MAX];
+
+	/** List containing a single entry of \ref cc_oci_mount
+	 *
+	 * This is the bind mount for the container rootfs in the hyperstart
+	 * shared directory.
+	 *
+	 */
+	GSList *rootfs_mount;
+
+	/** Name of the underlying block device for the container rootfs if
+	 * present
+	 */
+	gchar *device_name;
+
 };
 
 gchar *cc_oci_config_file_path (const gchar *bundle_path);

@@ -158,7 +158,8 @@ function verify_runtime_dirs()
 		[ "${lines[3]}" = "hypervisor.sock" ]
 		[ "${lines[4]}" = "process.sock" ]
 		[ "${lines[5]}" = "state.json" ]
-		[ "${lines[6]}" = "" ]
+		[ "${lines[6]}" = "workload" ]
+		[ "${lines[7]}" = "" ]
 
 		[ -S "$console_sock" ]
 		[ -S "$ga_ctl_sock" ]
@@ -168,7 +169,8 @@ function verify_runtime_dirs()
 	elif [ "$state" = "killed" ]
 	then
 		[ "${lines[0]}" = "state.json" ]
-		[ "${lines[1]}" = "" ]
+		[ "${lines[1]}" = "workload" ]
+		[ "${lines[2]}" = "" ]
 	else
 		log_msg "Invalid state: '$state'"
 		false
