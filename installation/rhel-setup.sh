@@ -118,13 +118,13 @@ go_setup
 glib_setup
 
 # Install json-glib
-json-glib_setup
+json_glib_setup
 
 # Install gcc
 gcc_setup
 
 # Install qemu-lite
-qemu-lite_setup
+qemu_lite_setup
 
 popd
 
