@@ -59,7 +59,7 @@ setup() {
 	$DOCKER_EXE service create \
 	--name "${SERVICE_NAME}" \
 	--replicas $number_of_replicas \
-	--publish 8080:80 nginx /bin/bash \
+	--publish 8080:80 "${nginx_image}" /bin/bash \
 	-c "hostname > /usr/share/nginx/html/hostname; nginx -g \"daemon off;\""
 	check_swarm_replicas "$number_of_replicas" "${SERVICE_NAME}" "$timeout"
 }
