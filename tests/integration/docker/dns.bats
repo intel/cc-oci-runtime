@@ -54,14 +54,14 @@ setup() {
 	$DOCKER_EXE service create \
 	--name "${SERVICE1_NAME}" \
 	--replicas $number_of_replicas \
-	--publish 8080:80 nginx /bin/bash \
+	--publish 8080:80 "${nginx_image}" /bin/bash \
 	-c "hostname > /usr/share/nginx/html/hostname; nginx -g \"daemon off;\""
 
 	info "create service ${SERVICE2_NAME}"
 	$DOCKER_EXE service create \
 	--name "${SERVICE2_NAME}" \
 	--replicas $number_of_replicas \
-	--publish 8082:80 nginx /bin/bash \
+	--publish 8082:80 "${nginx_image}" /bin/bash \
 	-c "hostname > /usr/share/nginx/html/hostname; nginx -g \"daemon off;\""
 
 	info "create service ${DNS_TEST_SERVICE_NAME}"
