@@ -5,5 +5,5 @@ Description=Clear Container Agent
 StandardOutput=tty
 Type=simple
 ExecStart=/bin/hyperstart
-ExecStop=/usr/bin/systemctl --force poweroff
+ExecStop=/bin/sync ; /usr/bin/systemctl --force poweroff
 FailureAction=poweroff
