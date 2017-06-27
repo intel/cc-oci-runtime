@@ -153,3 +153,24 @@ function teardown() {
 
 	rm -f "${ROOTFS_DIR}/${trap_file}"
 }
+
+@test "start and delete without kill" {
+	workload_cmd "sh"
+
+	cmd="$COR run -d --bundle $BUNDLE_DIR $container_id"
+	run_cmd "$cmd" "0" "$COR_TIMEOUT"
+	testcontainer "$container_id" "running"
+
+	#delete without stop container MUST fail
+	cmd="$COR delete $container_id"
+	run_cmd "$cmd" "1" "$COR_TIMEOUT"
+	verify_runtime_dirs "$container_id" "running"
+
+	cmd="$COR kill $container_id TERM"
+	run_cmd "$cmd" "0" "$COR_TIMEOUT"
+	testcontainer "$container_id" "killed"
+
+	cmd="$COR delete $container_id"
+	run_cmd "$cmd" "0" "$COR_TIMEOUT"
+	verify_runtime_dirs "$container_id" "deleted"
+}
