@@ -1091,7 +1091,8 @@ cc_oci_stop (struct cc_oci_config *config,
 		if (cc_pod_is_pod_container(config)) {
 			g_debug("Cannot delete container %s (pid %u) - "
 					"it is a pod container", state->id, state->pid);
-		} else if (! cc_proxy_hyper_destroy_pod(config)) {
+		} else if (! cc_proxy_hyper_destroy_pod(config) &&
+				kill (config->vm->pid, 0) != 0) {
 			g_critical ("failed to destroy pod");
 			return false;
 		}
