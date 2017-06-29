@@ -33,6 +33,7 @@
 #include <fcntl.h>
 #include <termios.h>
 
+#include "config.h"
 #include "utils.h"
 #include "log.h"
 #include "shim.h"
@@ -528,6 +529,14 @@ parse_numeric_option(char *input) {
 	return num;
 }
 
+/*
+ * Print version information.
+ */
+void
+show_version(void) {
+	printf("%s version: %s (commit: %s)\n", "cc-shim", PACKAGE_VERSION, GIT_COMMIT);
+}
+
 /*!
  * Print program usage
  */
@@ -542,6 +551,7 @@ print_usage(void) {
         printf("  -d,  --debug            Enable debug output\n");
         printf("  -h,  --help             Display this help message\n");
         printf("  -w,  --initial-workload This instance represents the initial workload and will destroy the VM when it finishes\n");
+        printf("  -v,  --version          Show version\n");
 }
 
 int
@@ -573,10 +583,11 @@ main(int argc, char **argv)
 		{"debug", no_argument, 0, 'd'},
 		{"help", no_argument, 0, 'h'},
 		{"initial-workload", no_argument, 0, 'w'},
+		{"version", no_argument, no_argument, 'v'},
 		{ 0, 0, 0, 0},
 	};
 
-	while ((c = getopt_long(argc, argv, "c:p:o:s:e:dhw", prog_opts, NULL))!= -1) {
+	while ((c = getopt_long(argc, argv, "c:p:o:s:e:dhwv", prog_opts, NULL))!= -1) {
 		switch (c) {
 			case 'c':
 				shim.container_id = strdup(optarg);
@@ -613,6 +624,9 @@ main(int argc, char **argv)
 			case 'w':
 				shim.initial_workload = true;
 				break;
+			case 'v':
+				show_version();
+				exit(EXIT_SUCCESS);
 			case 'h':
 				print_usage();
 				exit(EXIT_SUCCESS);
