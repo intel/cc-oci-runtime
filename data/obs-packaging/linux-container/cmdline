@@ -1,1 +1,0 @@
-console=tty0 console=ttyS0,115200n8 quiet init=/usr/lib/systemd/systemd-bootchart initcall_debug tsc=reliable no_timer_check noreplace-smp rcupdate.rcu_expedited=1 rootfstype=ext4 root=/dev/vda3 rw
