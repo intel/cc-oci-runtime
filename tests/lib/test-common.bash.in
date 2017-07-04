@@ -30,7 +30,7 @@ number_of_attempts=5
 # Using Tag 1.13.0 for nginx image beause latest one does not 
 # provide 'ip' command used in swarm tests.
 # See https://github.com/01org/cc-oci-runtime/issues/1014 for more information
-nginx_image="nginx:1.13.0"
+nginx_image="gabyct/nginx"
 
 # Checking that default runtime is cor
 function runtime_docker(){
