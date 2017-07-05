@@ -47,23 +47,21 @@ check_full_expansion (struct cc_oci_config *config,
 		return false;
 	}
 
-	if (g_strcmp0 (args[0], config->oci.root.path)) {
-		return false;
-	}
+	int i = 0;
 
-	if (g_strcmp0 (args[1], config->vm->kernel_path)) {
+	if (g_strcmp0 (args[i++], config->vm->kernel_path)) {
 		return false;
 	}
-	if (g_strcmp0 (args[2], "param1=foo param2=bar")) {
+	if (g_strcmp0 (args[i++], "param1=foo param2=bar")) {
 		return false;
 	}
-	if (g_strcmp0 (args[3], config->vm->image_path)) {
+	if (g_strcmp0 (args[i++], config->vm->image_path)) {
 		return false;
 	}
-	if (g_strcmp0 (args[4], image_size)) {
+	if (g_strcmp0 (args[i++], image_size)) {
 		return false;
 	}
-	if (g_strcmp0 (args[5], "comms-path")) {
+	if (g_strcmp0 (args[i++], "comms-path")) {
 		return false;
 	}
 
@@ -74,19 +72,19 @@ check_full_expansion (struct cc_oci_config *config,
 	gchar *console = g_strdup_printf ("socket,path=%s,server,nowait,id=charconsole0,signal=off",
 					  hypervisor_console_socket);
 
-	gboolean ok = g_strcmp0 (args[6], console) == 0;
+	gboolean ok = g_strcmp0 (args[i++], console) == 0;
 	g_free (console);
 	if (!ok) {
 		return false;
 	}
 
 	/* NAME is comprised of purely alpha-numeric chars */
-	if (! g_regex_match_simple ("^[\\S\\D]*$", args[7], 0, 0)) {
+	if (! g_regex_match_simple ("^[\\S\\D]*$", args[i++], 0, 0)) {
 		return false;
 	}
 
 	/* UUID is like NAME, but longer and contains dashes */
-	if (! g_regex_match_simple ("^[\\S\\D-]*$", args[8], 0, 0)) {
+	if (! g_regex_match_simple ("^[\\S\\D-]*$", args[i], 0, 0)) {
 		return false;
 	}
 
@@ -101,13 +99,13 @@ check_full_expansion (struct cc_oci_config *config,
 	 * Length is therefore: A + B + C + 4 (for the dashes).
 	 */
 #define EXPECTED_UUID_LEN (8 + 4 + 4 + 4 + 12 + 4)
-	if (! (g_utf8_strlen (args[8], EXPECTED_UUID_LEN) == EXPECTED_UUID_LEN)) {
+	if (! (g_utf8_strlen (args[i++], EXPECTED_UUID_LEN) == EXPECTED_UUID_LEN)) {
 		return false;
 	}
 
 #undef EXPECTED_UUID_LEN
 
-	if (args[9] != NULL) {
+	if (args[i++] != NULL) {
 		return false;
 	}
 
@@ -302,17 +300,6 @@ START_TEST(test_cc_oci_expand_cmdline) {
 	ret = g_file_set_contents (config->vm->kernel_path, "", -1, NULL);
 	ck_assert (ret);
 
-	/* no root.path */
-	ck_assert (! cc_oci_expand_cmdline (config, args));
-
-	path = g_build_path ("/", tmpdir, "workload", NULL);
-	ck_assert (path);
-	g_strlcpy (config->oci.root.path, path,
-			sizeof (config->oci.root.path));
-	g_free (path);
-
-	ck_assert (! g_mkdir (config->oci.root.path, 0750));
-
 	g_strlcpy (config->state.comms_path, "comms-path",
 			sizeof (config->state.comms_path));
 	g_strlcpy (config->state.runtime_path, "runtime-path",
@@ -374,18 +361,17 @@ START_TEST(test_cc_oci_expand_cmdline) {
 	ck_assert (! args[2]);
 	g_strfreev (args);
 
-	args = g_new0 (gchar *, 10);
+	args = g_new0 (gchar *, 9);
 	ck_assert (args);
-	args[0] = g_strdup ("@WORKLOAD_DIR@");
-	args[1] = g_strdup ("@KERNEL@");
-	args[2] = g_strdup ("@KERNEL_PARAMS@");
-	args[3] = g_strdup ("@IMAGE@");
-	args[4] = g_strdup ("@SIZE@");
-	args[5] = g_strdup ("@COMMS_SOCKET@");
-	args[6] = g_strdup ("@CONSOLE_DEVICE@");
-	args[7] = g_strdup ("@NAME@");
-	args[8] = g_strdup ("@UUID@");
-	args[9] = NULL;
+	args[0] = g_strdup ("@KERNEL@");
+	args[1] = g_strdup ("@KERNEL_PARAMS@");
+	args[2] = g_strdup ("@IMAGE@");
+	args[3] = g_strdup ("@SIZE@");
+	args[4] = g_strdup ("@COMMS_SOCKET@");
+	args[5] = g_strdup ("@CONSOLE_DEVICE@");
+	args[6] = g_strdup ("@NAME@");
+	args[7] = g_strdup ("@UUID@");
+	args[8] = NULL;
 
 	/* clean up ready for another call */
 	cc_proxy_free (config->proxy);
@@ -433,7 +419,6 @@ START_TEST(test_cc_oci_expand_cmdline) {
 	/* clean up */
 	ck_assert (! g_remove (config->vm->image_path));
 	ck_assert (! g_remove (config->vm->kernel_path));
-	ck_assert (! g_remove (config->oci.root.path));
 
 	ck_assert (! g_remove (tmpdir));
 	g_free (tmpdir);
@@ -518,18 +503,6 @@ START_TEST(test_cc_oci_vm_args_get) {
 	/* create kernel_path */
 	ret = g_file_set_contents (config->vm->kernel_path, "", -1, NULL);
 	ck_assert (ret);
-
-	/* no root.path */
-	ck_assert (! cc_oci_expand_cmdline (config, args));
-
-	path = g_build_path ("/", tmpdir, "workload", NULL);
-	ck_assert (path);
-	g_strlcpy (config->oci.root.path, path,
-			sizeof (config->oci.root.path));
-	g_free (path);
-
-	/* create root path */
-	ck_assert (! g_mkdir (config->oci.root.path, 0750));
 
 	/* bundle path is now set, but no args file exists there.
 	 */
@@ -707,7 +680,6 @@ START_TEST(test_cc_oci_vm_args_get) {
 
 	/* recreate the args file with expandable lines */
 	ret = g_file_set_contents (args_file,
-			"@WORKLOAD_DIR@\n"
 			"@KERNEL@\n"
 			"@KERNEL_PARAMS@\n"
 			"@IMAGE@\n"
@@ -733,7 +705,6 @@ START_TEST(test_cc_oci_vm_args_get) {
 	ck_assert (! g_remove (args_file));
 	ck_assert (! g_remove (config->vm->image_path));
 	ck_assert (! g_remove (config->vm->kernel_path));
-	ck_assert (! g_remove (config->oci.root.path));
 
 	ck_assert (! g_remove (tmpdir));
 

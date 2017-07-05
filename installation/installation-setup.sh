@@ -119,7 +119,7 @@ function glib_setup {
 }
 
 #Build json-glib
-function json-glib_setup {
+function json_glib_setup {
 	json_major=`echo $json_glib_version | cut -d. -f1`
 	json_minor=`echo $json_glib_version | cut -d. -f2`
 	file="json-glib-${json_glib_version}.tar.xz"
@@ -173,7 +173,7 @@ function gcc_setup {
 	export CC="${prefix_dir}/bin/gcc"
 }
 
-function qemu-lite_setup {
+function qemu_lite_setup {
 	cmd="qemu-system-x86_64"
 	if ! cmd_installed "$cmd"
 	then

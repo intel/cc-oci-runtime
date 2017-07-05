@@ -22,9 +22,15 @@ DOCKER_EXE="docker"
 DOCKER_SERVICE="docker-cor"
 SCRIPT_PATH=$(dirname $(readlink -f $0))
 RESULT_DIR="${SCRIPT_PATH}/../results"
+LIB_DIR="${SCRIPT_PATH}/../../lib"
 HYPERVISOR_PATH="@QEMU_PATH@"
 CC_SHIM_PATH="/usr/libexec/cc-shim"
 number_of_attempts=5
+
+# Using Tag 1.13.0 for nginx image beause latest one does not 
+# provide 'ip' command used in swarm tests.
+# See https://github.com/01org/cc-oci-runtime/issues/1014 for more information
+nginx_image="gabyct/nginx"
 
 # Checking that default runtime is cor
 function runtime_docker(){
@@ -38,6 +44,17 @@ die(){
 	msg="$*"
 	echo "ERROR: $msg" >&2
 	exit 1
+}
+#used it to fail a bats test and show an error message
+fail (){
+	msg="$*"
+	echo "FAIL: $msg" >&2
+	false
+}
+
+info (){
+	msg="$*"
+	echo "INFO: $msg" >&2
 }
 
 function backup_old_file(){
@@ -61,6 +78,22 @@ function write_result_to_file(){
 	os_ver_id=$(grep "^VERSION_ID" /usr/lib/os-release | cut -d= -f2)
 	os_ver=$(echo "$os_id-$os_ver_id")
 	echo "$test_name,$test_args,$test_data,$test_platform,$os_ver" >> "$test_file"
+}
+
+# Save a test/metric result.
+# This is a wrapper function to the send_results.sh command, which ultimately decides
+# where and in what format to store or process the data.
+# Arguments:
+#  Test name
+#  Test arguments
+#  Test result
+#  Test result unit of measurement
+function save_results(){
+	if [ $# != 4 ]; then
+		die "save_results() requires 4 parameters, not $#"
+	fi
+
+	bash $LIB_DIR/send_results.sh -n "$1" -a "$2" -r "$3" -u "$4"
 }
 
 function get_average(){
@@ -134,3 +167,40 @@ function clean_swarm_status() {
 	done
 }
 
+#Check that n swarm replicas are running
+# $1 : amount of replicas that must be running
+# $2 : swarm service name
+# $3 : timeout in seconds to wait for replicas
+check_swarm_replicas(){
+	local amount="$1"
+	[[ "$amount" =~ ^[0-9]+$ ]] || fail "amount not a number"
+
+	local service="$2"
+	[ -n "$service" ] || fail "service is empty"
+	docker service ls --filter name="$service"
+
+	local timeout="$3"
+	[[ "$timeout" =~ ^[0-9]+$ ]] || fail "timeout not a number"
+
+	# Parse docker service output like:
+	# CID testswarm.1  nginx  ubuntu1610-test  Running     Running 6 minutes ago
+	running_regex='Running\s+\d+\s(seconds|minutes)\s+ago'
+	info "wait for $timeout"
+	for i in $(seq "$timeout") ; do
+		# Docker 17 does not filter status of swarm containers using:
+		# docker ps --filter status=Up--filter ancestor=IMAGE_NAME
+		# lets use docker service ps
+		info "try $i"
+		docker service ls --filter name="$service"
+		docker service ps "$service"
+		replicas_running=$(docker service ps "$service" | grep -P "${running_regex}"  | wc -l)
+		info "replicas running : ${replicas_running}/${amount}"
+		if [ "$replicas_running" -ge "$amount" ] ; then
+			break
+		fi
+		sleep 1s
+	done
+	if [ "$replicas_running" -lt "$amount" ] ; then
+		fail "failed to wait for ${amount} replicas from  service ${service}"
+	fi
+}

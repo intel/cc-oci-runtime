@@ -48,11 +48,19 @@ gboolean cc_oci_handle_mounts (struct cc_oci_config *config);
 gboolean cc_pod_handle_mounts (struct cc_oci_config *config);
 gboolean cc_oci_handle_unmounts (const struct cc_oci_config *config);
 gboolean cc_pod_handle_unmounts (const struct cc_oci_config *config);
+gboolean cc_oci_handle_rootfs_unmount (const struct cc_oci_config *config);
+
+struct cc_oci_mount* rootfs_bind_mount(struct cc_oci_config *config);
+gboolean cc_oci_add_rootfs_mount(struct cc_oci_config *config);
+gboolean cc_handle_rootfs_mount (struct cc_oci_config *config);
 
 void cc_oci_mounts_free_all (GSList *mounts);
 void cc_oci_mount_free (struct cc_oci_mount *m);
 
 JsonArray *cc_oci_mounts_to_json (const struct cc_oci_config *config);
+JsonArray *cc_oci_rootfs_mount_to_json (const struct cc_oci_config *config);
 JsonArray *cc_pod_mounts_to_json (const struct cc_oci_config *config);
+
+gboolean cc_oci_rootfs_is_block_device(struct cc_oci_config *config);
 
 #endif /* _CC_OCI_MOUNT_H */

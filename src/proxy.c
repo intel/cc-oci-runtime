@@ -1274,6 +1274,40 @@ out:
 }
 
 /**
+ * Construct an hyperstart fsmap structure
+ *
+ * \param config \ref cc_oci_config.
+ *
+ * \return \c JsonArray on success, else \c NULL.
+ */
+JsonArray *
+cc_get_hyper_fsmap(struct cc_oci_config *config)
+{
+	JsonArray  *fsmap_arr;
+	JsonObject *fsmap_desc;
+	GSList     *l;
+
+	if (! config) {
+		return NULL;
+	}
+
+	fsmap_arr = json_array_new();
+	for (l = config->oci.mounts; l && l->data; l = g_slist_next (l)) {
+		struct cc_oci_mount *m = (struct cc_oci_mount *)l->data;
+
+		if (m->host_path) {
+			fsmap_desc  = json_object_new ();
+			json_object_set_string_member(fsmap_desc, "path", m->mnt.mnt_dir);
+			json_object_set_string_member(fsmap_desc, "source", m->host_path);
+
+			json_array_add_object_element (fsmap_arr, fsmap_desc);
+		}
+	}
+
+	return fsmap_arr;
+}
+
+/**
  * Prepare an hyperstart newcontainer command using
  * the initial worload from \ref cc_oci_config and
  * then request \ref CC_OCI_PROXY to send it.
@@ -1296,6 +1330,7 @@ cc_proxy_run_hyper_new_container (struct cc_oci_config *config,
 	JsonArray *additional_gids = NULL;
 	gchar     *uid_str = NULL;
 	gchar     *gid_str = NULL;
+	gchar     *drive_name = NULL;
 
 	/* json stanza for NEWCONTAINER*/
 	/*
@@ -1341,9 +1376,23 @@ cc_proxy_run_hyper_new_container (struct cc_oci_config *config,
 
 	json_object_set_string_member (newcontainer_payload, "id",
 				container_id);
-	json_object_set_string_member (newcontainer_payload, "rootfs", rootfs);
 
-	json_object_set_string_member (newcontainer_payload, "image", image);
+	json_object_set_array_member (newcontainer_payload, "fsmap", cc_get_hyper_fsmap(config));
+
+	if (config->state.block_fstype) {
+		drive_name = cc_get_virtio_drive_name(config->state.block_index);
+		if (! drive_name) {
+			return false;
+		}
+
+		json_object_set_string_member (newcontainer_payload, "image", drive_name);
+		json_object_set_string_member (newcontainer_payload, "fstype", config->state.block_fstype);
+		json_object_set_string_member (newcontainer_payload, "rootfs", "rootfs");
+	} else {
+		json_object_set_string_member (newcontainer_payload, "rootfs", rootfs);
+		json_object_set_string_member (newcontainer_payload, "image", image);
+	}
+
 	/*json_object_set_string_member (newcontainer_payload, "image",
 	  config->optarg_container_id);
 	  */
@@ -1442,6 +1491,7 @@ cc_proxy_run_hyper_new_container (struct cc_oci_config *config,
 		return false;
 	}
 
+	g_free_if_set(drive_name);
 	return true;
 }
 
@@ -1510,7 +1560,8 @@ cc_proxy_hyper_new_container (struct cc_oci_config *config)
 	return cc_proxy_hyper_new_pod_container(config,
 						config->optarg_container_id,
 						config->optarg_container_id,
-						"", "");
+						"rootfs",
+						 config->optarg_container_id);
 }
 
 /**

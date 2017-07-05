@@ -126,7 +126,7 @@ pushd "$deps_dir"
 glib_setup
 
 # Build json-glib
-json-glib_setup
+json_glib_setup
 
 # Build check
 # We need to build check as the check version in the OS used by travis isn't

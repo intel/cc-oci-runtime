@@ -43,9 +43,12 @@ groups:
   docs-team:
     conditions:
       files:
-        - "documentation/*"
-        - "*.md"
-        - "*.rst"
+        include:
+          - "documentation/*"
+          - "*.md"
+          - "*.rst"
+        exclude:
+          - "vendor/*"
     required: 1
     users:
       - rcaballeromx

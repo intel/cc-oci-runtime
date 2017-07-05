@@ -40,7 +40,6 @@ CC_NUMBER="$1"
 WAIT_TIME="$2"
 TEST_NAME="Clear Containers Memory Usage"
 TEST_ARGS="rootfs=${IMAGE} units=kb"
-TEST_RESULT_FILE=$(echo "${RESULT_DIR}/${TEST_NAME}" | sed 's| |-|g')
 SMEM_BIN=$(command -v smem || true)
 QEMU_BIN="@QEMU_PATH@"
 PROXY_BIN="@libexecdir@/cc-proxy"
@@ -127,7 +126,7 @@ function get_docker_memory_usage(){
 	cc_proxy_mem="$(echo "scale=2; $proxy_mem / $CC_NUMBER" | bc -l)"
 	cc_mem_usage=$(echo "scale=2; $qemu_mem + $cc_shim_mem + $cc_proxy_mem" | bc -l)
 
-	write_result_to_file "$TEST_NAME" "$TEST_ARGS" "$cc_mem_usage" "$TEST_RESULT_FILE"
+	save_results "$TEST_NAME" "$TEST_ARGS" "$cc_mem_usage" "KB"
 	docker rm -f ${containers[@]}
 }
 
@@ -147,7 +146,4 @@ fi
 systemctl restart cc-proxy
 systemctl restart docker
 
-backup_old_file "$TEST_RESULT_FILE"
-write_csv_header "$TEST_RESULT_FILE"
 get_docker_memory_usage
-get_average "$TEST_RESULT_FILE"

@@ -23,12 +23,15 @@
 #   will be aborted.
 #---------------------------------------------------------------------
 
-repo="github.com/clearcontainers/tests/cmd/checkcommits"
-go get -d "$repo"
-(cd "$GOPATH/src/$repo" && make)
-checkcommits \
-    --need-fixes \
-    --need-sign-offs \
-    --body-length 72 \
-    --subject-length 75 \
-    --verbose || true
+if [ "$TRAVIS" = true ]
+then
+    repo="github.com/clearcontainers/tests/cmd/checkcommits"
+    go get -d "$repo"
+    (cd "$GOPATH/src/$repo" && make)
+    checkcommits \
+        --need-fixes \
+        --need-sign-offs \
+        --body-length 72 \
+        --subject-length 75 \
+        --verbose
+fi

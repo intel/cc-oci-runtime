@@ -22,6 +22,8 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <inttypes.h>
+#include <sys/types.h>
 
 #include <glib/gstdio.h>
 
@@ -29,6 +31,12 @@
 #include "common.h"
 #include "namespace.h"
 #include "pod.h"
+
+/* This incrementing index is used for deriving the drive name.
+ * Drives passed to qemu are assigned names in the order that they are 
+ * passed
+ */
+static int block_index = 0;
 
 /** Mounts that will be ignored.
  *
@@ -104,6 +112,7 @@ cc_oci_mount_free (struct cc_oci_mount *m)
 	g_free_if_set (m->mnt.mnt_type);
 	g_free_if_set (m->mnt.mnt_opts);
 	g_free_if_set (m->directory_created);
+	g_free_if_set (m->host_path);
 
 	g_free (m);
 }
@@ -243,13 +252,46 @@ cc_handle_mounts(struct cc_oci_config *config, GSList *mounts, gboolean volume)
 			continue;
 		}
 
-		if ((! cc_pod_is_vm(config) || cc_pod_is_pod_sandbox(config)) && volume) {
+		if (! volume) {
+			/* bind mount container rootfs. We do this for regular
+			 * container as well for a pod sandbox.
+			 */
 			g_snprintf (m->dest, sizeof (m->dest),
-				    "%s/%s/rootfs/%s", workload_dir, config->optarg_container_id, m->mnt.mnt_dir);
+					"%s/%s",
+					workload_dir, m->mnt.mnt_dir);
 		} else {
+			/* mount volume to the shared workload directory
+			 * instead of the container rootfs directory for pods
+			 * as well as regular containers. Hyperstart will take
+			 * care of mounting to the correct location within VM
+			 * using a fsmap structure. We do this to handle mounts
+			 * tranparently for devicemapper case.
+			 */
+
+			/* Generate unique name for the file within the hyperstart
+			 * shared directory
+			 */
+			uint64_t *bytes = (uint64_t*)get_random_bytes(8);
+			if (! bytes) {
+				return false;
+			}
+
+			gchar *base_name = g_path_get_basename(m->mnt.mnt_dir);
+
+			g_free_if_set(m->host_path);
+			m->host_path = g_strdup_printf("%"PRIx64"-%s",
+							*bytes,
+							base_name);
+
 			g_snprintf (m->dest, sizeof (m->dest),
-				    "%s/%s",
-				    workload_dir, m->mnt.mnt_dir);
+					"%s/%s",
+					workload_dir, m->host_path);
+
+			g_debug("Mounting mount %s for mnt_dir %s", m->dest,
+					m->mnt.mnt_dir);
+
+			g_free(bytes);
+			g_free(base_name);
 		}
 
 		if (m->mnt.mnt_fsname[0] == '/') {
@@ -309,6 +351,92 @@ cc_handle_mounts(struct cc_oci_config *config, GSList *mounts, gboolean volume)
 }
 
 /*!
+ * Return a rootfs bind mount for container.
+ *
+ * \param config \ref cc_oci_config.
+ *
+ * \return \c cc_oci_mount on success, else \c NULL.
+ */
+struct cc_oci_mount*
+rootfs_bind_mount(struct cc_oci_config *config)
+{
+	struct cc_oci_mount *m;
+
+	if (! config ) {
+		return NULL;
+	}
+
+	m = g_malloc0 (sizeof (struct cc_oci_mount));
+	if (! m) {
+		goto error;
+	}
+
+	m->flags = MS_BIND;
+
+	/* Destination */
+	m->mnt.mnt_dir = g_malloc0(PATH_MAX);
+	if (! m->mnt.mnt_dir) {
+		goto error;
+	}
+
+	g_snprintf(m->mnt.mnt_dir, PATH_MAX, "/%s/rootfs",
+		   config->optarg_container_id);
+
+	/* Source */
+	m->mnt.mnt_fsname = g_strdup(config->oci.root.path);
+	if (! m->mnt.mnt_fsname) {
+		goto error;
+	}
+
+	/* Type */
+	m->mnt.mnt_type = g_strdup("bind");
+	if (! m->mnt.mnt_type) {
+		goto error;
+	}
+
+	g_debug("Created rootfs bind mount object for container %s",
+			config->optarg_container_id);
+	return m;
+
+error:
+	if (m) {
+		g_free_if_set(m->mnt.mnt_dir);
+		g_free_if_set(m->mnt.mnt_fsname);
+		g_free_if_set(m->mnt.mnt_type);
+		g_free_if_set(m);
+	}
+
+	return NULL;
+}
+
+/*!
+ * Setup rootfs bind mount for standalone container.
+ *
+ * \param config \ref cc_oci_config.
+ *
+ * \return \c true on success, else \c false.
+ */
+gboolean
+cc_oci_add_rootfs_mount(struct cc_oci_config *config) {
+
+	struct cc_oci_mount *m;
+
+	if ( !config || config->pod) {
+		return false;
+	}
+
+	m = rootfs_bind_mount(config);
+	if (! m) {
+		return false;
+	}
+
+	config->rootfs_mount = g_slist_append(config->rootfs_mount, m);
+	g_debug("Added rootfs bind mount for container %s",
+			config->optarg_container_id);
+
+	return true;
+}
+/*!
  * Setup required OCI mounts.
  *
  * \param config \ref cc_oci_config.
@@ -340,6 +468,23 @@ cc_pod_handle_mounts (struct cc_oci_config *config)
 	}
 
 	return cc_handle_mounts(config, config->pod->rootfs_mounts, false);
+}
+
+/*!
+ * Setup container rootfs mount point.
+ *
+ * \param config \ref cc_oci_config.
+ *
+ * \return \c true on success, else \c false.
+ */
+gboolean
+cc_handle_rootfs_mount (struct cc_oci_config *config)
+{
+	if ( !config || config->pod) {
+		return true;
+	}
+
+	return cc_handle_mounts(config, config->rootfs_mount, false);
 }
 
 /*!
@@ -418,37 +563,8 @@ cc_handle_unmounts (GSList *mounts)
 gboolean
 cc_oci_handle_unmounts (const struct cc_oci_config *config)
 {
-	GSList  *l;
-	struct oci_cfg_namespace *ns;
-	gboolean mountns = false;
-
 	if (! config) {
 		return false;
-	}
-
-	/**
-	 * At this point qemu is not running if there is
-	 * a mount namespace with a path we have join
-	 * it and umount all mounted resources
-	 */
-	for (l = config->oci.oci_linux.namespaces;
-			l && l->data;
-			l = g_slist_next (l)) {
-		ns = (struct oci_cfg_namespace *)l->data;
-
-		if (ns->type == OCI_NS_MOUNT && ns->path) {
-			mountns = cc_oci_ns_join (ns);
-			break;
-		}
-	}
-
-	/**
-	 * if there is NOT a specific mount namespace return true
-	 * since namespace created by unshare in \ref cc_oci_ns_setup
-	 * is destroyed when qemu ends
-	 */
-	if (! mountns && (cc_pod_is_vm(config) && !cc_pod_is_pod_sandbox(config))) {
-		return true;
 	}
 
 	return cc_handle_unmounts(config->oci.mounts);
@@ -469,6 +585,23 @@ cc_pod_handle_unmounts (const struct cc_oci_config *config)
 	}
 
 	return cc_handle_unmounts(config->pod->rootfs_mounts);
+}
+
+/*!
+ * Unmount container rootfs mount point.
+ *
+ * \param config \ref cc_oci_config.
+ *
+ * \return \c true on success, else \c false.
+ */
+gboolean
+cc_oci_handle_rootfs_unmount (const struct cc_oci_config *config)
+{
+	if ( !config || config->pod) {
+		return true;
+	}
+
+	return cc_handle_unmounts(config->rootfs_mount);
 }
 
 /*!
@@ -508,6 +641,14 @@ cc_mounts_to_json (GSList *mounts)
 				m->directory_created);
 		}
 
+		json_object_set_string_member (mount, "mnt_dir",
+			m->mnt.mnt_dir);
+
+		if (m->host_path) {
+			json_object_set_string_member (mount, "host_path",
+				m->host_path);
+		}
+
 		json_array_add_object_element (array, mount);
 	}
 
@@ -532,6 +673,23 @@ cc_oci_mounts_to_json (const struct cc_oci_config *config)
 }
 
 /*!
+ * Convert container rootfs mount to a JSON array.
+ *
+ * \param config \ref cc_oci_config.
+ *
+ * \return \c JsonArray on success, else \c NULL.
+ */
+JsonArray *
+cc_oci_rootfs_mount_to_json (const struct cc_oci_config *config)
+{
+	if (!config || config->pod) {
+		return NULL;
+	}
+
+	return cc_mounts_to_json(config->rootfs_mount);
+}
+
+/*!
  * Convert the list of pod mounts to a JSON array.
  *
  * \param config \ref cc_oci_config.
@@ -546,4 +704,239 @@ cc_pod_mounts_to_json (const struct cc_oci_config *config)
 	}
 
 	return cc_mounts_to_json(config->pod->rootfs_mounts);
+}
+
+/*!
+ * Get underlying device for a path.
+ *
+ * \param path Path of the file.
+ * \param[out] major Major number of device.
+ * \param[out] minor Minor number of device.
+ *
+ * \return \c true on success, else \c false.
+ */
+private gboolean
+cc_device_for_path(gchar *path, uint *major, uint *minor)
+{
+	struct stat buf;
+
+	if (! (path && major && minor)) {
+		return false;
+	}
+
+	if (stat(path, &buf) == -1) {
+		g_debug("Stat failed for %s : %s", path, strerror(errno));
+		return false;
+	}
+
+	*major = major(buf.st_dev);
+	*minor = minor(buf.st_dev);
+
+	return true;
+}
+
+/*!
+ * Check if a device is a devicemapper block device.
+ *
+ * \param major Major number of device.
+ * \param minor Minor number of device.
+ *
+ * \return \c true on success, else \c false.
+ */
+private gboolean
+cc_is_blockdevice(uint major, uint minor)
+{
+	int ret;
+	gchar *sys_path = NULL;
+	struct stat buf;
+
+	sys_path = g_strdup_printf("/sys/dev/block/%d:%d/dm", major, minor);
+
+	ret = stat(sys_path, &buf);
+	g_free(sys_path);
+
+	if (ret == -1) {
+		return false;
+	}
+
+	return true;
+}
+
+/*!
+ * Get the mount point for a path.
+ *
+ * For eg. if a device is mounted at "/a/b", passing path
+ * "a/b/c" to this function should return "/a/b".
+ *
+ * \param path Path to get the mount point for.
+ *
+ * \return Newly-allocated string on success, else \c NULL.
+ */
+private gchar *
+cc_mount_point_for_path(const gchar *path) {
+	int ret = -1;
+	gchar *mount_point = NULL;
+	gchar *parent_dir = NULL;
+	struct stat parent_stat, cur_stat;
+
+	if (! path) {
+		return NULL;
+	}
+
+	if ( *path != '/') {
+		g_warning("Absolute path not provided %s", path);
+		return NULL;
+	}
+
+	if (g_strcmp0(path, "/") == 0 ) {
+		return g_strdup(path);
+	}
+
+	if (stat(path, &cur_stat) == -1) {
+		g_warning("Could not stat %s: %s", path, strerror(errno));
+		return NULL;
+	}
+
+	mount_point = strdup(path);
+
+	while (g_strcmp0(mount_point, "/") != 0) {
+		parent_dir = g_path_get_dirname(mount_point);
+
+		ret = lstat(parent_dir, &parent_stat);
+		if ( ret == -1) {
+			g_free(parent_dir);
+			g_free(mount_point);
+			return NULL;
+		}
+
+		if (cur_stat.st_dev != parent_stat.st_dev) {
+			break;
+		}
+
+		g_free(mount_point);
+		mount_point = parent_dir;
+		cur_stat = parent_stat;
+	}
+
+	g_free(parent_dir);
+
+	if (g_strcmp0(mount_point, "/") == 0) {
+		g_free(mount_point);
+		return NULL;
+	}
+
+	return mount_point;
+}
+
+/*!
+ * Get device and fstype for a mountpoint.
+ *
+ * \param mount_point Mount point at which device is mounted.
+ * \param[out] device_name Device name
+ * \param[out] fstype File system type of the mount.
+ *
+ * \return \c true on success, else \c false.
+ */
+gboolean
+cc_get_device_and_fstype(gchar *mount_point, gchar **device_name, gchar **fstype)
+{
+	gboolean ret = false;
+	struct mntent ent = { 0 };
+	struct mntent *mntent;
+	char buf[BUFSIZ];
+	FILE *file = NULL;
+
+	if (! (mount_point && device_name && fstype)) {
+		g_debug("Invalid input for proc_mounts_path");
+		return ret;
+	}
+
+	/* note: glib api "g_unix_mounts_get" for fetching mount info fails in
+	 * case of bind mounts. Use getmntent_r instead.
+	 */
+
+	file = setmntent(PROC_MOUNTS_FILE, "r");
+	if (! file) {
+		g_critical("Could not open file %s", PROC_MOUNTS_FILE);
+		return ret;
+	}
+
+	while ((mntent = getmntent_r (file, &ent, buf, 
+					sizeof (buf))) != NULL) {
+		if (mntent->mnt_fsname) {
+			if (g_strcmp0(mntent->mnt_dir, mount_point) == 0) {
+				*device_name = g_strdup(mntent->mnt_fsname);
+				*fstype = g_strdup(mntent->mnt_type);
+				ret = true;
+				break;
+			}
+		}
+	}
+
+	if (! mntent) {
+		g_warning("Could not find device name for mount %s", 
+				mount_point);
+	}
+
+	endmntent(file);
+	return ret;
+}
+
+/*!
+ * Check for block storage device for container rootfs.
+ * If block device is detected, set the
+ * config->device_name to the device found.
+ *
+ * \param config \ref cc_oci_config.
+ *
+ * \return \c true on success, else \c false.
+ */
+gboolean
+cc_oci_rootfs_is_block_device(struct cc_oci_config *config)
+{
+       uint major, minor;
+       char *fstype = NULL;
+
+       if (! config) {
+               return false;
+       }
+
+       gchar *container_root = config->oci.root.path;
+
+       if (! cc_device_for_path(container_root, &major, &minor)) {
+               g_critical("Could not get the underlying device for rootfs");
+               return false;
+       }
+
+       if (! cc_is_blockdevice(major, minor)) {
+               return false;
+       }
+
+       g_debug("Devicemapper block device detected for container %s",
+                       config->optarg_container_id);
+
+       gchar *mount_pnt =  cc_mount_point_for_path(container_root);
+       if ( ! mount_pnt) {
+               g_critical("Could not get mount point for %s\n",
+                               container_root);
+               return false;
+       }
+
+       if (! cc_get_device_and_fstype(mount_pnt, &(config->device_name), &fstype)) {
+               g_critical("Could not get device name for mountpoint %s",
+                               mount_pnt);
+               g_free(mount_pnt);
+               return false;
+       }
+
+       g_debug("Device name, fstype fetched for container %s: %s, %s",
+                       config->optarg_container_id,
+                       config->device_name, fstype);
+
+       config->state.block_fstype = fstype;
+       config->state.block_index = block_index;
+       block_index++;
+
+       g_free(mount_pnt);
+       return true;
 }
