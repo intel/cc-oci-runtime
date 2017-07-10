@@ -1075,17 +1075,26 @@ cc_oci_stop (struct cc_oci_config *config,
 		return false;
 	}
 
+	/* if the process has finished the container is stopped */
+	if (kill (state->pid, 0) != 0) {
+		config->state.status = OCI_STATUS_STOPPED;
+	}
+
+	if (config->state.status != OCI_STATUS_STOPPED ) {
+		g_critical("cannot delete container, it is not stopped");
+		return false;
+	}
+
 	/* is VM running? */
 	if (kill (config->vm->pid, 0) == 0) {
+		/* delete a pod_containers not destroy a VM(pod)*/
 		if (cc_pod_is_pod_container(config)) {
 			g_debug("Cannot delete container %s (pid %u) - "
-				"it is a pod container", state->id, state->pid);
-		} else if (cc_pod_is_pod_sandbox (config) ||
-				config->state.status != OCI_STATUS_STOPPED) {
-			if (! cc_proxy_hyper_destroy_pod(config)) {
-				g_critical ("failed to destroy pod");
-				return false;
-			}
+					"it is a pod container", state->id, state->pid);
+		} else if (! cc_proxy_hyper_destroy_pod(config) &&
+				kill (config->vm->pid, 0) != 0) {
+			g_critical ("failed to destroy pod");
+			return false;
 		}
     } else {
 		/* This isn't a fatal condition since:
