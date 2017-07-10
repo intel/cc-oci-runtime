@@ -95,6 +95,12 @@ cc_oci_runtime_dir_setup (struct cc_oci_config *config)
 			config->state.runtime_path,
 			CC_OCI_PROCESS_SOCKET);
 
+	g_snprintf (config->workload_dir,
+			(gulong)sizeof (config->workload_dir),
+			"%s/%s",
+			config->state.runtime_path,
+			"workload");
+
 	dirname = g_path_get_dirname (config->state.runtime_path);
 	if (! dirname) {
 		return false;

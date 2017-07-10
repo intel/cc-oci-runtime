@@ -1,4 +1,5 @@
 #!/bin/bash
+
 #  This file is part of cc-oci-runtime.
 #
 #  Copyright (C) 2017 Intel Corporation
@@ -16,18 +17,17 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+# Description: This script downloads and installs the autoconf-archive macros
+#   necessary to configure this project. This is invoked for distro builds where
+#   the necessary package is not available to install, and is also useful to
+#   hand run under certain circumstances.
+#   Should be run from the top level directory
 #
 
-set -e
-export PROXY_SOCKET_PATH="$(mktemp -d --suffix=-cor-test)/proxy.sock"
-export SHIM_PATH="@ABS_BUILDDIR@/cc-shim"
-echo 'Running a new instance of cc-proxy'
-@ABS_BUILDDIR@/cc-proxy -socket-path="${PROXY_SOCKET_PATH}" &
-p=$!
-sleep 1
-bash @ABS_BUILDDIR@/data/run-bats.sh @ABS_BUILDDIR@/tests/functional/
-functional_tests_exit_code="$?"
-echo 'killing cc-proxy instance'
-kill -9 $p 2> /dev/null
-rm -f ${PROXY_SOCKET_PATH}
-exit "$functional_tests_exit_code"
+# autoconf-archive url
+autoconf_archive_url="http://git.savannah.gnu.org/gitweb/?p=autoconf-archive.git;a=blob_plain;f=m4"
+mkdir -p m4/
+# curl the required autoconf archive files into the correct place
+curl -L "${autoconf_archive_url}/ax_code_coverage.m4" -o m4/ax_code_coverage.m4
+curl -L "${autoconf_archive_url}/ax_valgrind_check.m4" -o m4/ax_valgrind_check.m4

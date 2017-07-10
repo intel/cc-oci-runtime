@@ -57,9 +57,11 @@ static void handle_state_pid_section(GNode*, struct handler_data*);
 static void handle_state_bundlePath_section(GNode*, struct handler_data*);
 static void handle_state_commsPath_section(GNode*, struct handler_data*);
 static void handle_state_processPath_section(GNode*, struct handler_data*);
+static void handle_state_workloadDir_section(GNode*, struct handler_data*);
 static void handle_state_status_section(GNode*, struct handler_data*);
 static void handle_state_created_section(GNode*, struct handler_data*);
 static void handle_state_mounts_section(GNode*, struct handler_data*);
+static void handle_state_rootfsMount_section(GNode* node, struct handler_data* data);
 static void handle_state_namespaces_section(GNode*, struct handler_data*);
 static void handle_state_devices_section(GNode*, struct handler_data*);
 static void handle_state_console_section(GNode*, struct handler_data*);
@@ -68,6 +70,8 @@ static void handle_state_proxy_section(GNode*, struct handler_data*);
 static void handle_state_pod_section(GNode*, struct handler_data*);
 static void handle_state_annotations_section(GNode*, struct handler_data*);
 static void handle_state_process_section(GNode* node, struct handler_data* data);
+static void handle_state_blockFstype_section(GNode*, struct handler_data*);
+static void handle_state_blockIndex_section(GNode* node, struct handler_data* data);
 
 /*! Used to handle each section in \ref CC_OCI_STATE_FILE. */
 static struct state_handler {
@@ -91,9 +95,11 @@ static struct state_handler {
 	{ "bundlePath"  , handle_state_bundlePath_section  , 1 , 0 },
 	{ "commsPath"   , handle_state_commsPath_section   , 1 , 0 },
 	{ "processPath" , handle_state_processPath_section , 1 , 0 },
+	{ "workloadDir" , handle_state_workloadDir_section , 0 , 0 },
 	{ "status"      , handle_state_status_section      , 1 , 0 },
 	{ "created"     , handle_state_created_section     , 1 , 0 },
 	{ "mounts"      , handle_state_mounts_section      , 0 , 0 },
+	{ "rootfsMount" , handle_state_rootfsMount_section , 0 , 0 },
 	{ "console"     , handle_state_console_section     , 0 , 0 },
 	{ "vm"          , handle_state_vm_section          , 6 , 0 },
 	{ "proxy"       , handle_state_proxy_section       , 2 , 0 },
@@ -101,6 +107,8 @@ static struct state_handler {
 	{ "device"	, handle_state_devices_section     , 0 , 0 },
 	{ "annotations" , handle_state_annotations_section , 0 , 0 },
 	{ "namespaces"  , handle_state_namespaces_section  , 0 , 0 },
+	{ "blockFstype" , handle_state_blockFstype_section , 0 , 0 },
+	{ "blockIndex"  , handle_state_blockIndex_section  , 0 , 0 },
 
 	/* terminator */
 	{ NULL, NULL, 0, 0 }
@@ -232,6 +240,17 @@ handle_state_processPath_section (GNode* node, struct handler_data* data) {
 }
 
 /*!
+ *  handler for workloadDir section
+ *
+ * \param node \c GNode.
+ * \param data \ref handler_data.
+ */
+static void
+handle_state_workloadDir_section (GNode* node, struct handler_data* data) {
+	update_subelements_and_strdup(node, data, workload_dir);
+}
+
+/*!
  *  handler for status section
  *
  * \param node \c GNode.
@@ -281,6 +300,51 @@ handle_state_mounts_section(GNode* node, struct handler_data* data) {
 		data->state->mounts = g_slist_append(data->state->mounts, m);
 	} else if (! g_strcmp0(node->data, "directory_created")) {
 		GSList *l = g_slist_last(data->state->mounts);
+		if (l) {
+			m = (struct cc_oci_mount*)l->data;
+			m->directory_created = g_strdup((char*)node->children->data);
+		}
+	} else if (! g_strcmp0(node->data, "mnt_dir")) {
+		GSList *l = g_slist_last(data->state->mounts);
+		if (l) {
+			m = (struct cc_oci_mount*)l->data;
+			m->mnt.mnt_dir = g_strdup((char*)node->children->data);
+
+		}
+	} else if (! g_strcmp0(node->data, "host_path")) {
+		GSList *l = g_slist_last(data->state->mounts);
+		if (l) {
+			m = (struct cc_oci_mount*)l->data;
+			m->host_path = g_strdup((char*)node->children->data);
+		}
+	}
+}
+
+/*!
+ * handler for rootfsMount section
+ *
+ * \param node \c GNode.
+ * \param data \ref handler_data.
+ */
+static void
+handle_state_rootfsMount_section(GNode* node, struct handler_data* data) {
+	struct cc_oci_mount* m;
+
+	if (! (node && node->data)) {
+		return;
+	}
+	if (! (node->children && node->children->data)) {
+		g_critical("%s missing value", (char*)node->data);
+		return;
+	}
+
+	if (! g_strcmp0(node->data, "destination")) {
+		m = g_new0 (struct cc_oci_mount, 1);
+		g_strlcpy (m->dest, (char*)node->children->data, sizeof (m->dest));
+		m->ignore_mount = false;
+		data->state->rootfs_mount = g_slist_append(data->state->rootfs_mount, m);
+	} else if (! g_strcmp0(node->data, "directory_created")) {
+		GSList *l = g_slist_last(data->state->rootfs_mount);
 		if (l) {
 			m = (struct cc_oci_mount*)l->data;
 			m->directory_created = g_strdup((char*)node->children->data);
@@ -609,6 +673,42 @@ handle_state_annotations_section(GNode* node, struct handler_data* data)
 }
 
 /*!
+ *  handler for block fstype section
+ *
+ * \param node \c GNode.
+ * \param data \ref handler_data.
+ */
+static void
+handle_state_blockFstype_section(GNode* node, struct handler_data* data) {
+	update_subelements_and_strdup(node, data, block_fstype);
+}
+
+/*!
+ *  handler for block index section
+ *
+ * \param node \c GNode.
+ * \param data \ref handler_data.
+ */
+static void
+handle_state_blockIndex_section(GNode* node, struct handler_data* data) {
+	gchar* endptr = NULL;
+
+	if (node) {
+		if (! node->data) {
+			return;
+		}
+		data->state->block_index =
+			(GPid)g_ascii_strtoll((char*)node->data, &endptr, 10);
+		if (endptr != node->data) {
+			(*(data->subelements_count))++;
+		} else {
+			g_critical("failed to convert '%s' to int",
+			    (char*)node->data);
+		}
+	}
+}
+
+/*!
 * handler for process section usig oci spec handlers
 *
 * \param node \c GNode.
@@ -798,8 +898,10 @@ cc_oci_state_free (struct oci_state *state)
 	g_free_if_set (state->bundle_path);
 	g_free_if_set (state->comms_path);
 	g_free_if_set (state->procsock_path);
+	g_free_if_set (state->workload_dir);
 	g_free_if_set (state->create_time);
 	g_free_if_set (state->console);
+	g_free_if_set (state->block_fstype);
 
 	if(state->process) {
 		if (state->process->args) {
@@ -815,6 +917,10 @@ cc_oci_state_free (struct oci_state *state)
 
 	if (state->mounts) {
 		cc_oci_mounts_free_all (state->mounts);
+	}
+
+	if (state->rootfs_mount) {
+		cc_oci_mounts_free_all (state->rootfs_mount);
 	}
 
 	if (state->namespaces) {
@@ -903,6 +1009,7 @@ cc_oci_state_file_create (struct cc_oci_config *config,
 	JsonObject  *proxy = NULL;
 	JsonObject  *annotation_obj = NULL;
 	JsonArray   *mounts = NULL;
+	JsonArray   *rootfs_mount = NULL;
 	JsonArray   *namespaces = NULL;
 	JsonObject  *process = NULL;
 	JsonObject  *pod = NULL;
@@ -933,6 +1040,9 @@ cc_oci_state_file_create (struct cc_oci_config *config,
 		return false;
 	}
 	if ( ! config->state.procsock_path[0]) {
+		return false;
+	}
+	if ( !config->pod  && !config->workload_dir[0]) {
 		return false;
 	}
 	if (! config->vm) {
@@ -976,6 +1086,18 @@ cc_oci_state_file_create (struct cc_oci_config *config,
 	json_object_set_string_member (obj, "processPath",
 			config->state.procsock_path);
 
+	if (config->workload_dir[0]) {
+		json_object_set_string_member (obj, "workloadDir",
+			config->workload_dir);
+	}
+
+	if (config->state.block_fstype) {
+		json_object_set_string_member (obj, "blockFstype",
+			config->state.block_fstype);
+		json_object_set_int_member (obj, "blockIndex",
+			config->state.block_index);
+	}
+
 	status = cc_oci_status_get (config);
 	if (! status) {
 		goto out;
@@ -994,6 +1116,11 @@ cc_oci_state_file_create (struct cc_oci_config *config,
 	}
 
 	json_object_set_array_member (obj, "mounts", mounts);
+
+	rootfs_mount = cc_oci_rootfs_mount_to_json (config);
+	if ( rootfs_mount) {
+		json_object_set_array_member (obj, "rootfsMount", rootfs_mount);
+	}
 
 	/* Add an array of namespaces to allow join to them and
 	 * umount or clear all resources

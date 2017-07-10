@@ -21,7 +21,7 @@
 #
 
 AC_PREREQ([2.69])
-AC_INIT([cc-oci-runtime], [2.1.11])
+AC_INIT([cc-oci-runtime], [2.2.1])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([foreign -Wall -Werror -Wno-portability silent-rules subdir-objects color-tests no-dist-gzip dist-xz])
 AM_SILENT_RULES([yes])
@@ -154,6 +154,9 @@ AM_CONDITIONAL([CRIO_TESTS], [test x"$run_crio_tests" = x"yes"])
 
 # Checks for libraries.
 source $srcdir/versions.txt
+
+AC_SUBST([CLEAR_VM_IMAGE_VERSION], [$clear_vm_image_version])
+AC_SUBST([CLEAR_VM_KERNEL_VERSION], [$clear_vm_kernel_version])
 
 PKG_CHECK_MODULES([GLIB], [glib-2.0 >= "$glib_version"], have_required_glib=yes, have_required_glib=no)
 AS_IF([test "$have_required_glib" != "yes"], AC_MSG_ERROR([ERROR: need glib ${glib_version}+ for the `G_FILE_MONITOR_WATCH_MOVES' flag]))
@@ -318,6 +321,14 @@ AS_IF([test x"$with_tests_bundle_path" != x""],
 
 #Kernel path for Clear Containers
 DEFAULT_KERNEL_PATH=$localstatedir/lib/$PACKAGE_NAME/data/kernel/vmlinuz.container
+
+# Verify container kernel is installed by package.
+OBS_PKG_KERNEL_PATH="/usr/share/clear-containers/vmlinux.container"
+if  [ ! -f "$DEFAULT_KERNEL_PATH" -a -f "$OBS_PKG_KERNEL_PATH" ] ; then
+	DEFAULT_KERNEL_PATH="$OBS_PKG_KERNEL_PATH"
+	AC_MSG_WARN($DEFAULT_KERNEL_PATH detected using as default kernel path)
+fi
+
 AC_ARG_WITH([cc-kernel],
     [AS_HELP_STRING([--with-cc-kernel=[[KERNEL-PATH]]],
         [clear container kernel path])
@@ -331,8 +342,24 @@ AC_ARG_WITH([cc-kernel],
     ]
 )
 
+if test -f "$CONTAINER_KERNEL"; then
+	KERNEL_FOUND=yes
+else
+	KERNEL_HELP="Could not find $CONTAINER_KERNEL kernel file. Use --with-cc-kernel to specify the correct path to container kernel."
+	AC_MSG_WARN([$KERNEL_HELP])
+	KERNEL_FOUND=no
+fi
+
+
 #Container image path for Clear Containers
 DEFAULT_CONTAINER_IMG=$localstatedir/lib/$PACKAGE_NAME/data/image/clear-containers.img
+
+# Verify container image is installed by package.
+OBS_PKG_IMAGE_PATH="/usr/share/clear-containers/clear-containers.img"
+if  [ ! -f "$DEFAULT_CONTAINER_IMG" -a -f "$OBS_PKG_IMAGE_PATH" ] ; then
+	DEFAULT_CONTAINER_IMG="$OBS_PKG_IMAGE_PATH"
+	AC_MSG_WARN($DEFAULT_CONTAINER_IMG detected using as default kernel path)
+fi
 AC_ARG_WITH([cc-image],
     [AS_HELP_STRING([--with-cc-image=[[IMAGE-PATH]]],
         [clear container image path])
@@ -345,6 +372,14 @@ AC_ARG_WITH([cc-image],
         AC_SUBST([CONTAINERS_IMG],[$DEFAULT_CONTAINER_IMG])
     ]
 )
+
+if test -f "$CONTAINERS_IMG"; then
+	IMAGE_FOUND=yes
+else
+	IMAGE_HELP="Could not find $CONTAINERS_IMG image file. Use --with-cc-image to specify the correct path to container image."
+	AC_MSG_WARN([$IMAGE_HELP])
+	IMAGE_FOUND=no
+fi
 
 # CRI-O artifacts
 DEFAULT_CRIO_CACHE=$localstatedir/lib/$PACKAGE_NAME/cri-o/cache
@@ -392,8 +427,10 @@ cc-oci-runtime - $VERSION
 
        QEMU                     : $ac_cv_path_QEMU
        QEMU pc-lite             : $has_pc_lite
-       Container kernel         : $CONTAINER_KERNEL
-       Container image          : $CONTAINERS_IMG
+       Container kernel         : $CONTAINER_KERNEL (found: $KERNEL_FOUND)
+                                  $KERNEL_HELP
+       Container image          : $CONTAINERS_IMG (found: $IMAGE_FOUND)
+                                  $IMAGE_HELP
        Container image services : $CC_IMAGE_SYSTEMDSYSTEMUNIT_PATH
        Debug build              : $enable_debug
 

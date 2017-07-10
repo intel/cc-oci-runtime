@@ -23,7 +23,7 @@
 static void
 show_version (void)
 {
-	g_print ("%s version: %s\n", PACKAGE_NAME, PACKAGE_VERSION);
+	g_print ("%s version: %s-networking-poc\n", PACKAGE_NAME, PACKAGE_VERSION);
 	g_print ("spec version: %s\n", CC_OCI_SUPPORTED_SPEC_VERSION);
 	g_print ("commit: %s\n", GIT_COMMIT);
 }

@@ -69,6 +69,7 @@ GENERATED_FILES = \
 	tests/metrics/network/network-metrics-memory-pss.sh \
 	tests/metrics/network/network-metrics-memory-rss-1g.sh \
 	tests/metrics/network/network-metrics-memory-pss-1g.sh \
+	tests/lib/send_results.sh \
 	tests/lib/test-common.bash
 
 $(GENERATED_FILES): %: %.in Makefile
@@ -95,6 +96,11 @@ $(GENERATED_FILES): %: %.in Makefile
 		CRIO_CACHE="$(CRIO_CACHE)" \
 		abs_builddir="$(abs_builddir)" \
 		$(top_srcdir)/data/genfile.sh "$<" "$@"
+
+# Sometimes you just want to generate the generated files without having
+# to do a full build or run some tests - so add a simple target rule
+# to allow that.
+generate-files: $(GENERATED_FILES)
 
 if FUNCTIONAL_TESTS
 if AUTO_BUNDLE_CREATION
@@ -812,6 +818,26 @@ CLEANFILES += core core.* vgcore.*
 endif
 
 check: $(CHECK_DEPS)
+
+artifacts: | install-image install-kernel
+
+# Get clear containers image path
+IMAGE_PATH := $(shell dirname $(CONTAINERS_IMG))
+install-image:
+	@if [ $(shell id -u) -ne 0 ]; then \
+		$(srcdir)/installation/install_clear_image.sh $(CLEAR_VM_IMAGE_VERSION) $(IMAGE_PATH) ; \
+	else \
+		>&2 echo "ERROR: do not run $@ as root" ; \
+	fi
+
+# Get clear containers kernel path
+KERNEL_PATH := $(shell dirname $(CONTAINER_KERNEL))
+install-kernel:
+	@if [ $(shell id -u) -ne 0 ]; then \
+		$(srcdir)/installation/install_clear_kernel.sh $(CLEAR_VM_IMAGE_VERSION) $(CLEAR_VM_KERNEL_VERSION) $(KERNEL_PATH) ; \
+	else \
+		>&2 echo "ERROR: do not run $@ as root" ; \
+	fi
 
 clean-local:
 	rm -f commit_id

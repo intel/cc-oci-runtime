@@ -1,3 +1,9 @@
+linux-container (4.9.31-61) stable; urgency=medium
+
+  * Update kernel 4.9.31
+
+ -- Jose Carlos Venegas Munoz <jose.carlos.venegas.munoz@intel.com>  Fri, 09 Jun 2017 13:00:29 -0500
+
 linux-container (4.9.30-60) stable; urgency=medium
 
   * Update kernel 4.9.30
