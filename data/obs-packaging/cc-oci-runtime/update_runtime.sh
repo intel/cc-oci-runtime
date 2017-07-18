@@ -16,6 +16,9 @@ hash_tag=$(git log --oneline --pretty="%H %d" --decorate --tags --no-walk | grep
 # If there is no tag matching $VERSION we'll get $VERSION as the reference
 [ -z "$hash_tag" ] && hash_tag=$VERSION || :
 
+# load versions
+source ../../../versions.txt
+
 OBS_PUSH=${OBS_PUSH:-false}
 OBS_RUNTIME_REPO=${OBS_RUNTIME_REPO:-home:clearlinux:preview:clear-containers-staging/cc-oci-runtime}
 
@@ -37,8 +40,22 @@ function changelog_update {
 }
 changelog_update $VERSION
 
-sed "s/@VERSION@/$VERSION/g;" cc-oci-runtime.spec-template > cc-oci-runtime.spec
-sed "s/@VERSION@/$VERSION/g;" cc-oci-runtime.dsc-template > cc-oci-runtime.dsc
+sed -e "s/@VERSION@/$VERSION/" \
+    -e "s/@qemu_lite_version@/$qemu_lite_fedora_obs_version/" \
+    -e "s/@cc_image_version@/$cc_image_fedora_obs_version/" \
+    -e "s/@cc_selinux_version@/$cc_selinux_fedora_obs_version/" \
+    -e "s/@linux_container_version@/$linux_container_fedora_obs_version/" cc-oci-runtime.spec-template > cc-oci-runtime.spec
+
+sed -e "s/@VERSION@/$VERSION/" \
+    -e "s/@qemu_lite_version@/$qemu_lite_ubuntu_obs_version/" \
+    -e "s/@cc_image_version@/$cc_image_ubuntu_obs_version/" \
+    -e "s/@linux_container_version@/$linux_container_ubuntu_obs_version/" cc-oci-runtime.dsc-template > cc-oci-runtime.dsc
+
+sed -e "s/@VERSION@/$VERSION/" \
+    -e "s/@qemu_lite_version@/$qemu_lite_ubuntu_obs_version/" \
+    -e "s/@cc_image_version@/$cc_image_ubuntu_obs_version/" \
+    -e "s/@linux_container_version@/$linux_container_ubuntu_obs_version/" debian.control-template > debian.control
+
 sed "s/@VERSION@/$VERSION/g;" _service-template > _service
 sed "s/@HASH_TAG@/$hash_tag/g;" update_commit_id.patch-template > update_commit_id.patch
 
@@ -50,13 +67,13 @@ then
     osc co "$OBS_RUNTIME_REPO" -o $TMPDIR
     mv cc-oci-runtime.spec \
         cc-oci-runtime.dsc \
+        debian.control \
         _service \
         $TMPDIR
     rm $TMPDIR/*.patch
     cp debian.changelog \
         debian.rules \
         debian.compat \
-        debian.control \
         debian.postinst \
         debian.series \
         *.patch \

@@ -40,10 +40,10 @@ BuildRequires : autoconf-archive
 BuildRequires : autoconf
 BuildRequires : automake
 %endif
-Requires:  clear-containers-image
-Requires:  clear-containers-selinux
-Requires:  qemu-lite
-Requires:  linux-container
+Requires:  clear-containers-image >= @cc_image_version@
+Requires:  clear-containers-selinux >= @cc_selinux_version@
+Requires:  qemu-lite >= @qemu_lite_version@
+Requires:  linux-container >= @linux_container_version@
 Patch1: update_commit_id.patch
 
 %description
