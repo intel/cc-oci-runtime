@@ -48,7 +48,7 @@ All you need to do to use ``ciao-down`` on your machine is:
 * Install ``ciao-down``:
 
    ```
-   $ go get github.com/01org/ciao/testutil/ciao-down
+   $ go get -u github.com/01org/ciao/testutil/ciao-down
    ```
 
 * Create a Clear Containers VM:
