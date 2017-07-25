@@ -48,14 +48,14 @@ All you need to do to use ``ciao-down`` on your machine is:
 * Install ``ciao-down``:
 
    ```
-   $ go get github.com/01org/ciao/testutil/ciao-down
+   $ go get -u github.com/01org/ciao/testutil/ciao-down
    ```
 
 * Create a Clear Containers VM:
 
 
    ```
-   $ $GOPATH/bin/ciao-down prepare -vmtype clearcontainers
+   $ $GOPATH/bin/ciao-down create clearcontainers
    $ $GOPATH/bin/ciao-down connect
    ```
 
@@ -63,9 +63,9 @@ All you need to do to use ``ciao-down`` on your machine is:
 
 
 ```
-$ ciao-down [prepare|start|stop|quit|status|connect|delete]
+$ ciao-down [create|start|stop|quit|status|connect|delete]
 
-- prepare : creates a new VM for ciao or clear containers
+- create : creates a new VM
 - start : boots a stopped VM
 - stop : cleanly powers down a running VM
 - quit : quits a running VM
