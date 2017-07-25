@@ -11,5 +11,5 @@ DEBTRANSFORM-RELEASE: 1
 
 Package: cc-oci-runtime
 Architecture: amd64
-Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}, qemu-lite, clear-containers-image, linux-container
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}, qemu-lite (>=@qemu_lite_version@), clear-containers-image (>=@cc_image_version@), linux-container (>=@linux_container_version@)
 Description:  An Open Containers Initiative (OCI) "runtime" that launches an Intel VT-x secured Clear Containers 2.1 hypervisor, rather than a standard Linux container.

@@ -12,3 +12,14 @@ qemu_lite_version=741f430a960b5b67745670e8270db91aeb083c5f
 mpfr_version=3.1.4
 gmp_version=6.1.0
 mpc_version=1.0.3
+
+# OBS Fedora package versions
+cc_image_fedora_obs_version=16180-29.1
+cc_selinux_fedora_obs_version=0.1-2.1
+linux_container_fedora_obs_version=4.9.35-65.1
+qemu_lite_fedora_obs_version=2.7.1+git.741f430-5.1
+
+# OBS Ubuntu package versions
+cc_image_ubuntu_obs_version=16180-22
+linux_container_ubuntu_obs_version=4.9.35-62
+qemu_lite_ubuntu_obs_version=2.7.1+git.741f430-5.1
