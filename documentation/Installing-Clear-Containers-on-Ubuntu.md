@@ -58,7 +58,7 @@ For more information on installing Docker please refer to the
 
 ```
 sudo sh -c "echo 'deb http://download.opensuse.org/repositories/home:/clearlinux:/preview:/clear-containers-2.1/xUbuntu_$(lsb_release -rs)/ /' >> /etc/apt/sources.list.d/cc-oci-runtime.list"
-curl -fsSL http://download.opensuse.org/repositories/home:clearlinux:preview:clear-containers-2.1/xUbuntu_$(lsb_release -rs)/Release.key | sudo apt-key add -
+curl -fsSL http://download.opensuse.org/repositories/home:/clearlinux:/preview:/clear-containers-2.1/xUbuntu_$(lsb_release -rs)/Release.key | sudo apt-key add -
 ```
 
 ## Install Clear Containers 2.1
